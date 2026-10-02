@@ -112,9 +112,6 @@ const htmlContent = `<!DOCTYPE html>
     <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
       <!-- 園所與班級 Logo 識別 -->
       <div class="flex items-center gap-3 cursor-pointer" onclick="switchTab('home')">
-        <div class="w-12 h-12 rounded-2xl bg-white shadow-md border-2 border-rose-200 p-0.5 flex items-center justify-center overflow-hidden shrink-0 transition-transform active:scale-95">
-          <img src="${logoB64}" alt="幼兒園 Logo" class="w-full h-full object-contain">
-        </div>
         <div>
           <div class="flex items-center gap-1.5 flex-wrap">
             
@@ -1169,7 +1166,6 @@ const htmlContent = `<!DOCTYPE html>
   <!-- ==================== 頁尾 FOOTER ==================== -->
   <footer class="bg-white border-t border-rose-100/80 py-6 mt-12 text-center text-xs text-slate-400 space-y-1">
     <div class="flex items-center justify-center gap-2">
-      <img src="${logoB64}" alt="3&3" class="w-5 h-5 object-contain inline-block">
       <span class="font-bold text-slate-600">桃子腳幼兒園</span>
       <span>•</span>
       <span class="font-bold text-peach-600">諾貝爾 A 班</span>
