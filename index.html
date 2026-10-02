@@ -1101,7 +1101,7 @@
 
   <!-- ==================== SPOTLIGHT 攻略大圖彈窗 (MODAL) ==================== -->
   <div id="spotlightModal" class="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4 hidden">
-    <div class="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-5 shadow-2xl space-y-4 relative">
+    <div class="bg-white rounded-3xl max-w-2xl md:max-w-4xl lg:max-w-5xl w-full max-h-[90vh] overflow-y-auto p-5 shadow-2xl space-y-4 relative">
       <button onclick="closeSpotlightModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-base tap-bounce">
         ✕
       </button>
@@ -1116,7 +1116,7 @@
         <button onclick="nextSpotlightModal()" class="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 hover:bg-white shadow-md flex items-center justify-center text-slate-800 font-bold text-lg tap-bounce z-10 hidden" id="modalSpotlightNextBtn">
           ▶
         </button>
-        <img id="modalSpotlightImg" src="./spotlight-fluoride.jpg" alt="活動攻略" class="w-full max-h-[60vh] object-contain">
+        <img id="modalSpotlightImg" src="./spotlight-fluoride.jpg" alt="活動攻略" class="w-full max-h-[75vh] object-contain">
         <div id="modalSpotlightVideoContainer" class="w-full aspect-video hidden">
           <iframe id="modalSpotlightIframe" class="w-full h-full border-0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
           <video id="modalSpotlightVideo" class="w-full h-full object-contain hidden" controls playsinline autoplay muted loop></video>
