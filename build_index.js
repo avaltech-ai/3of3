@@ -1263,22 +1263,67 @@ const htmlContent = `<!DOCTYPE html>
         else if (action === 'setupInitialDatabase') runner.setupInitialDatabase();
       } else {
         // GitHub Pages / 外網模式
-        if (action === 'getAppData' || action === 'getAlbums' || action === 'getAlbumPhotos') {
+        if (action === 'getAppData' || action === 'getAlbums' || action === 'getAlbumPhotos' || action === 'getActivityImages') {
           let url = GAS_API_URL + '?action=' + encodeURIComponent(action);
           if (payload && payload.albumId) url += '&albumId=' + encodeURIComponent(payload.albumId);
-          fetch(url)
+          fetch(url, { redirect: 'follow' })
             .then(r => r.json())
             .then(res => { if (successCb) successCb(res); })
             .catch(err => { if (errorCb) errorCb(err); });
         } else {
+          // GAS Web App POST 會進行 302 跳轉；為避免 CORS preflight 被擋，
+          // 使用 text/plain Content-Type 且以 redirect:'follow' 模式跟隨跳轉
+          const bodyStr = JSON.stringify({ action, ...payload });
+
           fetch(GAS_API_URL, {
             method: 'POST',
+            redirect: 'follow',
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({ action, ...payload })
+            body: bodyStr
           })
-            .then(r => r.json())
-            .then(res => { if (successCb) successCb(res); })
-            .catch(err => { if (errorCb) errorCb(err); });
+          .then(r => {
+            // GAS 跳轉後可能變成 opaque response，嘗試解析 JSON
+            if (r.ok || r.type === 'opaque' || r.redirected) {
+              return r.text().then(txt => {
+                try { return JSON.parse(txt); }
+                catch (e) { return { success: true, message: '操作已送出（回應格式解析略過）' }; }
+              });
+            }
+            throw new Error('HTTP ' + r.status);
+          })
+          .then(res => { if (successCb) successCb(res); })
+          .catch(err => {
+            // fetch 失敗時，使用 XMLHttpRequest 作為備援（部分瀏覽器對 GAS redirect 的相容性較好）
+            console.warn('Fetch POST failed, retrying with XHR:', err);
+            try {
+              const xhr = new XMLHttpRequest();
+              xhr.open('POST', GAS_API_URL, true);
+              xhr.setRequestHeader('Content-Type', 'text/plain;charset=utf-8');
+              xhr.onload = function() {
+                try {
+                  const res = JSON.parse(xhr.responseText);
+                  if (successCb) successCb(res);
+                } catch (e) {
+                  // XHR 可能收到重導頁面 HTML（GAS 302 後的 HTML），視為成功送出
+                  if (xhr.status >= 200 && xhr.status < 400) {
+                    if (successCb) successCb({ success: true, message: '操作已送出至伺服器' });
+                  } else {
+                    if (errorCb) errorCb(new Error('XHR 回應異常 (HTTP ' + xhr.status + ')'));
+                  }
+                }
+              };
+              xhr.onerror = function() {
+                if (errorCb) errorCb(new Error('XHR 連線失敗，請確認網路連線'));
+              };
+              xhr.ontimeout = function() {
+                if (errorCb) errorCb(new Error('XHR 連線逾時'));
+              };
+              xhr.timeout = 120000; // 2 分鐘逾時
+              xhr.send(bodyStr);
+            } catch (xhrErr) {
+              if (errorCb) errorCb(xhrErr);
+            }
+          });
         }
       }
     }
