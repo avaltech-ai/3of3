@@ -1277,6 +1277,48 @@ const htmlContent = `<!DOCTYPE html>
         const imgEl = document.getElementById('spotlightImg');
         if (imgEl) imgEl.src = sp.imageUrl;
       }
+
+      // 動態渲染首頁「重點說明與注意事項」清單卡片 (換行分隔)
+      const ptsContainer = document.getElementById('spotlightPoints');
+      if (ptsContainer && sp.bulletPoints) {
+        const newlineChar = String.fromCharCode(10);
+        const lines = sp.bulletPoints.split(newlineChar).map(function(l) { return l.trim(); }).filter(Boolean);
+        if (lines.length > 0) {
+          ptsContainer.innerHTML = '';
+          lines.forEach(function(line) {
+            var tag = '';
+            var content = line;
+            if (line.indexOf('【') === 0 && line.indexOf('】') > 0) {
+              var closeIdx = line.indexOf('】');
+              tag = line.substring(1, closeIdx).trim();
+              content = line.substring(closeIdx + 1).trim();
+            }
+
+            const item = document.createElement('div');
+            if (tag) {
+              const isWarning = tag.indexOf('注意') >= 0 || tag.indexOf('重要') >= 0 || tag.indexOf('卡') >= 0;
+              const isTeal = tag.indexOf('檢查') >= 0 || tag.indexOf('塗氟') >= 0 || tag.indexOf('時間') >= 0;
+              const isEnd = tag.indexOf('尾聲') >= 0 || tag.indexOf('禮物') >= 0 || tag.indexOf('結束') >= 0;
+              
+              const borderClass = isWarning ? 'border-amber-200 bg-amber-50/80 col-span-1 sm:col-span-2' : isTeal ? 'border-teal-100 bg-teal-50/50' : isEnd ? 'border-indigo-100 bg-indigo-50/50' : 'border-rose-100 bg-white/80';
+              const textClass = isWarning ? 'text-amber-700 font-bold' : isTeal ? 'text-teal-700 font-bold' : isEnd ? 'text-indigo-700 font-bold' : 'text-rose-600 font-bold';
+              const icon = isWarning ? '⚠️' : isTeal ? '🩺' : isEnd ? '🎁' : '🦷';
+
+              item.className = 'p-2.5 rounded-xl border ' + borderClass + ' shadow-2xs';
+              item.innerHTML = '<div class="' + textClass + ' flex items-center gap-1 mb-0.5 text-xs">' +
+                '<span>' + icon + '</span> 【' + tag + '】' +
+                '</div>' +
+                '<div class="text-slate-700 text-xs leading-relaxed font-medium">' + content + '</div>';
+            } else {
+              item.className = 'p-2.5 rounded-xl border border-rose-100 bg-white/80 shadow-2xs flex items-start gap-1.5 text-xs text-slate-700 font-medium';
+              item.innerHTML = '<span class="text-peach-500 font-bold shrink-0">✨</span>' +
+                '<span class="leading-relaxed">' + line + '</span>';
+            }
+            ptsContainer.appendChild(item);
+          });
+        }
+      }
+
       const modalTitleEl = document.getElementById('modalSpotlightTitle');
       if (modalTitleEl) modalTitleEl.textContent = sp.title || '牙齒塗氟日 活動攻略圖';
       const modalImgEl = document.getElementById('modalSpotlightImg');
