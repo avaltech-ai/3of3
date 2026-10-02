@@ -1,5 +1,5 @@
 /**
- * 桃子腳非營利幼兒園 諾貝爾 A 班 - GAS 專屬班級網頁後端
+ * 桃子腳幼兒園 諾貝爾 A 班 - GAS 專屬班級網頁後端
  * 試算表 ID: 1lFRlvwQgo_B38YmtFD9BHqyGvuGstOK7etu3RO_BqQU
  * Albums 資料夾 ID: 1iRFAr3FZMqV-okmktipdwamjAR7WWp6d
  * Docs 資料夾 ID: 1Ie8medB2JPYdUA9LOryVnPAdko1t5rjR
@@ -149,7 +149,7 @@ function doGet(e) {
   }
 
   return HtmlService.createHtmlOutputFromFile('index')
-    .setTitle('新北市桃子腳非營利幼兒園 - 諾貝爾 A 班')
+    .setTitle('桃子腳幼兒園 - 諾貝爾 A 班')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
     .addMetaTag('viewport', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no')
     .setFaviconUrl('https://img.icons8.com/color/48/school.png');
@@ -281,7 +281,7 @@ function getAppData() {
         docs: docs || [],
         settings: {
           className: settings.CLASS_NAME || '諾貝爾 A 班',
-          kindergartenName: settings.KINDERGARTEN_NAME || '新北市桃子腳非營利幼兒園',
+          kindergartenName: settings.KINDERGARTEN_NAME || '桃子腳幼兒園',
           albumsFolderId: settings.ALBUMS_FOLDER_ID || ALBUMS_FOLDER_ID,
           docsFolderId: settings.DOCS_FOLDER_ID || DOCS_FOLDER_ID,
           activityFolderId: actFolderId || settings.ACTIVITY_FOLDER_ID || '',
@@ -1088,7 +1088,7 @@ function setupInitialDatabase() {
   const sampleDocs = [
     ['DOC-01', '幼兒用藥委託單.pdf', '保健用藥', '若幼兒當日需要委託老師餵藥，請家長下載列印填妥簽名後連同藥品一併交由老師。', '', 'https://drive.google.com/drive/folders/1Ie8medB2JPYdUA9LOryVnPAdko1t5rjR', '2026-09-01'],
     ['DOC-02', '115學年度(上)全園活動規劃暨親職活動行事曆.pdf', '學期行事曆', '115學年度上學期完整行事曆，包含親師座談、幸福廚房排程與各連假公告。', '', 'https://drive.google.com/drive/folders/1Ie8medB2JPYdUA9LOryVnPAdko1t5rjR', '2026-08-01'],
-    ['DOC-03', '10月份營養午餐及點心菜單表.pdf', '餐飲菜單', '新北市桃子腳非營利幼兒園10月份每日早午點、當季水果與午餐五菜一湯明細。', '', 'https://drive.google.com/drive/folders/1Ie8medB2JPYdUA9LOryVnPAdko1t5rjR', '2026-10-01'],
+    ['DOC-03', '10月份營養午餐及點心菜單表.pdf', '餐飲菜單', '桃子腳幼兒園10月份每日早午點、當季水果與午餐五菜一湯明細。', '', 'https://drive.google.com/drive/folders/1Ie8medB2JPYdUA9LOryVnPAdko1t5rjR', '2026-10-01'],
     ['DOC-04', '諾貝爾A班作息與入園須知手冊.pdf', '親師手冊', '包含諾貝爾A班每日晨間作息、生活自理引導與接送注意事項。', '', 'https://drive.google.com/drive/folders/1Ie8medB2JPYdUA9LOryVnPAdko1t5rjR', '2026-08-15']
   ];
   docsSheet.getRange(2, 1, sampleDocs.length, 7).setValues(sampleDocs);
@@ -1103,7 +1103,7 @@ function setupInitialDatabase() {
   const sampleSettings = [
     ['ADMIN_PASSWORD', 'nobel-a-2026', '後台管理員登入密碼（可於後台直接更改）'],
     ['CLASS_NAME', '諾貝爾 A 班', '班級名稱'],
-    ['KINDERGARTEN_NAME', '新北市桃子腳非營利幼兒園', '幼兒園全名'],
+    ['KINDERGARTEN_NAME', '桃子腳幼兒園', '幼兒園全名'],
     ['ALBUMS_FOLDER_ID', ALBUMS_FOLDER_ID, '相簿根目錄 Google Drive 資料夾 ID'],
     ['DOCS_FOLDER_ID', DOCS_FOLDER_ID, '文件根目錄 Google Drive 資料夾 ID'],
     ['ACTIVITY_FOLDER_ID', ACTIVITY_FOLDER_ID, 'Spotlight 活動圖片 Google Drive 資料夾 ID'],

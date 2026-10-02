@@ -7,7 +7,7 @@ const htmlContent = `<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>桃子腳非營利幼兒園 - 諾貝爾 A 班</title>
+  <title>桃子腳幼兒園 - 諾貝爾 A 班</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -118,7 +118,7 @@ const htmlContent = `<!DOCTYPE html>
         <div>
           <div class="flex items-center gap-1.5 flex-wrap">
             
-            <span class="text-xs font-medium text-slate-500">新北市桃子腳非營利幼兒園</span>
+            <span class="text-xs font-medium text-slate-500">桃子腳幼兒園</span>
           </div>
           <h1 class="text-lg sm:text-xl font-black text-slate-800 tracking-tight flex items-center gap-1.5 mt-0.5">
             <span>諾貝爾 A 班</span>
@@ -1170,7 +1170,7 @@ const htmlContent = `<!DOCTYPE html>
   <footer class="bg-white border-t border-rose-100/80 py-6 mt-12 text-center text-xs text-slate-400 space-y-1">
     <div class="flex items-center justify-center gap-2">
       <img src="${logoB64}" alt="3&3" class="w-5 h-5 object-contain inline-block">
-      <span class="font-bold text-slate-600">新北市桃子腳非營利幼兒園</span>
+      <span class="font-bold text-slate-600">桃子腳幼兒園</span>
       <span>•</span>
       <span class="font-bold text-peach-600">諾貝爾 A 班</span>
     </div>
