@@ -20,6 +20,8 @@
   👉 [https://drive.google.com/drive/folders/1iRFAr3FZMqV-okmktipdwamjAR7WWp6d](https://drive.google.com/drive/folders/1iRFAr3FZMqV-okmktipdwamjAR7WWp6d)
 * **Google Drive 常用文件（Docs）**：
   👉 [https://drive.google.com/drive/folders/1Ie8medB2JPYdUA9LOryVnPAdko1t5rjR](https://drive.google.com/drive/folders/1Ie8medB2JPYdUA9LOryVnPAdko1t5rjR)
+* **Google Drive Spotlight 活動圖片（Acticity）**：
+  👉 [https://drive.google.com/drive/folders/1EKWV3ASXIttVtud1f_pfl672MkEfwa8b2](https://drive.google.com/drive/folders/1EKWV3ASXIttVtud1f_pfl672MkEfwa8b2)
 
 ---
 

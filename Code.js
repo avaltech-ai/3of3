@@ -8,6 +8,7 @@
 const SPREADSHEET_ID = '1lFRlvwQgo_B38YmtFD9BHqyGvuGstOK7etu3RO_BqQU';
 const ALBUMS_FOLDER_ID = '1iRFAr3FZMqV-okmktipdwamjAR7WWp6d';
 const DOCS_FOLDER_ID = '1Ie8medB2JPYdUA9LOryVnPAdko1t5rjR';
+const ACTIVITY_FOLDER_ID = '1EKWV3ASXIttVtud1f_pfl672MkEfwa8b2';
 
 /**
  * 試算表自訂選單（開啟 Google 試算表時自動載入）
@@ -103,6 +104,8 @@ function doPost(e) {
       result = uploadPhotosToAlbum(postData.date, postData.title, postData.files, postData.password);
     } else if (action === 'uploadDocument') {
       result = uploadDocument(postData.meta, postData.file, postData.password);
+    } else if (action === 'uploadSpotlightImage') {
+      result = uploadSpotlightImage(postData.file, postData.password);
     } else if (action === 'deleteDoc') {
       result = deleteDoc(postData.id, postData.password);
     } else if (action === 'updateSettings') {
@@ -380,6 +383,45 @@ function uploadDocument(docMeta, fileObj, password) {
     return {
       success: false,
       error: '上傳文件失敗: ' + err.toString()
+    };
+  }
+}
+
+/**
+ * 上傳 Spotlight 圖片至 Google Drive Acticity 資料夾
+ */
+function uploadSpotlightImage(fileObj, password) {
+  if (!checkPassword(password)) {
+    return { success: false, error: '管理員密碼錯誤！' };
+  }
+
+  try {
+    const folder = DriveApp.getFolderById(ACTIVITY_FOLDER_ID);
+    const decodedBytes = Utilities.base64Decode(fileObj.base64);
+    const fileName = fileObj.name || ('Spotlight_' + Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyyMMdd_HHmmss') + '.jpg');
+    const blob = Utilities.newBlob(decodedBytes, fileObj.mimeType || 'image/jpeg', fileName);
+    const newFile = folder.createFile(blob);
+    try {
+      newFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    } catch (e) {
+      console.warn('Set sharing failed: ' + e);
+    }
+
+    const fileId = newFile.getId();
+    // 使用 Drive 高解析度縮圖網址 (sz=w1600)，可直接於 <img> 標籤無障礙顯示
+    const imageUrl = 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w1600';
+
+    return {
+      success: true,
+      fileId: fileId,
+      fileName: fileName,
+      imageUrl: imageUrl,
+      message: 'Spotlight 圖片已成功上傳至 Google Drive 的 Acticity 資料夾！'
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: '上傳 Spotlight 圖片至 Acticity 資料夾失敗: ' + err.toString()
     };
   }
 }
@@ -855,6 +897,7 @@ function setupInitialDatabase() {
     ['KINDERGARTEN_NAME', '新北市桃子腳非營利幼兒園', '幼兒園全名'],
     ['ALBUMS_FOLDER_ID', ALBUMS_FOLDER_ID, '相簿根目錄 Google Drive 資料夾 ID'],
     ['DOCS_FOLDER_ID', DOCS_FOLDER_ID, '文件根目錄 Google Drive 資料夾 ID'],
+    ['ACTIVITY_FOLDER_ID', ACTIVITY_FOLDER_ID, 'Spotlight 活動圖片 Google Drive 資料夾 ID'],
     ['TICKER_MESSAGE', '🌟 歡迎來到諾貝爾 A 班！10/23 (五) 為全園牙齒塗氟日，請家長記得備妥健保卡喔！', '頂部即時公告走馬燈訊息']
   ];
   setSheet.getRange(2, 1, sampleSettings.length, 3).setValues(sampleSettings);

@@ -841,8 +841,35 @@
               </div>
             </div>
             <div>
-              <label class="block text-xs font-bold text-slate-600 mb-1">圖片網址 (可用 Drive 圖床或圖片連結)</label>
-              <input type="text" id="spForm-imageUrl" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium">
+              <div class="flex items-center justify-between mb-1">
+                <label class="block text-xs font-bold text-slate-600">圖片網址 (可直接點選上傳至 Acticity 資料夾，或貼上連結)</label>
+                <a href="https://drive.google.com/drive/folders/1EKWV3ASXIttVtud1f_pfl672MkEfwa8b2" target="_blank" class="text-[11px] font-bold text-teal-600 hover:underline flex items-center gap-1">
+                  📂 Acticity 雲端資料夾
+                </a>
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="flex-1 relative flex items-center">
+                  <input type="text" id="spForm-imageUrl" placeholder="可點選右側上傳圖片，或在此貼上圖片連結..." class="w-full pl-3 pr-28 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-peach-500 focus:outline-none" oninput="updateSpPreviewFromUrl()">
+                  <button type="button" onclick="document.getElementById('spImageFileInput').click()" class="absolute right-1 px-3 py-1.5 rounded-lg bg-peach-50 hover:bg-peach-100 text-peach-600 text-xs font-bold border border-peach-200 tap-bounce flex items-center gap-1">
+                    <span>📸</span> 選擇圖片上傳
+                  </button>
+                </div>
+                <input type="file" id="spImageFileInput" accept="image/*" class="hidden" onchange="handleSpotlightImageSelected(event)">
+              </div>
+
+              <!-- 圖片預覽與上傳狀態 -->
+              <div id="spImagePreviewContainer" class="mt-2.5 p-2.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center gap-3">
+                <div class="w-16 h-12 rounded-xl bg-slate-200 overflow-hidden shrink-0 border border-slate-200 flex items-center justify-center">
+                  <img id="spImagePreviewImg" src="" alt="預覽" class="w-full h-full object-cover">
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div id="spImageUploadStatus" class="text-xs font-bold text-slate-700 truncate">目前 Spotlight 宣傳圖</div>
+                  <div class="text-[10px] text-slate-400">預設存檔於 Google Drive 的 Acticity 資料夾</div>
+                </div>
+                <button type="button" onclick="document.getElementById('spImageFileInput').click()" class="text-xs text-peach-600 font-bold hover:underline shrink-0">
+                  更換圖片
+                </button>
+              </div>
             </div>
             <div>
               <label class="block text-xs font-bold text-slate-600 mb-1">重點說明與注意事項 (換行分隔)</label>
@@ -1028,6 +1055,7 @@
         else if (action === 'deleteSpotlight') runner.deleteSpotlight(payload.id, payload.password);
         else if (action === 'uploadPhotosToAlbum') runner.uploadPhotosToAlbum(payload.date, payload.title, payload.files, payload.password);
         else if (action === 'uploadDocument') runner.uploadDocument(payload.meta, payload.file, payload.password);
+        else if (action === 'uploadSpotlightImage') runner.uploadSpotlightImage(payload.file, payload.password);
         else if (action === 'deleteDoc') runner.deleteDoc(payload.id, payload.password);
         else if (action === 'updateSettings') runner.updateSettings(payload.settings, payload.password);
         else if (action === 'setupInitialDatabase') runner.setupInitialDatabase();
@@ -2292,6 +2320,59 @@
         document.getElementById('spForm-subtitle').value = sp.subtitle || '';
         document.getElementById('spForm-imageUrl').value = sp.imageUrl || '';
         document.getElementById('spForm-bulletPoints').value = sp.bulletPoints || '';
+        if (sp.imageUrl) {
+          const previewImg = document.getElementById('spImagePreviewImg');
+          if (previewImg) previewImg.src = sp.imageUrl;
+        }
+      }
+    }
+
+    function handleSpotlightImageSelected(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const previewImg = document.getElementById('spImagePreviewImg');
+      if (previewImg) previewImg.src = URL.createObjectURL(file);
+      const statusEl = document.getElementById('spImageUploadStatus');
+      if (statusEl) statusEl.innerHTML = '<span class="text-amber-600 font-bold">⏳ 正在上傳至 Acticity 資料夾...</span>';
+      showToast('正在上傳圖片至 Google Drive Acticity 資料夾...', '⏳');
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = reader.result.split(',')[1];
+        const fileObj = {
+          name: file.name,
+          mimeType: file.type,
+          base64: base64
+        };
+
+        callBackend('uploadSpotlightImage', { file: fileObj, password: state.adminPassword }, res => {
+          if (res && res.success) {
+            document.getElementById('spForm-imageUrl').value = res.imageUrl;
+            if (previewImg) previewImg.src = res.imageUrl;
+            if (statusEl) statusEl.innerHTML = '<span class="text-teal-600 font-bold">✅ 已成功存入 Acticity 資料夾！</span>';
+            showToast('Spotlight 圖片已上傳至 Acticity！', '🎉');
+            if (state.spotlights.length > 0) {
+              state.spotlights[0].imageUrl = res.imageUrl;
+              renderSpotlightSection();
+            }
+          } else {
+            if (statusEl) statusEl.textContent = '❌ 上傳失敗: ' + (res ? res.error : '未知錯誤');
+            showToast('上傳失敗: ' + (res ? res.error : '請重試'), '❌');
+          }
+        }, err => {
+          if (statusEl) statusEl.textContent = '❌ 上傳連線失敗';
+          showToast('上傳失敗: ' + err, '❌');
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function updateSpPreviewFromUrl() {
+      const url = document.getElementById('spForm-imageUrl').value.trim();
+      const previewImg = document.getElementById('spImagePreviewImg');
+      if (url && previewImg) {
+        previewImg.src = url;
       }
     }
 
