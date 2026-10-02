@@ -1551,7 +1551,7 @@ const htmlContent = `<!DOCTYPE html>
         {targetName: '雨奧/奧斯卡/諾奧', displayName: '雨奧/奧斯卡/諾奧'},
         {targetName: '其他', displayName: '其他班級'}
       ];
-      state.eventCategories = data.eventCategories || ['重要活動', '班級主題', '親職講座', '全園活動', '節慶放假', '園務消毒'];
+      state.eventCategoriesMajor = data.eventCategoriesMajor || []; state.eventCategoriesMinor = data.eventCategoriesMinor || [];
       renderDocCategoriesUI();
       renderEventOptionsUI();
       
