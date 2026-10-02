@@ -3549,7 +3549,7 @@ const htmlContent = `<!DOCTYPE html>
 
       const todayStr = getTodayDateStr();
 
-      spotlights.forEach(function(sp) {
+      spotlights.forEach(function(sp, index) {
         var statusBadge = '';
         if (sp.status === '停用') {
           statusBadge = '<span class="text-[0.625rem] font-bold text-rose-700 bg-rose-100 px-2 py-0.5 rounded-full">🔴 已停用</span>';
@@ -3563,8 +3563,32 @@ const htmlContent = `<!DOCTYPE html>
 
         var scheduleText = '起：' + (sp.startDate || '立即') + ' ～ 訖：' + (sp.endDate || '永久有效');
         var durationText = '⏱️ ' + (sp.duration || 5) + ' 秒';
-        var priorityText = '📌 順序: ' + (sp.priority || '未設');
         var mediaIcon = sp.mediaType === 'video' ? '🎬' : '🖼️';
+
+        var isFirst = (index === 0);
+        var isLast = (index === spotlights.length - 1);
+
+        var optionsHtml = '';
+        for (var i = 0; i < spotlights.length; i++) {
+          var sel = (i === index) ? ' selected' : '';
+          optionsHtml += '<option value="' + (i + 1) + '"' + sel + '>第 ' + (i + 1) + ' 順位</option>';
+        }
+
+        var orderWidget = '<div class="flex items-center bg-white border border-indigo-200 rounded-xl p-1 shadow-2xs gap-1">' +
+          '<button type="button" class="sp-up-btn w-6 h-6 flex items-center justify-center rounded-lg bg-slate-50 hover:bg-indigo-50 text-indigo-700 text-xs font-bold transition-all disabled:opacity-25 disabled:cursor-not-allowed" title="往上移（提高優先順序）"' + (isFirst ? ' disabled' : '') + '>' +
+          '▲' +
+          '</button>' +
+          '<div class="flex items-center gap-1 px-1">' +
+          '<span class="text-[0.6875rem] font-black text-indigo-600">第</span>' +
+          '<select class="sp-order-select text-xs font-black text-indigo-700 bg-indigo-50/80 border border-indigo-200 rounded-lg px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-indigo-400 cursor-pointer">' +
+          optionsHtml +
+          '</select>' +
+          '<span class="text-[0.6875rem] font-black text-indigo-600">順位</span>' +
+          '</div>' +
+          '<button type="button" class="sp-down-btn w-6 h-6 flex items-center justify-center rounded-lg bg-slate-50 hover:bg-indigo-50 text-indigo-700 text-xs font-bold transition-all disabled:opacity-25 disabled:cursor-not-allowed" title="往下移（降低優先順序）"' + (isLast ? ' disabled' : '') + '>' +
+          '▼' +
+          '</button>' +
+          '</div>';
 
         var card = document.createElement('div');
         card.className = 'p-3.5 bg-slate-50 hover:bg-white rounded-2xl border border-slate-200 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs';
@@ -3584,11 +3608,12 @@ const htmlContent = `<!DOCTYPE html>
           '<span>•</span>' +
           '<span class="font-bold text-peach-600">' + durationText + '</span>' +
           '<span>•</span>' +
-          '<span class="font-bold text-indigo-500">' + priorityText + '</span>' +
+          '<span class="font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">📌 輪播第 ' + (index + 1) + ' 順位</span>' +
           '</div>' +
           '</div>' +
           '</div>' +
-          '<div class="flex items-center gap-2 shrink-0 self-end sm:self-center">' +
+          '<div class="flex items-center gap-2 shrink-0 self-end sm:self-center flex-wrap sm:flex-nowrap">' +
+          orderWidget +
           '<button type="button" class="sp-edit-btn px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-700 hover:text-peach-600 text-xs font-bold shadow-2xs tap-bounce flex items-center gap-1">' +
           '<span>✏️</span> 編輯' +
           '</button>' +
@@ -3597,9 +3622,86 @@ const htmlContent = `<!DOCTYPE html>
           '</button>' +
           '</div>';
 
+        var upBtn = card.querySelector('.sp-up-btn');
+        if (upBtn && !isFirst) {
+          upBtn.onclick = function() { moveSpotlightOrder(index, index - 1); };
+        }
+
+        var downBtn = card.querySelector('.sp-down-btn');
+        if (downBtn && !isLast) {
+          downBtn.onclick = function() { moveSpotlightOrder(index, index + 1); };
+        }
+
+        var orderSelect = card.querySelector('.sp-order-select');
+        if (orderSelect) {
+          orderSelect.onchange = function(e) {
+            var targetIdx = parseInt(e.target.value, 10) - 1;
+            if (!isNaN(targetIdx) && targetIdx !== index) {
+              moveSpotlightOrder(index, targetIdx);
+            }
+          };
+        }
+
         card.querySelector('.sp-edit-btn').onclick = function() { openSpotlightEditForm(sp.id); };
         card.querySelector('.sp-del-btn').onclick = function() { confirmDeleteSpotlight(sp.id); };
         listEl.appendChild(card);
+      });
+    }
+
+    function moveSpotlightOrder(fromIndex, toIndex) {
+      if (fromIndex === toIndex) return;
+      if (!state.spotlights || state.spotlights.length <= 1) return;
+      if (fromIndex < 0 || fromIndex >= state.spotlights.length) return;
+      if (toIndex < 0 || toIndex >= state.spotlights.length) return;
+
+      const list = [...state.spotlights];
+      const movedItem = list.splice(fromIndex, 1)[0];
+      list.splice(toIndex, 0, movedItem);
+
+      list.forEach((item, idx) => {
+        item.priority = idx + 1;
+      });
+
+      state.spotlights = list;
+
+      try {
+        localStorage.setItem('nobel_a_spotlights_list', JSON.stringify(state.spotlights));
+      } catch (err) {}
+
+      currentSpotlightIndex = 0;
+      renderSpotlightSection();
+      renderAdminSpotlightsList();
+
+      showToast('已將「' + (movedItem.title || '焦點活動') + '」調為第 ' + (toIndex + 1) + ' 順位', '🔄');
+
+      const orderList = list.map(item => ({
+        id: item.id,
+        priority: item.priority
+      }));
+
+      callBackend('updateSpotlightsOrder', {
+        orderList: orderList,
+        password: state.adminPassword
+      }, res => {
+        if (res && res.success) {
+          showToast(res.message || '輪播順序已成功同步至試算表！', '🎉');
+        } else {
+          syncSpotlightsOrderFallback(list);
+        }
+      }, () => {
+        syncSpotlightsOrderFallback(list);
+      });
+    }
+
+    function syncSpotlightsOrderFallback(list) {
+      let pending = list.length;
+      list.forEach(sp => {
+        callBackend('saveSpotlight', { data: sp, password: state.adminPassword }, () => {
+          pending--;
+          if (pending === 0) {
+            showToast('輪播順序已同步！', '🎉');
+          }
+        });
       });
     }
 

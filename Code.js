@@ -188,6 +188,8 @@ function doPost(e) {
       result = saveSpotlight(postData.data, postData.password);
     } else if (action === 'deleteSpotlight') {
       result = deleteSpotlight(postData.id, postData.password);
+    } else if (action === 'updateSpotlightsOrder') {
+      result = updateSpotlightsOrder(postData.orderList, postData.password);
     } else if (action === 'uploadPhotosToAlbum') {
       result = uploadPhotosToAlbum(postData.date, postData.title, postData.files, postData.password);
     } else if (action === 'uploadDocument') {
@@ -255,6 +257,26 @@ function getAppData() {
     if (!ss) throw new Error('無法開啟 Google 試算表');
 
     ensureDatabaseInitialized();
+
+    // 自動移轉 Events 欄位：將 category 改為 categoryMajor，並在右側插入 categoryMinor
+    let evtSheet = ss.getSheetByName('Events');
+    if (evtSheet) {
+      let headers = evtSheet.getDataRange().getValues()[0] || [];
+      let catIndex = headers.indexOf('category');
+      let catMajorIndex = headers.indexOf('categoryMajor');
+      let catMinorIndex = headers.indexOf('categoryMinor');
+      
+      if (catIndex > -1 && catMajorIndex === -1) {
+        // 把原本的 category 改名為 categoryMajor
+        evtSheet.getRange(1, catIndex + 1).setValue('categoryMajor');
+        
+        // 如果沒有 categoryMinor，就插在 categoryMajor 旁邊
+        if (catMinorIndex === -1) {
+          evtSheet.insertColumnAfter(catIndex + 1);
+          evtSheet.getRange(1, catIndex + 2).setValue('categoryMinor');
+        }
+      }
+    }
 
     const events = getSheetDataAsObjects(ss.getSheetByName('Events'));
     const menus = getSheetDataAsObjects(ss.getSheetByName('Menus'));
@@ -926,6 +948,54 @@ function deleteSpotlight(spId, password) {
 }
 
 /**
+ * 批次更新 Spotlight 輪播順序
+ */
+function updateSpotlightsOrder(orderList, password) {
+  if (!checkPassword(password)) return { success: false, error: '管理員密碼錯誤！' };
+  try {
+    const ss = getSpreadsheet();
+    let sheet = ss.getSheetByName('Spotlight');
+    if (!sheet) return { success: false, error: '找不到 Spotlight 工作表' };
+    ensureSpotlightSheetHeaders(sheet);
+
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) return { success: true, message: '無資料需更新' };
+
+    const headers = data[0].map(h => String(h).trim());
+    const idIndex = headers.indexOf('id');
+    const priorityIndex = headers.indexOf('priority');
+    if (idIndex === -1 || priorityIndex === -1) {
+      return { success: false, error: '找不到 id 或 priority 欄位' };
+    }
+
+    const orderMap = {};
+    if (Array.isArray(orderList)) {
+      orderList.forEach(item => {
+        if (item && item.id) {
+          orderMap[String(item.id)] = Number(item.priority) || 1;
+        }
+      });
+    }
+
+    for (let i = 1; i < data.length; i++) {
+      const rowId = String(data[i][idIndex]);
+      if (orderMap[rowId] !== undefined) {
+        sheet.getRange(i + 1, priorityIndex + 1).setValue(orderMap[rowId]);
+      }
+    }
+
+    // 將 Spotlight 工作表依 priority (第 priorityIndex + 1 欄) 升冪排序
+    if (data.length > 2) {
+      sheet.getRange(2, 1, data.length - 1, headers.length).sort({ column: priorityIndex + 1, ascending: true });
+    }
+
+    return { success: true, message: 'Spotlight 輪播順序已成功更新！' };
+  } catch (err) {
+    return { success: false, error: err.toString() };
+  }
+}
+
+/**
  * 儲存/更新常用文件紀錄 (支援前台即時編輯與雲端同步)
  */
 function saveDoc(docData, password) {
@@ -1105,41 +1175,41 @@ function setupInitialDatabase() {
   let eventsSheet = ss.getSheetByName('Events');
   if (!eventsSheet) eventsSheet = ss.insertSheet('Events');
   eventsSheet.clear();
-  eventsSheet.appendRow(['id', 'date', 'endDate', 'title', 'target', 'category', 'timeLocation', 'description', 'theme']);
-  eventsSheet.getRange(1, 1, 1, 9).setFontWeight('bold').setBackground('#FEE2E2');
+  eventsSheet.appendRow(['id', 'date', 'endDate', 'title', 'target', 'categoryMajor', 'categoryMinor', 'timeLocation', 'description', 'theme']);
+  eventsSheet.getRange(1, 1, 1, 10).setFontWeight('bold').setBackground('#FEE2E2');
 
   const sampleEvents = [
-    ['EV-01', '2026-08-03', '', '新學期開學日', '全園', '全園活動', '', '新學期開始，歡迎所有小朋友回到幼兒園！', '快樂上學趣'],
-    ['EV-02', '2026-08-21', '', '八月壽星慶生', '全園', '全園活動', '', '祝福八月份小壽星生日快樂！', '快樂上學趣'],
-    ['EV-03', '2026-08-25', '', '米羅 A、B、雨果班親師座談', '米羅/雨果', '親職活動', '17:00 開始', '各班親師座談，屆時視狀況調整實體或線上辦理', '快樂上學趣'],
-    ['EV-04', '2026-08-26', '', '雨奧、奧斯卡、諾奧親師座談', '雨奧/奧斯卡/諾奧', '親職活動', '17:00 開始', '各班親師座談，屆時視狀況調整實體或線上辦理', '快樂上學趣'],
-    ['EV-05', '2026-08-27', '', '諾貝爾 A、B、C 親師座談', '諾貝爾A班', '親職活動', '17:00 開始', '🌟 諾貝爾 A 班親師座談，誠摯邀請家長共同參與！', '快樂上學趣'],
-    ['EV-06', '2026-09-07', '', '幸福廚房（米A/米B/兩果）', '米A/米B/兩果', '班級主題', '', '幸福廚房手作生活體驗', '快樂上學趣'],
-    ['EV-07', '2026-09-08', '', '幸福廚房（雨奧/奧斯卡/諾奧）', '雨奧/奧斯卡/諾奧', '班級主題', '', '幸福廚房手作生活體驗', '快樂上學趣'],
-    ['EV-08', '2026-09-09', '', '幸福廚房（諾C/諾B/諾A）', '諾貝爾A班', '班級主題', '', '🌟 諾 A 班今日輪到幸福廚房體驗！化身小小烘焙師！', '快樂上學趣'],
-    ['EV-09', '2026-09-11', '', '九月壽星慶生', '全園', '全園活動', '', '九月份壽星慶祝活動', '快樂上學趣'],
-    ['EV-10', '2026-09-24', '', '社區親職講座：感覺統合輕鬆練習', '全園', '親職講座', '19:00-21:00', '講師：潘宇賢職能治療師（菇菇老師）', '快樂上學趣'],
-    ['EV-11', '2026-09-25', '2026-09-28', '中秋節／教師節連假', '全園', '節慶放假', '連假四日', '連假期間請注意幼兒居家安全與作息健康', '快樂上學趣'],
-    ['EV-12', '2026-10-05', '', '幸福廚房（米A/米B/兩果）', '米A/米B/兩果', '班級主題', '', '幸福廚房手作生活體驗', '主題活動：人與自己／人與他人概念'],
-    ['EV-13', '2026-10-06', '', '幸福廚房（雨奧/奧斯卡/諾奧）', '雨奧/奧斯卡/諾奧', '班級主題', '', '幸福廚房手作生活體驗', '主題活動：人與自己／人與他人概念'],
-    ['EV-14', '2026-10-07', '', '幸福廚房（諾C/諾B/諾A）', '諾貝爾A班', '班級主題', '', '🌟 諾 A 班十月份幸福廚房手作日！', '主題活動：人與自己／人與他人概念'],
-    ['EV-15', '2026-10-08', '', '十月壽星慶生會', '全園', '全園活動', '', '十月份小壽星慶生會，分享快樂分享愛！', '主題活動：人與自己／人與他人概念'],
-    ['EV-16', '2026-10-09', '2026-10-11', '雙十節連假', '全園', '節慶放假', '連假三日', '國慶連續假期放假三日', '主題活動：人與自己／人與他人概念'],
-    ['EV-17', '2026-10-23', '', '牙齒塗氟日 口腔保健檢查', '諾貝爾A班', '重要活動', '08:30 (五)', '🌟 全園定期塗氟檢查，請家長務必攜帶健保卡！未攜帶無法參加喔！', '主題活動：人與自己／人與他人概念'],
-    ['EV-18', '2026-10-24', '2026-10-26', '光復節連假', '全園', '節慶放假', '連假三日', '光復節連續假期放假三日', '主題活動：人與自己／人與他人概念'],
-    ['EV-19', '2026-11-04', '', '幸福廚房（諾C/諾B/諾A）', '諾貝爾A班', '班級主題', '', '🌟 諾 A 班十一月份幸福廚房手作活動', '主題活動：人與自己／人與他人概念'],
-    ['EV-20', '2026-11-12', '', '社區親職講座：找回孩子的專注力', '全園', '親職講座', '19:00-21:00 (線上)', '講師：廖笙光（光光老師），歡迎家長踴躍線上參與', '主題活動：人與自己／人與他人概念'],
-    ['EV-21', '2026-11-13', '', '十一月壽星慶生', '全園', '全園活動', '', '十一月份壽星慶祝活動', '主題活動：人與自己／人與他人概念'],
-    ['EV-22', '2026-11-20', '', '緊急傷病宣導及演練 / 感恩節闖關活動', '全園', '全園活動', '放學時間', '宣導防護演練，放學時間舉行溫馨感恩節闖關活動！', '主題活動：人與自己／人與他人概念'],
-    ['EV-23', '2026-12-02', '', '幸福廚房（諾C/諾B/諾A）', '諾貝爾A班', '班級主題', '', '🌟 諾 A 班十二月份幸福廚房體驗', '主題活動：冬令月'],
-    ['EV-24', '2026-12-18', '', '十二月壽星慶生會', '全園', '全園活動', '', '十二月份壽星慶祝活動', '主題活動：冬令月'],
-    ['EV-25', '2026-12-21', '2026-12-31', '學期高峰活動週', '全園', '重要活動', '全週進行', '全園學期主題高峰成果發表週', '主題活動：冬令月'],
-    ['EV-26', '2026-12-25', '2026-12-27', '行憲紀念日連假', '全園', '節慶放假', '連假三日', '連假三日放假', '主題活動：冬令月'],
-    ['EV-27', '2027-01-01', '', '元旦假期放假', '全園', '節慶放假', '放假一日', '新年元旦假期放假一日', '冬令月'],
-    ['EV-28', '2027-01-08', '', '一月壽星慶生 / 全園性歲末活動', '全園', '全園活動', '', '一月壽星慶祝與歲末團聚溫馨活動', '冬令月'],
-    ['EV-29', '2027-01-25', '2027-01-29', '全園消毒日', '全園', '園務消毒', '全園消毒', '學期末全園環境深層清潔與消毒作業', '冬令月']
+    ['EV-01', '2026-08-03', '', '新學期開學日', '全園', '全園活動', '', '', '新學期開始，歡迎所有小朋友回到幼兒園！', '快樂上學趣'],
+    ['EV-02', '2026-08-21', '', '八月壽星慶生', '全園', '全園活動', '', '', '祝福八月份小壽星生日快樂！', '快樂上學趣'],
+    ['EV-03', '2026-08-25', '', '米羅 A、B、雨果班親師座談', '米羅/雨果', '親職活動', '', '17:00 開始', '各班親師座談，屆時視狀況調整實體或線上辦理', '快樂上學趣'],
+    ['EV-04', '2026-08-26', '', '雨奧、奧斯卡、諾奧親師座談', '雨奧/奧斯卡/諾奧', '親職活動', '', '17:00 開始', '各班親師座談，屆時視狀況調整實體或線上辦理', '快樂上學趣'],
+    ['EV-05', '2026-08-27', '', '諾貝爾 A、B、C 親師座談', '諾貝爾A班', '親職活動', '', '17:00 開始', '🌟 諾貝爾 A 班親師座談，誠摯邀請家長共同參與！', '快樂上學趣'],
+    ['EV-06', '2026-09-07', '', '幸福廚房（米A/米B/兩果）', '米A/米B/兩果', '班級主題', '', '', '幸福廚房手作生活體驗', '快樂上學趣'],
+    ['EV-07', '2026-09-08', '', '幸福廚房（雨奧/奧斯卡/諾奧）', '雨奧/奧斯卡/諾奧', '班級主題', '', '', '幸福廚房手作生活體驗', '快樂上學趣'],
+    ['EV-08', '2026-09-09', '', '幸福廚房（諾C/諾B/諾A）', '諾貝爾A班', '班級主題', '', '', '🌟 諾 A 班今日輪到幸福廚房體驗！化身小小烘焙師！', '快樂上學趣'],
+    ['EV-09', '2026-09-11', '', '九月壽星慶生', '全園', '全園活動', '', '', '九月份壽星慶祝活動', '快樂上學趣'],
+    ['EV-10', '2026-09-24', '', '社區親職講座：感覺統合輕鬆練習', '全園', '親職講座', '', '19:00-21:00', '講師：潘宇賢職能治療師（菇菇老師）', '快樂上學趣'],
+    ['EV-11', '2026-09-25', '2026-09-28', '中秋節／教師節連假', '全園', '節慶放假', '', '連假四日', '連假期間請注意幼兒居家安全與作息健康', '快樂上學趣'],
+    ['EV-12', '2026-10-05', '', '幸福廚房（米A/米B/兩果）', '米A/米B/兩果', '班級主題', '', '', '幸福廚房手作生活體驗', '主題活動：人與自己／人與他人概念'],
+    ['EV-13', '2026-10-06', '', '幸福廚房（雨奧/奧斯卡/諾奧）', '雨奧/奧斯卡/諾奧', '班級主題', '', '', '幸福廚房手作生活體驗', '主題活動：人與自己／人與他人概念'],
+    ['EV-14', '2026-10-07', '', '幸福廚房（諾C/諾B/諾A）', '諾貝爾A班', '班級主題', '', '', '🌟 諾 A 班十月份幸福廚房手作日！', '主題活動：人與自己／人與他人概念'],
+    ['EV-15', '2026-10-08', '', '十月壽星慶生會', '全園', '全園活動', '', '', '十月份小壽星慶生會，分享快樂分享愛！', '主題活動：人與自己／人與他人概念'],
+    ['EV-16', '2026-10-09', '2026-10-11', '雙十節連假', '全園', '節慶放假', '', '連假三日', '國慶連續假期放假三日', '主題活動：人與自己／人與他人概念'],
+    ['EV-17', '2026-10-23', '', '牙齒塗氟日 口腔保健檢查', '諾貝爾A班', '重要活動', '', '08:30 (五)', '🌟 全園定期塗氟檢查，請家長務必攜帶健保卡！未攜帶無法參加喔！', '主題活動：人與自己／人與他人概念'],
+    ['EV-18', '2026-10-24', '2026-10-26', '光復節連假', '全園', '節慶放假', '', '連假三日', '光復節連續假期放假三日', '主題活動：人與自己／人與他人概念'],
+    ['EV-19', '2026-11-04', '', '幸福廚房（諾C/諾B/諾A）', '諾貝爾A班', '班級主題', '', '', '🌟 諾 A 班十一月份幸福廚房手作活動', '主題活動：人與自己／人與他人概念'],
+    ['EV-20', '2026-11-12', '', '社區親職講座：找回孩子的專注力', '全園', '親職講座', '', '19:00-21:00 (線上)', '講師：廖笙光（光光老師），歡迎家長踴躍線上參與', '主題活動：人與自己／人與他人概念'],
+    ['EV-21', '2026-11-13', '', '十一月壽星慶生', '全園', '全園活動', '', '', '十一月份壽星慶祝活動', '主題活動：人與自己／人與他人概念'],
+    ['EV-22', '2026-11-20', '', '緊急傷病宣導及演練 / 感恩節闖關活動', '全園', '全園活動', '', '放學時間', '宣導防護演練，放學時間舉行溫馨感恩節闖關活動！', '主題活動：人與自己／人與他人概念'],
+    ['EV-23', '2026-12-02', '', '幸福廚房（諾C/諾B/諾A）', '諾貝爾A班', '班級主題', '', '', '🌟 諾 A 班十二月份幸福廚房體驗', '主題活動：冬令月'],
+    ['EV-24', '2026-12-18', '', '十二月壽星慶生會', '全園', '全園活動', '', '', '十二月份壽星慶祝活動', '主題活動：冬令月'],
+    ['EV-25', '2026-12-21', '2026-12-31', '學期高峰活動週', '全園', '重要活動', '', '全週進行', '全園學期主題高峰成果發表週', '主題活動：冬令月'],
+    ['EV-26', '2026-12-25', '2026-12-27', '行憲紀念日連假', '全園', '節慶放假', '', '連假三日', '連假三日放假', '主題活動：冬令月'],
+    ['EV-27', '2027-01-01', '', '元旦假期放假', '全園', '節慶放假', '', '放假一日', '新年元旦假期放假一日', '冬令月'],
+    ['EV-28', '2027-01-08', '', '一月壽星慶生 / 全園性歲末活動', '全園', '全園活動', '', '', '一月壽星慶祝與歲末團聚溫馨活動', '冬令月'],
+    ['EV-29', '2027-01-25', '2027-01-29', '全園消毒日', '全園', '園務消毒', '', '全園消毒', '學期末全園環境深層清潔與消毒作業', '冬令月']
   ];
-  eventsSheet.getRange(2, 1, sampleEvents.length, 9).setValues(sampleEvents);
+  eventsSheet.getRange(2, 1, sampleEvents.length, 10).setValues(sampleEvents);
 
   // 2. Menus 工作表
   let menusSheet = ss.getSheetByName('Menus');
