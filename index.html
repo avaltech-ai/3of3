@@ -194,21 +194,20 @@
             <span id="spotlightSlideCounter" class="text-sm font-extrabold text-slate-500 bg-white/80 px-4 py-1.5 rounded-full border border-rose-100 shadow-2xs">
               1 / 1
             </span>
-            <div class="flex items-center gap-1">
-              <button type="button" onclick="prevSpotlightSlide(event)" class="w-10 h-10 rounded-full bg-white/90 hover:bg-white text-slate-700 hover:text-peach-600 border border-rose-100 flex items-center justify-center text-lg font-black shadow-md transition-all tap-bounce" title="上一個焦點活動">
-                ❮
-              </button>
-              <button type="button" onclick="nextSpotlightSlide(event)" class="w-10 h-10 rounded-full bg-white/90 hover:bg-white text-slate-700 hover:text-peach-600 border border-rose-100 flex items-center justify-center text-lg font-black shadow-md transition-all tap-bounce" title="下一個焦點活動">
-                ❯
-              </button>
-            </div>
+            
           </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
           <!-- 焦點視覺/攻略圖或影片卡 -->
           <div class="md:col-span-5 bg-white p-2.5 rounded-2xl shadow-sm border border-rose-100 flex flex-col items-center justify-center group relative">
-            <div class="w-full aspect-[16/10] bg-rose-50 rounded-xl overflow-hidden relative flex items-center justify-center">
+            <div class="w-full aspect-[16/10] bg-rose-50 rounded-xl overflow-hidden relative flex items-center justify-center group/nav">
+              <button type="button" onclick="event.stopPropagation(); prevSpotlightSlide(event)" class="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/80 hover:bg-white shadow-md flex items-center justify-center text-slate-800 font-bold text-sm sm:text-lg tap-bounce z-10 transition-opacity opacity-80 hover:opacity-100 hidden" id="spotlightOverlayPrevBtn" title="上一個焦點活動">
+                ◀
+              </button>
+              <button type="button" onclick="event.stopPropagation(); nextSpotlightSlide(event)" class="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/80 hover:bg-white shadow-md flex items-center justify-center text-slate-800 font-bold text-sm sm:text-lg tap-bounce z-10 transition-opacity opacity-80 hover:opacity-100 hidden" id="spotlightOverlayNextBtn" title="下一個焦點活動">
+                ▶
+              </button>
               <!-- 圖片模式 -->
               <img id="spotlightImg" src="./spotlight-fluoride.jpg" alt="焦點活動" class="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300 cursor-pointer tap-bounce" onclick="openSpotlightModal()">
               <div id="spotlightImgHoverHint" class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
@@ -1624,7 +1623,10 @@
           evDate.setHours(0,0,0,0);
           now.setHours(0,0,0,0);
           
-          if (evDate >= now) {
+          if (evDate.getTime() === now.getTime()) {
+            statusBadge.textContent = '本日焦點';
+            statusBadge.className = 'text-xs font-bold px-2 py-0.5 rounded-md mt-1 shrink-0 whitespace-nowrap bg-amber-100 text-amber-700 border border-amber-200';
+          } else if (evDate > now) {
             statusBadge.textContent = '即將到來';
             statusBadge.className = 'text-xs font-bold px-2 py-0.5 rounded-md mt-1 shrink-0 whitespace-nowrap bg-emerald-100 text-emerald-700 border border-emerald-200';
           } else {
@@ -1652,10 +1654,20 @@
       const navControls = document.getElementById('spotlightNavControls');
       if (navControls) {
         if (activeList.length <= 1) {
-          navControls.classList.add('opacity-40', 'pointer-events-none');
+          navControls.classList.add('hidden');
         } else {
-          navControls.classList.remove('opacity-40', 'pointer-events-none');
+          navControls.classList.remove('hidden');
         }
+      }
+      
+      const overPrev = document.getElementById('spotlightOverlayPrevBtn');
+      const overNext = document.getElementById('spotlightOverlayNextBtn');
+      if (activeList.length <= 1) {
+         if (overPrev) overPrev.classList.add('hidden');
+         if (overNext) overNext.classList.add('hidden');
+      } else {
+         if (overPrev) overPrev.classList.remove('hidden');
+         if (overNext) overNext.classList.remove('hidden');
       }
 
       renderSpotlightMedia(sp);
