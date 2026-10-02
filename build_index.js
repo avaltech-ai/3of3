@@ -1259,38 +1259,17 @@ const htmlContent = `<!DOCTYPE html>
         else if (action === 'setupInitialDatabase') runner.setupInitialDatabase();
       } else {
         // 外部環境模式 (Netlify / GitHub Pages)
-        const isNetlify = window.location.hostname.includes('netlify.app') || window.location.hostname === 'localhost';
-
+        
         if (action === 'getAppData' || action === 'getAlbums' || action === 'getAlbumPhotos' || action === 'getActivityImages') {
-          if (isNetlify) {
-            let url = '/api/gas?action=' + encodeURIComponent(action);
-            if (payload && payload.albumId) url += '&albumId=' + encodeURIComponent(payload.albumId);
-            fetch(url).then(r => r.json()).then(res => { if (successCb) successCb(res); }).catch(errorCb);
-          } else {
-            let url = GAS_API_URL + '?action=' + encodeURIComponent(action);
-            if (payload && payload.albumId) url += '&albumId=' + encodeURIComponent(payload.albumId);
-            fetch(url, { redirect: 'follow' })
-              .then(r => r.json())
-              .then(res => { if (successCb) successCb(res); })
-              .catch(err => { if (errorCb) errorCb(err); });
-          }
-        } else {
-          // POST 上傳與存檔操作
-          if (isNetlify) {
-            // Netlify 環境：使用無伺服器函式 (Serverless Function) 作為中繼代理
-            // 完全繞過瀏覽器跨域限制與 Safari ITP 阻擋
-            fetch('/api/gas', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ action, ...payload })
-            })
+          let url = GAS_API_URL + '?action=' + encodeURIComponent(action);
+          if (payload && payload.albumId) url += '&albumId=' + encodeURIComponent(payload.albumId);
+          fetch(url, { redirect: 'follow' })
             .then(r => r.json())
             .then(res => { if (successCb) successCb(res); })
             .catch(err => { if (errorCb) errorCb(err); });
-          } else {
-            // GitHub Pages 備援方案：隱藏 iframe form POST
-            gasPostViaIframe(action, payload, successCb, errorCb);
-          }
+        } else {
+          // 外部環境備援方案：隱藏 iframe form POST (完全繞過跨域)
+          gasPostViaIframe(action, payload, successCb, errorCb);
         }
       }
     }
