@@ -196,8 +196,10 @@ function doPost(e) {
       result = uploadSpotlightImage(postData.file, postData.password);
     } else if (action === 'getActivityImages') {
       result = getActivityImages();
+    } else if (action === 'saveDoc') {
+      result = saveDoc(postData.docData || postData.data, postData.password);
     } else if (action === 'deleteDoc') {
-      result = deleteDoc(postData.id, postData.password);
+      result = deleteDoc(postData.id || postData.docId, postData.password);
     } else if (action === 'updateSettings') {
       result = updateSettings(postData.settings, postData.password);
     } else if (action === 'setupInitialDatabase') {
@@ -842,6 +844,59 @@ function deleteSpotlight(spId, password) {
     return { success: false, error: '找不到該 Spotlight 編號' };
   } catch (err) {
     return { success: false, error: err.toString() };
+  }
+}
+
+/**
+ * 儲存/更新常用文件紀錄 (支援前台即時編輯與雲端同步)
+ */
+function saveDoc(docData, password) {
+  if (!checkPassword(password)) return { success: false, error: '管理員密碼錯誤！' };
+  try {
+    const ss = getSpreadsheet();
+    let sheet = ss.getSheetByName('Docs');
+    if (!sheet) sheet = ss.insertSheet('Docs');
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0].map(function(h) { return String(h).trim(); });
+    const idIndex = headers.indexOf('id');
+    const todayStr = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd');
+
+    const id = docData.id || ('DOC-' + Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyyMMddHHmmss'));
+    const fieldMap = {
+      id: id,
+      fileName: docData.fileName || '',
+      category: docData.category || '一般文件',
+      description: docData.description || '',
+      driveFileId: docData.driveFileId || '',
+      downloadUrl: docData.downloadUrl || '',
+      updatedAt: docData.updatedAt || todayStr
+    };
+
+    let targetRow = -1;
+    if (idIndex !== -1) {
+      for (let i = 1; i < data.length; i++) {
+        if (String(data[i][idIndex]) === String(id)) {
+          targetRow = i + 1;
+          break;
+        }
+      }
+    }
+
+    if (targetRow > -1) {
+      headers.forEach(function(h, colIdx) {
+        if (fieldMap[h] !== undefined) {
+          sheet.getRange(targetRow, colIdx + 1).setValue(fieldMap[h]);
+        }
+      });
+      return { success: true, message: '文件資訊已成功更新！' };
+    } else {
+      const newRow = headers.map(function(h) { return fieldMap[h] !== undefined ? fieldMap[h] : ''; });
+      sheet.appendRow(newRow);
+      return { success: true, message: '新文件已成功加入清單！' };
+    }
+  } catch (err) {
+    return { success: false, error: '儲存文件失敗: ' + err.toString() };
   }
 }
 

@@ -507,6 +507,17 @@ const htmlContent = `<!DOCTYPE html>
     <!-- ==================== TAB 3: 常用文件下載 (DOCS) ==================== -->
     <section id="tabContent-docs" class="space-y-6 hidden">
       <!-- 文件區抬頭 -->
+      <!-- 管理者模式專用快捷列 (已登入時顯示) -->
+      <div id="docAdminBar" class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 p-3.5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-amber-900 font-bold hidden">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span>管理者權限已啟用：您可直接在下方任一文件卡片點選「✏️ 編輯」或「🗑️ 刪除」，或點擊右側按鈕新增文件。</span>
+        </div>
+        <button onclick="openDocEditModal()" class="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-black text-xs shrink-0 tap-bounce shadow-xs flex items-center gap-1.5">
+          <span>➕</span> 新增常用文件
+        </button>
+      </div>
+
       <div class="bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 p-5 rounded-3xl border border-indigo-200/70 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <div class="flex items-center gap-2">
@@ -1165,6 +1176,68 @@ const htmlContent = `<!DOCTYPE html>
     <img id="photoViewerImg" src="" alt="Photo" class="max-w-full max-h-[85vh] object-contain rounded-lg">
   </div>
 
+  <!-- ==================== 常用文件編輯/新增彈窗 (DOC MODAL) ==================== -->
+  <div id="docEditModal" class="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-3 sm:p-5 hidden">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-4 relative border border-slate-200 max-h-[90vh] overflow-y-auto">
+      <button onclick="closeDocEditModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-base tap-bounce">
+        ✕
+      </button>
+      <div class="flex items-center gap-2">
+        <span class="text-xl">📄</span>
+        <h3 id="docModalTitle" class="font-black text-slate-800 text-base sm:text-lg">編輯常用文件資訊</h3>
+      </div>
+
+      <form id="docEditForm" onsubmit="handleSaveDocModal(event)" class="space-y-3.5">
+        <input type="hidden" id="docModal-id">
+        <input type="hidden" id="docModal-driveFileId">
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">文件名稱 *</label>
+          <input type="text" id="docModal-fileName" required placeholder="如：幼兒用藥委託單.pdf" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-indigo-500 focus:outline-none">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">文件分類 *</label>
+          <select id="docModal-category" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-indigo-500 focus:outline-none">
+            <option value="保健用藥">保健用藥</option>
+            <option value="學期行事曆">學期行事曆</option>
+            <option value="餐飲菜單">餐飲菜單</option>
+            <option value="親師手冊">親師手冊</option>
+            <option value="一般文件">一般文件</option>
+            <option value="其他常用">其他常用</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">說明描述</label>
+          <textarea id="docModal-description" rows="2" placeholder="說明幼兒使用情況或列印注意事項..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-indigo-500 focus:outline-none"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">下載或雲端連結 (URL)</label>
+          <input type="text" id="docModal-downloadUrl" placeholder="https://drive.google.com/..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-indigo-500 focus:outline-none">
+        </div>
+
+        <div class="border border-dashed border-indigo-200 rounded-2xl p-3.5 bg-indigo-50/40 text-center">
+          <input type="file" id="docModal-fileInput" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.png" class="hidden" onchange="handleDocModalFileChosen(event)">
+          <button type="button" onclick="document.getElementById('docModal-fileInput').click()" class="text-xs font-bold text-indigo-700 bg-white border border-indigo-200 px-3.5 py-1.5 rounded-xl shadow-2xs hover:bg-indigo-50 tap-bounce inline-flex items-center gap-1.5">
+            <span>📁</span> 重新上傳/替換檔案至 Google Drive (選填)
+          </button>
+          <div id="docModal-fileStatus" class="text-[11px] text-slate-500 mt-1">若已有網址可直接修改上欄，或選取新檔案覆蓋上傳</div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+          <button type="button" onclick="closeDocEditModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold tap-bounce">
+            取消
+          </button>
+          <button type="submit" id="docModalSaveBtn" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-sm tap-bounce flex items-center gap-1.5">
+            <span>💾</span> 儲存修改
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- ==================== 全域提示訊息 TOAST ==================== -->
   <div id="toast" class="fixed bottom-16 sm:bottom-6 left-1/2 -translate-x-1/2 z-70 bg-slate-800 text-white text-xs sm:text-sm font-bold px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 transition-all opacity-0 pointer-events-none transform translate-y-3">
     <span id="toastIcon">✨</span>
@@ -1205,6 +1278,13 @@ const htmlContent = `<!DOCTYPE html>
     // 初始化程式
     window.addEventListener('DOMContentLoaded', () => {
       startLiveClock();
+      try {
+        const savedPwd = sessionStorage.getItem('nobel_a_admin_pwd');
+        if (savedPwd) {
+          state.adminPassword = savedPwd;
+          showAdminDashboard();
+        }
+      } catch (e) {}
       // 初始化今天日期（若當前月在2026年10月附近則自動對齊）
       const today = new Date();
       const yr = today.getFullYear();
@@ -2627,11 +2707,15 @@ const htmlContent = `<!DOCTYPE html>
       callBackend('verifyPassword', { password: pwd }, res => {
         if (res && res.success) {
           state.adminPassword = pwd;
+          try { sessionStorage.setItem('nobel_a_admin_pwd', pwd); } catch (e) {}
           showAdminDashboard();
+          renderDocsList();
           showToast('歡迎登入管理後台！', '🎉');
         } else if (pwd === 'nobel-a-2026' || pwd.length > 0) {
           state.adminPassword = pwd;
+          try { sessionStorage.setItem('nobel_a_admin_pwd', pwd); } catch (e) {}
           showAdminDashboard();
+          renderDocsList();
           showToast('歡迎登入管理後台！', '🎉');
         } else {
           showToast('密碼不正確，請重新輸入！', '❌');
@@ -2639,7 +2723,9 @@ const htmlContent = `<!DOCTYPE html>
       }, err => {
         if (pwd === 'nobel-a-2026' || pwd.length > 0) {
           state.adminPassword = pwd;
+          try { sessionStorage.setItem('nobel_a_admin_pwd', pwd); } catch (e) {}
           showAdminDashboard();
+          renderDocsList();
           showToast('歡迎登入管理後台！', '🎉');
         } else {
           showToast('密碼不正確！', '❌');
@@ -2656,9 +2742,11 @@ const htmlContent = `<!DOCTYPE html>
 
     function doAdminLogout() {
       state.adminPassword = '';
+      try { sessionStorage.removeItem('nobel_a_admin_pwd'); } catch (e) {}
       document.getElementById('adminPasswordInput').value = '';
       document.getElementById('adminLoginCard').classList.remove('hidden');
       document.getElementById('adminDashboard').classList.add('hidden');
+      renderDocsList();
       showToast('已安全登出後台', '👋');
     }
 

@@ -48,3 +48,14 @@
 **Solution**:
 - Always use standard string concatenation (e.g. `'tabContent-' + tab`) for client-side scripts inside Node build strings, or thoroughly escape as `\${variable}`.
 
+
+### 7. Frontend & Backend Document Management Integration
+- **Feature**: Allows administrators to edit or delete existing documents directly from the public-facing "常用文件" (Docs) tab once authenticated in the admin backend.
+- **Frontend Capabilities**:
+  - Automatically detects administrator login status via `state.adminPassword` and `sessionStorage`.
+  - In "常用文件" tab, renders a top admin action bar with an "➕ 新增常用文件" button.
+  - Dynamically injects "✏️ 編輯" and "🗑️ 刪除" buttons on each document item.
+  - Modal provides editing of file title, category (`保健用藥`, `學期行事曆`, `餐飲菜單`, `親師手冊`, `一般文件`), description, external/Drive download URL, and optional direct file re-upload to Google Drive.
+- **Backend API (`Code.js`)**:
+  - Implemented `saveDoc(docData, password)` to locate matching IDs in the `Docs` sheet or append new entries, updating `updatedAt` timestamp and metadata while preserving Drive file linkages.
+
