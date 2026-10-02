@@ -189,7 +189,7 @@ const htmlContent = `<!DOCTYPE html>
     <!-- 全域載入狀態提示 -->
     <div id="loadingOverlay" class="py-12 flex flex-col items-center justify-center gap-3">
       <div class="w-12 h-12 border-4 border-peach-200 border-t-peach-500 rounded-full animate-spin"></div>
-      <p class="text-sm font-bold text-slate-500 animate-pulse">正在載入諾貝爾 A 班生活資料庫，請稍候...</p>
+      <p class="text-sm font-bold text-slate-500 animate-pulse">正在連線至雲端讀取最新資料庫，請稍候...</p>
     </div>
 
     <!-- ==================== TAB 1: 班級日常 (HOME) ==================== -->
@@ -1435,19 +1435,21 @@ const htmlContent = `<!DOCTYPE html>
     }
 
     function loadAppData() {
-      // 僅在第一次啟動且無資料時渲染本地備援示範資料
-      if (!state.events || state.events.length === 0) {
-        renderFallbackLocalData();
-      }
-      showLoading(false);
+      // 顯示載入畫面，直到讀取到遠端最新資料
+      showLoading(true);
 
-      // 背景向 GAS 請求即時試算表更新
       callBackend('getAppData', {}, res => {
         if (res && res.success && res.data) {
           handleDataLoaded(res.data);
+          showLoading(false);
+        } else {
+          renderFallbackLocalData();
+          showLoading(false);
         }
       }, err => {
-        console.warn('GAS 遠端連線提示 (目前使用本機預載資料模式):', err);
+        console.warn('GAS 連線失敗，載入本機預設資料:', err);
+        renderFallbackLocalData();
+        showLoading(false);
       });
     }
 
