@@ -1322,7 +1322,7 @@ const htmlContent = `<!DOCTYPE html>
 
     // 從 GAS 後端載入全站資料
     
-    const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbw1fMH5-QVJMQb7YSZNuGUO5QrxPJmPSMV4hY_o7Ovm25ZF67KkiIb8lg4QnDp7A5IZ1g/exec';
+    const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxojyw8VWLVfAfAEr5Imxf99O8JCzAm-HcQoPdBM9L9Jz2h9-GW_AIjyM50IPwSXeIKqg/exec';
 
     // 跨環境後端通訊橋樑 (支援 GAS 內部環境與 GitHub Pages 外部環境)
     function callBackend(action, payload, successCb, errorCb) {
@@ -1454,6 +1454,24 @@ const htmlContent = `<!DOCTYPE html>
     }
 
     
+    function renderEventOptionsUI() {
+      const targetSelect = document.getElementById('eventForm-target');
+      if (targetSelect && state.eventTargets) {
+        targetSelect.innerHTML = '';
+        state.eventTargets.forEach(t => {
+          targetSelect.innerHTML += '<option value="' + t.targetName + '">' + (t.displayName || t.targetName) + '</option>';
+        });
+      }
+
+      const catSelect = document.getElementById('eventForm-category');
+      if (catSelect && state.eventCategories) {
+        catSelect.innerHTML = '';
+        state.eventCategories.forEach(cat => {
+          catSelect.innerHTML += '<option value="' + cat + '">' + cat + '</option>';
+        });
+      }
+    }
+
     function renderDocCategoriesUI() {
       const categories = state.docCategories || ['全部文件', '保健用藥', '學期行事曆', '餐飲菜單', '親師手冊'];
       
@@ -1507,7 +1525,17 @@ const htmlContent = `<!DOCTYPE html>
       
 
             state.docCategories = data.docCategories || ['全部文件', '保健用藥', '學期行事曆', '餐飲菜單', '親師手冊'];
+      state.eventTargets = data.eventTargets || [
+        {targetName: '諾貝爾A班', displayName: '🌟 諾貝爾 A 班專屬'},
+        {targetName: '全園', displayName: '🏫 全園活動'},
+        {targetName: '親職活動', displayName: '👨‍👩‍👧 親師座談 / 親職活動'},
+        {targetName: '米A/米B/兩果', displayName: '米A/米B/兩果'},
+        {targetName: '雨奧/奧斯卡/諾奧', displayName: '雨奧/奧斯卡/諾奧'},
+        {targetName: '其他', displayName: '其他班級'}
+      ];
+      state.eventCategories = data.eventCategories || ['重要活動', '班級主題', '親職講座', '全園活動', '節慶放假', '園務消毒'];
       renderDocCategoriesUI();
+      renderEventOptionsUI();
       
       // 渲染 Spotlight
       renderSpotlightSection();

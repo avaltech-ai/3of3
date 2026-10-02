@@ -279,6 +279,43 @@ function getAppData() {
     }
     const docCategories = getSheetDataAsObjects(docCatSheet).map(row => row.categoryName).filter(Boolean);
 
+    // 確保 EventTargets 工作表存在
+    let evTargetSheet = ss.getSheetByName('EventTargets');
+    if (!evTargetSheet) {
+      evTargetSheet = ss.insertSheet('EventTargets');
+      evTargetSheet.appendRow(['targetName', 'displayName']);
+      evTargetSheet.getRange(1, 1, 1, 2).setFontWeight('bold').setBackground('#E0E7FF');
+      const defaultTargets = [
+        ['諾貝爾A班', '🌟 諾貝爾 A 班專屬'],
+        ['全園', '🏫 全園活動'],
+        ['親職活動', '👨‍👩‍👧 親師座談 / 親職活動'],
+        ['米A/米B/兩果', '米A/米B/兩果'],
+        ['雨奧/奧斯卡/諾奧', '雨奧/奧斯卡/諾奧'],
+        ['其他', '其他班級']
+      ];
+      evTargetSheet.getRange(2, 1, defaultTargets.length, 2).setValues(defaultTargets);
+    }
+    const eventTargets = getSheetDataAsObjects(evTargetSheet).filter(row => row.targetName);
+
+    // 確保 EventCategories 工作表存在
+    let evCatSheet = ss.getSheetByName('EventCategories');
+    if (!evCatSheet) {
+      evCatSheet = ss.insertSheet('EventCategories');
+      evCatSheet.appendRow(['categoryName']);
+      evCatSheet.getRange(1, 1, 1, 1).setFontWeight('bold').setBackground('#E0E7FF');
+      const defaultCats = [
+        ['重要活動'],
+        ['班級主題'],
+        ['親職講座'],
+        ['全園活動'],
+        ['節慶放假'],
+        ['園務消毒']
+      ];
+      evCatSheet.getRange(2, 1, defaultCats.length, 1).setValues(defaultCats);
+    }
+    const eventCategories = getSheetDataAsObjects(evCatSheet).map(row => row.categoryName).filter(Boolean);
+
+
 
     let actFolderUrl = '';
     let actFolderId = '';
@@ -300,6 +337,8 @@ function getAppData() {
         spotlights: spotlights || [],
         docs: docs || [],
         docCategories: docCategories || [],
+        eventTargets: eventTargets || [],
+        eventCategories: eventCategories || [],
         settings: {
           className: settings.CLASS_NAME || '諾貝爾 A 班',
           kindergartenName: settings.KINDERGARTEN_NAME || '桃子腳幼兒園',
