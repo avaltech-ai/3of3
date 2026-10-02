@@ -220,8 +220,8 @@ const htmlContent = `<!DOCTYPE html>
               </div>
               <!-- 影片播放器 (YouTube / Drive preview / HTML5 video) -->
               <div id="spotlightVideoBox" class="w-full h-full hidden">
-                <iframe id="spotlightIframe" class="w-full h-full border-0 rounded-xl" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-                <video id="spotlightHtml5Video" class="w-full h-full object-cover rounded-xl hidden" playsinline autoplay muted loop></video>
+                <iframe id="spotlightIframe" class="w-full h-full border-0 rounded-xl pointer-events-none" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+                <video id="spotlightHtml5Video" class="w-full h-full object-cover rounded-xl hidden pointer-events-none" playsinline autoplay muted loop></video>
               </div>
             </div>
             <div class="mt-2 text-center w-full flex items-center justify-between px-1">
@@ -1855,6 +1855,8 @@ const htmlContent = `<!DOCTYPE html>
           if (modalVideo) {
             modalVideo.classList.remove('hidden');
             modalVideo.src = vInfo.src;
+            modalVideo.volume = 0.3;
+            modalVideo.muted = false; // 取消靜音，維持 30% 音量
             try { modalVideo.play().catch(e=>{}); } catch(e){}
           }
           if (modalIframe) {
