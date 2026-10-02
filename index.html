@@ -665,11 +665,11 @@
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label class="block text-[0.6875rem] font-bold text-slate-600 mb-1">活動類別 (大項)</label>
-                    <div id="eventForm-categoryMajor" class="w-full flex flex-wrap gap-2 pt-1 border border-slate-300 rounded-xl px-3 py-2 bg-white min-h-[38px]"></div>
+                    <select id="eventForm-categoryMajor" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-peach-500 focus:outline-none"></select>
                   </div>
                   <div>
                     <label class="block text-[0.6875rem] font-bold text-slate-600 mb-1">活動類別 (細項)</label>
-                    <div id="eventForm-categoryMinor" class="w-full flex flex-wrap gap-2 pt-1 border border-slate-300 rounded-xl px-3 py-2 bg-white min-h-[38px]"></div>
+                    <select id="eventForm-categoryMinor" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-peach-500 focus:outline-none"></select>
                   </div>
                 </div>
                 </div>
@@ -1456,17 +1456,17 @@
 
       const catMajorSelect = document.getElementById('eventForm-categoryMajor');
       if (catMajorSelect && state.eventCategoriesMajor) {
-        catMajorSelect.innerHTML = '';
+        catMajorSelect.innerHTML = '<option value="">請選擇大項...</option>';
         state.eventCategoriesMajor.forEach((cat, i) => {
-          catMajorSelect.innerHTML += '<label class="flex items-center gap-1 cursor-pointer hover:bg-slate-50 px-1 rounded"><input type="checkbox" value="' + cat + '" class="accent-peach-500 w-3 h-3"><span class="text-[0.6875rem] text-slate-700 font-medium">' + cat + '</span></label>';
+          catMajorSelect.innerHTML += '<option value="' + cat + '">' + cat + '</option>';
         });
       }
 
       const catMinorSelect = document.getElementById('eventForm-categoryMinor');
       if (catMinorSelect && state.eventCategoriesMinor) {
-        catMinorSelect.innerHTML = '';
+        catMinorSelect.innerHTML = '<option value="">無 / 請選擇細項...</option>';
         state.eventCategoriesMinor.forEach((cat, i) => {
-          catMinorSelect.innerHTML += '<label class="flex items-center gap-1 cursor-pointer hover:bg-slate-50 px-1 rounded"><input type="checkbox" value="' + cat + '" class="accent-peach-500 w-3 h-3"><span class="text-[0.6875rem] text-slate-700 font-medium">' + cat + '</span></label>';
+          catMinorSelect.innerHTML += '<option value="' + cat + '">' + cat + '</option>';
         });
       }
     }
@@ -3159,8 +3159,8 @@
         endDate: document.getElementById('eventForm-endDate').value,
         title: document.getElementById('eventForm-title').value,
         target: getCheckedValues('eventForm-target'),
-        categoryMajor: getCheckedValues('eventForm-categoryMajor'),
-        categoryMinor: getCheckedValues('eventForm-categoryMinor'),
+        categoryMajor: document.getElementById('eventForm-categoryMajor').value,
+        categoryMinor: document.getElementById('eventForm-categoryMinor').value,
         timeLocation: document.getElementById('eventForm-timeLocation').value,
         description: document.getElementById('eventForm-description').value,
         theme: '主題活動：人與自己／人與他人概念'
@@ -3202,8 +3202,8 @@
       document.getElementById('eventForm-endDate').value = '';
       document.getElementById('eventForm-title').value = '';
       setCheckedValues('eventForm-target', '');
-      setCheckedValues('eventForm-categoryMajor', '');
-      setCheckedValues('eventForm-categoryMinor', '');
+      document.getElementById('eventForm-categoryMajor').value = '';
+      document.getElementById('eventForm-categoryMinor').value = '';
       document.getElementById('eventForm-timeLocation').value = '';
       document.getElementById('eventForm-description').value = '';
       document.getElementById('saveEventBtn').textContent = '儲存活動';
@@ -3217,8 +3217,8 @@
       document.getElementById('eventForm-endDate').value = ev.endDate ? normalizeDate(ev.endDate) : '';
       document.getElementById('eventForm-title').value = ev.title;
       setCheckedValues('eventForm-target', ev.target || '');
-      setCheckedValues('eventForm-categoryMajor', ev.categoryMajor || ev.category || '');
-      setCheckedValues('eventForm-categoryMinor', ev.categoryMinor || '');
+      document.getElementById('eventForm-categoryMajor').value = ev.categoryMajor || ev.category || '';
+      document.getElementById('eventForm-categoryMinor').value = ev.categoryMinor || '';
       document.getElementById('eventForm-timeLocation').value = ev.timeLocation || '';
       document.getElementById('eventForm-description').value = ev.description || '';
       document.getElementById('saveEventBtn').textContent = '更新此活動';
