@@ -104,7 +104,46 @@
   </div>
 
   <!-- ==================== HEADER 導覽標題列 ==================== -->
-  <header class="bg-white/90 backdrop-blur-md border-b border-rose-100 shadow-sm sticky top-7 z-30">
+  
+  <div class="flex flex-row w-full min-h-[calc(100vh-28px)] items-stretch">
+    
+    <!-- Desktop Sidebar Wrapper (occupies layout space when pinned) -->
+    <div id="sidebarWrapper" class="hidden md:block w-16 shrink-0 transition-all duration-300"></div>
+
+    <!-- The actual floating/sticky sidebar -->
+    <aside id="desktopSidebar" class="hidden md:flex flex-col bg-white border-r border-slate-200/80 shadow-sm fixed top-7 bottom-0 left-0 z-40 w-16 transition-all duration-300 overflow-hidden group" onmouseenter="expandSidebar()" onmouseleave="collapseSidebar()">
+      <div class="p-3 flex items-center justify-center border-b border-slate-100 relative min-h-[64px] whitespace-nowrap overflow-hidden">
+        <span class="text-2xl cursor-pointer transition-transform hover:scale-110 shrink-0 select-none" onclick="switchTab('home')">🍄</span>
+        <span class="font-black text-slate-700 ml-4 opacity-0 transition-opacity duration-300 sidebar-text text-lg select-none">選單導覽</span>
+        <button id="pinSidebarBtn" onclick="togglePinSidebar()" class="absolute right-3 p-1.5 text-slate-400 hover:text-slate-700 transition-colors opacity-0 sidebar-pin-btn rounded-lg hover:bg-slate-100 group-hover:opacity-100 focus:opacity-100 tap-bounce" title="釘選選單">
+          <span class="text-sm">📌</span>
+        </button>
+      </div>
+      
+      <nav class="flex-1 py-4 flex flex-col gap-2 px-2 overflow-y-auto no-scrollbar overflow-x-hidden">
+        <button onclick="switchTab('home')" id="tabBtn-home" class="tab-btn flex items-center p-2 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
+          <span class="text-xl w-8 text-center shrink-0">🏠</span>
+          <span class="font-bold text-sm whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-2">班級日常</span>
+        </button>
+        <button onclick="switchTab('albums')" id="tabBtn-albums" class="tab-btn flex items-center p-2 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
+          <span class="text-xl w-8 text-center shrink-0">📸</span>
+          <span class="font-bold text-sm whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-2">活動相簿</span>
+        </button>
+        <button onclick="switchTab('docs')" id="tabBtn-docs" class="tab-btn flex items-center p-2 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
+          <span class="text-xl w-8 text-center shrink-0">📁</span>
+          <span class="font-bold text-sm whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-2">常用文件</span>
+        </button>
+        <div class="flex-1"></div>
+        <button onclick="switchTab('admin')" id="tabBtn-admin" class="tab-btn flex items-center p-2 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
+          <span class="text-xl w-8 text-center shrink-0">⚙️</span>
+          <span class="font-bold text-sm whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-2">管理後台</span>
+        </button>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col min-w-0 transition-all duration-300 relative">
+      <header class="bg-white/90 backdrop-blur-md border-b border-rose-100 shadow-sm sticky top-7 z-30 flex-shrink-0">
     <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
       <!-- 園所與班級 Logo 識別 -->
       <div class="flex items-center gap-3 cursor-pointer" onclick="switchTab('home')">
@@ -121,29 +160,12 @@
       </div>
 
       <!-- 導覽頁籤 (Desktop & Tablet) -->
-      <nav class="hidden md:flex items-center gap-1 bg-slate-50 p-1 rounded-2xl border border-slate-200/80">
-        <button onclick="switchTab('home')" id="tabBtn-home" class="tab-btn px-3.5 py-1.5 rounded-xl text-sm font-bold flex items-center gap-1.5 transition-all bg-peach-500 text-white shadow-sm">
-          <span>🏠</span> 班級日常
-        </button>
-        <button onclick="switchTab('albums')" id="tabBtn-albums" class="tab-btn px-3.5 py-1.5 rounded-xl text-sm font-bold flex items-center gap-1.5 transition-all text-slate-600 hover:text-slate-900 hover:bg-slate-100">
-          <span>📸</span> 活動相簿
-        </button>
-        <button onclick="switchTab('docs')" id="tabBtn-docs" class="tab-btn px-3.5 py-1.5 rounded-xl text-sm font-bold flex items-center gap-1.5 transition-all text-slate-600 hover:text-slate-900 hover:bg-slate-100">
-          <span>📁</span> 常用文件
-        </button>
-        <button onclick="switchTab('admin')" id="tabBtn-admin" class="tab-btn px-3.5 py-1.5 rounded-xl text-sm font-bold flex items-center gap-1.5 transition-all text-slate-600 hover:text-slate-900 hover:bg-slate-100">
-          <span>⚙️</span> 管理後台
-        </button>
-      </nav>
+      
 
-      <!-- 手機版管理後台捷徑按鈕 -->
-      <div class="flex md:hidden items-center gap-2">
-        <button onclick="switchTab('admin')" class="px-2.5 py-1.5 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200 flex items-center gap-1 tap-bounce">
-          <span>⚙️</span> 後台
-        </button>
-      </div>
+      
     </div>
   </header>
+
 
   <!-- ==================== 手機版底部浮動導覽列 ==================== -->
   <div class="md:hidden fixed bottom-3 left-3 right-3 z-40 bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-rose-100 p-1.5 flex items-center justify-around">
@@ -1083,6 +1105,8 @@
     </section>
 
   </main>
+    </div>
+  </div>
 
   
   <!-- ==================== ACTICITY 資料夾現有檔案選取彈窗 (MODAL) ==================== -->
@@ -1585,6 +1609,55 @@
       }
     }
 
+    
+    let isSidebarPinned = false;
+
+    function expandSidebar() {
+      const sb = document.getElementById('desktopSidebar');
+      const texts = document.querySelectorAll('.sidebar-text');
+      if (sb) {
+        sb.classList.remove('w-16');
+        sb.classList.add('w-56');
+      }
+      texts.forEach(el => {
+        el.classList.remove('opacity-0');
+        el.classList.add('opacity-100');
+      });
+    }
+
+    function collapseSidebar() {
+      if (isSidebarPinned) return;
+      const sb = document.getElementById('desktopSidebar');
+      const texts = document.querySelectorAll('.sidebar-text');
+      if (sb) {
+        sb.classList.add('w-16');
+        sb.classList.remove('w-56');
+      }
+      texts.forEach(el => {
+        el.classList.add('opacity-0');
+        el.classList.remove('opacity-100');
+      });
+    }
+
+    function togglePinSidebar() {
+      isSidebarPinned = !isSidebarPinned;
+      const wrap = document.getElementById('sidebarWrapper');
+      const pinBtn = document.getElementById('pinSidebarBtn');
+      if (isSidebarPinned) {
+        wrap.classList.remove('w-16');
+        wrap.classList.add('w-56');
+        pinBtn.classList.add('text-peach-500', 'bg-peach-100');
+        pinBtn.classList.remove('text-slate-400');
+        expandSidebar(); // Ensure it's expanded
+      } else {
+        wrap.classList.add('w-16');
+        wrap.classList.remove('w-56');
+        pinBtn.classList.remove('text-peach-500', 'bg-peach-100');
+        pinBtn.classList.add('text-slate-400');
+        collapseSidebar();
+      }
+    }
+
     // ==================== 頁籤切換邏輯 ====================
     function switchTab(tabName) {
       state.currentTab = tabName;
@@ -1596,7 +1669,7 @@
         if (tab === tabName) {
           contentEl.classList.remove('hidden');
           if (btnEl) {
-            btnEl.className = 'tab-btn px-3.5 py-1.5 rounded-xl text-sm font-bold flex items-center gap-1.5 transition-all bg-peach-500 text-white shadow-sm';
+            btnEl.className = 'tab-btn flex items-center p-2 rounded-xl transition-all group/btn bg-peach-50 text-peach-600 shadow-sm relative before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:bg-peach-500 before:rounded-r-full';
           }
           if (mBtnEl) {
             mBtnEl.className = 'm-tab-btn flex-1 py-1.5 flex flex-col items-center justify-center text-xs font-bold rounded-xl transition-all text-peach-600 bg-peach-50';
@@ -1604,7 +1677,7 @@
         } else {
           contentEl.classList.add('hidden');
           if (btnEl) {
-            btnEl.className = 'tab-btn px-3.5 py-1.5 rounded-xl text-sm font-bold flex items-center gap-1.5 transition-all text-slate-600 hover:text-slate-900 hover:bg-slate-100';
+            btnEl.className = 'tab-btn flex items-center p-2 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800';
           }
           if (mBtnEl) {
             mBtnEl.className = 'm-tab-btn flex-1 py-1.5 flex flex-col items-center justify-center text-xs font-bold rounded-xl transition-all text-slate-500 hover:text-slate-800';
