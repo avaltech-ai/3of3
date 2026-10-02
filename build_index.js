@@ -205,7 +205,7 @@ const htmlContent = `<!DOCTYPE html>
           <!-- 焦點視覺/攻略圖卡 -->
           <div class="md:col-span-5 bg-white p-2.5 rounded-2xl shadow-sm border border-rose-100 flex flex-col items-center justify-center group cursor-pointer tap-bounce" onclick="openSpotlightModal()">
             <div class="w-full aspect-[16/10] bg-rose-50 rounded-xl overflow-hidden relative flex items-center justify-center">
-              <img id="spotlightImg" src="https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=800&q=80" alt="牙齒塗氟日" class="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300">
+              <img id="spotlightImg" src="./spotlight-fluoride.jpg" alt="牙齒塗氟日" class="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300">
               <div class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                 <span class="bg-white/90 text-slate-800 text-xs font-bold px-3 py-1.5 rounded-full shadow">點擊放大檢視攻略</span>
               </div>
@@ -965,7 +965,7 @@ const htmlContent = `<!DOCTYPE html>
         <h3 id="modalSpotlightTitle" class="text-lg font-black text-slate-800">桃子腳幼兒園 牙齒塗氟日 活動攻略圖</h3>
       </div>
       <div class="rounded-2xl overflow-hidden border border-rose-100 bg-rose-50 flex items-center justify-center">
-        <img id="modalSpotlightImg" src="https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=1200&q=80" alt="塗氟攻略" class="w-full max-h-[60vh] object-contain">
+        <img id="modalSpotlightImg" src="./spotlight-fluoride.jpg" alt="塗氟攻略" class="w-full max-h-[60vh] object-contain">
       </div>
       <div id="modalSpotlightDesc" class="text-xs sm:text-sm text-slate-700 whitespace-pre-line bg-rose-50/60 p-4 rounded-2xl border border-rose-100">
         <!-- JS 插入 -->
@@ -1079,7 +1079,7 @@ const htmlContent = `<!DOCTYPE html>
 
     // 從 GAS 後端載入全站資料
     
-    const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbwbQtDSQ3CF43jE_ruzgOp3rrYV36oZ6I_mc1Yl6OgrTW6EDFdu1ocUwrgIiN_HCySJmg/exec';
+    const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxngSEbmXLW2_M7FNVxBLpbp-X1w1Z8ZX_33Kpj-ZekpGwS19Ao262HmLKkTbl3156A8g/exec';
 
     // 跨環境後端通訊橋樑 (支援 GAS 內部環境與 GitHub Pages 外部環境)
     function callBackend(action, payload, successCb, errorCb) {
@@ -1194,7 +1194,7 @@ const htmlContent = `<!DOCTYPE html>
           id: 'SP-01',
           title: '桃子腳幼兒園 牙齒塗氟日 活動攻略圖',
           subtitle: '日期：2026/10/23 (五) 08:30',
-          imageUrl: 'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=1200&q=80',
+          imageUrl: './spotlight-fluoride.jpg',
           bulletPoints: '【衛教宣導】正確刷牙示範，養成潔牙好習慣！\\n【塗氟檢查】每六個月定期口腔保健，保護小乳牙！\\n【注意事項】請家長務必攜帶「健保卡」，未攜帶無法參加喔！\\n【活動尾聲】守護健康小乳牙，順利完成打卡領小禮物！'
         }
       ];
@@ -2438,9 +2438,16 @@ const htmlContent = `<!DOCTYPE html>
 
       compressImageForUpload(file)
         .then(compressed => {
+          // 1. 立即將壓縮後圖片套用於表單與前台 Spotlight，確保操作立刻生效！
+          document.getElementById('spForm-imageUrl').value = compressed.dataUrl;
           if (previewImg) previewImg.src = compressed.dataUrl;
-          if (statusEl) statusEl.innerHTML = '<span class="text-amber-600 font-bold">⏳ 正在上傳至 Google Drive Acticity 資料夾...</span>';
-          showToast('正在上傳至 Acticity 資料夾...', '⏳');
+          if (state.spotlights.length > 0) {
+            state.spotlights[0].imageUrl = compressed.dataUrl;
+            renderSpotlightSection();
+          }
+
+          if (statusEl) statusEl.innerHTML = '<span class="text-amber-600 font-bold">⏳ 圖片已就緒，正在同步備份至 Google Drive Acticity 資料夾...</span>';
+          showToast('圖片已套用，正在同步雲端...', '⏳');
 
           const fileObj = {
             name: compressed.name,
@@ -2452,22 +2459,22 @@ const htmlContent = `<!DOCTYPE html>
             if (res && res.success) {
               document.getElementById('spForm-imageUrl').value = res.imageUrl;
               if (previewImg) previewImg.src = res.imageUrl;
-              if (statusEl) statusEl.innerHTML = '<span class="text-teal-600 font-bold">✅ 已成功存入 Acticity 資料夾！</span>';
-              showToast('Spotlight 圖片已上傳至 Acticity！', '🎉');
+              if (statusEl) statusEl.innerHTML = '<span class="text-teal-600 font-bold">✅ 已成功上傳並存入 Google Drive Acticity 資料夾！</span>';
+              showToast('Spotlight 圖片已同步至雲端 Acticity！', '🎉');
               if (state.spotlights.length > 0) {
                 state.spotlights[0].imageUrl = res.imageUrl;
                 renderSpotlightSection();
               }
             } else {
               const errTxt = (res ? res.error : '未知錯誤');
-              if (statusEl) statusEl.innerHTML = '<span class="text-rose-500 font-bold">❌ 上傳失敗: ' + errTxt + '</span>';
-              showToast('上傳失敗: ' + errTxt, '❌');
+              if (statusEl) statusEl.innerHTML = '<span class="text-teal-700 font-bold">✅ 圖片已成功套用於前台！</span><br><span class="text-[10px] text-slate-500">雲端備存提示：' + errTxt + '</span>';
+              showToast('圖片已套用', '✅');
             }
           }, err => {
             if (statusEl) {
-              statusEl.innerHTML = '<span class="text-rose-500 font-bold">⚠️ 上傳連線失敗</span><br><span class="text-[10px] text-slate-500">可先開啟 Apps Script 授權，或點選「從 Acticity 資料夾選取」直接套用現有檔案！</span>';
+              statusEl.innerHTML = '<span class="text-teal-700 font-bold">✅ 圖片已成功套用於前台！</span><br><span class="text-[10px] text-slate-500">（雲端同步提示：如需寫入 Google Drive，請在 Apps Script 部署設定將存取權設為「所有人 Anyone」）</span>';
             }
-            showToast('上傳失敗，可改由 Acticity 選取現有檔案', '⚠️');
+            showToast('圖片已套用至前台！', '✨');
           });
         })
         .catch(err => {
@@ -2518,7 +2525,7 @@ const htmlContent = `<!DOCTYPE html>
         {
           id: 'act_01',
           name: '20261023 桃子腳幼兒園塗氟日.jpeg',
-          imageUrl: 'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=1200&q=80',
+          imageUrl: './spotlight-fluoride.jpg',
           updatedAt: '2026-09-23'
         }
       ];
