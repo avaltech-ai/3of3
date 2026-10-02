@@ -276,6 +276,30 @@ function getAppData() {
           evtSheet.getRange(1, catIndex + 2).setValue('categoryMinor');
         }
       }
+
+      // 檢查並自動修復曾因舊版程式欄位位移的 EV-14
+      let allEvtValues = evtSheet.getDataRange().getValues();
+      if (allEvtValues.length > 1) {
+        let curHeaders = allEvtValues[0].map(h => String(h).trim());
+        let idCol = curHeaders.indexOf('id');
+        let catMajCol = curHeaders.indexOf('categoryMajor');
+        let catMinCol = curHeaders.indexOf('categoryMinor');
+        let timeCol = curHeaders.indexOf('timeLocation');
+        let descCol = curHeaders.indexOf('description');
+        if (idCol > -1 && catMinCol > -1 && timeCol > -1) {
+          for (let r = 1; r < allEvtValues.length; r++) {
+            if (String(allEvtValues[r][idCol]) === 'EV-14') {
+              let minVal = String(allEvtValues[r][catMinCol]);
+              if (minVal.includes(':') || minVal.includes('10:00')) {
+                evtSheet.getRange(r + 1, catMajCol + 1).setValue('班級主題');
+                evtSheet.getRange(r + 1, catMinCol + 1).setValue('幸福廚房');
+                evtSheet.getRange(r + 1, timeCol + 1).setValue('10:00 至 12:20');
+                evtSheet.getRange(r + 1, descCol + 1).setValue('🌟 諾 A 班十月份幸福廚房手作日！');
+              }
+            }
+          }
+        }
+      }
     }
 
     const events = getSheetDataAsObjects(ss.getSheetByName('Events'));
@@ -712,22 +736,29 @@ function saveEvent(eventData, password) {
     const ss = getSpreadsheet();
     const sheet = ss.getSheetByName('Events');
     const data = sheet.getDataRange().getValues();
-    const headers = data[0];
+    const headers = data[0].map(h => String(h).trim());
 
     const idIndex = headers.indexOf('id');
-    const dateIndex = headers.indexOf('date');
+    const id = eventData.id || ('EV-' + Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyyMMddHHmmss'));
 
-    const rowData = [
-      eventData.id || ('EV-' + Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyyMMddHHmmss')),
-      eventData.date || '',
-      eventData.endDate || '',
-      eventData.title || '',
-      eventData.target || '全園',
-      eventData.category || '重要活動',
-      eventData.timeLocation || '',
-      eventData.description || '',
-      eventData.theme || ''
-    ];
+    const fieldMap = {
+      id: id,
+      date: eventData.date || '',
+      endDate: eventData.endDate || '',
+      title: eventData.title || '',
+      target: eventData.target || '全園',
+      categoryMajor: eventData.categoryMajor || eventData.category || '全園活動',
+      categoryMinor: eventData.categoryMinor || '',
+      timeLocation: eventData.timeLocation || '',
+      description: eventData.description || '',
+      theme: eventData.theme || ''
+    };
+    // 舊版單一 category 欄位相容
+    if (headers.indexOf('category') > -1 && headers.indexOf('categoryMajor') === -1) {
+      fieldMap['category'] = eventData.categoryMajor || eventData.category || '全園活動';
+    }
+
+    const rowData = headers.map(h => fieldMap[h] !== undefined ? fieldMap[h] : (eventData[h] !== undefined ? eventData[h] : ''));
 
     let foundRow = -1;
     if (eventData.id) {

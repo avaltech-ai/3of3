@@ -3176,9 +3176,12 @@ const htmlContent = `<!DOCTYPE html>
 
     // 後台行事曆管理
     function handleSaveEvent(e) {
-      e.preventDefault();
+      const evId = document.getElementById('eventForm-id').value;
+      const existing = evId ? state.events.find(x => x.id === evId) : null;
+      const themeVal = existing && existing.theme ? existing.theme : '主題活動：人與自己／人與他人概念';
+
       const eventData = {
-        id: document.getElementById('eventForm-id').value || ('EV-' + Date.now()),
+        id: evId || ('EV-' + Date.now()),
         date: document.getElementById('eventForm-date').value,
         endDate: document.getElementById('eventForm-endDate').value,
         title: document.getElementById('eventForm-title').value,
@@ -3187,7 +3190,7 @@ const htmlContent = `<!DOCTYPE html>
         categoryMinor: document.getElementById('eventForm-categoryMinor').value,
         timeLocation: document.getElementById('eventForm-timeLocation').value,
         description: document.getElementById('eventForm-description').value,
-        theme: '主題活動：人與自己／人與他人概念'
+        theme: themeVal
       };
 
       showToast('儲存中...', '⏳');
@@ -3623,8 +3626,6 @@ const htmlContent = `<!DOCTYPE html>
           '<span>📅 ' + scheduleText + '</span>' +
           '<span>•</span>' +
           '<span class="font-bold text-peach-600">' + durationText + '</span>' +
-          '<span>•</span>' +
-          '<span class="font-bold text-indigo-500">📌 順序: ' + (index + 1) + '</span>' +
           '</div>' +
           '</div>' +
           '</div>' +
