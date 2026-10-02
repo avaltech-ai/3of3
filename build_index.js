@@ -113,12 +113,12 @@ const htmlContent = `<!DOCTYPE html>
       <!-- 園所與班級 Logo 識別 -->
       <div class="flex items-center gap-3 cursor-pointer" onclick="switchTab('home')">
         <div class="w-12 h-12 rounded-2xl bg-white shadow-md border-2 border-rose-200 p-0.5 flex items-center justify-center overflow-hidden shrink-0 transition-transform active:scale-95">
-          <img src="${logoB64}" alt="三之三生命教育 Logo" class="w-full h-full object-contain">
+          <img src="${logoB64}" alt="幼兒園 Logo" class="w-full h-full object-contain">
         </div>
         <div>
           <div class="flex items-center gap-1.5 flex-wrap">
-            <span class="text-xs font-bold text-peach-600 bg-peach-50 px-2 py-0.5 rounded-full border border-peach-100">三之三生命教育基金會</span>
-            <span class="text-xs font-medium text-slate-500 hidden sm:inline">新北市桃子腳非營利幼兒園</span>
+            
+            <span class="text-xs font-medium text-slate-500">新北市桃子腳非營利幼兒園</span>
           </div>
           <h1 class="text-lg sm:text-xl font-black text-slate-800 tracking-tight flex items-center gap-1.5 mt-0.5">
             <span>諾貝爾 A 班</span>
@@ -406,7 +406,7 @@ const htmlContent = `<!DOCTYPE html>
                   </div>
                   <div>
                     <h4 class="font-black text-slate-800 text-base">每日營養美味菜單</h4>
-                    <p class="text-xs text-slate-400">三之三用心烹調・均衡健康守護</p>
+                    <p class="text-xs text-slate-400">用心烹調・均衡健康守護</p>
                   </div>
                 </div>
                 <span class="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
@@ -1174,7 +1174,7 @@ const htmlContent = `<!DOCTYPE html>
       <span>•</span>
       <span class="font-bold text-peach-600">諾貝爾 A 班</span>
     </div>
-    <p>財團法人三之三生命教育基金會辦理 ｜ 用愛陪伴孩子成長的每一步</p>
+    <p>用愛陪伴孩子成長的每一步</p>
   </footer>
 
   <!-- ==================== 前端邏輯 JS SCRIPT ==================== -->

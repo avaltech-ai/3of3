@@ -900,7 +900,7 @@ function ensureDatabaseInitialized() {
   if (!ss) return;
 
   const eventsSheet = ss.getSheetByName('Events');
-  if (!eventsSheet || eventsSheet.getLastRowNum() <= 1) {
+  if (!eventsSheet || eventsSheet.getLastRow() <= 1) {
     setupInitialDatabase();
   }
 }
