@@ -217,7 +217,7 @@
               <!-- 影片播放器 (YouTube / Drive preview / HTML5 video) -->
               <div id="spotlightVideoBox" class="w-full h-full hidden">
                 <iframe id="spotlightIframe" class="w-full h-full border-0 rounded-xl" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-                <video id="spotlightHtml5Video" class="w-full h-full object-cover rounded-xl hidden" controls playsinline autoplay muted loop></video>
+                <video id="spotlightHtml5Video" class="w-full h-full object-cover rounded-xl hidden" playsinline autoplay muted loop></video>
               </div>
             </div>
             <div class="mt-2 text-center w-full flex items-center justify-between px-1">
@@ -1516,20 +1516,20 @@
       return explicitType || 'image';
     }
 
-    function getEmbedVideoInfo(url) {
+    function getEmbedVideoInfo(url, hideControls = false) {
       if (!url) return { type: 'none', src: '' };
       const str = url.trim();
       // YouTube 網址解析
       if (str.includes('youtu.be/')) {
         const id = str.split('youtu.be/')[1].split(/[?&#]/)[0];
-        if (id) return { type: 'iframe', src: 'https://www.youtube-nocookie.com/embed/' + id + '?rel=0&modestbranding=1&autoplay=1&mute=1&loop=1&playlist=' + id };
+        if (id) return { type: 'iframe', src: 'https://www.youtube-nocookie.com/embed/' + id + '?rel=0&modestbranding=1&autoplay=1&mute=1&loop=1&playlist=' + id + (hideControls ? '&controls=0' : '&controls=1') };
       }
       if (str.includes('youtube.com/')) {
         let id = '';
         if (str.includes('watch?v=')) id = str.split('watch?v=')[1].split('&')[0];
         else if (str.includes('embed/')) id = str.split('embed/')[1].split(/[?&#]/)[0];
         else if (str.includes('shorts/')) id = str.split('shorts/')[1].split(/[?&#]/)[0];
-        if (id) return { type: 'iframe', src: 'https://www.youtube-nocookie.com/embed/' + id + '?rel=0&modestbranding=1&autoplay=1&mute=1&loop=1&playlist=' + id };
+        if (id) return { type: 'iframe', src: 'https://www.youtube-nocookie.com/embed/' + id + '?rel=0&modestbranding=1&autoplay=1&mute=1&loop=1&playlist=' + id + (hideControls ? '&controls=0' : '&controls=1') };
       }
       // Google Drive 雲端預覽影片
       let driveId = '';
@@ -1639,7 +1639,7 @@
       const mediaKind = detectMediaKind(sp.imageUrl, sp.mediaType);
 
       if (mediaKind === 'video') {
-        const vInfo = getEmbedVideoInfo(sp.imageUrl);
+        const vInfo = getEmbedVideoInfo(sp.imageUrl, true); // true for homepage
         if (imgEl) imgEl.classList.add('hidden');
         if (imgHint) imgHint.classList.add('hidden');
         if (videoBox) videoBox.classList.remove('hidden');
@@ -1834,7 +1834,7 @@
 
       const mediaKind = detectMediaKind(sp.imageUrl, sp.mediaType);
       if (mediaKind === 'video') {
-        const vInfo = getEmbedVideoInfo(sp.imageUrl);
+        const vInfo = getEmbedVideoInfo(sp.imageUrl, false); // true for homepage
         if (modalImg) modalImg.classList.add('hidden');
         if (modalVideoBox) modalVideoBox.classList.remove('hidden');
 
