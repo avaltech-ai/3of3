@@ -1317,7 +1317,7 @@
 
     // 從 GAS 後端載入全站資料
     
-    const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxhp0gicx82NNCI58dNmoceEfTUCldZ9Eqp9Uh4zOOGU6vXeowbZuO9DmqDcvG62PLRkQ/exec';
+    const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbwKTuHqYk0AlmQncH8rY5osec2GvC5V7VNi2L2Wx_hji9lA8DFfmiTVoHeGkodMvz2riQ/exec';
 
     // 跨環境後端通訊橋樑 (支援 GAS 內部環境與 GitHub Pages 外部環境)
     function callBackend(action, payload, successCb, errorCb) {
@@ -2822,7 +2822,7 @@
             if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = '<span>💾</span> 儲存修改'; }
             if (res && res.success) {
               const newDoc = {
-                id: res.fileId ? ('DOC-' + res.fileId) : (id || ('DOC-' + Date.now())),
+                id: res.docId || id || ('DOC-' + Date.now()),
                 fileName: fileName,
                 category: category,
                 description: description,

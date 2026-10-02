@@ -483,25 +483,27 @@ function uploadDocument(docMeta, fileObj, password) {
     const downloadUrl = 'https://drive.google.com/uc?export=download&id=' + fileId;
     const todayStr = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd');
 
-    const ss = getSpreadsheet();
-    const sheet = ss.getSheetByName('Docs');
-    const docId = 'DOC-' + Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyyMMddHHmmss');
+    const docData = {
+      id: docMeta.id || ('DOC-' + Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyyMMddHHmmss')),
+      fileName: docMeta.fileName || fileObj.name,
+      category: docMeta.category || '一般文件',
+      description: docMeta.description || '',
+      driveFileId: fileId,
+      downloadUrl: downloadUrl,
+      updatedAt: todayStr
+    };
 
-    sheet.appendRow([
-      docId,
-      docMeta.fileName || fileObj.name,
-      docMeta.category || '一般文件',
-      docMeta.description || '',
-      fileId,
-      downloadUrl,
-      todayStr
-    ]);
+    const saveResult = saveDoc(docData, password);
+    if (!saveResult.success) {
+      throw new Error(saveResult.error);
+    }
 
     return {
       success: true,
       message: '文件已成功上傳並發佈！',
       fileId: fileId,
-      downloadUrl: downloadUrl
+      downloadUrl: downloadUrl,
+      docId: docData.id
     };
   } catch (err) {
     return {
