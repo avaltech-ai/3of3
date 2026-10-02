@@ -1371,6 +1371,12 @@ const htmlContent = `<!DOCTYPE html>
       state.events = data.events || [];
       state.menus = data.menus || [];
       state.spotlights = data.spotlights || [];
+      state.spotlights.sort((a, b) => {
+        const pA = Number(a.priority) || 999;
+        const pB = Number(b.priority) || 999;
+        if (pA !== pB) return pA - pB;
+        return String(b.id).localeCompare(String(a.id)); // Newer first if same priority
+      });
       state.docs = data.docs || [];
       state.settings = data.settings || {};
 
@@ -3052,6 +3058,7 @@ const htmlContent = `<!DOCTYPE html>
 
         var scheduleText = '起：' + (sp.startDate || '立即') + ' ～ 訖：' + (sp.endDate || '永久有效');
         var durationText = '⏱️ ' + (sp.duration || 5) + ' 秒';
+        var priorityText = '📌 順序: ' + (sp.priority || '未設');
         var mediaIcon = sp.mediaType === 'video' ? '🎬' : '🖼️';
 
         var card = document.createElement('div');
@@ -3071,6 +3078,8 @@ const htmlContent = `<!DOCTYPE html>
           '<span>📅 ' + scheduleText + '</span>' +
           '<span>•</span>' +
           '<span class="font-bold text-peach-600">' + durationText + '</span>' +
+          '<span>•</span>' +
+          '<span class="font-bold text-indigo-500">' + priorityText + '</span>' +
           '</div>' +
           '</div>' +
           '</div>' +
@@ -3586,7 +3595,12 @@ const htmlContent = `<!DOCTYPE html>
         state.spotlights.push(spData);
       }
 
-      state.spotlights.sort((a, b) => (Number(a.priority) || 1) - (Number(b.priority) || 1));
+      state.spotlights.sort((a, b) => {
+        const pA = Number(a.priority) || 999;
+        const pB = Number(b.priority) || 999;
+        if (pA !== pB) return pA - pB;
+        return String(b.id).localeCompare(String(a.id));
+      });
 
       try {
         localStorage.setItem('nobel_a_spotlights_list', JSON.stringify(state.spotlights));
