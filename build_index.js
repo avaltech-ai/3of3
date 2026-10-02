@@ -3600,17 +3600,13 @@ const htmlContent = `<!DOCTYPE html>
         }
 
         var orderWidget = '<div class="flex items-center bg-white border border-indigo-200 rounded-xl p-1 shadow-2xs gap-1">' +
-          '<button type="button" class="sp-up-btn w-6 h-6 flex items-center justify-center rounded-lg bg-slate-50 hover:bg-indigo-50 text-indigo-700 text-xs font-bold transition-all disabled:opacity-25 disabled:cursor-not-allowed" title="往上移（提高優先順序）"' + (isFirst ? ' disabled' : '') + '>' +
+          '<button type="button" class="sp-up-btn w-6 h-6 flex items-center justify-center rounded-lg bg-slate-50 hover:bg-indigo-50 text-indigo-700 text-xs font-bold transition-all disabled:opacity-20 disabled:cursor-not-allowed" title="往上移"' + (isFirst ? ' disabled' : '') + '>' +
           '▲' +
           '</button>' +
-          '<div class="flex items-center gap-1 px-1">' +
-          '<span class="text-[0.6875rem] font-black text-indigo-600">第</span>' +
-          '<select class="sp-order-select text-xs font-black text-indigo-700 bg-indigo-50/80 border border-indigo-200 rounded-lg px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-indigo-400 cursor-pointer">' +
+          '<select class="sp-order-select text-xs font-black text-indigo-700 bg-indigo-50/80 border border-indigo-200 rounded-lg px-2 py-0.5 focus:outline-none focus:ring-1 focus:ring-indigo-400 cursor-pointer">' +
           optionsHtml +
           '</select>' +
-          '<span class="text-[0.6875rem] font-black text-indigo-600">順位</span>' +
-          '</div>' +
-          '<button type="button" class="sp-down-btn w-6 h-6 flex items-center justify-center rounded-lg bg-slate-50 hover:bg-indigo-50 text-indigo-700 text-xs font-bold transition-all disabled:opacity-25 disabled:cursor-not-allowed" title="往下移（降低優先順序）"' + (isLast ? ' disabled' : '') + '>' +
+          '<button type="button" class="sp-down-btn w-6 h-6 flex items-center justify-center rounded-lg bg-slate-50 hover:bg-indigo-50 text-indigo-700 text-xs font-bold transition-all disabled:opacity-20 disabled:cursor-not-allowed" title="往下移"' + (isLast ? ' disabled' : '') + '>' +
           '▼' +
           '</button>' +
           '</div>';
@@ -3633,7 +3629,7 @@ const htmlContent = `<!DOCTYPE html>
           '<span>•</span>' +
           '<span class="font-bold text-peach-600">' + durationText + '</span>' +
           '<span>•</span>' +
-          '<span class="font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">📌 輪播第 ' + (index + 1) + ' 順位</span>' +
+          '<span class="font-bold text-indigo-500">📌 順序: ' + (index + 1) + '</span>' +
           '</div>' +
           '</div>' +
           '</div>' +
