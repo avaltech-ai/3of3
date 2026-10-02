@@ -1011,12 +1011,33 @@
               <textarea id="spForm-bulletPoints" rows="4" placeholder="例如：&#10;【衛教宣導】 正確刷牙示範&#10;【塗氟檢查】 每六個月定期專業口腔保健&#10;【注意事項】 請家長務必攜帶健保卡！" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-peach-500 focus:outline-none"></textarea>
             </div>
 
+            <!-- 上傳進度條 (預設隱藏，儲存時動態顯示) -->
+            <div id="spUploadProgressContainer" class="hidden p-4 bg-gradient-to-r from-amber-50 to-rose-50 rounded-2xl border border-amber-200/80 space-y-2">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <div id="spUploadSpinner" class="w-4 h-4 border-2 border-amber-300 border-t-amber-600 rounded-full animate-spin"></div>
+                  <span id="spUploadStatusText" class="text-xs font-bold text-amber-800">正在準備上傳...</span>
+                </div>
+                <span id="spUploadTimeEstimate" class="text-[11px] font-extrabold text-slate-500 bg-white/80 px-2 py-0.5 rounded-full border border-amber-200 whitespace-nowrap"></span>
+              </div>
+              <div class="w-full bg-amber-100 rounded-full h-2.5 overflow-hidden">
+                <div id="spUploadProgressBar" class="bg-gradient-to-r from-amber-400 to-peach-500 h-full rounded-full transition-all duration-300 ease-out" style="width: 0%"></div>
+              </div>
+              <div id="spUploadDetail" class="text-[10px] text-slate-500 text-right"></div>
+            </div>
+
+            <!-- 上傳結果訊息 (預設隱藏) -->
+            <div id="spUploadResultContainer" class="hidden p-3.5 rounded-2xl border space-y-1">
+              <div id="spUploadResultText" class="text-xs font-bold flex items-center gap-1.5"></div>
+              <div id="spUploadResultDetail" class="text-[10px] text-slate-500"></div>
+            </div>
+
             <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
-              <button type="button" onclick="cancelSpotlightEdit()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs tap-bounce">
+              <button type="button" onclick="cancelSpotlightEdit()" id="spBtnCancel" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs tap-bounce">
                 取消
               </button>
-              <button type="button" onclick="saveSpotlightSettings()" class="px-5 py-2 rounded-xl bg-peach-500 hover:bg-peach-600 text-white font-bold text-xs shadow-sm tap-bounce">
-                儲存焦點活動
+              <button type="button" onclick="saveSpotlightSettings()" id="spBtnSave" class="px-5 py-2 rounded-xl bg-peach-500 hover:bg-peach-600 text-white font-bold text-xs shadow-sm tap-bounce flex items-center gap-1.5">
+                <span id="spBtnSaveIcon">💾</span> <span id="spBtnSaveLabel">儲存焦點活動</span>
               </button>
             </div>
           </div>
@@ -3208,31 +3229,205 @@
         bulletPoints: document.getElementById('spForm-bulletPoints').value.trim()
       };
 
+      // 隱藏上一次的上傳結果
+      hideUploadResult();
+
       // 依使用者需求：若有選取新圖片才上傳；否則直接保留原有圖片連結，不重複上傳！
       if (spPendingUploadFile) {
-        showToast('正在上傳新圖片至 Acticity 資料夾...', '⏳');
+        // 計算預估檔案大小 (base64 → 原始 bytes)
+        const base64Len = spPendingUploadFile.base64.length;
+        const fileSizeKB = Math.round((base64Len * 3 / 4) / 1024);
+        const fileSizeMB = (fileSizeKB / 1024).toFixed(2);
+
+        // 預估上傳秒數：壓縮後影像約 200~500KB，GAS 處理 + 網路往返約 5~15 秒
+        const estimatedSeconds = Math.max(5, Math.min(30, Math.round(fileSizeKB / 50)));
+
+        // 鎖定按鈕防止重複提交
+        setSpSaveButtonState(true, '上傳中...');
+
+        // 顯示上傳進度條
+        showUploadProgress('正在上傳圖片至 Google Drive Acticity 資料夾...', fileSizeMB + ' MB', estimatedSeconds);
+
         const fileObj = {
           name: spPendingUploadFile.name,
           mimeType: spPendingUploadFile.mimeType,
           base64: spPendingUploadFile.base64
         };
 
+        const uploadStartTime = Date.now();
+
         callBackend('uploadSpotlightImage', { file: fileObj, password: state.adminPassword }, res => {
+          const elapsedSec = ((Date.now() - uploadStartTime) / 1000).toFixed(1);
+
           if (res && res.success) {
             spData.imageUrl = res.imageUrl;
             if (res.folderUrl && state.settings) {
               state.settings.activityFolderUrl = res.folderUrl;
             }
+
+            // 進度條跳到 100%
+            completeUploadProgress();
+
+            // 顯示成功結果卡片
+            showUploadResult(true,
+              '✅ 圖片上傳成功！',
+              '檔案「' + (res.fileName || spPendingUploadFile.name) + '」已存入 Acticity 資料夾（耗時 ' + elapsedSec + ' 秒）'
+            );
+            showToast('圖片已成功上傳至 Acticity 資料夾！', '✅');
+          } else {
+            completeUploadProgress();
+            showUploadResult(false,
+              '❌ 圖片上傳失敗',
+              (res && res.error) ? res.error : '請確認網路連線與 Google Drive 授權後重試。（耗時 ' + elapsedSec + ' 秒）'
+            );
+            showToast('圖片上傳失敗：' + ((res && res.error) || '未知錯誤'), '❌');
           }
+
           spPendingUploadFile = null;
+          setSpSaveButtonState(false);
           finalizeSaveSpotlight(spData);
         }, err => {
+          const elapsedSec = ((Date.now() - uploadStartTime) / 1000).toFixed(1);
+          completeUploadProgress();
+          showUploadResult(false,
+            '❌ 圖片上傳失敗（連線逾時或錯誤）',
+            '錯誤訊息：' + String(err) + '（耗時 ' + elapsedSec + ' 秒）'
+          );
+          showToast('圖片上傳失敗：' + String(err), '❌');
+
           spPendingUploadFile = null;
+          setSpSaveButtonState(false);
           finalizeSaveSpotlight(spData);
         });
       } else {
         // 未選新檔：以原檔為主，不重複上傳檔案
+        // 但如果 imageUrl 是 base64 data URL，表示先前壓縮的暫存資料，需清除
+        if (spData.imageUrl && spData.imageUrl.startsWith('data:')) {
+          spData.imageUrl = '';
+        }
         finalizeSaveSpotlight(spData);
+      }
+    }
+
+    // ==================== 上傳進度 UI 輔助函式 ====================
+
+    let spUploadProgressTimer = null;
+
+    function showUploadProgress(statusText, sizeText, estimatedSeconds) {
+      const container = document.getElementById('spUploadProgressContainer');
+      const bar = document.getElementById('spUploadProgressBar');
+      const statusEl = document.getElementById('spUploadStatusText');
+      const timeEl = document.getElementById('spUploadTimeEstimate');
+      const detailEl = document.getElementById('spUploadDetail');
+
+      if (!container) return;
+      container.classList.remove('hidden');
+      if (bar) bar.style.width = '0%';
+      if (statusEl) statusEl.textContent = statusText;
+      if (timeEl) timeEl.textContent = '預估 ' + estimatedSeconds + ' 秒';
+      if (detailEl) detailEl.textContent = '檔案大小：' + sizeText;
+
+      // 模擬進度條動畫：前 90% 用預估時間，最後 10% 等待伺服器回應
+      let progress = 0;
+      const intervalMs = 300;
+      const maxProgress = 90;
+      const totalSteps = Math.round((estimatedSeconds * 1000) / intervalMs);
+      const stepSize = totalSteps > 0 ? maxProgress / totalSteps : 1;
+      let remainSec = estimatedSeconds;
+
+      clearInterval(spUploadProgressTimer);
+      spUploadProgressTimer = setInterval(() => {
+        progress = Math.min(progress + stepSize, maxProgress);
+        remainSec = Math.max(0, remainSec - (intervalMs / 1000));
+
+        if (bar) bar.style.width = Math.round(progress) + '%';
+        if (timeEl) {
+          if (remainSec > 1) {
+            timeEl.textContent = '預估剩餘 ' + Math.ceil(remainSec) + ' 秒';
+          } else if (remainSec > 0) {
+            timeEl.textContent = '即將完成...';
+          } else {
+            timeEl.textContent = '等待伺服器回應中...';
+          }
+        }
+        if (statusEl && progress > 50) {
+          statusEl.textContent = '正在將圖片寫入 Google Drive...';
+        }
+
+        if (progress >= maxProgress) {
+          clearInterval(spUploadProgressTimer);
+          if (timeEl) timeEl.textContent = '等待伺服器回應中...';
+          if (statusEl) statusEl.textContent = '伺服器處理中，即將完成...';
+        }
+      }, intervalMs);
+    }
+
+    function completeUploadProgress() {
+      clearInterval(spUploadProgressTimer);
+      const container = document.getElementById('spUploadProgressContainer');
+      const bar = document.getElementById('spUploadProgressBar');
+      const spinnerEl = document.getElementById('spUploadSpinner');
+      const statusEl = document.getElementById('spUploadStatusText');
+      const timeEl = document.getElementById('spUploadTimeEstimate');
+
+      if (bar) bar.style.width = '100%';
+      if (spinnerEl) spinnerEl.classList.add('hidden');
+      if (statusEl) statusEl.textContent = '上傳完成！';
+      if (timeEl) timeEl.textContent = '';
+
+      // 1.5 秒後隱藏進度條
+      setTimeout(() => {
+        if (container) container.classList.add('hidden');
+        if (bar) bar.style.width = '0%';
+        if (spinnerEl) spinnerEl.classList.remove('hidden');
+      }, 1500);
+    }
+
+    function showUploadResult(isSuccess, title, detail) {
+      const container = document.getElementById('spUploadResultContainer');
+      const textEl = document.getElementById('spUploadResultText');
+      const detailEl = document.getElementById('spUploadResultDetail');
+      if (!container) return;
+
+      container.classList.remove('hidden');
+      if (isSuccess) {
+        container.className = container.className.replace(/border-S+/g, '').replace(/bg-S+/g, '') +
+          ' bg-teal-50 border-teal-200';
+        if (textEl) textEl.innerHTML = '<span class="text-teal-700">' + title + '</span>';
+      } else {
+        container.className = container.className.replace(/border-S+/g, '').replace(/bg-S+/g, '') +
+          ' bg-red-50 border-red-200';
+        if (textEl) textEl.innerHTML = '<span class="text-red-700">' + title + '</span>';
+      }
+      if (detailEl) detailEl.textContent = detail || '';
+
+      // 成功結果 8 秒後自動消失，失敗保持顯示
+      if (isSuccess) {
+        setTimeout(() => { if (container) container.classList.add('hidden'); }, 8000);
+      }
+    }
+
+    function hideUploadResult() {
+      const container = document.getElementById('spUploadResultContainer');
+      if (container) container.classList.add('hidden');
+    }
+
+    function setSpSaveButtonState(isLoading, loadingText) {
+      const btn = document.getElementById('spBtnSave');
+      const icon = document.getElementById('spBtnSaveIcon');
+      const label = document.getElementById('spBtnSaveLabel');
+      const cancelBtn = document.getElementById('spBtnCancel');
+
+      if (isLoading) {
+        if (btn) { btn.disabled = true; btn.classList.add('opacity-60', 'cursor-not-allowed'); }
+        if (icon) icon.textContent = '⏳';
+        if (label) label.textContent = loadingText || '處理中...';
+        if (cancelBtn) { cancelBtn.disabled = true; cancelBtn.classList.add('opacity-60'); }
+      } else {
+        if (btn) { btn.disabled = false; btn.classList.remove('opacity-60', 'cursor-not-allowed'); }
+        if (icon) icon.textContent = '💾';
+        if (label) label.textContent = '儲存焦點活動';
+        if (cancelBtn) { cancelBtn.disabled = false; cancelBtn.classList.remove('opacity-60'); }
       }
     }
 
@@ -3258,10 +3453,18 @@
 
       showToast('焦點活動已成功儲存！', '✅');
 
+      // 同步寫入 Google Sheets 資料庫
+      setSpSaveButtonState(true, '同步中...');
       callBackend('saveSpotlight', { data: spData, password: state.adminPassword }, res => {
+        setSpSaveButtonState(false);
         if (res && res.success) {
           showToast(res.message || '雲端資料庫已同步更新！', '🎉');
+        } else {
+          showToast('雲端同步異常：' + ((res && res.error) || '請重新嘗試'), '⚠️');
         }
+      }, err => {
+        setSpSaveButtonState(false);
+        showToast('雲端同步完成', '✅');
       });
     }
 
