@@ -1079,7 +1079,7 @@ const htmlContent = `<!DOCTYPE html>
 
     // 從 GAS 後端載入全站資料
     
-    const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxngSEbmXLW2_M7FNVxBLpbp-X1w1Z8ZX_33Kpj-ZekpGwS19Ao262HmLKkTbl3156A8g/exec';
+    const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbwbQtDSQ3CF43jE_ruzgOp3rrYV36oZ6I_mc1Yl6OgrTW6EDFdu1ocUwrgIiN_HCySJmg/exec';
 
     // 跨環境後端通訊橋樑 (支援 GAS 內部環境與 GitHub Pages 外部環境)
     function callBackend(action, payload, successCb, errorCb) {
@@ -1128,17 +1128,17 @@ const htmlContent = `<!DOCTYPE html>
     }
 
     function loadAppData() {
-      showLoading(true);
+      // 優先立即以示範/預載資料渲染，達成 0 秒極速載入，絕不卡在載入狀態
+      renderFallbackLocalData();
+      showLoading(false);
+
+      // 背景向 GAS 請求即時試算表更新
       callBackend('getAppData', {}, res => {
-        showLoading(false);
-        if (res && res.success) {
+        if (res && res.success && res.data) {
           handleDataLoaded(res.data);
-        } else {
-          renderFallbackLocalData();
         }
       }, err => {
-        showLoading(false);
-        renderFallbackLocalData();
+        console.warn('GAS 遠端連線提示 (目前使用本機預載資料模式):', err);
       });
     }
 
@@ -2377,9 +2377,9 @@ const htmlContent = `<!DOCTYPE html>
     function autoConvertDriveUrl(rawUrl) {
       if (!rawUrl) return '';
       const str = rawUrl.trim();
-      const m1 = str.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+      const m1 = str.match(new RegExp('/file/d/([a-zA-Z0-9_-]+)'));
       if (m1) return 'https://drive.google.com/thumbnail?id=' + m1[1] + '&sz=w1600';
-      const m2 = str.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+      const m2 = str.match(new RegExp('[?&]id=([a-zA-Z0-9_-]+)'));
       if (m2) return 'https://drive.google.com/thumbnail?id=' + m2[1] + '&sz=w1600';
       return str;
     }
