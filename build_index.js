@@ -490,11 +490,11 @@ const htmlContent = `<!DOCTYPE html>
             <h2 class="text-xl font-black text-slate-800 tracking-tight">諾貝爾 A 班 活動影像館</h2>
           </div>
           <p class="text-xs sm:text-sm text-slate-600 mt-1">
-            紀錄寶貝在幼兒園成長探索的點滴歡笑！相簿同步存放於 Google Drive 雲端硬碟。
+            紀錄寶貝在幼兒園成長探索的點滴歡笑！
           </p>
         </div>
         <div class="flex items-center gap-2">
-          <a href="https://drive.google.com/drive/folders/1iRFAr3FZMqV-okmktipdwamjAR7WWp6d" target="_blank" class="px-3.5 py-2 rounded-xl bg-white text-teal-700 border border-teal-300 text-xs font-bold hover:bg-teal-50 flex items-center gap-1.5 shadow-2xs tap-bounce">
+          <a id="btnBrowseCloudAlbums" href="https://drive.google.com/drive/folders/1iRFAr3FZMqV-okmktipdwamjAR7WWp6d" target="_blank" class="px-3.5 py-2 rounded-xl bg-white text-teal-700 border border-teal-300 text-xs font-bold hover:bg-teal-50 flex items-center gap-1.5 shadow-2xs tap-bounce hidden">
             <span>📂</span> 開啟 Google Drive 相簿
           </a>
           <button onclick="refreshAlbums()" class="px-3 py-2 rounded-xl bg-teal-600 text-white text-xs font-bold hover:bg-teal-700 shadow-sm tap-bounce">
@@ -518,7 +518,7 @@ const htmlContent = `<!DOCTYPE html>
     <section id="tabContent-docs" class="space-y-6 hidden">
       <!-- 文件區抬頭 -->
       <!-- 管理者模式專用快捷列 (已登入時顯示) -->
-      <div id="docAdminBar" class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 p-3.5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-amber-900 font-bold hidden">
+      <div id="docAdminBar" class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 p-3.5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-amber-900 font-bold" style="display: none;">
         <div class="flex items-center gap-2">
           <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
           <span>管理者權限已啟用：您可直接在下方任一文件卡片點選「✏️ 編輯」或「🗑️ 刪除」，或點擊右側按鈕新增文件。</span>
@@ -2747,12 +2747,17 @@ const htmlContent = `<!DOCTYPE html>
       const adminBar = document.getElementById('docAdminBar');
       const browseBtn = document.getElementById('btnBrowseCloudDocs');
       if (adminBar) {
-        if (isAdmin) adminBar.classList.remove('hidden');
-        else adminBar.classList.add('hidden');
+        if (isAdmin) adminBar.style.display = 'flex';
+        else adminBar.style.display = 'none';
       }
       if (browseBtn) {
         if (isAdmin) browseBtn.classList.remove('hidden');
         else browseBtn.classList.add('hidden');
+      }
+      const browseAlbumsBtn = document.getElementById('btnBrowseCloudAlbums');
+      if (browseAlbumsBtn) {
+        if (isAdmin) browseAlbumsBtn.classList.remove('hidden');
+        else browseAlbumsBtn.classList.add('hidden');
       }
 
       const filtered = (filterCat === '全部') 
