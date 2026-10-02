@@ -208,7 +208,7 @@ function doPost(e) {
     if (isFormMode) {
       const resultJson = JSON.stringify(result).replace(/</g, '\\u003c').replace(/>/g, '\\u003e');
       const html = '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>' +
-        '<script>try{window.parent.postMessage(' + resultJson + ',"*");}catch(e){}</script>' +
+        '<script>try{window.top.postMessage(' + resultJson + ',"*");}catch(e){}try{window.parent.postMessage(' + resultJson + ',"*");}catch(e){}try{window.parent.parent.postMessage(' + resultJson + ',"*");}catch(e){}</script>' +
         '</body></html>';
       return HtmlService.createHtmlOutput(html)
         .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
@@ -220,7 +220,7 @@ function doPost(e) {
     const errResult = JSON.stringify({ success: false, error: err.toString() });
     if (isFormMode) {
       const html = '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>' +
-        '<script>try{window.parent.postMessage(' + errResult.replace(/</g, '\\u003c').replace(/>/g, '\\u003e') + ',"*");}catch(e){}</script>' +
+        '<script>try{window.top.postMessage(' + errResult.replace(/</g, '\\u003c').replace(/>/g, '\\u003e') + ',"*");}catch(e){}try{window.parent.postMessage(' + errResult.replace(/</g, '\\u003c').replace(/>/g, '\\u003e') + ',"*");}catch(e){}try{window.parent.parent.postMessage(' + errResult.replace(/</g, '\\u003c').replace(/>/g, '\\u003e') + ',"*");}catch(e){}</script>' +
         '</body></html>';
       return HtmlService.createHtmlOutput(html)
         .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
