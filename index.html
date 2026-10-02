@@ -1452,9 +1452,9 @@
         pillsContainer.innerHTML = '';
         categories.forEach(cat => {
           if (cat === '全部文件' || cat === '全部') {
-            pillsContainer.innerHTML += '<button onclick="filterDocs('全部')" class="doc-cat-btn px-3 py-1 rounded-xl text-xs font-bold bg-indigo-600 text-white shadow-xs">全部文件</button>';
+            pillsContainer.innerHTML += '<button onclick="filterDocs(\'全部\')" class="doc-cat-btn px-3 py-1 rounded-xl text-xs font-bold bg-indigo-600 text-white shadow-xs">全部文件</button>';
           } else {
-            pillsContainer.innerHTML += '<button onclick="filterDocs('' + cat + '')" class="doc-cat-btn px-3 py-1 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">' + cat + '</button>';
+            pillsContainer.innerHTML += '<button onclick="filterDocs(\'' + cat + '\')" class="doc-cat-btn px-3 py-1 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">' + cat + '</button>';
           }
         });
       }
