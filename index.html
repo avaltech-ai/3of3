@@ -2283,15 +2283,27 @@
         // 標記小圓點或文字
         let badgesHtml = '<div class="flex items-center gap-0.5 flex-wrap justify-end">';
         let hasNobelA = dayEvents.some(e => (e.target || '').includes('諾貝爾A班') || (e.title || '').includes('諾A'));
+        let hasKitchen = dayEvents.some(e => (e.category || '').includes('幸福廚房') || (e.title || '').includes('幸福廚房'));
+        let hasWholeSchool = dayEvents.some(e => (e.category || '').includes('全園') || (e.category || '').includes('慶生') || (e.title || '').includes('壽星'));
 
         if (hasNobelA) {
           badgesHtml += '<span class="w-2 h-2 rounded-full bg-peach-500 ring-1 ring-white" title="諾A班活動"></span>';
-        } else if (dayEvents.length > 0) {
-          badgesHtml += '<span class="w-2 h-2 rounded-full bg-berry-500 ring-1 ring-white" title="全園活動"></span>';
+        }
+        if (hasKitchen) {
+          badgesHtml += '<span class="w-2 h-2 rounded-full bg-sun-400 ring-1 ring-white" title="幸福廚房"></span>';
+        }
+        if (hasWholeSchool) {
+          badgesHtml += '<span class="w-2 h-2 rounded-full bg-berry-500 ring-1 ring-white" title="全園活動/慶生"></span>';
+        }
+        
+        // 若有其他活動但不屬於上述三類，給一個預設紫色
+        if (dayEvents.length > 0 && !hasNobelA && !hasKitchen && !hasWholeSchool) {
+          badgesHtml += '<span class="w-2 h-2 rounded-full bg-berry-500 ring-1 ring-white" title="活動"></span>';
         }
 
         if (dayMenu) {
-          badgesHtml += '<span class="w-1.5 h-1.5 rounded-full bg-mint-400" title="已有菜單"></span>';
+          // Sync with legend mint-500 and size
+          badgesHtml += '<span class="w-2 h-2 rounded-full bg-mint-500 ring-1 ring-white" title="每日營養菜單"></span>';
         }
         badgesHtml += '</div>';
 
