@@ -11,6 +11,85 @@ const DOCS_FOLDER_ID = '1Ie8medB2JPYdUA9LOryVnPAdko1t5rjR';
 const ACTIVITY_FOLDER_ID = '1EKWV3ASXIttVtud1f_pfl672MkEfwa8b2';
 
 /**
+ * 取得或自動建立 Google Drive 中的 Acticity 資料夾
+ * 優先讀取 Settings 設定或上層資料夾，並確保連結有效避免 404
+ */
+function getActivityFolder() {
+  let customId = '';
+  try {
+    const ss = getSpreadsheet();
+    if (ss) {
+      const setSheet = ss.getSheetByName('Settings');
+      if (setSheet) {
+        const settings = getSettingsObject(setSheet);
+        customId = settings.ACTIVITY_FOLDER_ID || '';
+      }
+    }
+  } catch (e) {
+    console.warn('Cannot read Settings for ACTIVITY_FOLDER_ID: ' + e);
+  }
+
+  // 1. 若後台設定有提供指定 ID 且有效，直接使用
+  if (customId) {
+    try {
+      const folder = DriveApp.getFolderById(customId);
+      if (folder) return folder;
+    } catch (e) {
+      console.warn('Custom ACTIVITY_FOLDER_ID not found, auto searching: ' + e);
+    }
+  }
+
+  // 2. 嘗試使用常數預設 ID
+  if (ACTIVITY_FOLDER_ID) {
+    try {
+      const folder = DriveApp.getFolderById(ACTIVITY_FOLDER_ID);
+      if (folder) return folder;
+    } catch (e) {}
+  }
+
+  // 3. 自動在相簿 (Albums) 資料夾的上一層尋找名為 Acticity 或 Activity 或 Spotlight 的資料夾
+  try {
+    const albumsFolder = DriveApp.getFolderById(ALBUMS_FOLDER_ID);
+    const parents = albumsFolder.getParents();
+    if (parents.hasNext()) {
+      const parent = parents.next();
+      const subfolders = parent.getFolders();
+      while (subfolders.hasNext()) {
+        const sub = subfolders.next();
+        const n = sub.getName().toLowerCase();
+        if (n === 'acticity' || n === 'activity' || n === 'spotlight') {
+          return sub;
+        }
+      }
+      // 若該層尚無此資料夾，自動在同層建立 Acticity 資料夾並開啟檢視權限
+      const created = parent.createFolder('Acticity');
+      try {
+        created.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      } catch (e) {}
+      return created;
+    }
+  } catch (e) {
+    console.warn('Cannot search/create under Albums parent: ' + e);
+  }
+
+  // 4. 根目錄搜尋或建立備援
+  try {
+    const fs = DriveApp.getFoldersByName('Acticity');
+    if (fs.hasNext()) return fs.next();
+    const created = DriveApp.createFolder('Acticity');
+    try {
+      created.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    } catch (e) {}
+    return created;
+  } catch (e) {
+    console.warn('Root create Acticity failed: ' + e);
+  }
+
+  return null;
+}
+
+
+/**
  * 試算表自訂選單（開啟 Google 試算表時自動載入）
  */
 function onOpen() {
@@ -156,6 +235,18 @@ function getAppData() {
     const docs = getSheetDataAsObjects(ss.getSheetByName('Docs'));
     const settings = getSettingsObject(ss.getSheetByName('Settings'));
 
+    let actFolderUrl = '';
+    let actFolderId = '';
+    try {
+      const actFolder = getActivityFolder();
+      if (actFolder) {
+        actFolderUrl = actFolder.getUrl();
+        actFolderId = actFolder.getId();
+      }
+    } catch (e) {
+      console.warn('Get activity folder for getAppData failed: ' + e);
+    }
+
     return {
       success: true,
       data: {
@@ -168,6 +259,8 @@ function getAppData() {
           kindergartenName: settings.KINDERGARTEN_NAME || '新北市桃子腳非營利幼兒園',
           albumsFolderId: settings.ALBUMS_FOLDER_ID || ALBUMS_FOLDER_ID,
           docsFolderId: settings.DOCS_FOLDER_ID || DOCS_FOLDER_ID,
+          activityFolderId: actFolderId || settings.ACTIVITY_FOLDER_ID || '',
+          activityFolderUrl: actFolderUrl || ('https://drive.google.com/drive/folders/' + (actFolderId || ALBUMS_FOLDER_ID)),
           tickerMessage: settings.TICKER_MESSAGE || '歡迎光臨諾貝爾 A 班！請隨時關注今日活動與營養美味菜單～'
         }
       }
@@ -400,7 +493,9 @@ function uploadSpotlightImage(fileObj, password) {
   }
 
   try {
-    const folder = DriveApp.getFolderById(ACTIVITY_FOLDER_ID);
+    const folder = getActivityFolder();
+    if (!folder) throw new Error('無法取得或建立 Google Drive Acticity 資料夾！');
+
     const decodedBytes = Utilities.base64Decode(fileObj.base64);
     const fileName = fileObj.name || ('Spotlight_' + Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyyMMdd_HHmmss') + '.jpg');
     const blob = Utilities.newBlob(decodedBytes, fileObj.mimeType || 'image/jpeg', fileName);
@@ -420,6 +515,7 @@ function uploadSpotlightImage(fileObj, password) {
       fileId: fileId,
       fileName: fileName,
       imageUrl: imageUrl,
+      folderUrl: folder.getUrl(),
       message: 'Spotlight 圖片已成功上傳至 Google Drive 的 Acticity 資料夾！'
     };
   } catch (err) {
@@ -435,7 +531,9 @@ function uploadSpotlightImage(fileObj, password) {
  */
 function getActivityImages() {
   try {
-    const folder = DriveApp.getFolderById(ACTIVITY_FOLDER_ID);
+    const folder = getActivityFolder();
+    if (!folder) return { success: false, error: '找不到或無法開啟 Acticity 資料夾', files: [] };
+
     const files = folder.getFiles();
     const list = [];
     while (files.hasNext()) {
@@ -451,7 +549,7 @@ function getActivityImages() {
         });
       }
     }
-    return { success: true, files: list };
+    return { success: true, folderUrl: folder.getUrl(), files: list };
   } catch (err) {
     return { success: false, error: '讀取 Acticity 資料夾失敗: ' + err.toString(), files: [] };
   }
@@ -619,26 +717,63 @@ function deleteMenu(dateStr, password) {
 }
 
 /**
- * 儲存/編輯 Spotlight 重點活動
+ * 確保 Spotlight 工作表包含所有必要欄位（相容舊版資料庫）
+ */
+function ensureSpotlightSheetHeaders(sheet) {
+  if (!sheet) return;
+  const data = sheet.getDataRange().getValues();
+  const required = ['id', 'title', 'subtitle', 'imageUrl', 'mediaType', 'tags', 'bulletPoints', 'startDate', 'endDate', 'duration', 'priority', 'status'];
+  if (data.length === 0 || !data[0] || data[0].length === 0) {
+    sheet.appendRow(required);
+    sheet.getRange(1, 1, 1, required.length).setFontWeight('bold').setBackground('#CCFBF1');
+    return;
+  }
+  const headers = data[0].map(h => String(h).trim());
+  let added = false;
+  required.forEach(col => {
+    if (headers.indexOf(col) === -1) {
+      sheet.getRange(1, headers.length + 1).setValue(col);
+      headers.push(col);
+      added = true;
+    }
+  });
+  if (added) {
+    sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
+  }
+}
+
+/**
+ * 儲存/編輯 Spotlight 重點活動（支援排程、秒數、多活動）
  */
 function saveSpotlight(spData, password) {
   if (!checkPassword(password)) return { success: false, error: '管理員密碼錯誤！' };
   try {
     const ss = getSpreadsheet();
-    const sheet = ss.getSheetByName('Spotlight');
-    const data = sheet.getDataRange().getValues();
-    const idIndex = data[0].indexOf('id');
+    let sheet = ss.getSheetByName('Spotlight');
+    if (!sheet) sheet = ss.insertSheet('Spotlight');
+    ensureSpotlightSheetHeaders(sheet);
 
-    const rowData = [
-      spData.id || ('SP-' + Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyyMMddHHmmss')),
-      spData.title || '',
-      spData.subtitle || '',
-      spData.imageUrl || '',
-      spData.tags || '',
-      spData.bulletPoints || '',
-      spData.priority || 1,
-      spData.status || '啟用'
-    ];
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0].map(h => String(h).trim());
+    const idIndex = headers.indexOf('id');
+
+    const id = spData.id || ('SP-' + Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyyMMddHHmmss'));
+    const fieldMap = {
+      id: id,
+      title: spData.title || '',
+      subtitle: spData.subtitle || '',
+      imageUrl: spData.imageUrl || '',
+      mediaType: spData.mediaType || 'image',
+      tags: spData.tags || '',
+      bulletPoints: spData.bulletPoints || '',
+      startDate: spData.startDate || '',
+      endDate: spData.endDate || '',
+      duration: Number(spData.duration) || 5,
+      priority: spData.priority || 1,
+      status: spData.status || '啟用'
+    };
+
+    const rowData = headers.map(h => fieldMap[h] !== undefined ? fieldMap[h] : (spData[h] !== undefined ? spData[h] : ''));
 
     let foundRow = -1;
     if (spData.id) {
@@ -656,7 +791,7 @@ function saveSpotlight(spData, password) {
       sheet.appendRow(rowData);
     }
 
-    return { success: true, message: 'Spotlight 重點活動儲存成功！' };
+    return { success: true, message: 'Spotlight 重點活動儲存成功！', id: id };
   } catch (err) {
     return { success: false, error: err.toString() };
   }
@@ -883,22 +1018,40 @@ function setupInitialDatabase() {
   let spSheet = ss.getSheetByName('Spotlight');
   if (!spSheet) spSheet = ss.insertSheet('Spotlight');
   spSheet.clear();
-  spSheet.appendRow(['id', 'title', 'subtitle', 'imageUrl', 'tags', 'bulletPoints', 'priority', 'status']);
-  spSheet.getRange(1, 1, 1, 8).setFontWeight('bold').setBackground('#CCFBF1');
+  spSheet.appendRow(['id', 'title', 'subtitle', 'imageUrl', 'mediaType', 'tags', 'bulletPoints', 'startDate', 'endDate', 'duration', 'priority', 'status']);
+  spSheet.getRange(1, 1, 1, 12).setFontWeight('bold').setBackground('#CCFBF1');
 
   const sampleSpotlights = [
     [
       'SP-01',
       '桃子腳幼兒園 牙齒塗氟日 活動攻略圖',
-      '日期：2026/10/23 (五) 08:30',
+      '日期：2026/10/23 (五) 08:30 起全園分班檢查',
       'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=1200&q=80',
+      'image',
       '口腔衛教,牙齒塗氟,重要提醒',
       '【衛教宣導】正確刷牙示範，養成潔牙好習慣！\n【塗氟檢查】每六個月定期口腔保健，保護小乳牙！\n【注意事項】請家長務必攜帶「健保卡」，未攜帶無法參加喔！\n【活動尾聲】守護健康小乳牙，順利完成打卡領小禮物！',
+      '2026-10-01',
+      '2026-10-31',
+      6,
       1,
+      '啟用'
+    ],
+    [
+      'SP-02',
+      '幼兒園幸福廚房手作生活體驗',
+      '日期：2026/10/07 (三) 諾貝爾 A 班手作日',
+      'https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=1200&q=80',
+      'image',
+      '幸福廚房,手作烘焙,生活自理',
+      '【生活自理】引導幼兒親手揉捏麵糰、體驗食材變化與手作樂趣。\n【小組合作】學習分工收拾餐具與桌面，培養分享與責任感！\n【親師叮嚀】當日請幫孩子穿著輕便服裝與圍裙，準備開心化身小小烘焙師！',
+      '2026-10-01',
+      '2026-10-20',
+      5,
+      2,
       '啟用'
     ]
   ];
-  spSheet.getRange(2, 1, sampleSpotlights.length, 8).setValues(sampleSpotlights);
+  spSheet.getRange(2, 1, sampleSpotlights.length, 12).setValues(sampleSpotlights);
 
   // 4. Docs 工作表
   let docsSheet = ss.getSheetByName('Docs');
@@ -929,6 +1082,7 @@ function setupInitialDatabase() {
     ['ALBUMS_FOLDER_ID', ALBUMS_FOLDER_ID, '相簿根目錄 Google Drive 資料夾 ID'],
     ['DOCS_FOLDER_ID', DOCS_FOLDER_ID, '文件根目錄 Google Drive 資料夾 ID'],
     ['ACTIVITY_FOLDER_ID', ACTIVITY_FOLDER_ID, 'Spotlight 活動圖片 Google Drive 資料夾 ID'],
+    ['ACTIVITY_FOLDER_URL', '', 'Spotlight 活動圖片 Google Drive 資料夾完整網址（可自訂）'],
     ['TICKER_MESSAGE', '🌟 歡迎來到諾貝爾 A 班！10/23 (五) 為全園牙齒塗氟日，請家長記得備妥健保卡喔！', '頂部即時公告走馬燈訊息']
   ];
   setSheet.getRange(2, 1, sampleSettings.length, 3).setValues(sampleSettings);

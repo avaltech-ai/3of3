@@ -181,34 +181,54 @@
     <section id="tabContent-home" class="space-y-6 hidden">
 
       <!-- 1. SPOTLIGHT 重點活動焦點卡片 -->
-      <div id="spotlightContainer" class="bg-gradient-to-br from-rose-50 via-amber-50 to-teal-50 rounded-3xl p-4 sm:p-5 border-2 border-rose-200/80 shadow-md relative overflow-hidden transition-all">
+      <div id="spotlightContainer" class="bg-gradient-to-br from-rose-50 via-amber-50 to-teal-50 rounded-3xl p-4 sm:p-5 border-2 border-rose-200/80 shadow-md relative overflow-hidden transition-all" onmouseenter="pauseSpotlightTimer()" onmouseleave="resumeSpotlightTimer()" ontouchstart="pauseSpotlightTimer()" ontouchend="resumeSpotlightTimer()">
         <!-- 裝飾背景符號 -->
         <div class="absolute -right-6 -bottom-6 text-7xl opacity-15 select-none pointer-events-none">🍑</div>
 
         <div class="flex items-center justify-between mb-3">
           <div class="flex items-center gap-2">
-            <span class="bg-peach-500 text-white text-xs font-extrabold px-3 py-1 rounded-full shadow-sm flex items-center gap-1">
-              <span>✨</span> SPOTLIGHT 近期焦點
-            </span>
-            <span id="spotlightDateTag" class="text-xs font-bold text-amber-700 bg-amber-100/90 px-2.5 py-0.5 rounded-full">
-              2026/10/23 (五)
+            <span class="bg-peach-500 text-white text-xs font-extrabold px-3 py-1 rounded-full shadow-sm flex items-center gap-1.5">
+              <span>✨</span> SPOTLIGHT 焦點活動
             </span>
           </div>
-          <span class="text-xs text-slate-500 font-medium">幼兒園重點活動指南</span>
+
+          <!-- 輪播控制與狀態 (多活動自動顯示) -->
+          <div id="spotlightNavControls" class="flex items-center gap-2">
+            <span id="spotlightSlideCounter" class="text-[11px] font-extrabold text-slate-500 bg-white/80 px-2.5 py-0.5 rounded-full border border-rose-100 shadow-2xs">
+              1 / 1
+            </span>
+            <div class="flex items-center gap-1">
+              <button type="button" onclick="prevSpotlightSlide(event)" class="w-7 h-7 rounded-full bg-white/90 hover:bg-white text-slate-700 hover:text-peach-600 border border-rose-100 flex items-center justify-center text-xs font-black shadow-2xs transition-all tap-bounce" title="上一個焦點活動">
+                ❮
+              </button>
+              <button type="button" onclick="nextSpotlightSlide(event)" class="w-7 h-7 rounded-full bg-white/90 hover:bg-white text-slate-700 hover:text-peach-600 border border-rose-100 flex items-center justify-center text-xs font-black shadow-2xs transition-all tap-bounce" title="下一個焦點活動">
+                ❯
+              </button>
+            </div>
+          </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
-          <!-- 焦點視覺/攻略圖卡 -->
-          <div class="md:col-span-5 bg-white p-2.5 rounded-2xl shadow-sm border border-rose-100 flex flex-col items-center justify-center group cursor-pointer tap-bounce" onclick="openSpotlightModal()">
+          <!-- 焦點視覺/攻略圖或影片卡 -->
+          <div class="md:col-span-5 bg-white p-2.5 rounded-2xl shadow-sm border border-rose-100 flex flex-col items-center justify-center group relative">
             <div class="w-full aspect-[16/10] bg-rose-50 rounded-xl overflow-hidden relative flex items-center justify-center">
-              <img id="spotlightImg" src="./spotlight-fluoride.jpg" alt="牙齒塗氟日" class="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300">
-              <div class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <!-- 圖片模式 -->
+              <img id="spotlightImg" src="./spotlight-fluoride.jpg" alt="焦點活動" class="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300 cursor-pointer tap-bounce" onclick="openSpotlightModal()">
+              <div id="spotlightImgHoverHint" class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                 <span class="bg-white/90 text-slate-800 text-xs font-bold px-3 py-1.5 rounded-full shadow">點擊放大檢視攻略</span>
               </div>
+              <!-- 影片播放器 (YouTube / Drive preview / HTML5 video) -->
+              <div id="spotlightVideoBox" class="w-full h-full hidden">
+                <iframe id="spotlightIframe" class="w-full h-full border-0 rounded-xl" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+                <video id="spotlightHtml5Video" class="w-full h-full object-cover rounded-xl hidden" controls playsinline></video>
+              </div>
             </div>
-            <div class="mt-2 text-center">
-              <span class="text-xs text-rose-500 font-bold flex items-center justify-center gap-1">
-                🔍 點此查看清晰活動攻略圖
+            <div class="mt-2 text-center w-full flex items-center justify-between px-1">
+              <span id="spotlightMediaHint" class="text-xs text-rose-500 font-bold flex items-center gap-1 cursor-pointer" onclick="openSpotlightModal()">
+                🔍 點此查看清晰活動攻略
+              </span>
+              <span id="spotlightDurationBadge" class="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">
+                ⏱️ 5s 輪播
               </span>
             </div>
           </div>
@@ -244,6 +264,10 @@
               </div>
             </div>
           </div>
+        </div>
+
+        <!-- 輪播圓點指示器 -->
+        <div id="spotlightDots" class="flex items-center justify-center gap-1.5 mt-3 pt-2 border-t border-rose-100/60">
         </div>
       </div>
 
@@ -828,69 +852,171 @@
 
         <!-- 子分頁 5: Spotlight 管理 -->
         <div id="adminPanel-spotlight" class="admin-panel space-y-4 hidden">
+          <!-- 頂部標題與快捷按鈕列 -->
+          <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="text-xl">🌟</span>
+                <h4 class="font-black text-slate-800 text-base">Spotlight 焦點活動管理</h4>
+              </div>
+              <p class="text-xs text-slate-400 mt-0.5">支援多筆焦點活動、自動上下架排程、獨立輪播停留秒數、圖片與影片</p>
+            </div>
+            <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+              <a id="activityFolderLink" href="javascript:void(0)" onclick="openActivityFolderInDrive()" class="text-xs font-bold text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200 px-3 py-2 rounded-xl transition-all flex items-center gap-1 tap-bounce">
+                📂 開啟 Acticity 雲端資料夾
+              </a>
+              <button type="button" onclick="openSpotlightCreateForm()" class="px-4 py-2 rounded-xl bg-peach-500 hover:bg-peach-600 text-white font-bold text-xs shadow-xs tap-bounce flex items-center gap-1">
+                <span>➕</span> 新增焦點活動
+              </button>
+            </div>
+          </div>
+
+          <!-- 焦點活動列表清單 -->
           <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
-            <h4 class="font-black text-slate-800 text-base">編輯 Spotlight 近期重點活動</h4>
+            <div class="flex items-center justify-between">
+              <h5 class="text-sm font-black text-slate-800 flex items-center gap-1.5">
+                <span>📋</span> 現有焦點活動列表
+              </h5>
+              <span id="spAdminCountBadge" class="text-xs text-slate-400 font-bold">共 0 個活動</span>
+            </div>
+            <div id="spAdminListContainer" class="space-y-2.5">
+              <!-- JS 動態生成焦點活動卡片 -->
+            </div>
+          </div>
+
+          <!-- 編輯／新增表單卡片 (預設收合或點選新增/編輯時展開) -->
+          <div id="spAdminFormContainer" class="bg-white p-5 rounded-3xl border-2 border-peach-200 shadow-sm space-y-4 hidden">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h4 id="spAdminFormTitle" class="font-black text-slate-800 text-base flex items-center gap-1.5">
+                <span>✏️</span> 編輯焦點活動
+              </h4>
+              <button type="button" onclick="cancelSpotlightEdit()" class="text-slate-400 hover:text-slate-600 text-xs font-bold px-2 py-1 rounded-lg">
+                ✕ 取消關閉
+              </button>
+            </div>
+
+            <input type="hidden" id="spForm-id">
+
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label class="block text-xs font-bold text-slate-600 mb-1">主標題 *</label>
-                <input type="text" id="spForm-title" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium">
+                <input type="text" id="spForm-title" placeholder="例如：桃子腳幼兒園 牙齒塗氟日 活動攻略圖" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-peach-500 focus:outline-none">
               </div>
               <div>
-                <label class="block text-xs font-bold text-slate-600 mb-1">副標題/時間 *</label>
-                <input type="text" id="spForm-subtitle" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium">
+                <label class="block text-xs font-bold text-slate-600 mb-1">副標題／時間 *</label>
+                <input type="text" id="spForm-subtitle" placeholder="例如：日期：2026/10/23 (五) 08:30 起全園分班檢查" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-peach-500 focus:outline-none">
               </div>
             </div>
-            <div>
-              <div class="flex items-center justify-between mb-1.5">
+
+            <!-- 媒體設定 (圖片 / 影片) -->
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
                 <label class="block text-xs font-bold text-slate-700">
-                  Spotlight 宣傳圖片（支援直接上傳或自 Acticity 資料夾選取）
+                  媒體類型與網址（支援圖片上傳、Google Drive 檔案、YouTube 影片連結）
                 </label>
-                <a href="https://drive.google.com/drive/folders/1EKWV3ASXIttVtud1f_pfl672MkEfwa8b2" target="_blank" class="text-[11px] font-bold text-teal-600 hover:underline flex items-center gap-1">
-                  📂 開啟 Acticity 雲端資料夾
-                </a>
+                <div class="flex items-center gap-2">
+                  <select id="spForm-mediaType" onchange="handleMediaTypeChange()" class="text-xs font-bold bg-slate-100 border border-slate-200 rounded-lg px-2 py-1 text-slate-700 focus:outline-none">
+                    <option value="image">🖼️ 圖片模式</option>
+                    <option value="video">🎬 影片模式</option>
+                  </select>
+                </div>
               </div>
 
               <!-- 上傳與選取快捷操作按鈕列 -->
-              <div class="flex flex-wrap items-center gap-2 mb-2">
+              <div class="flex flex-wrap items-center gap-2">
                 <button type="button" onclick="document.getElementById('spImageFileInput').click()" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-peach-500 to-rose-500 hover:from-peach-600 hover:to-rose-600 text-white text-xs font-bold shadow-xs tap-bounce flex items-center gap-1.5">
                   <span>📸</span> 本機／手機選擇圖片上傳 (自動高畫質壓縮)
                 </button>
                 <button type="button" onclick="openActivityFolderPicker()" class="px-3.5 py-2 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 text-xs font-bold tap-bounce flex items-center gap-1.5">
                   <span>📂</span> 從 Acticity 資料夾選取現有檔案
                 </button>
-                <input type="file" id="spImageFileInput" accept="image/*" class="hidden" onchange="handleSpotlightImageSelected(event)">
+                <input type="file" id="spImageFileInput" accept="image/*,video/mp4" class="hidden" onchange="handleSpotlightImageSelected(event)">
               </div>
 
-              <!-- 網址輸入框 (支援自動轉換 Google Drive 分享連結) -->
+              <!-- 網址輸入框 (支援自動轉換 Google Drive 分享連結與 YouTube) -->
               <div class="relative flex items-center">
-                <input type="text" id="spForm-imageUrl" placeholder="可貼上任意 Google Drive 檔案連結或圖片網址，系統自動智慧轉換..." class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-peach-500 focus:outline-none" oninput="updateSpPreviewFromUrl()">
+                <input type="text" id="spForm-imageUrl" placeholder="可貼上任意 Google Drive 檔案連結、YouTube 連結或圖片網址..." class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-peach-500 focus:outline-none" oninput="updateSpPreviewFromUrl()">
               </div>
 
-              <!-- 圖片預覽與狀態卡片 -->
-              <div id="spImagePreviewContainer" class="mt-2.5 p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-3">
+              <!-- 影片上傳溫馨說明卡片 -->
+              <div class="p-3 bg-amber-50/70 rounded-2xl border border-amber-200/80 text-[11px] text-amber-800 space-y-1">
+                <div class="font-bold flex items-center gap-1">
+                  <span>💡</span> 影片播放溫馨提示：
+                </div>
+                <div class="text-slate-600 leading-relaxed">
+                  因 Google Apps Script 傳輸容量限制約 4MB，活動錄影長片強烈建議上傳至 <strong>YouTube</strong>（可設「不公開」保護幼兒隱私）或直接上傳到 <strong>Google Drive</strong>，並在此欄位貼上分享連結，前台將自動以高清串流順暢播放！短片（&lt; 4MB）亦支援直接上傳。
+                </div>
+              </div>
+
+              <!-- 圖片與影片預覽與狀態卡片 -->
+              <div id="spImagePreviewContainer" class="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-3">
                 <div class="flex items-center gap-3 overflow-hidden">
-                  <div class="w-20 h-14 rounded-xl bg-slate-200 overflow-hidden shrink-0 border border-slate-200 flex items-center justify-center relative shadow-2xs">
+                  <div class="w-24 h-16 rounded-xl bg-slate-200 overflow-hidden shrink-0 border border-slate-200 flex items-center justify-center relative shadow-2xs">
                     <img id="spImagePreviewImg" src="" alt="預覽" class="w-full h-full object-cover">
+                    <div id="spVideoPreviewBadge" class="absolute inset-0 bg-black/40 flex items-center justify-center text-white text-xs font-bold hidden">
+                      🎬 影片
+                    </div>
                   </div>
                   <div class="min-w-0">
-                    <div id="spImageUploadStatus" class="text-xs font-bold text-slate-800 truncate">目前 Spotlight 宣傳圖</div>
+                    <div id="spImageUploadStatus" class="text-xs font-bold text-slate-800 truncate">目前焦點活動媒體</div>
                     <div class="text-[10px] text-slate-400 mt-0.5">雲端存檔目標：Google Drive ➔ 桃子腳幼兒園 ➔ Acticity</div>
                   </div>
                 </div>
                 <div class="flex items-center gap-2 shrink-0">
                   <button type="button" onclick="document.getElementById('spImageFileInput').click()" class="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-peach-600 text-xs font-bold shadow-2xs tap-bounce">
-                    重新上傳
+                    變更檔案
                   </button>
                 </div>
               </div>
             </div>
+
+            <!-- 排程與輪播秒數設定 -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+              <div>
+                <label class="block text-xs font-bold text-slate-600 mb-1">
+                  📅 自動上架日期 <span class="text-slate-400 font-normal">(留空為立即)</span>
+                </label>
+                <input type="date" id="spForm-startDate" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-peach-500 focus:outline-none">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-600 mb-1">
+                  🏁 自動下架日期 <span class="text-slate-400 font-normal">(留空為永久)</span>
+                </label>
+                <input type="date" id="spForm-endDate" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-peach-500 focus:outline-none">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-600 mb-1">
+                  ⏱️ 輪播停留時間 (秒) *
+                </label>
+                <input type="number" id="spForm-duration" min="2" max="60" value="5" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-peach-500 focus:outline-none">
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-bold text-slate-600 mb-1">狀態</label>
+                <select id="spForm-status" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-peach-500 focus:outline-none">
+                  <option value="啟用">🟢 啟用</option>
+                  <option value="停用">🔴 停用</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-600 mb-1">顯示順序 (數字越小越優先)</label>
+                <input type="number" id="spForm-priority" value="1" min="1" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-peach-500 focus:outline-none">
+              </div>
+            </div>
+
             <div>
               <label class="block text-xs font-bold text-slate-600 mb-1">重點說明與注意事項 (換行分隔)</label>
-              <textarea id="spForm-bulletPoints" rows="4" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium"></textarea>
+              <textarea id="spForm-bulletPoints" rows="4" placeholder="例如：&#10;【衛教宣導】 正確刷牙示範&#10;【塗氟檢查】 每六個月定期專業口腔保健&#10;【注意事項】 請家長務必攜帶健保卡！" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-peach-500 focus:outline-none"></textarea>
             </div>
-            <div class="flex justify-end gap-2 pt-2">
-              <button onclick="saveSpotlightSettings()" class="px-5 py-2 rounded-xl bg-peach-500 hover:bg-peach-600 text-white font-bold text-xs shadow-sm tap-bounce">
-                儲存 Spotlight
+
+            <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+              <button type="button" onclick="cancelSpotlightEdit()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs tap-bounce">
+                取消
+              </button>
+              <button type="button" onclick="saveSpotlightSettings()" class="px-5 py-2 rounded-xl bg-peach-500 hover:bg-peach-600 text-white font-bold text-xs shadow-sm tap-bounce">
+                儲存焦點活動
               </button>
             </div>
           </div>
@@ -907,6 +1033,11 @@
             <div>
               <label class="block text-xs font-bold text-slate-600 mb-1">頂部公告跑馬燈訊息</label>
               <input type="text" id="setting-tickerMessage" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">Acticity 雲端資料夾網址或 ID</label>
+              <input type="text" id="setting-activityFolderUrl" placeholder="例如：https://drive.google.com/drive/folders/..." class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium">
+              <p class="text-[10px] text-slate-400 mt-1">點擊「開啟 Acticity 雲端資料夾」時會直接開啟此網址，預設自動關聯至 Google Drive 相簿同層之 Acticity 資料夾。</p>
             </div>
             <div class="flex justify-end pt-2">
               <button onclick="saveSystemSettings()" class="px-5 py-2 rounded-xl bg-slate-800 hover:bg-black text-white font-bold text-xs shadow-sm tap-bounce">
@@ -960,8 +1091,12 @@
         <span class="text-xl">🍑</span>
         <h3 id="modalSpotlightTitle" class="text-lg font-black text-slate-800">桃子腳幼兒園 牙齒塗氟日 活動攻略圖</h3>
       </div>
-      <div class="rounded-2xl overflow-hidden border border-rose-100 bg-rose-50 flex items-center justify-center">
-        <img id="modalSpotlightImg" src="./spotlight-fluoride.jpg" alt="塗氟攻略" class="w-full max-h-[60vh] object-contain">
+      <div id="modalSpotlightMediaWrapper" class="rounded-2xl overflow-hidden border border-rose-100 bg-rose-50 flex items-center justify-center">
+        <img id="modalSpotlightImg" src="./spotlight-fluoride.jpg" alt="活動攻略" class="w-full max-h-[60vh] object-contain">
+        <div id="modalSpotlightVideoContainer" class="w-full aspect-video hidden">
+          <iframe id="modalSpotlightIframe" class="w-full h-full border-0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+          <video id="modalSpotlightVideo" class="w-full h-full object-contain hidden" controls playsinline></video>
+        </div>
       </div>
       <div id="modalSpotlightDesc" class="text-xs sm:text-sm text-slate-700 whitespace-pre-line bg-rose-50/60 p-4 rounded-2xl border border-rose-100">
         <!-- JS 插入 -->
@@ -1189,9 +1324,28 @@
         {
           id: 'SP-01',
           title: '桃子腳幼兒園 牙齒塗氟日 活動攻略圖',
-          subtitle: '日期：2026/10/23 (五) 08:30',
+          subtitle: '日期：2026/10/23 (五) 08:30 起全園分班檢查',
           imageUrl: './spotlight-fluoride.jpg',
-          bulletPoints: '【衛教宣導】正確刷牙示範，養成潔牙好習慣！\n【塗氟檢查】每六個月定期口腔保健，保護小乳牙！\n【注意事項】請家長務必攜帶「健保卡」，未攜帶無法參加喔！\n【活動尾聲】守護健康小乳牙，順利完成打卡領小禮物！'
+          mediaType: 'image',
+          bulletPoints: '【衛教宣導】 正確刷牙示範，引導幼兒養成每日潔牙好習慣。\n【塗氟檢查】 每六個月定期專業口腔保健，細心守護孩子健康小乳牙。\n【注意事項】 請家長務必攜帶「健保卡」！未攜帶健保卡將無法參加塗氟檢查喔！\n【活動尾聲】 勇敢檢查完成的小朋友，將頒發口腔保健勇敢小獎狀！',
+          startDate: '2026-10-01',
+          endDate: '2026-10-31',
+          duration: 6,
+          priority: 1,
+          status: '啟用'
+        },
+        {
+          id: 'SP-02',
+          title: '幼兒園幸福廚房手作生活體驗',
+          subtitle: '日期：2026/10/07 (三) 諾貝爾 A 班手作日',
+          imageUrl: 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=1200&q=80',
+          mediaType: 'image',
+          bulletPoints: '【生活自理】 引導幼兒親手揉捏麵糰、體驗食材變化與手作樂趣。\n【小組合作】 學習分工收拾餐具與桌面，培養分享與責任感！\n【親師叮嚀】 當日請幫孩子穿著輕便服裝與圍裙，準備開心化身小小烘焙師！',
+          startDate: '2026-10-01',
+          endDate: '2026-10-20',
+          duration: 5,
+          priority: 2,
+          status: '啟用'
         }
       ];
 
@@ -1204,8 +1358,11 @@
 
       // 優先載入本地已自訂儲存的資料，確保重新整理依然永久生效
       try {
-        const localSp = localStorage.getItem('nobel_a_spotlight_custom');
-        if (localSp) state.spotlights = [JSON.parse(localSp)];
+        const localSp = localStorage.getItem('nobel_a_spotlights_list') || localStorage.getItem('nobel_a_spotlight_custom');
+        if (localSp) {
+          const parsed = JSON.parse(localSp);
+          state.spotlights = Array.isArray(parsed) ? parsed : [parsed];
+        }
         const localEvents = localStorage.getItem('nobel_a_events_custom');
         if (localEvents) state.events = JSON.parse(localEvents);
         const localMenus = localStorage.getItem('nobel_a_menus_custom');
@@ -1261,79 +1418,337 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // ==================== SPOTLIGHT 區塊渲染 ====================
+    // ==================== 焦點活動媒體與輪播輔助函式 ====================
+    function detectMediaKind(url, explicitType) {
+      if (explicitType === 'video') return 'video';
+      if (!url) return 'image';
+      const str = url.trim();
+      if (/youtube.com|youtu.be/i.test(str)) return 'video';
+      if (/.(mp4|webm|ogg|mov)(?|$)/i.test(str)) return 'video';
+      if (//preview$/i.test(str)) return 'video';
+      return explicitType || 'image';
+    }
+
+    function getEmbedVideoInfo(url) {
+      if (!url) return { type: 'none', src: '' };
+      const str = url.trim();
+      const ytMatch = str.match(/(?:youtube.com/(?:watch?v=|embed/|shorts/)|youtu.be/)([a-zA-Z0-9_-]{11})/i);
+      if (ytMatch) {
+        return { type: 'iframe', src: 'https://www.youtube-nocookie.com/embed/' + ytMatch[1] + '?rel=0&modestbranding=1' };
+      }
+      const driveMatch = str.match(//file/d/([a-zA-Z0-9_-]+)/i) || str.match(/[?&]id=([a-zA-Z0-9_-]+)/i);
+      if (driveMatch && (str.indexOf('/preview') > -1 || str.indexOf('video') > -1)) {
+        return { type: 'iframe', src: 'https://drive.google.com/file/d/' + driveMatch[1] + '/preview' };
+      }
+      if (/.(mp4|webm|ogg|mov)(?|$)/i.test(str)) {
+        return { type: 'video', src: str };
+      }
+      if (driveMatch) {
+        return { type: 'iframe', src: 'https://drive.google.com/file/d/' + driveMatch[1] + '/preview' };
+      }
+      return { type: 'none', src: '' };
+    }
+
+    function getTodayDateStr() {
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = ('0' + (d.getMonth() + 1)).slice(-2);
+      const day = ('0' + d.getDate()).slice(-2);
+      return y + '-' + m + '-' + day;
+    }
+
+    function filterActiveSpotlights(list) {
+      if (!list || list.length === 0) return [];
+      const todayStr = getTodayDateStr();
+      const active = list.filter(function(sp) {
+        if (sp.status === '停用') return false;
+        if (sp.startDate && sp.startDate > todayStr) return false;
+        if (sp.endDate && sp.endDate < todayStr) return false;
+        return true;
+      });
+      if (active.length === 0) {
+        const enabled = list.filter(function(sp) { return sp.status !== '停用'; });
+        return enabled.length > 0 ? enabled : list;
+      }
+      return active;
+    }
+
+    let currentSpotlightIndex = 0;
+    let spotlightTimer = null;
+    let isSpotlightHovered = false;
+
+    // ==================== SPOTLIGHT 區塊渲染 (支援多筆輪播與排程) ====================
     function renderSpotlightSection() {
-      if (state.spotlights.length === 0) return;
-      const sp = state.spotlights[0];
+      const activeList = filterActiveSpotlights(state.spotlights);
+      const container = document.getElementById('spotlightContainer');
+      if (!container) return;
+
+      if (activeList.length === 0) {
+        container.classList.add('hidden');
+        return;
+      }
+      container.classList.remove('hidden');
+
+      if (currentSpotlightIndex >= activeList.length) {
+        currentSpotlightIndex = 0;
+      }
+      const sp = activeList[currentSpotlightIndex];
+
       const titleEl = document.getElementById('spotlightTitle');
-      if (titleEl) titleEl.textContent = sp.title || '桃子腳幼兒園 牙齒塗氟日 活動攻略圖';
+      if (titleEl) titleEl.textContent = sp.title || '桃子腳幼兒園 焦點活動';
       const subEl = document.getElementById('spotlightSubtitle');
-      if (subEl) subEl.textContent = sp.subtitle || '日期：2026/10/23 (五) 08:30';
-      if (sp.imageUrl) {
-        const imgEl = document.getElementById('spotlightImg');
-        if (imgEl) imgEl.src = sp.imageUrl;
+      if (subEl) subEl.textContent = sp.subtitle || '';
+
+      const durBadge = document.getElementById('spotlightDurationBadge');
+      if (durBadge) {
+        durBadge.textContent = '⏱️ ' + (sp.duration || 5) + 's 輪播';
       }
 
-      // 動態渲染首頁「重點說明與注意事項」清單卡片 (換行分隔)
-      const ptsContainer = document.getElementById('spotlightPoints');
-      if (ptsContainer && sp.bulletPoints) {
-        const newlineChar = String.fromCharCode(10);
-        const lines = sp.bulletPoints.split(newlineChar).map(function(l) { return l.trim(); }).filter(Boolean);
-        if (lines.length > 0) {
-          ptsContainer.innerHTML = '';
-          lines.forEach(function(line) {
-            var tag = '';
-            var content = line;
-            if (line.indexOf('【') === 0 && line.indexOf('】') > 0) {
-              var closeIdx = line.indexOf('】');
-              tag = line.substring(1, closeIdx).trim();
-              content = line.substring(closeIdx + 1).trim();
-            }
+      const counterEl = document.getElementById('spotlightSlideCounter');
+      if (counterEl) {
+        counterEl.textContent = (currentSpotlightIndex + 1) + ' / ' + activeList.length;
+      }
 
-            const item = document.createElement('div');
-            if (tag) {
-              const isWarning = tag.indexOf('注意') >= 0 || tag.indexOf('重要') >= 0 || tag.indexOf('卡') >= 0;
-              const isTeal = tag.indexOf('檢查') >= 0 || tag.indexOf('塗氟') >= 0 || tag.indexOf('時間') >= 0;
-              const isEnd = tag.indexOf('尾聲') >= 0 || tag.indexOf('禮物') >= 0 || tag.indexOf('結束') >= 0;
-              
-              const borderClass = isWarning ? 'border-amber-200 bg-amber-50/80 col-span-1 sm:col-span-2' : isTeal ? 'border-teal-100 bg-teal-50/50' : isEnd ? 'border-indigo-100 bg-indigo-50/50' : 'border-rose-100 bg-white/80';
-              const textClass = isWarning ? 'text-amber-700 font-bold' : isTeal ? 'text-teal-700 font-bold' : isEnd ? 'text-indigo-700 font-bold' : 'text-rose-600 font-bold';
-              const icon = isWarning ? '⚠️' : isTeal ? '🩺' : isEnd ? '🎁' : '🦷';
-
-              item.className = 'p-2.5 rounded-xl border ' + borderClass + ' shadow-2xs';
-              item.innerHTML = '<div class="' + textClass + ' flex items-center gap-1 mb-0.5 text-xs">' +
-                '<span>' + icon + '</span> 【' + tag + '】' +
-                '</div>' +
-                '<div class="text-slate-700 text-xs leading-relaxed font-medium">' + content + '</div>';
-            } else {
-              item.className = 'p-2.5 rounded-xl border border-rose-100 bg-white/80 shadow-2xs flex items-start gap-1.5 text-xs text-slate-700 font-medium';
-              item.innerHTML = '<span class="text-peach-500 font-bold shrink-0">✨</span>' +
-                '<span class="leading-relaxed">' + line + '</span>';
-            }
-            ptsContainer.appendChild(item);
-          });
+      const navControls = document.getElementById('spotlightNavControls');
+      if (navControls) {
+        if (activeList.length <= 1) {
+          navControls.classList.add('opacity-40', 'pointer-events-none');
+        } else {
+          navControls.classList.remove('opacity-40', 'pointer-events-none');
         }
       }
 
-      const modalTitleEl = document.getElementById('modalSpotlightTitle');
-      if (modalTitleEl) modalTitleEl.textContent = sp.title || '牙齒塗氟日 活動攻略圖';
-      const modalImgEl = document.getElementById('modalSpotlightImg');
-      if (modalImgEl && sp.imageUrl) modalImgEl.src = sp.imageUrl;
-      const modalDescEl = document.getElementById('modalSpotlightDesc');
-      if (modalDescEl && sp.bulletPoints) modalDescEl.textContent = sp.bulletPoints;
+      renderSpotlightMedia(sp);
+      renderSpotlightPoints(sp.bulletPoints);
+      renderSpotlightDots(activeList.length, currentSpotlightIndex);
+      startSpotlightTimer(sp.duration || 5, activeList.length);
+    }
+
+    function renderSpotlightMedia(sp) {
+      const imgEl = document.getElementById('spotlightImg');
+      const imgHint = document.getElementById('spotlightImgHoverHint');
+      const videoBox = document.getElementById('spotlightVideoBox');
+      const iframeEl = document.getElementById('spotlightIframe');
+      const html5Video = document.getElementById('spotlightHtml5Video');
+      const mediaHint = document.getElementById('spotlightMediaHint');
+
+      const mediaKind = detectMediaKind(sp.imageUrl, sp.mediaType);
+
+      if (mediaKind === 'video') {
+        const vInfo = getEmbedVideoInfo(sp.imageUrl);
+        if (imgEl) imgEl.classList.add('hidden');
+        if (imgHint) imgHint.classList.add('hidden');
+        if (videoBox) videoBox.classList.remove('hidden');
+
+        if (vInfo.type === 'iframe') {
+          if (iframeEl) {
+            iframeEl.classList.remove('hidden');
+            iframeEl.src = vInfo.src;
+          }
+          if (html5Video) {
+            html5Video.classList.add('hidden');
+            html5Video.pause();
+          }
+        } else if (vInfo.type === 'video') {
+          if (html5Video) {
+            html5Video.classList.remove('hidden');
+            html5Video.src = vInfo.src;
+          }
+          if (iframeEl) {
+            iframeEl.classList.add('hidden');
+            iframeEl.src = '';
+          }
+        }
+        if (mediaHint) mediaHint.innerHTML = '🎬 點此檢視活動影音詳情';
+      } else {
+        if (videoBox) videoBox.classList.add('hidden');
+        if (iframeEl) iframeEl.src = '';
+        if (html5Video) {
+          html5Video.pause();
+          html5Video.classList.add('hidden');
+        }
+        if (imgEl) {
+          imgEl.classList.remove('hidden');
+          imgEl.src = sp.imageUrl || './spotlight-fluoride.jpg';
+        }
+        if (imgHint) imgHint.classList.remove('hidden');
+        if (mediaHint) mediaHint.innerHTML = '🔍 點此查看清晰活動攻略圖';
+      }
+    }
+
+    function renderSpotlightPoints(bulletPoints) {
+      const ptsContainer = document.getElementById('spotlightPoints');
+      if (!ptsContainer) return;
+      ptsContainer.innerHTML = '';
+
+      if (!bulletPoints) return;
+      const newlineChar = String.fromCharCode(10);
+      const lines = bulletPoints.split(newlineChar).map(function(l) { return l.trim(); }).filter(Boolean);
+      if (lines.length === 0) return;
+
+      lines.forEach(function(line) {
+        var tag = '';
+        var content = line;
+        if (line.indexOf('【') === 0 && line.indexOf('】') > 0) {
+          var closeIdx = line.indexOf('】');
+          tag = line.substring(1, closeIdx).trim();
+          content = line.substring(closeIdx + 1).trim();
+        }
+
+        const item = document.createElement('div');
+        if (tag) {
+          const isWarning = tag.indexOf('注意') >= 0 || tag.indexOf('重要') >= 0 || tag.indexOf('卡') >= 0;
+          const isTeal = tag.indexOf('檢查') >= 0 || tag.indexOf('塗氟') >= 0 || tag.indexOf('時間') >= 0;
+          const isEnd = tag.indexOf('尾聲') >= 0 || tag.indexOf('禮物') >= 0 || tag.indexOf('結束') >= 0;
+          
+          const borderClass = isWarning ? 'border-amber-200 bg-amber-50/80 col-span-1 sm:col-span-2' : isTeal ? 'border-teal-100 bg-teal-50/50' : isEnd ? 'border-indigo-100 bg-indigo-50/50' : 'border-rose-100 bg-white/80';
+          const textClass = isWarning ? 'text-amber-700 font-bold' : isTeal ? 'text-teal-700 font-bold' : isEnd ? 'text-indigo-700 font-bold' : 'text-rose-600 font-bold';
+          const icon = isWarning ? '⚠️' : isTeal ? '🩺' : isEnd ? '🎁' : '🦷';
+
+          item.className = 'p-2.5 rounded-xl border ' + borderClass + ' shadow-2xs';
+          item.innerHTML = '<div class="' + textClass + ' flex items-center gap-1 mb-0.5 text-xs">' +
+            '<span>' + icon + '</span> 【' + tag + '】' +
+            '</div>' +
+            '<div class="text-slate-700 text-xs leading-relaxed font-medium">' + content + '</div>';
+        } else {
+          item.className = 'p-2.5 rounded-xl border border-rose-100 bg-white/80 shadow-2xs flex items-start gap-1.5 text-xs text-slate-700 font-medium';
+          item.innerHTML = '<span class="text-peach-500 font-bold shrink-0">✨</span>' +
+            '<span class="leading-relaxed">' + line + '</span>';
+        }
+        ptsContainer.appendChild(item);
+      });
+    }
+
+    function renderSpotlightDots(total, activeIdx) {
+      const dotsContainer = document.getElementById('spotlightDots');
+      if (!dotsContainer) return;
+      if (total <= 1) {
+        dotsContainer.innerHTML = '';
+        dotsContainer.classList.add('hidden');
+        return;
+      }
+      dotsContainer.classList.remove('hidden');
+      dotsContainer.innerHTML = '';
+
+      for (let i = 0; i < total; i++) {
+        const dot = document.createElement('button');
+        dot.type = 'button';
+        dot.className = i === activeIdx
+          ? 'h-2 w-6 bg-peach-500 rounded-full transition-all duration-300 shadow-2xs'
+          : 'h-2 w-2 bg-rose-200 hover:bg-rose-300 rounded-full transition-all duration-200 cursor-pointer';
+        dot.title = '切換至第 ' + (i + 1) + ' 個焦點活動';
+        dot.onclick = (function(slideIdx) {
+          return function(ev) {
+            if (ev && ev.stopPropagation) ev.stopPropagation();
+            goToSpotlightSlide(slideIdx);
+          };
+        })(i);
+        dotsContainer.appendChild(dot);
+      }
+    }
+
+    function startSpotlightTimer(durationSec, totalSlides) {
+      clearTimeout(spotlightTimer);
+      if (totalSlides <= 1) return;
+      const sec = Math.max(2, Number(durationSec) || 5);
+      spotlightTimer = setTimeout(function() {
+        if (!isSpotlightHovered) {
+          nextSpotlightSlide();
+        } else {
+          startSpotlightTimer(sec, totalSlides);
+        }
+      }, sec * 1000);
+    }
+
+    function nextSpotlightSlide(e) {
+      if (e && e.stopPropagation) e.stopPropagation();
+      const activeList = filterActiveSpotlights(state.spotlights);
+      if (activeList.length <= 1) return;
+      currentSpotlightIndex = (currentSpotlightIndex + 1) % activeList.length;
+      renderSpotlightSection();
+    }
+
+    function prevSpotlightSlide(e) {
+      if (e && e.stopPropagation) e.stopPropagation();
+      const activeList = filterActiveSpotlights(state.spotlights);
+      if (activeList.length <= 1) return;
+      currentSpotlightIndex = (currentSpotlightIndex - 1 + activeList.length) % activeList.length;
+      renderSpotlightSection();
+    }
+
+    function goToSpotlightSlide(idx) {
+      const activeList = filterActiveSpotlights(state.spotlights);
+      if (idx >= 0 && idx < activeList.length) {
+        currentSpotlightIndex = idx;
+        renderSpotlightSection();
+      }
+    }
+
+    function pauseSpotlightTimer() {
+      isSpotlightHovered = true;
+    }
+
+    function resumeSpotlightTimer() {
+      isSpotlightHovered = false;
     }
 
     function openSpotlightModal() {
-      const sp = state.spotlights[0] || {};
-      document.getElementById('modalSpotlightTitle').textContent = sp.title || '牙齒塗氟日 活動攻略圖';
-      if (sp.imageUrl) {
-        document.getElementById('modalSpotlightImg').src = sp.imageUrl;
+      const activeList = filterActiveSpotlights(state.spotlights);
+      const sp = activeList[currentSpotlightIndex] || state.spotlights[0] || {};
+      document.getElementById('modalSpotlightTitle').textContent = sp.title || '焦點活動攻略圖';
+
+      const modalImg = document.getElementById('modalSpotlightImg');
+      const modalVideoBox = document.getElementById('modalSpotlightVideoContainer');
+      const modalIframe = document.getElementById('modalSpotlightIframe');
+      const modalVideo = document.getElementById('modalSpotlightVideo');
+
+      const mediaKind = detectMediaKind(sp.imageUrl, sp.mediaType);
+      if (mediaKind === 'video') {
+        const vInfo = getEmbedVideoInfo(sp.imageUrl);
+        if (modalImg) modalImg.classList.add('hidden');
+        if (modalVideoBox) modalVideoBox.classList.remove('hidden');
+
+        if (vInfo.type === 'iframe') {
+          if (modalIframe) {
+            modalIframe.classList.remove('hidden');
+            modalIframe.src = vInfo.src;
+          }
+          if (modalVideo) {
+            modalVideo.classList.add('hidden');
+            modalVideo.pause();
+          }
+        } else if (vInfo.type === 'video') {
+          if (modalVideo) {
+            modalVideo.classList.remove('hidden');
+            modalVideo.src = vInfo.src;
+          }
+          if (modalIframe) {
+            modalIframe.classList.add('hidden');
+            modalIframe.src = '';
+          }
+        }
+      } else {
+        if (modalVideoBox) modalVideoBox.classList.add('hidden');
+        if (modalIframe) modalIframe.src = '';
+        if (modalVideo) {
+          modalVideo.pause();
+          modalVideo.classList.add('hidden');
+        }
+        if (modalImg) {
+          modalImg.classList.remove('hidden');
+          modalImg.src = sp.imageUrl || './spotlight-fluoride.jpg';
+        }
       }
-      document.getElementById('modalSpotlightDesc').textContent = sp.bulletPoints || '請務必攜帶健保卡，按時參加塗氟口腔保健！';
+
+      document.getElementById('modalSpotlightDesc').textContent = sp.bulletPoints || '請務必留意焦點活動提醒與須知！';
       document.getElementById('spotlightModal').classList.remove('hidden');
     }
 
     function closeSpotlightModal() {
+      const modalIframe = document.getElementById('modalSpotlightIframe');
+      if (modalIframe) modalIframe.src = '';
+      const modalVideo = document.getElementById('modalSpotlightVideo');
+      if (modalVideo) modalVideo.pause();
       document.getElementById('spotlightModal').classList.add('hidden');
     }
 
@@ -2044,7 +2459,8 @@
       if (targetBtn) targetBtn.className = 'admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold bg-peach-500 text-white shadow-xs whitespace-nowrap';
 
       if (subtab === 'events') renderAdminEventsTable();
-      if (subtab === 'spotlight') loadSpotlightToForm();
+      if (subtab === 'spotlight') renderAdminSpotlightsList();
+      if (subtab === 'settings') loadSettingsToForm();
     }
 
     // 後台行事曆管理
@@ -2418,19 +2834,161 @@
       reader.readAsDataURL(state.selectedDocFile);
     }
 
-    // Spotlight 管理
-    function loadSpotlightToForm() {
-      if (state.spotlights.length > 0) {
-        const sp = state.spotlights[0];
-        document.getElementById('spForm-title').value = sp.title || '';
-        document.getElementById('spForm-subtitle').value = sp.subtitle || '';
-        document.getElementById('spForm-imageUrl').value = sp.imageUrl || '';
-        document.getElementById('spForm-bulletPoints').value = sp.bulletPoints || '';
-        if (sp.imageUrl) {
-          const previewImg = document.getElementById('spImagePreviewImg');
-          if (previewImg) previewImg.src = sp.imageUrl;
-        }
+    // Spotlight 管理與多活動排程邏輯
+    let spPendingUploadFile = null;
+
+    function renderAdminSpotlightsList() {
+      const listEl = document.getElementById('spAdminListContainer');
+      const countEl = document.getElementById('spAdminCountBadge');
+      if (!listEl) return;
+      listEl.innerHTML = '';
+
+      const spotlights = state.spotlights || [];
+      if (countEl) countEl.textContent = '共 ' + spotlights.length + ' 個活動';
+
+      if (spotlights.length === 0) {
+        listEl.innerHTML = '<div class="py-8 text-center text-slate-400 text-xs font-bold bg-slate-50 rounded-2xl border border-dashed border-slate-200">尚無任何焦點活動，請點擊右上角「➕ 新增焦點活動」</div>';
+        return;
       }
+
+      const todayStr = getTodayDateStr();
+
+      spotlights.forEach(function(sp) {
+        var statusBadge = '';
+        if (sp.status === '停用') {
+          statusBadge = '<span class="text-[10px] font-bold text-rose-700 bg-rose-100 px-2 py-0.5 rounded-full">🔴 已停用</span>';
+        } else if (sp.startDate && sp.startDate > todayStr) {
+          statusBadge = '<span class="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">🟡 尚未上架 (' + sp.startDate + ')</span>';
+        } else if (sp.endDate && sp.endDate < todayStr) {
+          statusBadge = '<span class="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">⚪ 已過期下架</span>';
+        } else {
+          statusBadge = '<span class="text-[10px] font-bold text-teal-700 bg-teal-100 px-2 py-0.5 rounded-full">🟢 播映中</span>';
+        }
+
+        var scheduleText = '起：' + (sp.startDate || '立即') + ' ～ 訖：' + (sp.endDate || '永久有效');
+        var durationText = '⏱️ ' + (sp.duration || 5) + ' 秒';
+        var mediaIcon = sp.mediaType === 'video' ? '🎬' : '🖼️';
+
+        var card = document.createElement('div');
+        card.className = 'p-3.5 bg-slate-50 hover:bg-white rounded-2xl border border-slate-200 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs';
+        card.innerHTML = '<div class="flex items-center gap-3 min-w-0">' +
+          '<div class="w-16 h-12 rounded-xl bg-slate-200 overflow-hidden shrink-0 border border-slate-200 relative flex items-center justify-center">' +
+          '<img src="' + (sp.imageUrl || './spotlight-fluoride.jpg') + '" alt="縮圖" class="w-full h-full object-cover">' +
+          '<span class="absolute bottom-0.5 right-0.5 text-[9px] bg-black/60 text-white px-1 rounded">' + mediaIcon + '</span>' +
+          '</div>' +
+          '<div class="min-w-0 space-y-0.5">' +
+          '<div class="flex items-center gap-2 flex-wrap">' +
+          '<h5 class="text-xs sm:text-sm font-black text-slate-800 truncate">' + (sp.title || '無標題') + '</h5>' +
+          statusBadge +
+          '</div>' +
+          '<p class="text-[11px] text-slate-500 font-medium truncate">' + (sp.subtitle || '') + '</p>' +
+          '<div class="text-[10px] text-slate-400 flex items-center gap-2 flex-wrap">' +
+          '<span>📅 ' + scheduleText + '</span>' +
+          '<span>•</span>' +
+          '<span class="font-bold text-peach-600">' + durationText + '</span>' +
+          '</div>' +
+          '</div>' +
+          '</div>' +
+          '<div class="flex items-center gap-2 shrink-0 self-end sm:self-center">' +
+          '<button type="button" class="sp-edit-btn px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-700 hover:text-peach-600 text-xs font-bold shadow-2xs tap-bounce flex items-center gap-1">' +
+          '<span>✏️</span> 編輯' +
+          '</button>' +
+          '<button type="button" class="sp-del-btn px-3 py-1.5 rounded-xl bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 text-xs font-bold shadow-2xs tap-bounce flex items-center gap-1">' +
+          '<span>🗑️</span> 刪除' +
+          '</button>' +
+          '</div>';
+
+        card.querySelector('.sp-edit-btn').onclick = function() { openSpotlightEditForm(sp.id); };
+        card.querySelector('.sp-del-btn').onclick = function() { confirmDeleteSpotlight(sp.id); };
+        listEl.appendChild(card);
+      });
+    }
+
+    function openSpotlightCreateForm() {
+      spPendingUploadFile = null;
+      document.getElementById('spAdminFormTitle').innerHTML = '<span>➕</span> 新增焦點活動';
+      document.getElementById('spForm-id').value = '';
+      document.getElementById('spForm-title').value = '';
+      document.getElementById('spForm-subtitle').value = '';
+      document.getElementById('spForm-mediaType').value = 'image';
+      document.getElementById('spForm-imageUrl').value = '';
+      document.getElementById('spForm-startDate').value = '';
+      document.getElementById('spForm-endDate').value = '';
+      document.getElementById('spForm-duration').value = '5';
+      document.getElementById('spForm-status').value = '啟用';
+      document.getElementById('spForm-priority').value = (state.spotlights.length + 1);
+      document.getElementById('spForm-bulletPoints').value = '';
+
+      const previewImg = document.getElementById('spImagePreviewImg');
+      if (previewImg) previewImg.src = '';
+      const vBadge = document.getElementById('spVideoPreviewBadge');
+      if (vBadge) vBadge.classList.add('hidden');
+      const statusEl = document.getElementById('spImageUploadStatus');
+      if (statusEl) statusEl.textContent = '尚未選取圖片';
+
+      const formBox = document.getElementById('spAdminFormContainer');
+      formBox.classList.remove('hidden');
+      formBox.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function openSpotlightEditForm(id) {
+      spPendingUploadFile = null;
+      const sp = state.spotlights.find(s => String(s.id) === String(id));
+      if (!sp) return;
+
+      document.getElementById('spAdminFormTitle').innerHTML = '<span>✏️</span> 編輯焦點活動：' + (sp.title || '');
+      document.getElementById('spForm-id').value = sp.id || '';
+      document.getElementById('spForm-title').value = sp.title || '';
+      document.getElementById('spForm-subtitle').value = sp.subtitle || '';
+      document.getElementById('spForm-mediaType').value = sp.mediaType || 'image';
+      document.getElementById('spForm-imageUrl').value = sp.imageUrl || '';
+      document.getElementById('spForm-startDate').value = sp.startDate || '';
+      document.getElementById('spForm-endDate').value = sp.endDate || '';
+      document.getElementById('spForm-duration').value = sp.duration || 5;
+      document.getElementById('spForm-status').value = sp.status || '啟用';
+      document.getElementById('spForm-priority').value = sp.priority || 1;
+      document.getElementById('spForm-bulletPoints').value = sp.bulletPoints || '';
+
+      const previewImg = document.getElementById('spImagePreviewImg');
+      if (previewImg && sp.imageUrl) previewImg.src = sp.imageUrl;
+      const statusEl = document.getElementById('spImageUploadStatus');
+      if (statusEl) {
+        statusEl.innerHTML = '<span class="text-teal-700 font-bold">✅ 已載入原媒體檔案（儲存時保留原檔，絕不重複上傳）</span>';
+      }
+
+      handleMediaTypeChange();
+      updateSpPreviewFromUrl();
+
+      const formBox = document.getElementById('spAdminFormContainer');
+      formBox.classList.remove('hidden');
+      formBox.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function cancelSpotlightEdit() {
+      spPendingUploadFile = null;
+      document.getElementById('spAdminFormContainer').classList.add('hidden');
+    }
+
+    function handleMediaTypeChange() {
+      const mType = document.getElementById('spForm-mediaType').value;
+      const vBadge = document.getElementById('spVideoPreviewBadge');
+      if (vBadge) {
+        if (mType === 'video') vBadge.classList.remove('hidden');
+        else vBadge.classList.add('hidden');
+      }
+      updateSpPreviewFromUrl();
+    }
+
+    function openActivityFolderInDrive() {
+      let url = '';
+      if (state.settings && state.settings.activityFolderUrl) {
+        url = state.settings.activityFolderUrl;
+      } else if (state.settings && state.settings.activityFolderId) {
+        url = 'https://drive.google.com/drive/folders/' + state.settings.activityFolderId;
+      } else {
+        url = 'https://drive.google.com/drive/folders/1iRFAr3FZMqV-okmktipdwamjAR7WWp6d';
+      }
+      window.open(url, '_blank');
     }
 
     // 自動將 Google Drive 分享連結轉為高解析直連縮圖網址 (sz=w1600)
@@ -2494,48 +3052,20 @@
       const previewImg = document.getElementById('spImagePreviewImg');
       const statusEl = document.getElementById('spImageUploadStatus');
       if (statusEl) statusEl.innerHTML = '<span class="text-amber-600 font-bold">⏳ 正在自動進行高畫質壓縮...</span>';
-      showToast('正在壓縮並準備上傳...', '⏳');
+      showToast('正在壓縮並準備中...', '⏳');
 
       compressImageForUpload(file)
         .then(compressed => {
-          // 1. 立即將壓縮後圖片套用於表單與前台 Spotlight，確保操作立刻生效！
-          document.getElementById('spForm-imageUrl').value = compressed.dataUrl;
-          if (previewImg) previewImg.src = compressed.dataUrl;
-          if (state.spotlights.length > 0) {
-            state.spotlights[0].imageUrl = compressed.dataUrl;
-            renderSpotlightSection();
-          }
-
-          if (statusEl) statusEl.innerHTML = '<span class="text-amber-600 font-bold">⏳ 圖片已就緒，正在同步備份至 Google Drive Acticity 資料夾...</span>';
-          showToast('圖片已套用，正在同步雲端...', '⏳');
-
-          const fileObj = {
+          spPendingUploadFile = {
             name: compressed.name,
             mimeType: compressed.mimeType,
             base64: compressed.base64
           };
 
-          callBackend('uploadSpotlightImage', { file: fileObj, password: state.adminPassword }, res => {
-            if (res && res.success) {
-              document.getElementById('spForm-imageUrl').value = res.imageUrl;
-              if (previewImg) previewImg.src = res.imageUrl;
-              if (statusEl) statusEl.innerHTML = '<span class="text-teal-600 font-bold">✅ 已成功上傳並存入 Google Drive Acticity 資料夾！</span>';
-              showToast('Spotlight 圖片已同步至雲端 Acticity！', '🎉');
-              if (state.spotlights.length > 0) {
-                state.spotlights[0].imageUrl = res.imageUrl;
-                renderSpotlightSection();
-              }
-            } else {
-              const errTxt = (res ? res.error : '未知錯誤');
-              if (statusEl) statusEl.innerHTML = '<span class="text-teal-700 font-bold">✅ 圖片已成功套用於前台！</span><br><span class="text-[10px] text-slate-500">雲端備存提示：' + errTxt + '</span>';
-              showToast('圖片已套用', '✅');
-            }
-          }, err => {
-            if (statusEl) {
-              statusEl.innerHTML = '<span class="text-teal-700 font-bold">✅ 圖片已成功套用於前台！</span><br><span class="text-[10px] text-slate-500">（雲端同步提示：如需寫入 Google Drive，請在 Apps Script 部署設定將存取權設為「所有人 Anyone」）</span>';
-            }
-            showToast('圖片已套用至前台！', '✨');
-          });
+          document.getElementById('spForm-imageUrl').value = compressed.dataUrl;
+          if (previewImg) previewImg.src = compressed.dataUrl;
+          if (statusEl) statusEl.innerHTML = '<span class="text-teal-600 font-bold">✅ 已選取新圖片：' + file.name + '（點擊儲存後將同步至 Acticity 資料夾）</span>';
+          showToast('新圖片已選取！', '📸');
         })
         .catch(err => {
           if (statusEl) statusEl.textContent = '❌ 圖片讀取失敗';
@@ -2545,12 +3075,21 @@
 
     function updateSpPreviewFromUrl() {
       let url = document.getElementById('spForm-imageUrl').value.trim();
-      const converted = autoConvertDriveUrl(url);
-      if (converted !== url) {
-        document.getElementById('spForm-imageUrl').value = converted;
-        url = converted;
-        showToast('已自動轉換為 Google Drive 直連圖片網址！', '✨');
+      const mType = document.getElementById('spForm-mediaType').value;
+      const vBadge = document.getElementById('spVideoPreviewBadge');
+
+      if (mType === 'image') {
+        const converted = autoConvertDriveUrl(url);
+        if (converted !== url) {
+          document.getElementById('spForm-imageUrl').value = converted;
+          url = converted;
+          showToast('已自動轉換為 Google Drive 直連圖片網址！', '✨');
+        }
+        if (vBadge) vBadge.classList.add('hidden');
+      } else {
+        if (vBadge) vBadge.classList.remove('hidden');
       }
+
       const previewImg = document.getElementById('spImagePreviewImg');
       if (url && previewImg) {
         previewImg.src = url;
@@ -2569,6 +3108,9 @@
       callBackend('getActivityImages', {}, res => {
         loading.classList.add('hidden');
         if (res && res.success && res.files && res.files.length > 0) {
+          if (res.folderUrl && state.settings) {
+            state.settings.activityFolderUrl = res.folderUrl;
+          }
           renderActivityPickerGrid(res.files);
         } else {
           renderFallbackActivityPicker();
@@ -2580,7 +3122,6 @@
     }
 
     function renderFallbackActivityPicker() {
-      // 內建包含使用者於 Acticity 資料夾內之 20261023 桃子腳幼兒園塗氟日.jpeg 項目
       const defaultFiles = [
         {
           id: 'act_01',
@@ -2598,24 +3139,23 @@
       files.forEach(f => {
         const item = document.createElement('div');
         item.className = 'bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs hover:shadow-md transition-all flex flex-col justify-between group p-2';
-        item.innerHTML = `
-          <div class="aspect-video bg-slate-100 rounded-xl overflow-hidden relative mb-2">
-            <img src="${f.imageUrl}" alt="${f.name}" class="w-full h-full object-cover">
-          </div>
-          <div class="min-w-0 mb-2">
-            <h5 class="text-xs font-bold text-slate-800 truncate" title="${f.name}">${f.name}</h5>
-            <div class="text-[10px] text-slate-400">${f.updatedAt || 'Acticity'}</div>
-          </div>
-          <button type="button" class="w-full py-1.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs tap-bounce">
-            選取此張圖片
-          </button>
-        `;
+        item.innerHTML = '<div class="aspect-video bg-slate-100 rounded-xl overflow-hidden relative mb-2">' +
+          '<img src="' + f.imageUrl + '" alt="' + f.name + '" class="w-full h-full object-cover">' +
+          '</div>' +
+          '<div class="min-w-0 mb-2">' +
+          '<h5 class="text-xs font-bold text-slate-800 truncate" title="' + f.name + '">' + f.name + '</h5>' +
+          '<div class="text-[10px] text-slate-400">' + (f.updatedAt || 'Acticity') + '</div>' +
+          '</div>' +
+          '<button type="button" class="w-full py-1.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs tap-bounce">' +
+          '選取此張圖片' +
+          '</button>';
         item.querySelector('button').onclick = () => selectActivityImage(f.imageUrl, f.name);
         grid.appendChild(item);
       });
     }
 
     function selectActivityImage(imageUrl, fileName) {
+      spPendingUploadFile = null;
       document.getElementById('spForm-imageUrl').value = imageUrl;
       const previewImg = document.getElementById('spImagePreviewImg');
       if (previewImg) previewImg.src = imageUrl;
@@ -2623,10 +3163,6 @@
       if (statusEl) statusEl.innerHTML = '<span class="text-teal-600 font-bold">✅ 已套用 Acticity 檔案：' + fileName + '</span>';
       closeActivityFolderPicker();
       showToast('已成功選取 Acticity 圖片！', '🎉');
-      if (state.spotlights.length > 0) {
-        state.spotlights[0].imageUrl = imageUrl;
-        renderSpotlightSection();
-      }
     }
 
     function closeActivityFolderPicker() {
@@ -2634,47 +3170,117 @@
     }
 
     function saveSpotlightSettings() {
+      const title = document.getElementById('spForm-title').value.trim();
+      if (!title) {
+        alert('請填寫焦點活動主標題！');
+        return;
+      }
+
+      const spId = document.getElementById('spForm-id').value || ('SP-' + Date.now());
       const spData = {
-        id: (state.spotlights[0] && state.spotlights[0].id) || 'SP-01',
-        title: document.getElementById('spForm-title').value.trim(),
+        id: spId,
+        title: title,
         subtitle: document.getElementById('spForm-subtitle').value.trim(),
+        mediaType: document.getElementById('spForm-mediaType').value,
         imageUrl: document.getElementById('spForm-imageUrl').value.trim(),
-        bulletPoints: document.getElementById('spForm-bulletPoints').value.trim(),
-        priority: 1,
-        status: '啟用'
+        startDate: document.getElementById('spForm-startDate').value,
+        endDate: document.getElementById('spForm-endDate').value,
+        duration: Number(document.getElementById('spForm-duration').value) || 5,
+        priority: Number(document.getElementById('spForm-priority').value) || 1,
+        status: document.getElementById('spForm-status').value,
+        bulletPoints: document.getElementById('spForm-bulletPoints').value.trim()
       };
 
-      // 立即更新本機 state 與前台畫面，確保修改立刻生效！
-      if (state.spotlights.length === 0) {
-        state.spotlights.push(spData);
-      } else {
-        state.spotlights[0] = spData;
-      }
-      renderSpotlightSection();
+      // 依使用者需求：若有選取新圖片才上傳；否則直接保留原有圖片連結，不重複上傳！
+      if (spPendingUploadFile) {
+        showToast('正在上傳新圖片至 Acticity 資料夾...', '⏳');
+        const fileObj = {
+          name: spPendingUploadFile.name,
+          mimeType: spPendingUploadFile.mimeType,
+          base64: spPendingUploadFile.base64
+        };
 
-      // 儲存至 localStorage 保證重新整理依然存在
+        callBackend('uploadSpotlightImage', { file: fileObj, password: state.adminPassword }, res => {
+          if (res && res.success) {
+            spData.imageUrl = res.imageUrl;
+            if (res.folderUrl && state.settings) {
+              state.settings.activityFolderUrl = res.folderUrl;
+            }
+          }
+          spPendingUploadFile = null;
+          finalizeSaveSpotlight(spData);
+        }, err => {
+          spPendingUploadFile = null;
+          finalizeSaveSpotlight(spData);
+        });
+      } else {
+        // 未選新檔：以原檔為主，不重複上傳檔案
+        finalizeSaveSpotlight(spData);
+      }
+    }
+
+    function finalizeSaveSpotlight(spData) {
+      const idx = state.spotlights.findIndex(s => String(s.id) === String(spData.id));
+      if (idx > -1) {
+        state.spotlights[idx] = spData;
+      } else {
+        state.spotlights.push(spData);
+      }
+
+      state.spotlights.sort((a, b) => (Number(a.priority) || 1) - (Number(b.priority) || 1));
+
       try {
+        localStorage.setItem('nobel_a_spotlights_list', JSON.stringify(state.spotlights));
         localStorage.setItem('nobel_a_spotlight_custom', JSON.stringify(spData));
       } catch (err) {}
 
-      showToast('儲存 Spotlight 中...', '⏳');
+      currentSpotlightIndex = 0;
+      renderSpotlightSection();
+      renderAdminSpotlightsList();
+      cancelSpotlightEdit();
+
+      showToast('焦點活動已成功儲存！', '✅');
 
       callBackend('saveSpotlight', { data: spData, password: state.adminPassword }, res => {
         if (res && res.success) {
-          showToast(res.message || 'Spotlight 已成功更新！', '✅');
-          loadAppData();
-        } else {
-          showToast('Spotlight 已成功儲存並套用於前台！', '✅');
+          showToast(res.message || '雲端資料庫已同步更新！', '🎉');
         }
-      }, err => {
-        showToast('Spotlight 已成功儲存並套用於前台！', '✅');
+      });
+    }
+
+    function confirmDeleteSpotlight(id) {
+      if (!confirm('確定要刪除這筆焦點活動嗎？')) return;
+      state.spotlights = state.spotlights.filter(s => String(s.id) !== String(id));
+      try {
+        localStorage.setItem('nobel_a_spotlights_list', JSON.stringify(state.spotlights));
+      } catch (e) {}
+
+      currentSpotlightIndex = 0;
+      renderSpotlightSection();
+      renderAdminSpotlightsList();
+      showToast('焦點活動已刪除！', '🗑️');
+
+      callBackend('deleteSpotlight', { id: id, password: state.adminPassword }, res => {
+        if (res && res.success) {
+          showToast('雲端已成功同步刪除！', '✅');
+        }
       });
     }
 
     // 系統設定管理
+    function loadSettingsToForm() {
+      const tickerInput = document.getElementById('setting-tickerMessage');
+      if (tickerInput) tickerInput.value = (state.settings && state.settings.tickerMessage) || '';
+      const actFolderInput = document.getElementById('setting-activityFolderUrl');
+      if (actFolderInput) {
+        actFolderInput.value = (state.settings && (state.settings.activityFolderUrl || (state.settings.activityFolderId ? 'https://drive.google.com/drive/folders/' + state.settings.activityFolderId : ''))) || '';
+      }
+    }
+
     function saveSystemSettings() {
       const newPwd = document.getElementById('setting-newPassword').value.trim();
       const ticker = document.getElementById('setting-tickerMessage').value.trim();
+      const actFolderUrl = document.getElementById('setting-activityFolderUrl').value.trim();
 
       const newSettings = {};
       if (newPwd) {
@@ -2686,6 +3292,10 @@
         state.settings.tickerMessage = ticker;
         const tickerEl = document.getElementById('tickerText');
         if (tickerEl) tickerEl.textContent = ticker;
+      }
+      if (actFolderUrl) {
+        newSettings.ACTIVITY_FOLDER_URL = actFolderUrl;
+        state.settings.activityFolderUrl = actFolderUrl;
       }
 
       try {
@@ -2703,6 +3313,7 @@
       }, err => {
         showToast('設定已更新！', '✅');
       });
+    }
     }
 
     function triggerResetDatabase() {
