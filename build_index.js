@@ -1279,10 +1279,11 @@ const htmlContent = `<!DOCTYPE html>
     window.addEventListener('DOMContentLoaded', () => {
       startLiveClock();
       try {
-        const savedPwd = sessionStorage.getItem('nobel_a_admin_pwd');
+        const savedPwd = sessionStorage.getItem('nobel_a_admin_pwd') || localStorage.getItem('nobel_a_admin_pwd');
         if (savedPwd) {
           state.adminPassword = savedPwd;
           showAdminDashboard();
+          renderDocsList();
         }
       } catch (e) {}
       // 初始化今天日期（若當前月在2026年10月附近則自動對齊）
@@ -1617,6 +1618,9 @@ const htmlContent = `<!DOCTYPE html>
 
       if (tabName === 'albums' && state.cachedAlbums.length === 0) {
         refreshAlbums();
+      }
+      if (tabName === 'docs') {
+        renderDocsList();
       }
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -2642,9 +2646,27 @@ const htmlContent = `<!DOCTYPE html>
     }
 
     // ==================== 常用文件專區 (DOCS) ====================
+    let docModalSelectedFile = null;
+
     function renderDocsList(filterCat = '全部') {
       const container = document.getElementById('docsListContainer');
+      if (!container) return;
       container.innerHTML = '';
+
+      let pwd = state.adminPassword;
+      if (!pwd) {
+        try {
+          pwd = sessionStorage.getItem('nobel_a_admin_pwd') || localStorage.getItem('nobel_a_admin_pwd') || '';
+          if (pwd) state.adminPassword = pwd;
+        } catch (e) {}
+      }
+      const isAdmin = !!pwd;
+
+      const adminBar = document.getElementById('docAdminBar');
+      if (adminBar) {
+        if (isAdmin) adminBar.classList.remove('hidden');
+        else adminBar.classList.add('hidden');
+      }
 
       const filtered = (filterCat === '全部') 
         ? state.docs 
@@ -2657,28 +2679,226 @@ const htmlContent = `<!DOCTYPE html>
 
       filtered.forEach(doc => {
         const url = doc.downloadUrl || 'https://drive.google.com/drive/folders/1Ie8medB2JPYdUA9LOryVnPAdko1t5rjR';
-        container.innerHTML += \`
-          <div class="p-4 rounded-3xl bg-white border border-slate-200/90 shadow-2xs hover:shadow-md transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <div class="flex items-start gap-3">
-              <div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center text-2xl shrink-0">
-                📄
-              </div>
-              <div>
-                <div class="flex items-center gap-2 flex-wrap">
-                  <h4 class="font-black text-slate-800 text-sm sm:text-base">\${doc.fileName}</h4>
-                  <span class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-indigo-100 text-indigo-800">\${doc.category || '一般'}</span>
-                </div>
-                <p class="text-xs text-slate-500 mt-1 leading-relaxed">\${doc.description || '點擊即可線上下載或預覽文件'}</p>
-                <div class="text-[11px] text-slate-400 mt-1">更新日期：\${doc.updatedAt || '2026-09-01'}</div>
-              </div>
-            </div>
-            <div class="flex items-center gap-2 w-full sm:w-auto justify-end shrink-0 pt-2 sm:pt-0">
-              <a href="\${url}" target="_blank" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm flex items-center gap-1.5 tap-bounce">
-                <span>⬇️</span> 下載文件
-              </a>
-            </div>
-          </div>
-        \`;
+        
+        let adminBtns = '';
+        if (isAdmin) {
+          const safeName = (doc.fileName || '').replace(/"/g, '&quot;');
+          adminBtns = '<button type="button" onclick="openDocEditModal(&quot;' + (doc.id || '') + '&quot;)" class="px-3 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs font-bold flex items-center gap-1 shadow-2xs tap-bounce" title="編輯文件資訊">' +
+            '<span>✏️</span> 編輯' +
+            '</button>' +
+            '<button type="button" onclick="handleDeleteDocDirect(&quot;' + (doc.id || '') + '&quot;, &quot;' + safeName + '&quot;)" class="px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold flex items-center gap-1 shadow-2xs tap-bounce" title="刪除文件">' +
+            '<span>🗑️</span> 刪除' +
+            '</button>';
+        }
+
+        const card = document.createElement('div');
+        card.className = 'p-4 rounded-3xl bg-white border border-slate-200/90 shadow-2xs hover:shadow-md transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3';
+        card.innerHTML = '<div class="flex items-start gap-3">' +
+          '<div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center text-2xl shrink-0">📄</div>' +
+          '<div>' +
+          '<div class="flex items-center gap-2 flex-wrap">' +
+          '<h4 class="font-black text-slate-800 text-sm sm:text-base">' + (doc.fileName || '未命名文件') + '</h4>' +
+          '<span class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-indigo-100 text-indigo-800">' + (doc.category || '一般') + '</span>' +
+          '</div>' +
+          '<p class="text-xs text-slate-500 mt-1 leading-relaxed">' + (doc.description || '點擊即可線上下載或預覽文件') + '</p>' +
+          '<div class="text-[11px] text-slate-400 mt-1">更新日期：' + (doc.updatedAt || '2026-09-01') + '</div>' +
+          '</div>' +
+          '</div>' +
+          '<div class="flex items-center gap-2 w-full sm:w-auto justify-end shrink-0 pt-2 sm:pt-0">' +
+          adminBtns +
+          '<a href="' + url + '" target="_blank" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm flex items-center gap-1.5 tap-bounce">' +
+          '<span>⬇️</span> 下載文件' +
+          '</a>' +
+          '</div>';
+
+        container.appendChild(card);
+      });
+    }
+
+    function openDocEditModal(id) {
+      docModalSelectedFile = null;
+      const fileInput = document.getElementById('docModal-fileInput');
+      if (fileInput) fileInput.value = '';
+      const statusEl = document.getElementById('docModal-fileStatus');
+      if (statusEl) {
+        statusEl.textContent = '若已有網址可直接修改上欄，或選取新檔案覆蓋上傳';
+        statusEl.className = 'text-[11px] text-slate-500 mt-1';
+      }
+
+      if (id) {
+        const doc = state.docs.find(d => String(d.id) === String(id));
+        if (doc) {
+          document.getElementById('docModalTitle').innerHTML = '<span>✏️</span> 編輯文件：' + (doc.fileName || '');
+          document.getElementById('docModal-id').value = doc.id || '';
+          document.getElementById('docModal-driveFileId').value = doc.driveFileId || '';
+          document.getElementById('docModal-fileName').value = doc.fileName || '';
+          document.getElementById('docModal-category').value = doc.category || '一般文件';
+          document.getElementById('docModal-description').value = doc.description || '';
+          document.getElementById('docModal-downloadUrl').value = doc.downloadUrl || '';
+        }
+      } else {
+        document.getElementById('docModalTitle').innerHTML = '<span>➕</span> 新增常用文件';
+        document.getElementById('docModal-id').value = '';
+        document.getElementById('docModal-driveFileId').value = '';
+        document.getElementById('docModal-fileName').value = '';
+        document.getElementById('docModal-category').value = '保健用藥';
+        document.getElementById('docModal-description').value = '';
+        document.getElementById('docModal-downloadUrl').value = '';
+      }
+
+      const modal = document.getElementById('docEditModal');
+      if (modal) modal.classList.remove('hidden');
+    }
+
+    function closeDocEditModal() {
+      const modal = document.getElementById('docEditModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function handleDocModalFileChosen(e) {
+      const files = e.target.files;
+      if (!files || files.length === 0) return;
+      docModalSelectedFile = files[0];
+      const statusEl = document.getElementById('docModal-fileStatus');
+      if (statusEl) {
+        statusEl.textContent = '已選取新檔案：' + docModalSelectedFile.name + ' (' + Math.round(docModalSelectedFile.size / 1024) + ' KB)';
+        statusEl.className = 'text-[11px] text-emerald-600 font-bold mt-1';
+      }
+      const nameInput = document.getElementById('docModal-fileName');
+      if (nameInput && !nameInput.value.trim()) {
+        nameInput.value = docModalSelectedFile.name;
+      }
+    }
+
+    function handleSaveDocModal(e) {
+      e.preventDefault();
+      const saveBtn = document.getElementById('docModalSaveBtn');
+      const id = document.getElementById('docModal-id').value;
+      const driveFileId = document.getElementById('docModal-driveFileId').value;
+      const fileName = document.getElementById('docModal-fileName').value.trim();
+      const category = document.getElementById('docModal-category').value;
+      const description = document.getElementById('docModal-description').value.trim();
+      const downloadUrl = document.getElementById('docModal-downloadUrl').value.trim();
+      const todayStr = (typeof getTodayDateStr === 'function') ? getTodayDateStr() : new Date().toISOString().split('T')[0];
+
+      if (!fileName) {
+        showToast('請輸入文件名稱！', '⚠️');
+        return;
+      }
+
+      if (docModalSelectedFile) {
+        if (saveBtn) { saveBtn.disabled = true; saveBtn.innerHTML = '<span>⏳</span> 上傳檔案中...'; }
+        showToast('檔案上傳 Google Drive 中...', '⏳');
+
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          const base64Data = evt.target.result.split(',')[1];
+          const fileObj = {
+            name: docModalSelectedFile.name,
+            mimeType: docModalSelectedFile.type || 'application/pdf',
+            base64: base64Data
+          };
+
+          const docMeta = {
+            id: id,
+            fileName: fileName,
+            category: category,
+            description: description
+          };
+
+          callBackend('uploadDocument', {
+            meta: docMeta,
+            file: fileObj,
+            password: state.adminPassword
+          }, res => {
+            if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = '<span>💾</span> 儲存修改'; }
+            if (res && res.success) {
+              const newDoc = {
+                id: res.fileId ? ('DOC-' + res.fileId) : (id || ('DOC-' + Date.now())),
+                fileName: fileName,
+                category: category,
+                description: description,
+                driveFileId: res.fileId || driveFileId,
+                downloadUrl: res.downloadUrl || downloadUrl,
+                updatedAt: todayStr
+              };
+
+              updateLocalDocState(newDoc);
+              closeDocEditModal();
+              showToast('文件已成功上傳並發佈！', '🎉');
+              loadAppData();
+            } else {
+              showToast('上傳失敗: ' + (res ? res.error : '未知錯誤'), '❌');
+            }
+          }, err => {
+            if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = '<span>💾</span> 儲存修改'; }
+            showToast('網路連線逾時，已保留修改', '⚠️');
+          });
+        };
+        reader.readAsDataURL(docModalSelectedFile);
+        return;
+      }
+
+      const docData = {
+        id: id || ('DOC-' + Date.now()),
+        fileName: fileName,
+        category: category,
+        description: description,
+        driveFileId: driveFileId,
+        downloadUrl: downloadUrl,
+        updatedAt: todayStr
+      };
+
+      updateLocalDocState(docData);
+      closeDocEditModal();
+      showToast('文件資訊已成功儲存！', '✅');
+
+      if (saveBtn) { saveBtn.disabled = true; saveBtn.innerHTML = '<span>⏳</span> 同步中...'; }
+      callBackend('saveDoc', { docData: docData, password: state.adminPassword }, res => {
+        if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = '<span>💾</span> 儲存修改'; }
+        if (res && res.success) {
+          showToast(res.message || '文件已同步至雲端！', '✅');
+          loadAppData();
+        } else {
+          showToast('文件已套用於前台！', '✅');
+        }
+      }, err => {
+        if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = '<span>💾</span> 儲存修改'; }
+        showToast('文件已套用於前台！', '✅');
+      });
+    }
+
+    function updateLocalDocState(docData) {
+      const idx = state.docs.findIndex(d => String(d.id) === String(docData.id));
+      if (idx > -1) {
+        state.docs[idx] = Object.assign({}, state.docs[idx], docData);
+      } else {
+        state.docs.push(docData);
+      }
+      try {
+        localStorage.setItem('nobel_a_docs_custom', JSON.stringify(state.docs));
+      } catch (e) {}
+      renderDocsList();
+    }
+
+    function handleDeleteDocDirect(id, name) {
+      if (!confirm('確定要自常用清單中刪除「' + name + '」嗎？')) return;
+      showToast('刪除文件中...', '⏳');
+      state.docs = state.docs.filter(d => String(d.id) !== String(id));
+      try {
+        localStorage.setItem('nobel_a_docs_custom', JSON.stringify(state.docs));
+      } catch (e) {}
+      renderDocsList();
+
+      callBackend('deleteDoc', { docId: id, id: id, password: state.adminPassword }, res => {
+        if (res && res.success) {
+          showToast(res.message || '文件已刪除！', '🗑️');
+          loadAppData();
+        } else {
+          showToast('已自前台清單中移除', '🗑️');
+        }
+      }, err => {
+        showToast('已自前台清單中移除', '🗑️');
       });
     }
 
@@ -2707,13 +2927,13 @@ const htmlContent = `<!DOCTYPE html>
       callBackend('verifyPassword', { password: pwd }, res => {
         if (res && res.success) {
           state.adminPassword = pwd;
-          try { sessionStorage.setItem('nobel_a_admin_pwd', pwd); } catch (e) {}
+          try { sessionStorage.setItem('nobel_a_admin_pwd', pwd); localStorage.setItem('nobel_a_admin_pwd', pwd); } catch (e) {}
           showAdminDashboard();
           renderDocsList();
           showToast('歡迎登入管理後台！', '🎉');
         } else if (pwd === 'nobel-a-2026' || pwd.length > 0) {
           state.adminPassword = pwd;
-          try { sessionStorage.setItem('nobel_a_admin_pwd', pwd); } catch (e) {}
+          try { sessionStorage.setItem('nobel_a_admin_pwd', pwd); localStorage.setItem('nobel_a_admin_pwd', pwd); } catch (e) {}
           showAdminDashboard();
           renderDocsList();
           showToast('歡迎登入管理後台！', '🎉');
@@ -2723,7 +2943,7 @@ const htmlContent = `<!DOCTYPE html>
       }, err => {
         if (pwd === 'nobel-a-2026' || pwd.length > 0) {
           state.adminPassword = pwd;
-          try { sessionStorage.setItem('nobel_a_admin_pwd', pwd); } catch (e) {}
+          try { sessionStorage.setItem('nobel_a_admin_pwd', pwd); localStorage.setItem('nobel_a_admin_pwd', pwd); } catch (e) {}
           showAdminDashboard();
           renderDocsList();
           showToast('歡迎登入管理後台！', '🎉');
@@ -2742,7 +2962,7 @@ const htmlContent = `<!DOCTYPE html>
 
     function doAdminLogout() {
       state.adminPassword = '';
-      try { sessionStorage.removeItem('nobel_a_admin_pwd'); } catch (e) {}
+      try { sessionStorage.removeItem('nobel_a_admin_pwd'); localStorage.removeItem('nobel_a_admin_pwd'); } catch (e) {}
       document.getElementById('adminPasswordInput').value = '';
       document.getElementById('adminLoginCard').classList.remove('hidden');
       document.getElementById('adminDashboard').classList.add('hidden');
