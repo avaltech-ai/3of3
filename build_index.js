@@ -665,8 +665,17 @@ const htmlContent = `<!DOCTYPE html>
                   <div id="eventForm-target" class="w-full flex flex-wrap gap-2 pt-1 border border-slate-300 rounded-xl px-3 py-2 bg-white min-h-[38px]"></div>
                 </div>
                 <div>
-                  <label class="block text-xs font-bold text-slate-600 mb-1">活動類別</label>
-                  <div id="eventForm-category" class="w-full flex flex-wrap gap-2 pt-1 border border-slate-300 rounded-xl px-3 py-2 bg-white min-h-[38px]"></div>
+                  
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-[0.6875rem] font-bold text-slate-600 mb-1">活動類別 (大項)</label>
+                    <div id="eventForm-categoryMajor" class="w-full flex flex-wrap gap-2 pt-1 border border-slate-300 rounded-xl px-3 py-2 bg-white min-h-[38px]"></div>
+                  </div>
+                  <div>
+                    <label class="block text-[0.6875rem] font-bold text-slate-600 mb-1">活動類別 (細項)</label>
+                    <div id="eventForm-categoryMinor" class="w-full flex flex-wrap gap-2 pt-1 border border-slate-300 rounded-xl px-3 py-2 bg-white min-h-[38px]"></div>
+                  </div>
+                </div>
                 </div>
                 <div>
                   <label class="block text-xs font-bold text-slate-600 mb-1">時間／地點備註</label>
@@ -1449,11 +1458,19 @@ const htmlContent = `<!DOCTYPE html>
         });
       }
 
-      const catSelect = document.getElementById('eventForm-category');
-      if (catSelect && state.eventCategories) {
-        catSelect.innerHTML = '';
-        state.eventCategories.forEach((cat, i) => {
-          catSelect.innerHTML += '<label class="flex items-center gap-1 cursor-pointer hover:bg-slate-50 px-1 rounded"><input type="checkbox" value="' + cat + '" class="accent-peach-500 w-3 h-3"><span class="text-[0.6875rem] text-slate-700 font-medium">' + cat + '</span></label>';
+      const catMajorSelect = document.getElementById('eventForm-categoryMajor');
+      if (catMajorSelect && state.eventCategoriesMajor) {
+        catMajorSelect.innerHTML = '';
+        state.eventCategoriesMajor.forEach((cat, i) => {
+          catMajorSelect.innerHTML += '<label class="flex items-center gap-1 cursor-pointer hover:bg-slate-50 px-1 rounded"><input type="checkbox" value="' + cat + '" class="accent-peach-500 w-3 h-3"><span class="text-[0.6875rem] text-slate-700 font-medium">' + cat + '</span></label>';
+        });
+      }
+
+      const catMinorSelect = document.getElementById('eventForm-categoryMinor');
+      if (catMinorSelect && state.eventCategoriesMinor) {
+        catMinorSelect.innerHTML = '';
+        state.eventCategoriesMinor.forEach((cat, i) => {
+          catMinorSelect.innerHTML += '<label class="flex items-center gap-1 cursor-pointer hover:bg-slate-50 px-1 rounded"><input type="checkbox" value="' + cat + '" class="accent-peach-500 w-3 h-3"><span class="text-[0.6875rem] text-slate-700 font-medium">' + cat + '</span></label>';
         });
       }
     }
@@ -2288,8 +2305,8 @@ const htmlContent = `<!DOCTYPE html>
         // 標記小圓點或文字
         let badgesHtml = '<div class="flex items-center gap-0.5 flex-wrap justify-end">';
         let hasNobelA = dayEvents.some(e => (e.target || '').includes('諾貝爾A班') || (e.title || '').includes('諾A'));
-        let hasKitchen = dayEvents.some(e => (e.category || '').includes('幸福廚房') || (e.title || '').includes('幸福廚房'));
-        let hasWholeSchool = dayEvents.some(e => (e.category || '').includes('全園') || (e.category || '').includes('慶生') || (e.title || '').includes('壽星'));
+        let hasKitchen = dayEvents.some(e => (e.categoryMajor || '').includes('幸福廚房') || (e.categoryMinor || '').includes('幸福廚房') || (e.category || '').includes('幸福廚房') || (e.title || '').includes('幸福廚房'));
+        let hasWholeSchool = dayEvents.some(e => (e.categoryMajor || '').includes('全園') || (e.categoryMinor || '').includes('全園') || (e.category || '').includes('全園') || (e.categoryMajor || '').includes('慶生') || (e.categoryMinor || '').includes('慶生') || (e.category || '').includes('慶生') || (e.title || '').includes('壽星'));
 
         if (hasNobelA) {
           badgesHtml += '<span class="w-2 h-2 rounded-full bg-peach-500 ring-1 ring-white" title="諾A班活動"></span>';
@@ -3146,7 +3163,8 @@ const htmlContent = `<!DOCTYPE html>
         endDate: document.getElementById('eventForm-endDate').value,
         title: document.getElementById('eventForm-title').value,
         target: getCheckedValues('eventForm-target'),
-        category: getCheckedValues('eventForm-category'),
+        categoryMajor: getCheckedValues('eventForm-categoryMajor'),
+        categoryMinor: getCheckedValues('eventForm-categoryMinor'),
         timeLocation: document.getElementById('eventForm-timeLocation').value,
         description: document.getElementById('eventForm-description').value,
         theme: '主題活動：人與自己／人與他人概念'
@@ -3188,7 +3206,8 @@ const htmlContent = `<!DOCTYPE html>
       document.getElementById('eventForm-endDate').value = '';
       document.getElementById('eventForm-title').value = '';
       setCheckedValues('eventForm-target', '');
-      setCheckedValues('eventForm-category', '');
+      setCheckedValues('eventForm-categoryMajor', '');
+      setCheckedValues('eventForm-categoryMinor', '');
       document.getElementById('eventForm-timeLocation').value = '';
       document.getElementById('eventForm-description').value = '';
       document.getElementById('saveEventBtn').textContent = '儲存活動';
@@ -3202,7 +3221,8 @@ const htmlContent = `<!DOCTYPE html>
       document.getElementById('eventForm-endDate').value = ev.endDate ? normalizeDate(ev.endDate) : '';
       document.getElementById('eventForm-title').value = ev.title;
       setCheckedValues('eventForm-target', ev.target || '');
-      setCheckedValues('eventForm-category', ev.category || '');
+      setCheckedValues('eventForm-categoryMajor', ev.categoryMajor || ev.category || '');
+      setCheckedValues('eventForm-categoryMinor', ev.categoryMinor || '');
       document.getElementById('eventForm-timeLocation').value = ev.timeLocation || '';
       document.getElementById('eventForm-description').value = ev.description || '';
       document.getElementById('saveEventBtn').textContent = '更新此活動';

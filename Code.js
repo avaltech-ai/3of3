@@ -297,7 +297,7 @@ function getAppData() {
     }
     const eventTargets = getSheetDataAsObjects(evTargetSheet).filter(row => row.targetName);
 
-    // 確保 EventCategories 工作表存在
+    // 確保 EventCategories 工作表存在 (大項)
     let evCatSheet = ss.getSheetByName('EventCategories');
     if (!evCatSheet) {
       evCatSheet = ss.insertSheet('EventCategories');
@@ -313,7 +313,24 @@ function getAppData() {
       ];
       evCatSheet.getRange(2, 1, defaultCats.length, 1).setValues(defaultCats);
     }
-    const eventCategories = getSheetDataAsObjects(evCatSheet).map(row => row.categoryName).filter(Boolean);
+    const eventCategoriesMajor = getSheetDataAsObjects(evCatSheet).map(row => row.categoryName).filter(Boolean);
+    
+    // 確保 EventCategoriesMinor 工作表存在 (細項)
+    let evCatMinorSheet = ss.getSheetByName('EventCategoriesMinor');
+    if (!evCatMinorSheet) {
+      evCatMinorSheet = ss.insertSheet('EventCategoriesMinor');
+      evCatMinorSheet.appendRow(['categoryName']);
+      evCatMinorSheet.getRange(1, 1, 1, 1).setFontWeight('bold').setBackground('#E0E7FF');
+      const defaultCatsMinor = [
+        ['幸福廚房'],
+        ['慶生活動'],
+        ['戶外踏訪'],
+        ['高峰活動'],
+        ['歲末活動']
+      ];
+      evCatMinorSheet.getRange(2, 1, defaultCatsMinor.length, 1).setValues(defaultCatsMinor);
+    }
+    const eventCategoriesMinor = getSheetDataAsObjects(evCatMinorSheet).map(row => row.categoryName).filter(Boolean);
 
 
 
@@ -338,7 +355,8 @@ function getAppData() {
         docs: docs || [],
         docCategories: docCategories || [],
         eventTargets: eventTargets || [],
-        eventCategories: eventCategories || [],
+        eventCategoriesMajor: eventCategoriesMajor || [],
+        eventCategoriesMinor: eventCategoriesMinor || [],
         settings: {
           className: settings.CLASS_NAME || '諾貝爾 A 班',
           kindergartenName: settings.KINDERGARTEN_NAME || '桃子腳幼兒園',
