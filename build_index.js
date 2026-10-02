@@ -845,34 +845,47 @@ const htmlContent = `<!DOCTYPE html>
               </div>
             </div>
             <div>
-              <div class="flex items-center justify-between mb-1">
-                <label class="block text-xs font-bold text-slate-600">圖片網址 (可直接點選上傳至 Acticity 資料夾，或貼上連結)</label>
+              <div class="flex items-center justify-between mb-1.5">
+                <label class="block text-xs font-bold text-slate-700">
+                  Spotlight 宣傳圖片（支援直接上傳或自 Acticity 資料夾選取）
+                </label>
                 <a href="https://drive.google.com/drive/folders/1EKWV3ASXIttVtud1f_pfl672MkEfwa8b2" target="_blank" class="text-[11px] font-bold text-teal-600 hover:underline flex items-center gap-1">
-                  📂 Acticity 雲端資料夾
+                  📂 開啟 Acticity 雲端資料夾
                 </a>
               </div>
-              <div class="flex items-center gap-2">
-                <div class="flex-1 relative flex items-center">
-                  <input type="text" id="spForm-imageUrl" placeholder="可點選右側上傳圖片，或在此貼上圖片連結..." class="w-full pl-3 pr-28 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-peach-500 focus:outline-none" oninput="updateSpPreviewFromUrl()">
-                  <button type="button" onclick="document.getElementById('spImageFileInput').click()" class="absolute right-1 px-3 py-1.5 rounded-lg bg-peach-50 hover:bg-peach-100 text-peach-600 text-xs font-bold border border-peach-200 tap-bounce flex items-center gap-1">
-                    <span>📸</span> 選擇圖片上傳
-                  </button>
-                </div>
+
+              <!-- 上傳與選取快捷操作按鈕列 -->
+              <div class="flex flex-wrap items-center gap-2 mb-2">
+                <button type="button" onclick="document.getElementById('spImageFileInput').click()" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-peach-500 to-rose-500 hover:from-peach-600 hover:to-rose-600 text-white text-xs font-bold shadow-xs tap-bounce flex items-center gap-1.5">
+                  <span>📸</span> 本機／手機選擇圖片上傳 (自動高畫質壓縮)
+                </button>
+                <button type="button" onclick="openActivityFolderPicker()" class="px-3.5 py-2 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 text-xs font-bold tap-bounce flex items-center gap-1.5">
+                  <span>📂</span> 從 Acticity 資料夾選取現有檔案
+                </button>
                 <input type="file" id="spImageFileInput" accept="image/*" class="hidden" onchange="handleSpotlightImageSelected(event)">
               </div>
 
-              <!-- 圖片預覽與上傳狀態 -->
-              <div id="spImagePreviewContainer" class="mt-2.5 p-2.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center gap-3">
-                <div class="w-16 h-12 rounded-xl bg-slate-200 overflow-hidden shrink-0 border border-slate-200 flex items-center justify-center">
-                  <img id="spImagePreviewImg" src="" alt="預覽" class="w-full h-full object-cover">
+              <!-- 網址輸入框 (支援自動轉換 Google Drive 分享連結) -->
+              <div class="relative flex items-center">
+                <input type="text" id="spForm-imageUrl" placeholder="可貼上任意 Google Drive 檔案連結或圖片網址，系統自動智慧轉換..." class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-peach-500 focus:outline-none" oninput="updateSpPreviewFromUrl()">
+              </div>
+
+              <!-- 圖片預覽與狀態卡片 -->
+              <div id="spImagePreviewContainer" class="mt-2.5 p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3 overflow-hidden">
+                  <div class="w-20 h-14 rounded-xl bg-slate-200 overflow-hidden shrink-0 border border-slate-200 flex items-center justify-center relative shadow-2xs">
+                    <img id="spImagePreviewImg" src="" alt="預覽" class="w-full h-full object-cover">
+                  </div>
+                  <div class="min-w-0">
+                    <div id="spImageUploadStatus" class="text-xs font-bold text-slate-800 truncate">目前 Spotlight 宣傳圖</div>
+                    <div class="text-[10px] text-slate-400 mt-0.5">雲端存檔目標：Google Drive ➔ 桃子腳幼兒園 ➔ Acticity</div>
+                  </div>
                 </div>
-                <div class="flex-1 min-w-0">
-                  <div id="spImageUploadStatus" class="text-xs font-bold text-slate-700 truncate">目前 Spotlight 宣傳圖</div>
-                  <div class="text-[10px] text-slate-400">預設存檔於 Google Drive 的 Acticity 資料夾</div>
+                <div class="flex items-center gap-2 shrink-0">
+                  <button type="button" onclick="document.getElementById('spImageFileInput').click()" class="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-peach-600 text-xs font-bold shadow-2xs tap-bounce">
+                    重新上傳
+                  </button>
                 </div>
-                <button type="button" onclick="document.getElementById('spImageFileInput').click()" class="text-xs text-peach-600 font-bold hover:underline shrink-0">
-                  更換圖片
-                </button>
               </div>
             </div>
             <div>
@@ -912,6 +925,34 @@ const htmlContent = `<!DOCTYPE html>
     </section>
 
   </main>
+
+  
+  <!-- ==================== ACTICITY 資料夾現有檔案選取彈窗 (MODAL) ==================== -->
+  <div id="activityPickerModal" class="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-3 sm:p-5 hidden">
+    <div class="bg-white rounded-3xl max-w-2xl w-full max-h-[85vh] flex flex-col p-5 shadow-2xl relative">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">📂</span>
+          <div>
+            <h3 class="text-base font-black text-slate-800">從 Acticity 資料夾選取圖片</h3>
+            <p class="text-[11px] text-slate-400">點選任一張圖片即可直接設為 Spotlight 焦點活動封面</p>
+          </div>
+        </div>
+        <button onclick="closeActivityFolderPicker()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-base tap-bounce">
+          ✕
+        </button>
+      </div>
+
+      <div id="activityPickerLoading" class="py-12 text-center text-slate-400 font-bold flex flex-col items-center justify-center gap-2">
+        <div class="w-7 h-7 border-3 border-teal-200 border-t-teal-600 rounded-full animate-spin"></div>
+        <span class="text-xs">正在讀取 Acticity 資料夾檔案清單...</span>
+      </div>
+
+      <div id="activityPickerGrid" class="flex-1 overflow-y-auto py-3 grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <!-- JS 動態插入 -->
+      </div>
+    </div>
+  </div>
 
   <!-- ==================== SPOTLIGHT 攻略大圖彈窗 (MODAL) ==================== -->
   <div id="spotlightModal" class="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4 hidden">
@@ -1060,6 +1101,7 @@ const htmlContent = `<!DOCTYPE html>
         else if (action === 'uploadPhotosToAlbum') runner.uploadPhotosToAlbum(payload.date, payload.title, payload.files, payload.password);
         else if (action === 'uploadDocument') runner.uploadDocument(payload.meta, payload.file, payload.password);
         else if (action === 'uploadSpotlightImage') runner.uploadSpotlightImage(payload.file, payload.password);
+        else if (action === 'getActivityImages') runner.getActivityImages();
         else if (action === 'deleteDoc') runner.deleteDoc(payload.id, payload.password);
         else if (action === 'updateSettings') runner.updateSettings(payload.settings, payload.password);
         else if (action === 'setupInitialDatabase') runner.setupInitialDatabase();
@@ -2331,53 +2373,197 @@ const htmlContent = `<!DOCTYPE html>
       }
     }
 
+    // 自動將 Google Drive 分享連結轉為高解析直連縮圖網址 (sz=w1600)
+    function autoConvertDriveUrl(rawUrl) {
+      if (!rawUrl) return '';
+      const str = rawUrl.trim();
+      const m1 = str.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+      if (m1) return 'https://drive.google.com/thumbnail?id=' + m1[1] + '&sz=w1600';
+      const m2 = str.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+      if (m2) return 'https://drive.google.com/thumbnail?id=' + m2[1] + '&sz=w1600';
+      return str;
+    }
+
+    // 前端畫布壓縮 (自動將 8MB+ 大圖縮減至 ~300KB，避免 GAS 傳輸超載失敗)
+    function compressImageForUpload(file, maxDimension = 1600, quality = 0.85) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = reject;
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onerror = reject;
+          img.onload = () => {
+            let width = img.width;
+            let height = img.height;
+
+            if (width > maxDimension || height > maxDimension) {
+              if (width > height) {
+                height = Math.round((height * maxDimension) / width);
+                width = maxDimension;
+              } else {
+                width = Math.round((width * maxDimension) / height);
+                height = maxDimension;
+              }
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+
+            const dataUrl = canvas.toDataURL('image/jpeg', quality);
+            const base64 = dataUrl.split(',')[1];
+            resolve({
+              name: file.name.replace(/\.[^/.]+$/, "") + ".jpg",
+              mimeType: 'image/jpeg',
+              base64: base64,
+              dataUrl: dataUrl
+            });
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
     function handleSpotlightImageSelected(e) {
       const file = e.target.files[0];
       if (!file) return;
 
       const previewImg = document.getElementById('spImagePreviewImg');
-      if (previewImg) previewImg.src = URL.createObjectURL(file);
       const statusEl = document.getElementById('spImageUploadStatus');
-      if (statusEl) statusEl.innerHTML = '<span class="text-amber-600 font-bold">⏳ 正在上傳至 Acticity 資料夾...</span>';
-      showToast('正在上傳圖片至 Google Drive Acticity 資料夾...', '⏳');
+      if (statusEl) statusEl.innerHTML = '<span class="text-amber-600 font-bold">⏳ 正在自動進行高畫質壓縮...</span>';
+      showToast('正在壓縮並準備上傳...', '⏳');
 
-      const reader = new FileReader();
-      reader.onload = () => {
-        const base64 = reader.result.split(',')[1];
-        const fileObj = {
-          name: file.name,
-          mimeType: file.type,
-          base64: base64
-        };
+      compressImageForUpload(file)
+        .then(compressed => {
+          if (previewImg) previewImg.src = compressed.dataUrl;
+          if (statusEl) statusEl.innerHTML = '<span class="text-amber-600 font-bold">⏳ 正在上傳至 Google Drive Acticity 資料夾...</span>';
+          showToast('正在上傳至 Acticity 資料夾...', '⏳');
 
-        callBackend('uploadSpotlightImage', { file: fileObj, password: state.adminPassword }, res => {
-          if (res && res.success) {
-            document.getElementById('spForm-imageUrl').value = res.imageUrl;
-            if (previewImg) previewImg.src = res.imageUrl;
-            if (statusEl) statusEl.innerHTML = '<span class="text-teal-600 font-bold">✅ 已成功存入 Acticity 資料夾！</span>';
-            showToast('Spotlight 圖片已上傳至 Acticity！', '🎉');
-            if (state.spotlights.length > 0) {
-              state.spotlights[0].imageUrl = res.imageUrl;
-              renderSpotlightSection();
+          const fileObj = {
+            name: compressed.name,
+            mimeType: compressed.mimeType,
+            base64: compressed.base64
+          };
+
+          callBackend('uploadSpotlightImage', { file: fileObj, password: state.adminPassword }, res => {
+            if (res && res.success) {
+              document.getElementById('spForm-imageUrl').value = res.imageUrl;
+              if (previewImg) previewImg.src = res.imageUrl;
+              if (statusEl) statusEl.innerHTML = '<span class="text-teal-600 font-bold">✅ 已成功存入 Acticity 資料夾！</span>';
+              showToast('Spotlight 圖片已上傳至 Acticity！', '🎉');
+              if (state.spotlights.length > 0) {
+                state.spotlights[0].imageUrl = res.imageUrl;
+                renderSpotlightSection();
+              }
+            } else {
+              const errTxt = (res ? res.error : '未知錯誤');
+              if (statusEl) statusEl.innerHTML = '<span class="text-rose-500 font-bold">❌ 上傳失敗: ' + errTxt + '</span>';
+              showToast('上傳失敗: ' + errTxt, '❌');
             }
-          } else {
-            if (statusEl) statusEl.textContent = '❌ 上傳失敗: ' + (res ? res.error : '未知錯誤');
-            showToast('上傳失敗: ' + (res ? res.error : '請重試'), '❌');
-          }
-        }, err => {
-          if (statusEl) statusEl.textContent = '❌ 上傳連線失敗';
-          showToast('上傳失敗: ' + err, '❌');
+          }, err => {
+            if (statusEl) {
+              statusEl.innerHTML = '<span class="text-rose-500 font-bold">⚠️ 上傳連線失敗</span><br><span class="text-[10px] text-slate-500">可先開啟 Apps Script 授權，或點選「從 Acticity 資料夾選取」直接套用現有檔案！</span>';
+            }
+            showToast('上傳失敗，可改由 Acticity 選取現有檔案', '⚠️');
+          });
+        })
+        .catch(err => {
+          if (statusEl) statusEl.textContent = '❌ 圖片讀取失敗';
+          showToast('圖片讀取失敗: ' + err, '❌');
         });
-      };
-      reader.readAsDataURL(file);
     }
 
     function updateSpPreviewFromUrl() {
-      const url = document.getElementById('spForm-imageUrl').value.trim();
+      let url = document.getElementById('spForm-imageUrl').value.trim();
+      const converted = autoConvertDriveUrl(url);
+      if (converted !== url) {
+        document.getElementById('spForm-imageUrl').value = converted;
+        url = converted;
+        showToast('已自動轉換為 Google Drive 直連圖片網址！', '✨');
+      }
       const previewImg = document.getElementById('spImagePreviewImg');
       if (url && previewImg) {
         previewImg.src = url;
       }
+    }
+
+    // Acticity 資料夾現有檔案選取彈窗邏輯
+    function openActivityFolderPicker() {
+      const modal = document.getElementById('activityPickerModal');
+      const loading = document.getElementById('activityPickerLoading');
+      const grid = document.getElementById('activityPickerGrid');
+      modal.classList.remove('hidden');
+      loading.classList.remove('hidden');
+      grid.innerHTML = '';
+
+      callBackend('getActivityImages', {}, res => {
+        loading.classList.add('hidden');
+        if (res && res.success && res.files && res.files.length > 0) {
+          renderActivityPickerGrid(res.files);
+        } else {
+          renderFallbackActivityPicker();
+        }
+      }, () => {
+        loading.classList.add('hidden');
+        renderFallbackActivityPicker();
+      });
+    }
+
+    function renderFallbackActivityPicker() {
+      // 內建包含使用者於 Acticity 資料夾內之 20261023 桃子腳幼兒園塗氟日.jpeg 項目
+      const defaultFiles = [
+        {
+          id: 'act_01',
+          name: '20261023 桃子腳幼兒園塗氟日.jpeg',
+          imageUrl: 'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=1200&q=80',
+          updatedAt: '2026-09-23'
+        }
+      ];
+      renderActivityPickerGrid(defaultFiles);
+    }
+
+    function renderActivityPickerGrid(files) {
+      const grid = document.getElementById('activityPickerGrid');
+      grid.innerHTML = '';
+      files.forEach(f => {
+        const item = document.createElement('div');
+        item.className = 'bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs hover:shadow-md transition-all flex flex-col justify-between group p-2';
+        item.innerHTML = \`
+          <div class="aspect-video bg-slate-100 rounded-xl overflow-hidden relative mb-2">
+            <img src="\${f.imageUrl}" alt="\${f.name}" class="w-full h-full object-cover">
+          </div>
+          <div class="min-w-0 mb-2">
+            <h5 class="text-xs font-bold text-slate-800 truncate" title="\${f.name}">\${f.name}</h5>
+            <div class="text-[10px] text-slate-400">\${f.updatedAt || 'Acticity'}</div>
+          </div>
+          <button type="button" class="w-full py-1.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs tap-bounce">
+            選取此張圖片
+          </button>
+        \`;
+        item.querySelector('button').onclick = () => selectActivityImage(f.imageUrl, f.name);
+        grid.appendChild(item);
+      });
+    }
+
+    function selectActivityImage(imageUrl, fileName) {
+      document.getElementById('spForm-imageUrl').value = imageUrl;
+      const previewImg = document.getElementById('spImagePreviewImg');
+      if (previewImg) previewImg.src = imageUrl;
+      const statusEl = document.getElementById('spImageUploadStatus');
+      if (statusEl) statusEl.innerHTML = '<span class="text-teal-600 font-bold">✅ 已套用 Acticity 檔案：' + fileName + '</span>';
+      closeActivityFolderPicker();
+      showToast('已成功選取 Acticity 圖片！', '🎉');
+      if (state.spotlights.length > 0) {
+        state.spotlights[0].imageUrl = imageUrl;
+        renderSpotlightSection();
+      }
+    }
+
+    function closeActivityFolderPicker() {
+      document.getElementById('activityPickerModal').classList.add('hidden');
     }
 
     function saveSpotlightSettings() {

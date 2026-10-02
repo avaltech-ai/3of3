@@ -50,6 +50,8 @@ function doGet(e) {
         result = getAlbums();
       } else if (action === 'getAlbumPhotos') {
         result = getAlbumPhotos(e.parameter.albumId);
+      } else if (action === 'getActivityImages') {
+        result = getActivityImages();
       } else if (action === 'setupInitialDatabase') {
         result = setupInitialDatabase();
       }
@@ -106,6 +108,8 @@ function doPost(e) {
       result = uploadDocument(postData.meta, postData.file, postData.password);
     } else if (action === 'uploadSpotlightImage') {
       result = uploadSpotlightImage(postData.file, postData.password);
+    } else if (action === 'getActivityImages') {
+      result = getActivityImages();
     } else if (action === 'deleteDoc') {
       result = deleteDoc(postData.id, postData.password);
     } else if (action === 'updateSettings') {
@@ -423,6 +427,33 @@ function uploadSpotlightImage(fileObj, password) {
       success: false,
       error: '上傳 Spotlight 圖片至 Acticity 資料夾失敗: ' + err.toString()
     };
+  }
+}
+
+/**
+ * 取得 Google Drive Acticity 資料夾內現有的所有圖片檔案
+ */
+function getActivityImages() {
+  try {
+    const folder = DriveApp.getFolderById(ACTIVITY_FOLDER_ID);
+    const files = folder.getFiles();
+    const list = [];
+    while (files.hasNext()) {
+      const f = files.next();
+      const mime = f.getMimeType();
+      if (mime.indexOf('image/') === 0) {
+        list.push({
+          id: f.getId(),
+          name: f.getName(),
+          imageUrl: 'https://drive.google.com/thumbnail?id=' + f.getId() + '&sz=w1600',
+          viewUrl: f.getUrl(),
+          updatedAt: Utilities.formatDate(f.getLastUpdated(), 'Asia/Taipei', 'yyyy-MM-dd HH:mm')
+        });
+      }
+    }
+    return { success: true, files: list };
+  } catch (err) {
+    return { success: false, error: '讀取 Acticity 資料夾失敗: ' + err.toString(), files: [] };
   }
 }
 
