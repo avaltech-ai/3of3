@@ -1,4 +1,4 @@
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbxngSEbmXLW2_M7FNVxBLpbp-X1w1Z8ZX_33Kpj-ZekpGwS19Ao262HmLKkTbl3156A8g/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxhp0gicx82NNCI58dNmoceEfTUCldZ9Eqp9Uh4zOOGU6vXeowbZuO9DmqDcvG62PLRkQ/exec';
 
 exports.handler = async function (event, context) {
   const method = event.httpMethod;

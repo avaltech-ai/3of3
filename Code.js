@@ -105,7 +105,7 @@ function onOpen() {
 }
 
 function openWebApp() {
-  const url = 'https://script.google.com/macros/s/AKfycbxngSEbmXLW2_M7FNVxBLpbp-X1w1Z8ZX_33Kpj-ZekpGwS19Ao262HmLKkTbl3156A8g/exec';
+  const url = 'https://script.google.com/macros/s/AKfycbxhp0gicx82NNCI58dNmoceEfTUCldZ9Eqp9Uh4zOOGU6vXeowbZuO9DmqDcvG62PLRkQ/exec';
   const html = '<div style="font-family:sans-serif;padding:16px;text-align:center;">' +
     '<h3 style="color:#E05362;margin-bottom:12px;">🍑 諾貝爾 A 班生活網</h3>' +
     '<p style="font-size:13px;color:#666;margin-bottom:16px;">網頁已部署完成，點擊下方按鈕即可開啟！</p>' +

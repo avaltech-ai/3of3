@@ -11,7 +11,7 @@
 * **📦 GitHub 專案原始碼倉庫**：
   👉 [https://github.com/chieh-ai/3of3](https://github.com/chieh-ai/3of3)
 * **⚡ Google Apps Script Web App 備用網址**：
-  👉 [https://script.google.com/macros/s/AKfycbxngSEbmXLW2_M7FNVxBLpbp-X1w1Z8ZX_33Kpj-ZekpGwS19Ao262HmLKkTbl3156A8g/exec](https://script.google.com/macros/s/AKfycbxngSEbmXLW2_M7FNVxBLpbp-X1w1Z8ZX_33Kpj-ZekpGwS19Ao262HmLKkTbl3156A8g/exec)
+  👉 [https://script.google.com/macros/s/AKfycbxhp0gicx82NNCI58dNmoceEfTUCldZ9Eqp9Uh4zOOGU6vXeowbZuO9DmqDcvG62PLRkQ/exec](https://script.google.com/macros/s/AKfycbxhp0gicx82NNCI58dNmoceEfTUCldZ9Eqp9Uh4zOOGU6vXeowbZuO9DmqDcvG62PLRkQ/exec)
 * **GAS 專案編輯器**：
   👉 [https://script.google.com/d/1vCAafbDcotTym_8F8w0lmhONdcOfr2CB7fBy77Fp533PQ0w9kDJVVYsE/edit](https://script.google.com/d/1vCAafbDcotTym_8F8w0lmhONdcOfr2CB7fBy77Fp533PQ0w9kDJVVYsE/edit)
 * **Google 試算表資料庫**：
@@ -67,4 +67,4 @@
    * 點選「前往 桃子腳幼兒園諾貝爾A班 (不安全)」
    * 點選「允許 (Allow)」
 5. 授權完成後，系統會自動在試算表建立 5 個工作表（Events、Menus、Spotlight、Docs、Settings）並填入 10 月菜單與行事曆示範資料。
-6. 隨後即可點選 [Web App 網址](https://script.google.com/macros/s/AKfycbxngSEbmXLW2_M7FNVxBLpbp-X1w1Z8ZX_33Kpj-ZekpGwS19Ao262HmLKkTbl3156A8g/exec) 開始使用！
+6. 隨後即可點選 [Web App 網址](https://script.google.com/macros/s/AKfycbxhp0gicx82NNCI58dNmoceEfTUCldZ9Eqp9Uh4zOOGU6vXeowbZuO9DmqDcvG62PLRkQ/exec) 開始使用！

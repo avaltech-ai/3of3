@@ -1231,7 +1231,7 @@ const htmlContent = `<!DOCTYPE html>
 
     // 從 GAS 後端載入全站資料
     
-    const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxngSEbmXLW2_M7FNVxBLpbp-X1w1Z8ZX_33Kpj-ZekpGwS19Ao262HmLKkTbl3156A8g/exec';
+    const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxhp0gicx82NNCI58dNmoceEfTUCldZ9Eqp9Uh4zOOGU6vXeowbZuO9DmqDcvG62PLRkQ/exec';
 
     // 跨環境後端通訊橋樑 (支援 GAS 內部環境與 GitHub Pages 外部環境)
     function callBackend(action, payload, successCb, errorCb) {
