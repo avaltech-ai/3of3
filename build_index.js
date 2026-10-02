@@ -56,6 +56,10 @@ const htmlContent = `<!DOCTYPE html>
     }
   </script>
   <style>
+    
+    html {
+      font-size: 17.5px; /* Base font size increased from 16px for larger text globally */
+    }
     body {
       background-color: #FDFBF7;
       font-family: 'Zen Maru Gothic', 'Noto Sans TC', sans-serif;
@@ -237,7 +241,7 @@ const htmlContent = `<!DOCTYPE html>
               <span id="spotlightMediaHint" class="text-xs text-rose-500 font-bold flex items-center gap-1 cursor-pointer" onclick="openSpotlightModal()">
                 🔍 放大查看
               </span>
-              <span id="spotlightDurationBadge" class="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">
+              <span id="spotlightDurationBadge" class="text-[0.625rem] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">
                 ⏱️ 5s 輪播
               </span>
             </div>
@@ -963,7 +967,7 @@ const htmlContent = `<!DOCTYPE html>
               </div>
 
               <!-- 影片上傳溫馨說明卡片 -->
-              <div class="p-3 bg-amber-50/70 rounded-2xl border border-amber-200/80 text-[11px] text-amber-800 space-y-1">
+              <div class="p-3 bg-amber-50/70 rounded-2xl border border-amber-200/80 text-[0.6875rem] text-amber-800 space-y-1">
                 <div class="font-bold flex items-center gap-1">
                   <span>💡</span> 影片播放溫馨提示：
                 </div>
@@ -983,7 +987,7 @@ const htmlContent = `<!DOCTYPE html>
                   </div>
                   <div class="min-w-0">
                     <div id="spImageUploadStatus" class="text-xs font-bold text-slate-800 truncate">目前焦點活動媒體</div>
-                    <div class="text-[10px] text-slate-400 mt-0.5">雲端存檔目標：Google Drive ➔ 桃子腳幼兒園 ➔ Acticity</div>
+                    <div class="text-[0.625rem] text-slate-400 mt-0.5">雲端存檔目標：Google Drive ➔ 桃子腳幼兒園 ➔ Acticity</div>
                   </div>
                 </div>
                 <div class="flex items-center gap-2 shrink-0">
@@ -1042,18 +1046,18 @@ const htmlContent = `<!DOCTYPE html>
                   <div id="spUploadSpinner" class="w-4 h-4 border-2 border-amber-300 border-t-amber-600 rounded-full animate-spin"></div>
                   <span id="spUploadStatusText" class="text-xs font-bold text-amber-800">正在準備上傳...</span>
                 </div>
-                <span id="spUploadTimeEstimate" class="text-[11px] font-extrabold text-slate-500 bg-white/80 px-2 py-0.5 rounded-full border border-amber-200 whitespace-nowrap"></span>
+                <span id="spUploadTimeEstimate" class="text-[0.6875rem] font-extrabold text-slate-500 bg-white/80 px-2 py-0.5 rounded-full border border-amber-200 whitespace-nowrap"></span>
               </div>
               <div class="w-full bg-amber-100 rounded-full h-2.5 overflow-hidden">
                 <div id="spUploadProgressBar" class="bg-gradient-to-r from-amber-400 to-peach-500 h-full rounded-full transition-all duration-300 ease-out" style="width: 0%"></div>
               </div>
-              <div id="spUploadDetail" class="text-[10px] text-slate-500 text-right"></div>
+              <div id="spUploadDetail" class="text-[0.625rem] text-slate-500 text-right"></div>
             </div>
 
             <!-- 上傳結果訊息 (預設隱藏) -->
             <div id="spUploadResultContainer" class="hidden p-3.5 rounded-2xl border space-y-1">
               <div id="spUploadResultText" class="text-xs font-bold flex items-center gap-1.5"></div>
-              <div id="spUploadResultDetail" class="text-[10px] text-slate-500"></div>
+              <div id="spUploadResultDetail" class="text-[0.625rem] text-slate-500"></div>
             </div>
 
             <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
@@ -1079,7 +1083,7 @@ const htmlContent = `<!DOCTYPE html>
             <div>
               <label class="block text-xs font-bold text-slate-600 mb-1">Acticity 雲端資料夾網址或 ID</label>
               <input type="text" id="setting-activityFolderUrl" placeholder="例如：https://drive.google.com/drive/folders/..." class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium">
-              <p class="text-[10px] text-slate-400 mt-1">點擊「開啟 Acticity 雲端資料夾」時會直接開啟此網址，預設自動關聯至 Google Drive 相簿同層之 Acticity 資料夾。</p>
+              <p class="text-[0.625rem] text-slate-400 mt-1">點擊「開啟 Acticity 雲端資料夾」時會直接開啟此網址，預設自動關聯至 Google Drive 相簿同層之 Acticity 資料夾。</p>
             </div>
             <div class="flex justify-end pt-2">
               <button onclick="saveSystemSettings()" class="px-5 py-2 rounded-xl bg-slate-800 hover:bg-black text-white font-bold text-xs shadow-sm tap-bounce">
@@ -1106,7 +1110,7 @@ const htmlContent = `<!DOCTYPE html>
           <span class="text-xl">📂</span>
           <div>
             <h3 class="text-base font-black text-slate-800">從 Acticity 資料夾選取圖片</h3>
-            <p class="text-[11px] text-slate-400">點選任一張圖片即可直接設為 Spotlight 焦點活動封面</p>
+            <p class="text-[0.6875rem] text-slate-400">點選任一張圖片即可直接設為 Spotlight 焦點活動封面</p>
           </div>
         </div>
         <button onclick="closeActivityFolderPicker()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-base tap-bounce">
@@ -1232,7 +1236,7 @@ const htmlContent = `<!DOCTYPE html>
           <button type="button" onclick="document.getElementById('docModal-fileInput').click()" class="text-xs font-bold text-indigo-700 bg-white border border-indigo-200 px-3.5 py-1.5 rounded-xl shadow-2xs hover:bg-indigo-50 tap-bounce inline-flex items-center gap-1.5">
             <span>📁</span> 重新上傳/替換檔案至 Google Drive (選填)
           </button>
-          <div id="docModal-fileStatus" class="text-[11px] text-slate-500 mt-1">若已有網址可直接修改上欄，或選取新檔案覆蓋上傳</div>
+          <div id="docModal-fileStatus" class="text-[0.6875rem] text-slate-500 mt-1">若已有網址可直接修改上欄，或選取新檔案覆蓋上傳</div>
         </div>
 
         <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
@@ -2271,9 +2275,9 @@ const htmlContent = `<!DOCTYPE html>
           const firstEv = dayEvents[0];
           const isHighlight = (firstEv.target || '').includes('諾貝爾A班');
           const title = firstEv.title.length > 5 ? firstEv.title.slice(0, 4) + '..' : firstEv.title;
-          eventBrief = \`<div class="truncate text-[10px] leading-tight px-1 py-0.5 rounded \${isHighlight ? 'bg-peach-500 text-white font-black' : 'bg-rose-100/80 text-rose-700 font-medium'}">\${title}</div>\`;
+          eventBrief = \`<div class="truncate text-[0.625rem] leading-tight px-1 py-0.5 rounded \${isHighlight ? 'bg-peach-500 text-white font-black' : 'bg-rose-100/80 text-rose-700 font-medium'}">\${title}</div>\`;
         } else if (dayMenu && !isWeekend) {
-          eventBrief = '<div class="truncate text-[9px] text-slate-400 font-normal">🍱 有點心</div>';
+          eventBrief = '<div class="truncate text-[0.5625rem] text-slate-400 font-normal">🍱 有點心</div>';
         }
 
         cell.innerHTML = \`
@@ -2504,14 +2508,14 @@ const htmlContent = `<!DOCTYPE html>
 
         const isToday = (dStr === state.selectedDateStr);
 
-        let eventsSummary = dayEvents.map(e => \`<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-peach-100 text-peach-700 mr-1">\${e.title}</span>\`).join('') || '<span class="text-slate-400 text-xs">常態作息</span>';
+        let eventsSummary = dayEvents.map(e => \`<span class="px-2 py-0.5 rounded text-[0.6875rem] font-bold bg-peach-100 text-peach-700 mr-1">\${e.title}</span>\`).join('') || '<span class="text-slate-400 text-xs">常態作息</span>';
         let lunchSummary = dayMenu ? \`主食:\${dayMenu.lunchStaple || ''} / 主菜:\${dayMenu.lunchMain || ''} / 午點:\${dayMenu.afternoonSnack || ''}\` : '未供餐/家庭日';
 
         container.innerHTML += \`
           <div class="p-3.5 rounded-2xl border \${isToday ? 'bg-peach-50/80 border-peach-300' : 'bg-slate-50 border-slate-100'} flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 cursor-pointer hover:bg-peach-50 transition-colors" onclick="onDateClicked('\${dStr}')">
             <div class="flex items-center gap-2">
               <span class="w-10 h-10 rounded-xl bg-white border border-slate-200 flex flex-col items-center justify-center font-bold text-xs shrink-0">
-                <span class="text-[10px] text-slate-400">\${daysArr[i]}</span>
+                <span class="text-[0.625rem] text-slate-400">\${daysArr[i]}</span>
                 <span class="text-slate-800 font-black">\${d.getDate()}</span>
               </span>
               <div>
@@ -2557,12 +2561,12 @@ const htmlContent = `<!DOCTYPE html>
             <div class="flex items-center gap-3">
               <div class="w-14 text-center shrink-0">
                 <div class="text-xs font-mono font-bold text-peach-600">\${normalizeDate(ev.date).slice(5)}</div>
-                \${ev.endDate ? \`<div class="text-[9px] text-slate-400">至\${normalizeDate(ev.endDate).slice(5)}</div>\` : ''}
+                \${ev.endDate ? \`<div class="text-[0.5625rem] text-slate-400">至\${normalizeDate(ev.endDate).slice(5)}</div>\` : ''}
               </div>
               <div>
                 <div class="flex items-center gap-1.5">
                   <span class="text-xs font-bold \${isNobelA ? 'text-peach-600' : 'text-slate-800'}">\${ev.title}</span>
-                  <span class="text-[10px] px-1.5 py-0.5 rounded font-bold \${isNobelA ? 'bg-peach-500 text-white' : 'bg-slate-200 text-slate-600'}">\${ev.target || '全園'}</span>
+                  <span class="text-[0.625rem] px-1.5 py-0.5 rounded font-bold \${isNobelA ? 'bg-peach-500 text-white' : 'bg-slate-200 text-slate-600'}">\${ev.target || '全園'}</span>
                 </div>
                 <div class="text-xs text-slate-400 mt-0.5">\${ev.description || ev.timeLocation || '精彩生活體驗'}</div>
               </div>
@@ -2648,10 +2652,10 @@ const htmlContent = `<!DOCTYPE html>
           <div class="bg-white rounded-3xl p-3 border border-slate-200/80 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer tap-bounce" onclick="openAlbumPhotos('\${alb.id}', '\${alb.title}')">
             <div class="aspect-[4/3] rounded-2xl overflow-hidden bg-slate-100 relative">
               <img src="\${cover}" alt="\${alb.title}" class="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300">
-              <div class="absolute top-2 right-2 bg-black/60 text-white text-[11px] font-bold px-2 py-0.5 rounded-full backdrop-blur-xs flex items-center gap-1">
+              <div class="absolute top-2 right-2 bg-black/60 text-white text-[0.6875rem] font-bold px-2 py-0.5 rounded-full backdrop-blur-xs flex items-center gap-1">
                 <span>📷</span> \${alb.photoCount} 張
               </div>
-              <div class="absolute bottom-2 left-2 bg-white/90 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded-md backdrop-blur-xs">
+              <div class="absolute bottom-2 left-2 bg-white/90 text-slate-700 text-[0.625rem] font-bold px-2 py-0.5 rounded-md backdrop-blur-xs">
                 \${alb.date || '活動影像'}
               </div>
             </div>
@@ -2793,7 +2797,7 @@ const htmlContent = `<!DOCTYPE html>
           '<span class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-indigo-100 text-indigo-800">' + (doc.category || '一般') + '</span>' +
           '</div>' +
           '<p class="text-xs text-slate-500 mt-1 leading-relaxed">' + (doc.description || '點擊即可線上下載或預覽文件') + '</p>' +
-          '<div class="text-[11px] text-slate-400 mt-1">更新日期：' + (doc.updatedAt || '2026-09-01') + '</div>' +
+          '<div class="text-[0.6875rem] text-slate-400 mt-1">更新日期：' + (doc.updatedAt || '2026-09-01') + '</div>' +
           '</div>' +
           '</div>' +
           '<div class="flex items-center gap-2 w-full sm:w-auto justify-end shrink-0 pt-2 sm:pt-0">' +
@@ -2815,7 +2819,7 @@ const htmlContent = `<!DOCTYPE html>
       const statusEl = document.getElementById('docModal-fileStatus');
       if (statusEl) {
         statusEl.textContent = '若已有網址可直接修改上欄，或選取新檔案覆蓋上傳';
-        statusEl.className = 'text-[11px] text-slate-500 mt-1';
+        statusEl.className = 'text-[0.6875rem] text-slate-500 mt-1';
       }
 
       if (id) {
@@ -2856,7 +2860,7 @@ const htmlContent = `<!DOCTYPE html>
       const statusEl = document.getElementById('docModal-fileStatus');
       if (statusEl) {
         statusEl.textContent = '已選取新檔案：' + docModalSelectedFile.name + ' (' + Math.round(docModalSelectedFile.size / 1024) + ' KB)';
-        statusEl.className = 'text-[11px] text-emerald-600 font-bold mt-1';
+        statusEl.className = 'text-[0.6875rem] text-emerald-600 font-bold mt-1';
       }
       const nameInput = document.getElementById('docModal-fileName');
       if (nameInput && !nameInput.value.trim()) {
@@ -3204,7 +3208,7 @@ const htmlContent = `<!DOCTYPE html>
           <tr class="hover:bg-slate-50">
             <td class="py-2 px-2 font-mono">\${normalizeDate(ev.date)}</td>
             <td class="py-2 px-2 font-bold text-slate-800">\${ev.title}</td>
-            <td class="py-2 px-2"><span class="bg-slate-100 px-1.5 py-0.5 rounded text-[10px]">\${ev.target || '全園'}</span></td>
+            <td class="py-2 px-2"><span class="bg-slate-100 px-1.5 py-0.5 rounded text-[0.625rem]">\${ev.target || '全園'}</span></td>
             <td class="py-2 px-2 text-right space-x-1">
               <button onclick="editEventInAdmin('\${ev.id}')" class="text-peach-600 hover:underline font-bold">編輯</button>
               <button onclick="deleteEventInAdmin('\${ev.id}')" class="text-rose-500 hover:underline">刪除</button>
@@ -3483,13 +3487,13 @@ const htmlContent = `<!DOCTYPE html>
       spotlights.forEach(function(sp) {
         var statusBadge = '';
         if (sp.status === '停用') {
-          statusBadge = '<span class="text-[10px] font-bold text-rose-700 bg-rose-100 px-2 py-0.5 rounded-full">🔴 已停用</span>';
+          statusBadge = '<span class="text-[0.625rem] font-bold text-rose-700 bg-rose-100 px-2 py-0.5 rounded-full">🔴 已停用</span>';
         } else if (sp.startDate && sp.startDate > todayStr) {
-          statusBadge = '<span class="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">🟡 尚未上架 (' + sp.startDate + ')</span>';
+          statusBadge = '<span class="text-[0.625rem] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">🟡 尚未上架 (' + sp.startDate + ')</span>';
         } else if (sp.endDate && sp.endDate < todayStr) {
-          statusBadge = '<span class="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">⚪ 已過期下架</span>';
+          statusBadge = '<span class="text-[0.625rem] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">⚪ 已過期下架</span>';
         } else {
-          statusBadge = '<span class="text-[10px] font-bold text-teal-700 bg-teal-100 px-2 py-0.5 rounded-full">🟢 播映中</span>';
+          statusBadge = '<span class="text-[0.625rem] font-bold text-teal-700 bg-teal-100 px-2 py-0.5 rounded-full">🟢 播映中</span>';
         }
 
         var scheduleText = '起：' + (sp.startDate || '立即') + ' ～ 訖：' + (sp.endDate || '永久有效');
@@ -3502,15 +3506,15 @@ const htmlContent = `<!DOCTYPE html>
         card.innerHTML = '<div class="flex items-center gap-3 min-w-0">' +
           '<div class="w-16 h-12 rounded-xl bg-slate-200 overflow-hidden shrink-0 border border-slate-200 relative flex items-center justify-center">' +
           '<img src="' + (sp.imageUrl || './spotlight-fluoride.jpg') + '" alt="縮圖" class="w-full h-full object-cover">' +
-          '<span class="absolute bottom-0.5 right-0.5 text-[9px] bg-black/60 text-white px-1 rounded">' + mediaIcon + '</span>' +
+          '<span class="absolute bottom-0.5 right-0.5 text-[0.5625rem] bg-black/60 text-white px-1 rounded">' + mediaIcon + '</span>' +
           '</div>' +
           '<div class="min-w-0 space-y-0.5">' +
           '<div class="flex items-center gap-2 flex-wrap">' +
           '<h5 class="text-xs sm:text-sm font-black text-slate-800 truncate">' + (sp.title || '無標題') + '</h5>' +
           statusBadge +
           '</div>' +
-          '<p class="text-[11px] text-slate-500 font-medium truncate">' + (sp.subtitle || '') + '</p>' +
-          '<div class="text-[10px] text-slate-400 flex items-center gap-2 flex-wrap">' +
+          '<p class="text-[0.6875rem] text-slate-500 font-medium truncate">' + (sp.subtitle || '') + '</p>' +
+          '<div class="text-[0.625rem] text-slate-400 flex items-center gap-2 flex-wrap">' +
           '<span>📅 ' + scheduleText + '</span>' +
           '<span>•</span>' +
           '<span class="font-bold text-peach-600">' + durationText + '</span>' +
@@ -3774,7 +3778,7 @@ const htmlContent = `<!DOCTYPE html>
           '</div>' +
           '<div class="min-w-0 mb-2">' +
           '<h5 class="text-xs font-bold text-slate-800 truncate" title="' + f.name + '">' + f.name + '</h5>' +
-          '<div class="text-[10px] text-slate-400">' + (f.updatedAt || 'Acticity') + '</div>' +
+          '<div class="text-[0.625rem] text-slate-400">' + (f.updatedAt || 'Acticity') + '</div>' +
           '</div>' +
           '<button type="button" class="w-full py-1.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs tap-bounce">' +
           '選取此張圖片' +
