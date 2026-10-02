@@ -993,8 +993,10 @@ const htmlContent = `<!DOCTYPE html>
               </div>
             </div>
 
-            <!-- 排程與輪播秒數設定 -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+            <input type="hidden" id="spForm-priority" value="1">
+
+            <!-- 排程、秒數與狀態設定 -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
               <div>
                 <label class="block text-xs font-bold text-slate-600 mb-1">
                   📅 自動上架日期 <span class="text-slate-400 font-normal">(留空為立即)</span>
@@ -1013,19 +1015,12 @@ const htmlContent = `<!DOCTYPE html>
                 </label>
                 <input type="number" id="spForm-duration" min="2" max="60" value="5" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-peach-500 focus:outline-none">
               </div>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label class="block text-xs font-bold text-slate-600 mb-1">狀態</label>
                 <select id="spForm-status" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-peach-500 focus:outline-none">
                   <option value="啟用">🟢 啟用</option>
                   <option value="停用">🔴 停用</option>
                 </select>
-              </div>
-              <div>
-                <label class="block text-xs font-bold text-slate-600 mb-1">顯示順序 (數字越小越優先)</label>
-                <input type="number" id="spForm-priority" value="1" min="1" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-peach-500 focus:outline-none">
               </div>
             </div>
 
