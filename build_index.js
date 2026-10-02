@@ -221,7 +221,7 @@ const htmlContent = `<!DOCTYPE html>
               <!-- 影片播放器 (YouTube / Drive preview / HTML5 video) -->
               <div id="spotlightVideoBox" class="w-full h-full hidden">
                 <iframe id="spotlightIframe" class="w-full h-full border-0 rounded-xl" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-                <video id="spotlightHtml5Video" class="w-full h-full object-cover rounded-xl hidden" controls playsinline></video>
+                <video id="spotlightHtml5Video" class="w-full h-full object-cover rounded-xl hidden" controls playsinline autoplay muted loop></video>
               </div>
             </div>
             <div class="mt-2 text-center w-full flex items-center justify-between px-1">
@@ -1123,7 +1123,7 @@ const htmlContent = `<!DOCTYPE html>
         <img id="modalSpotlightImg" src="./spotlight-fluoride.jpg" alt="活動攻略" class="w-full max-h-[60vh] object-contain">
         <div id="modalSpotlightVideoContainer" class="w-full aspect-video hidden">
           <iframe id="modalSpotlightIframe" class="w-full h-full border-0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-          <video id="modalSpotlightVideo" class="w-full h-full object-contain hidden" controls playsinline></video>
+          <video id="modalSpotlightVideo" class="w-full h-full object-contain hidden" controls playsinline autoplay muted loop></video>
         </div>
       </div>
       <div id="modalSpotlightDesc" class="text-xs sm:text-sm text-slate-700 whitespace-pre-line bg-rose-50/60 p-4 rounded-2xl border border-rose-100">
@@ -1526,14 +1526,14 @@ const htmlContent = `<!DOCTYPE html>
       // YouTube 網址解析
       if (str.includes('youtu.be/')) {
         const id = str.split('youtu.be/')[1].split(/[?&#]/)[0];
-        if (id) return { type: 'iframe', src: 'https://www.youtube-nocookie.com/embed/' + id + '?rel=0&modestbranding=1' };
+        if (id) return { type: 'iframe', src: 'https://www.youtube-nocookie.com/embed/' + id + '?rel=0&modestbranding=1&autoplay=1&mute=1&loop=1&playlist=' + id };
       }
       if (str.includes('youtube.com/')) {
         let id = '';
         if (str.includes('watch?v=')) id = str.split('watch?v=')[1].split('&')[0];
         else if (str.includes('embed/')) id = str.split('embed/')[1].split(/[?&#]/)[0];
         else if (str.includes('shorts/')) id = str.split('shorts/')[1].split(/[?&#]/)[0];
-        if (id) return { type: 'iframe', src: 'https://www.youtube-nocookie.com/embed/' + id + '?rel=0&modestbranding=1' };
+        if (id) return { type: 'iframe', src: 'https://www.youtube-nocookie.com/embed/' + id + '?rel=0&modestbranding=1&autoplay=1&mute=1&loop=1&playlist=' + id };
       }
       // Google Drive 雲端預覽影片
       let driveId = '';
@@ -1661,6 +1661,7 @@ const htmlContent = `<!DOCTYPE html>
           if (html5Video) {
             html5Video.classList.remove('hidden');
             html5Video.src = vInfo.src;
+            try { html5Video.play().catch(e=>{}); } catch(e){}
           }
           if (iframeEl) {
             iframeEl.classList.add('hidden');
@@ -1854,6 +1855,7 @@ const htmlContent = `<!DOCTYPE html>
           if (modalVideo) {
             modalVideo.classList.remove('hidden');
             modalVideo.src = vInfo.src;
+            try { modalVideo.play().catch(e=>{}); } catch(e){}
           }
           if (modalIframe) {
             modalIframe.classList.add('hidden');
