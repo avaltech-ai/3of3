@@ -1613,7 +1613,7 @@ const htmlContent = `<!DOCTYPE html>
         // try to parse date from sp.subtitle
         let dateStr = '';
         if (sp.subtitle) {
-          const match = sp.subtitle.match(/\d{4}\/\d{1,2}\/\d{1,2}/);
+          const match = sp.subtitle.match(/\\d{4}\\/\\d{1,2}\\/\\d{1,2}/);
           if (match) dateStr = match[0];
         }
         if (!dateStr && sp.date) {
