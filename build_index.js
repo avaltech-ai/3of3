@@ -119,7 +119,7 @@ const htmlContent = `<!DOCTYPE html>
         </button>
         <button onclick="switchTab('albums')" id="tabBtn-albums" class="tab-btn flex items-center p-2 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
           <span class="text-xl w-8 text-center shrink-0">📸</span>
-          <span class="font-bold text-sm whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-2">活動相簿</span>
+          <span class="font-bold text-sm whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-2">影像紀錄</span>
         </button>
         <button onclick="switchTab('docs')" id="tabBtn-docs" class="tab-btn flex items-center p-2 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
           <span class="text-xl w-8 text-center shrink-0">📁</span>
@@ -167,7 +167,7 @@ const htmlContent = `<!DOCTYPE html>
     </button>
     <button onclick="switchTab('albums')" id="mTabBtn-albums" class="m-tab-btn flex-1 py-1.5 flex flex-col items-center justify-center text-xs font-bold rounded-xl transition-all text-slate-500 hover:text-slate-800">
       <span class="text-lg">📸</span>
-      <span>活動影像</span>
+      <span>影像紀錄</span>
     </button>
     <button onclick="switchTab('docs')" id="mTabBtn-docs" class="m-tab-btn flex-1 py-1.5 flex flex-col items-center justify-center text-xs font-bold rounded-xl transition-all text-slate-500 hover:text-slate-800">
       <span class="text-lg">📁</span>
@@ -538,7 +538,7 @@ const htmlContent = `<!DOCTYPE html>
             提供請假單、用藥委託單、學期行事曆與幼兒園作息手冊，方便家長線上預覽與列印。
           </p>
         </div>
-        <a href="https://drive.google.com/drive/folders/1Ie8medB2JPYdUA9LOryVnPAdko1t5rjR" target="_blank" class="px-3.5 py-2 rounded-xl bg-white text-indigo-700 border border-indigo-300 text-xs font-bold hover:bg-indigo-50 flex items-center gap-1.5 shadow-2xs tap-bounce">
+        <a id="btnBrowseCloudDocs" href="https://drive.google.com/drive/folders/1Ie8medB2JPYdUA9LOryVnPAdko1t5rjR" target="_blank" class="px-3.5 py-2 rounded-xl bg-white text-indigo-700 border border-indigo-300 text-xs font-bold hover:bg-indigo-50 flex items-center gap-1.5 shadow-2xs tap-bounce hidden">
           <span>📂</span> 瀏覽雲端 Docs 資料夾
         </a>
       </div>
@@ -2705,9 +2705,14 @@ const htmlContent = `<!DOCTYPE html>
       const isAdmin = !!pwd;
 
       const adminBar = document.getElementById('docAdminBar');
+      const browseBtn = document.getElementById('btnBrowseCloudDocs');
       if (adminBar) {
         if (isAdmin) adminBar.classList.remove('hidden');
         else adminBar.classList.add('hidden');
+      }
+      if (browseBtn) {
+        if (isAdmin) browseBtn.classList.remove('hidden');
+        else browseBtn.classList.add('hidden');
       }
 
       const filtered = (filterCat === '全部') 
