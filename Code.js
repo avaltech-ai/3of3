@@ -867,6 +867,10 @@ function ensureSpotlightSheetHeaders(sheet) {
   if (added) {
     sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
   }
+  const pCol = headers.indexOf('priority');
+  if (pCol > -1 && sheet.getLastRow() > 1) {
+    sheet.getRange(2, pCol + 1, sheet.getLastRow() - 1, 1).setNumberFormat('0');
+  }
 }
 
 /**
@@ -980,7 +984,9 @@ function updateSpotlightsOrder(orderList, password) {
     for (let i = 1; i < data.length; i++) {
       const rowId = String(data[i][idIndex]);
       if (orderMap[rowId] !== undefined) {
-        sheet.getRange(i + 1, priorityIndex + 1).setValue(orderMap[rowId]);
+        const cell = sheet.getRange(i + 1, priorityIndex + 1);
+        cell.setNumberFormat('0');
+        cell.setValue(orderMap[rowId]);
       }
     }
 
@@ -1141,7 +1147,13 @@ function getSheetDataAsObjects(sheet) {
       const header = headers[j];
       let val = row[j];
       if (val instanceof Date) {
-        val = Utilities.formatDate(val, 'Asia/Taipei', 'yyyy-MM-dd');
+        if (header === 'priority' || header === 'duration') {
+          const epoch = new Date(1899, 11, 30);
+          const diffDays = Math.round((val.getTime() - epoch.getTime()) / (24 * 60 * 60 * 1000));
+          val = diffDays > 0 ? diffDays : 1;
+        } else {
+          val = Utilities.formatDate(val, 'Asia/Taipei', 'yyyy-MM-dd');
+        }
       }
       obj[header] = val;
     }

@@ -1526,11 +1526,34 @@ const htmlContent = `<!DOCTYPE html>
       }
     }
 
+    function parseSpotlightPriority(val) {
+      if (typeof val === 'number') return val;
+      const str = String(val || '').trim();
+      if (!str) return 999;
+      const num = Number(str);
+      if (!isNaN(num)) return num;
+      if (str.startsWith('1899-12-31')) return 1;
+      if (str.startsWith('1900-01-01')) return 2;
+      if (str.startsWith('1900-01-02')) return 3;
+      if (str.startsWith('1900-01-03')) return 4;
+      if (str.startsWith('1900-01-04')) return 5;
+      const d = new Date(str);
+      if (!isNaN(d.getTime())) {
+        const epoch = new Date(1899, 11, 30);
+        const days = Math.round((d.getTime() - epoch.getTime()) / (24 * 60 * 60 * 1000));
+        return days > 0 ? days : 999;
+      }
+      return 999;
+    }
+
     // 處理遠端資料
     function handleDataLoaded(data) {
       state.events = data.events || [];
       state.menus = data.menus || [];
       state.spotlights = data.spotlights || [];
+      state.spotlights.forEach(sp => {
+        sp.priority = parseSpotlightPriority(sp.priority);
+      });
       state.spotlights.sort((a, b) => {
         const pA = Number(a.priority) || 999;
         const pB = Number(b.priority) || 999;
