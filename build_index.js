@@ -1186,6 +1186,7 @@ const htmlContent = `<!DOCTYPE html>
     // 全域應用狀態
     const state = {
       currentTab: 'home',
+      currentAdminSubtab: 'events',
       currentCalView: 'day', // 'day', 'week', 'month'
       viewYear: 2026,
       viewMonth: 10, // 1~12 (以10月為示範基準)
@@ -1352,8 +1353,10 @@ const htmlContent = `<!DOCTYPE html>
     }
 
     function loadAppData() {
-      // 優先立即以示範/預載資料渲染，達成 0 秒極速載入，絕不卡在載入狀態
-      renderFallbackLocalData();
+      // 僅在第一次啟動且無資料時渲染本地備援示範資料
+      if (!state.events || state.events.length === 0) {
+        renderFallbackLocalData();
+      }
       showLoading(false);
 
       // 背景向 GAS 請求即時試算表更新
@@ -1393,7 +1396,25 @@ const htmlContent = `<!DOCTYPE html>
       // 渲染文件列表
       renderDocsList();
 
-      document.getElementById('tabContent-home').classList.remove('hidden');
+      // 嚴格依據目前頁籤 (state.currentTab) 保持顯示狀態，絕不私自開啟或混雜 home 內容
+      const current = state.currentTab || 'home';
+      ['home', 'albums', 'docs', 'admin'].forEach(tab => {
+        const contentEl = document.getElementById('tabContent-' + tab);
+        if (contentEl) {
+          if (tab === current) {
+            contentEl.classList.remove('hidden');
+          } else {
+            contentEl.classList.add('hidden');
+          }
+        }
+      });
+
+      // 若目前在管理後台，同步刷新當前子面板列表
+      if (state.currentTab === 'admin') {
+        const subtab = state.currentAdminSubtab || 'events';
+        if (subtab === 'events') renderAdminEventsTable();
+        if (subtab === 'spotlight') renderAdminSpotlightsList();
+      }
     }
 
     // 本地備援示範資料 (保證預覽時完全不空白)
@@ -1481,7 +1502,10 @@ const htmlContent = `<!DOCTYPE html>
       renderSelectedDayDetails(state.selectedDateStr);
       renderDocsList();
 
-      document.getElementById('tabContent-home').classList.remove('hidden');
+      if (!state.currentTab || state.currentTab === 'home') {
+        const homeEl = document.getElementById('tabContent-home');
+        if (homeEl) homeEl.classList.remove('hidden');
+      }
     }
 
     // ==================== 頁籤切換邏輯 ====================
@@ -2639,6 +2663,7 @@ const htmlContent = `<!DOCTYPE html>
     }
 
     function switchAdminSubtab(subtab) {
+      state.currentAdminSubtab = subtab;
       document.querySelectorAll('.admin-panel').forEach(p => p.classList.add('hidden'));
       document.querySelectorAll('.admin-subtab-btn').forEach(btn => {
         btn.className = 'admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap';
