@@ -104,9 +104,9 @@ const htmlContent = `<!DOCTYPE html>
 
     <!-- The actual floating/sticky sidebar -->
     <aside id="desktopSidebar" class="hidden md:flex flex-col bg-white border-r border-slate-200/80 shadow-sm fixed top-1.5 bottom-0 left-0 z-40 w-16 transition-all duration-300 overflow-hidden group" onmouseenter="expandSidebar()" onmouseleave="collapseSidebar()">
-      <div class="p-3 flex items-center justify-center border-b border-slate-100 relative min-h-[64px] whitespace-nowrap overflow-hidden">
-        <span class="text-2xl cursor-pointer transition-transform hover:scale-110 shrink-0 select-none" onclick="switchTab('home')">🍄</span>
-        <span class="font-black text-slate-700 ml-4 opacity-0 transition-opacity duration-300 sidebar-text text-lg select-none">選單導覽</span>
+      <div class="px-4 flex items-center border-b border-slate-100 relative min-h-[64px] whitespace-nowrap overflow-hidden">
+        <span class="text-2xl w-8 text-center cursor-pointer transition-transform hover:scale-110 shrink-0 select-none" onclick="switchTab('home')">🍄</span>
+        <span class="font-black text-slate-700 ml-2 opacity-0 transition-opacity duration-300 sidebar-text text-lg select-none">選單導覽</span>
         <button id="pinSidebarBtn" onclick="togglePinSidebar()" class="absolute right-3 p-1.5 text-slate-400 hover:text-slate-700 transition-colors opacity-0 sidebar-pin-btn rounded-lg hover:bg-slate-100 group-hover:opacity-100 focus:opacity-100 tap-bounce" title="釘選選單">
           <span class="text-sm">📌</span>
         </button>
