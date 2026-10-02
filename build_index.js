@@ -2647,6 +2647,7 @@ const htmlContent = `<!DOCTYPE html>
 
     // ==================== 常用文件專區 (DOCS) ====================
     let docModalSelectedFile = null;
+    let docModalOriginalFileName = '';
 
     function renderDocsList(filterCat = '全部') {
       const container = document.getElementById('docsListContainer');
@@ -2717,6 +2718,7 @@ const htmlContent = `<!DOCTYPE html>
 
     function openDocEditModal(id) {
       docModalSelectedFile = null;
+      docModalOriginalFileName = '';
       const fileInput = document.getElementById('docModal-fileInput');
       if (fileInput) fileInput.value = '';
       const statusEl = document.getElementById('docModal-fileStatus');
@@ -2728,6 +2730,7 @@ const htmlContent = `<!DOCTYPE html>
       if (id) {
         const doc = state.docs.find(d => String(d.id) === String(id));
         if (doc) {
+          docModalOriginalFileName = doc.fileName || '';
           document.getElementById('docModalTitle').innerHTML = '<span>✏️</span> 編輯文件：' + (doc.fileName || '');
           document.getElementById('docModal-id').value = doc.id || '';
           document.getElementById('docModal-driveFileId').value = doc.driveFileId || '';
@@ -2786,7 +2789,16 @@ const htmlContent = `<!DOCTYPE html>
         return;
       }
 
+      let shouldUpload = false;
       if (docModalSelectedFile) {
+        if (downloadUrl && docModalSelectedFile.name === docModalOriginalFileName) {
+          shouldUpload = false;
+        } else {
+          shouldUpload = true;
+        }
+      }
+
+      if (shouldUpload) {
         if (saveBtn) { saveBtn.disabled = true; saveBtn.innerHTML = '<span>⏳</span> 上傳檔案中...'; }
         showToast('檔案上傳 Google Drive 中...', '⏳');
 
