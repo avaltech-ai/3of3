@@ -262,6 +262,24 @@ function getAppData() {
     const docs = getSheetDataAsObjects(ss.getSheetByName('Docs'));
     const settings = getSettingsObject(ss.getSheetByName('Settings'));
 
+    // 確保 DocCategories 工作表存在
+    let docCatSheet = ss.getSheetByName('DocCategories');
+    if (!docCatSheet) {
+      docCatSheet = ss.insertSheet('DocCategories');
+      docCatSheet.appendRow(['categoryName']);
+      docCatSheet.getRange(1, 1, 1, 1).setFontWeight('bold').setBackground('#E0E7FF');
+      const defaultCats = [
+        ['全部文件'],
+        ['保健用藥'],
+        ['學期行事曆'],
+        ['餐飲菜單'],
+        ['親師手冊']
+      ];
+      docCatSheet.getRange(2, 1, defaultCats.length, 1).setValues(defaultCats);
+    }
+    const docCategories = getSheetDataAsObjects(docCatSheet).map(row => row.categoryName).filter(Boolean);
+
+
     let actFolderUrl = '';
     let actFolderId = '';
     try {
@@ -281,6 +299,7 @@ function getAppData() {
         menus: menus || [],
         spotlights: spotlights || [],
         docs: docs || [],
+        docCategories: docCategories || [],
         settings: {
           className: settings.CLASS_NAME || '諾貝爾 A 班',
           kindergartenName: settings.KINDERGARTEN_NAME || '桃子腳幼兒園',

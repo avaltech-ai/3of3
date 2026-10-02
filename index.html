@@ -1314,7 +1314,7 @@
 
     // 從 GAS 後端載入全站資料
     
-    const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbwKTuHqYk0AlmQncH8rY5osec2GvC5V7VNi2L2Wx_hji9lA8DFfmiTVoHeGkodMvz2riQ/exec';
+    const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbw1fMH5-QVJMQb7YSZNuGUO5QrxPJmPSMV4hY_o7Ovm25ZF67KkiIb8lg4QnDp7A5IZ1g/exec';
 
     // 跨環境後端通訊橋樑 (支援 GAS 內部環境與 GitHub Pages 外部環境)
     function callBackend(action, payload, successCb, errorCb) {
@@ -1443,6 +1443,43 @@
       });
     }
 
+    
+    function renderDocCategoriesUI() {
+      const categories = state.docCategories || ['全部文件', '保健用藥', '學期行事曆', '餐飲菜單', '親師手冊'];
+      
+      const pillsContainer = document.getElementById('docCategoryPills');
+      if (pillsContainer) {
+        pillsContainer.innerHTML = '';
+        categories.forEach(cat => {
+          if (cat === '全部文件' || cat === '全部') {
+            pillsContainer.innerHTML += '<button onclick="filterDocs('全部')" class="doc-cat-btn px-3 py-1 rounded-xl text-xs font-bold bg-indigo-600 text-white shadow-xs">全部文件</button>';
+          } else {
+            pillsContainer.innerHTML += '<button onclick="filterDocs('' + cat + '')" class="doc-cat-btn px-3 py-1 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">' + cat + '</button>';
+          }
+        });
+      }
+
+      const uploadCat = document.getElementById('docUpload-category');
+      if (uploadCat) {
+        uploadCat.innerHTML = '';
+        categories.forEach(cat => {
+          if (cat !== '全部文件' && cat !== '全部') {
+            uploadCat.innerHTML += '<option value="' + cat + '">' + cat + '</option>';
+          }
+        });
+      }
+
+      const editCat = document.getElementById('docModal-category');
+      if (editCat) {
+        editCat.innerHTML = '';
+        categories.forEach(cat => {
+          if (cat !== '全部文件' && cat !== '全部') {
+            editCat.innerHTML += '<option value="' + cat + '">' + cat + '</option>';
+          }
+        });
+      }
+    }
+
     // 處理遠端資料
     function handleDataLoaded(data) {
       state.events = data.events || [];
@@ -1459,6 +1496,9 @@
 
       
 
+            state.docCategories = data.docCategories || ['全部文件', '保健用藥', '學期行事曆', '餐飲菜單', '親師手冊'];
+      renderDocCategoriesUI();
+      
       // 渲染 Spotlight
       renderSpotlightSection();
       // 渲染行事曆
