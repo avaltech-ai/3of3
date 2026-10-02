@@ -662,25 +662,11 @@ const htmlContent = `<!DOCTYPE html>
               <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label class="block text-xs font-bold text-slate-600 mb-1">適用對象 *</label>
-                  <select id="eventForm-target" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-peach-500 focus:outline-none">
-                    <option value="諾貝爾A班">🌟 諾貝爾 A 班專屬</option>
-                    <option value="全園">🏫 全園活動</option>
-                    <option value="親職活動">👨‍👩‍👧 親師座談 / 親職活動</option>
-                    <option value="米A/米B/兩果">米A/米B/兩果</option>
-                    <option value="雨奧/奧斯卡/諾奧">雨奧/奧斯卡/諾奧</option>
-                    <option value="其他">其他班級</option>
-                  </select>
+                  <div id="eventForm-target" class="w-full flex flex-wrap gap-2 pt-1 border border-slate-300 rounded-xl px-3 py-2 bg-white min-h-[38px]"></div>
                 </div>
                 <div>
                   <label class="block text-xs font-bold text-slate-600 mb-1">活動類別</label>
-                  <select id="eventForm-category" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-peach-500 focus:outline-none">
-                    <option value="重要活動">重要活動</option>
-                    <option value="班級主題">班級主題 / 幸福廚房</option>
-                    <option value="親職講座">親職講座</option>
-                    <option value="全園活動">全園慶生/歲末</option>
-                    <option value="節慶放假">節慶放假</option>
-                    <option value="園務消毒">園務消毒</option>
-                  </select>
+                  <div id="eventForm-category" class="w-full flex flex-wrap gap-2 pt-1 border border-slate-300 rounded-xl px-3 py-2 bg-white min-h-[38px]"></div>
                 </div>
                 <div>
                   <label class="block text-xs font-bold text-slate-600 mb-1">時間／地點備註</label>
@@ -1458,18 +1444,33 @@ const htmlContent = `<!DOCTYPE html>
       const targetSelect = document.getElementById('eventForm-target');
       if (targetSelect && state.eventTargets) {
         targetSelect.innerHTML = '';
-        state.eventTargets.forEach(t => {
-          targetSelect.innerHTML += '<option value="' + t.targetName + '">' + (t.displayName || t.targetName) + '</option>';
+        state.eventTargets.forEach((t, i) => {
+          targetSelect.innerHTML += '<label class="flex items-center gap-1 cursor-pointer hover:bg-slate-50 px-1 rounded"><input type="checkbox" value="' + t.targetName + '" class="accent-peach-500 w-3 h-3"><span class="text-[0.6875rem] text-slate-700 font-medium">' + (t.displayName || t.targetName) + '</span></label>';
         });
       }
 
       const catSelect = document.getElementById('eventForm-category');
       if (catSelect && state.eventCategories) {
         catSelect.innerHTML = '';
-        state.eventCategories.forEach(cat => {
-          catSelect.innerHTML += '<option value="' + cat + '">' + cat + '</option>';
+        state.eventCategories.forEach((cat, i) => {
+          catSelect.innerHTML += '<label class="flex items-center gap-1 cursor-pointer hover:bg-slate-50 px-1 rounded"><input type="checkbox" value="' + cat + '" class="accent-peach-500 w-3 h-3"><span class="text-[0.6875rem] text-slate-700 font-medium">' + cat + '</span></label>';
         });
       }
+    }
+    
+    function getCheckedValues(containerId) {
+      const container = document.getElementById(containerId);
+      if (!container) return '';
+      return Array.from(container.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value).join(', ');
+    }
+    
+    function setCheckedValues(containerId, valuesStr) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      const values = (valuesStr || '').split(',').map(v => v.trim());
+      container.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        cb.checked = values.includes(cb.value);
+      });
     }
 
     function renderDocCategoriesUI() {
@@ -3144,8 +3145,8 @@ const htmlContent = `<!DOCTYPE html>
         date: document.getElementById('eventForm-date').value,
         endDate: document.getElementById('eventForm-endDate').value,
         title: document.getElementById('eventForm-title').value,
-        target: document.getElementById('eventForm-target').value,
-        category: document.getElementById('eventForm-category').value,
+        target: getCheckedValues('eventForm-target'),
+        category: getCheckedValues('eventForm-category'),
         timeLocation: document.getElementById('eventForm-timeLocation').value,
         description: document.getElementById('eventForm-description').value,
         theme: '主題活動：人與自己／人與他人概念'
@@ -3186,6 +3187,8 @@ const htmlContent = `<!DOCTYPE html>
       document.getElementById('eventForm-date').value = '';
       document.getElementById('eventForm-endDate').value = '';
       document.getElementById('eventForm-title').value = '';
+      setCheckedValues('eventForm-target', '');
+      setCheckedValues('eventForm-category', '');
       document.getElementById('eventForm-timeLocation').value = '';
       document.getElementById('eventForm-description').value = '';
       document.getElementById('saveEventBtn').textContent = '儲存活動';
@@ -3198,8 +3201,8 @@ const htmlContent = `<!DOCTYPE html>
       document.getElementById('eventForm-date').value = normalizeDate(ev.date);
       document.getElementById('eventForm-endDate').value = ev.endDate ? normalizeDate(ev.endDate) : '';
       document.getElementById('eventForm-title').value = ev.title;
-      document.getElementById('eventForm-target').value = ev.target || '全園';
-      document.getElementById('eventForm-category').value = ev.category || '重要活動';
+      setCheckedValues('eventForm-target', ev.target || '');
+      setCheckedValues('eventForm-category', ev.category || '');
       document.getElementById('eventForm-timeLocation').value = ev.timeLocation || '';
       document.getElementById('eventForm-description').value = ev.description || '';
       document.getElementById('saveEventBtn').textContent = '更新此活動';
@@ -3250,7 +3253,7 @@ const htmlContent = `<!DOCTYPE html>
           <tr class="hover:bg-slate-50">
             <td class="py-2 px-2 font-mono">\${normalizeDate(ev.date)}</td>
             <td class="py-2 px-2 font-bold text-slate-800">\${ev.title}</td>
-            <td class="py-2 px-2"><span class="bg-slate-100 px-1.5 py-0.5 rounded text-[0.625rem]">\${ev.target || '全園'}</span></td>
+            <td class="py-2 px-2">\${(ev.target || '全園').split(',').map(t => '<span class="bg-slate-100 px-1.5 py-0.5 rounded text-[0.625rem] inline-block mr-1 mb-1">' + t.trim() + '</span>').join('')}</td>
             <td class="py-2 px-2 text-right space-x-1">
               <button onclick="editEventInAdmin('\${ev.id}')" class="text-peach-600 hover:underline font-bold">編輯</button>
               <button onclick="deleteEventInAdmin('\${ev.id}')" class="text-rose-500 hover:underline">刪除</button>
