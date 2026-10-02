@@ -1,0 +1,869 @@
+/**
+ * 桃子腳非營利幼兒園 諾貝爾 A 班 - GAS 專屬班級網頁後端
+ * 試算表 ID: 1lFRlvwQgo_B38YmtFD9BHqyGvuGstOK7etu3RO_BqQU
+ * Albums 資料夾 ID: 1iRFAr3FZMqV-okmktipdwamjAR7WWp6d
+ * Docs 資料夾 ID: 1Ie8medB2JPYdUA9LOryVnPAdko1t5rjR
+ */
+
+const SPREADSHEET_ID = '1lFRlvwQgo_B38YmtFD9BHqyGvuGstOK7etu3RO_BqQU';
+const ALBUMS_FOLDER_ID = '1iRFAr3FZMqV-okmktipdwamjAR7WWp6d';
+const DOCS_FOLDER_ID = '1Ie8medB2JPYdUA9LOryVnPAdko1t5rjR';
+
+/**
+ * 試算表自訂選單（開啟 Google 試算表時自動載入）
+ */
+function onOpen() {
+  try {
+    SpreadsheetApp.getUi()
+      .createMenu('🌟 諾貝爾A班專屬功能')
+      .addItem('🚀 一鍵初始化／重設資料庫 (5大工作表與示範資料)', 'setupInitialDatabase')
+      .addItem('🌐 開啟班級網頁應用程式', 'openWebApp')
+      .addToUi();
+  } catch (e) {
+    console.warn('onOpen UI menu creation skipped: ' + e);
+  }
+}
+
+function openWebApp() {
+  const url = 'https://script.google.com/macros/s/AKfycbxngSEbmXLW2_M7FNVxBLpbp-X1w1Z8ZX_33Kpj-ZekpGwS19Ao262HmLKkTbl3156A8g/exec';
+  const html = '<div style="font-family:sans-serif;padding:16px;text-align:center;">' +
+    '<h3 style="color:#E05362;margin-bottom:12px;">🍑 諾貝爾 A 班生活網</h3>' +
+    '<p style="font-size:13px;color:#666;margin-bottom:16px;">網頁已部署完成，點擊下方按鈕即可開啟！</p>' +
+    '<a href="' + url + '" target="_blank" style="display:inline-block;padding:10px 22px;background:#FF7A85;color:#fff;text-decoration:none;border-radius:12px;font-weight:bold;box-shadow:0 2px 6px rgba(255,122,133,0.4);">👉 開啟班級生活網</a>' +
+    '</div>';
+  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(380).setHeight(180), '諾貝爾 A 班生活網');
+}
+
+/**
+ * Web App 入口 (支援 HTML 網頁呈現與 REST API JSON 回應)
+ */
+function doGet(e) {
+  // 如果帶有 action 參數，則作為 REST API 回傳 JSON（支援 GitHub Pages 跨網域讀取）
+  if (e && e.parameter && e.parameter.action) {
+    let result = { success: false, error: '未知動作' };
+    const action = e.parameter.action;
+    try {
+      if (action === 'getAppData') {
+        result = getAppData();
+      } else if (action === 'getAlbums') {
+        result = getAlbums();
+      } else if (action === 'getAlbumPhotos') {
+        result = getAlbumPhotos(e.parameter.albumId);
+      } else if (action === 'setupInitialDatabase') {
+        result = setupInitialDatabase();
+      }
+    } catch (err) {
+      result = { success: false, error: err.toString() };
+    }
+    return ContentService.createTextOutput(JSON.stringify(result))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // 自動檢查資料庫是否已初始化，未初始化則自動建立
+  try {
+    ensureDatabaseInitialized();
+  } catch (err) {
+    console.error('Database initialization check failed: ' + err.toString());
+  }
+
+  return HtmlService.createHtmlOutputFromFile('index')
+    .setTitle('新北市桃子腳非營利幼兒園 - 諾貝爾 A 班')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no')
+    .setFaviconUrl('https://img.icons8.com/color/48/school.png');
+}
+
+/**
+ * REST API POST 入口（支援 GitHub Pages 外部呼叫）
+ */
+function doPost(e) {
+  try {
+    let postData = {};
+    if (e && e.postData && e.postData.contents) {
+      postData = JSON.parse(e.postData.contents);
+    }
+    const action = postData.action;
+    let result = { success: false, error: '未知 POST 動作' };
+
+    if (action === 'verifyPassword') {
+      result = verifyPassword(postData.password);
+    } else if (action === 'saveEvent') {
+      result = saveEvent(postData.data, postData.password);
+    } else if (action === 'deleteEvent') {
+      result = deleteEvent(postData.id, postData.password);
+    } else if (action === 'saveMenu') {
+      result = saveMenu(postData.data, postData.password);
+    } else if (action === 'deleteMenu') {
+      result = deleteMenu(postData.date, postData.password);
+    } else if (action === 'saveSpotlight') {
+      result = saveSpotlight(postData.data, postData.password);
+    } else if (action === 'deleteSpotlight') {
+      result = deleteSpotlight(postData.id, postData.password);
+    } else if (action === 'uploadPhotosToAlbum') {
+      result = uploadPhotosToAlbum(postData.date, postData.title, postData.files, postData.password);
+    } else if (action === 'uploadDocument') {
+      result = uploadDocument(postData.meta, postData.file, postData.password);
+    } else if (action === 'deleteDoc') {
+      result = deleteDoc(postData.id, postData.password);
+    } else if (action === 'updateSettings') {
+      result = updateSettings(postData.settings, postData.password);
+    } else if (action === 'setupInitialDatabase') {
+      result = setupInitialDatabase();
+    }
+
+    return ContentService.createTextOutput(JSON.stringify(result))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+/**
+ * 取得試算表實例
+ */
+function getSpreadsheet() {
+  try {
+    if (SPREADSHEET_ID) {
+      return SpreadsheetApp.openById(SPREADSHEET_ID);
+    }
+  } catch (e) {
+    console.warn('Cannot open by SPREADSHEET_ID, falling back to active spreadsheet: ' + e);
+  }
+  return SpreadsheetApp.getActiveSpreadsheet();
+}
+
+/**
+ * 取得前台初始化所需的全部資料（一次取得，加速前端渲染）
+ */
+function getAppData() {
+  try {
+    const ss = getSpreadsheet();
+    if (!ss) throw new Error('無法開啟 Google 試算表');
+
+    ensureDatabaseInitialized();
+
+    const events = getSheetDataAsObjects(ss.getSheetByName('Events'));
+    const menus = getSheetDataAsObjects(ss.getSheetByName('Menus'));
+    const spotlights = getSheetDataAsObjects(ss.getSheetByName('Spotlight'));
+    const docs = getSheetDataAsObjects(ss.getSheetByName('Docs'));
+    const settings = getSettingsObject(ss.getSheetByName('Settings'));
+
+    return {
+      success: true,
+      data: {
+        events: events || [],
+        menus: menus || [],
+        spotlights: spotlights || [],
+        docs: docs || [],
+        settings: {
+          className: settings.CLASS_NAME || '諾貝爾 A 班',
+          kindergartenName: settings.KINDERGARTEN_NAME || '新北市桃子腳非營利幼兒園',
+          albumsFolderId: settings.ALBUMS_FOLDER_ID || ALBUMS_FOLDER_ID,
+          docsFolderId: settings.DOCS_FOLDER_ID || DOCS_FOLDER_ID,
+          tickerMessage: settings.TICKER_MESSAGE || '歡迎光臨諾貝爾 A 班！請隨時關注今日活動與營養美味菜單～'
+        }
+      }
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: err.toString()
+    };
+  }
+}
+
+/**
+ * 取得相簿清單（讀取 Albums 資料夾中的子資料夾）
+ */
+function getAlbums() {
+  try {
+    const folder = DriveApp.getFolderById(ALBUMS_FOLDER_ID);
+    const subFolders = folder.getFolders();
+    const albumList = [];
+
+    while (subFolders.hasNext()) {
+      const subFolder = subFolders.next();
+      const folderName = subFolder.getName();
+      const folderId = subFolder.getId();
+      const files = subFolder.getFiles();
+
+      let photoCount = 0;
+      let coverUrl = '';
+
+      while (files.hasNext()) {
+        const file = files.next();
+        const mimeType = file.getMimeType();
+        if (mimeType.indexOf('image/') === 0) {
+          photoCount++;
+          if (!coverUrl) {
+            // 使用 Drive 預覽/展示圖網址
+            coverUrl = 'https://drive.google.com/thumbnail?id=' + file.getId() + '&sz=w600';
+          }
+        }
+      }
+
+      // 解析資料夾名稱（格式：YYYY-MM-DD_主題 或 YYYYMMDD_主題）
+      let date = '';
+      let title = folderName;
+      if (folderName.indexOf('_') > -1) {
+        const parts = folderName.split('_');
+        date = parts[0];
+        title = parts.slice(1).join('_');
+      }
+
+      albumList.push({
+        id: folderId,
+        folderName: folderName,
+        date: date,
+        title: title,
+        photoCount: photoCount,
+        coverUrl: coverUrl,
+        folderUrl: subFolder.getUrl(),
+        createdTime: subFolder.getDateCreated().toISOString()
+      });
+    }
+
+    // 依日期或建立時間由新到舊排序
+    albumList.sort((a, b) => (b.date || b.folderName).localeCompare(a.date || a.folderName));
+
+    return {
+      success: true,
+      albums: albumList
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: '讀取活動相簿時發生錯誤: ' + err.toString(),
+      albums: []
+    };
+  }
+}
+
+/**
+ * 取得特定相簿內的所有相片
+ */
+function getAlbumPhotos(albumFolderId) {
+  try {
+    const folder = DriveApp.getFolderById(albumFolderId);
+    const files = folder.getFiles();
+    const photos = [];
+
+    while (files.hasNext()) {
+      const file = files.next();
+      const mime = file.getMimeType();
+      if (mime.indexOf('image/') === 0) {
+        photos.push({
+          id: file.getId(),
+          name: file.getName(),
+          size: file.getSize(),
+          thumbnailUrl: 'https://drive.google.com/thumbnail?id=' + file.getId() + '&sz=w800',
+          viewUrl: 'https://drive.google.com/file/d/' + file.getId() + '/view',
+          downloadUrl: 'https://drive.google.com/uc?export=download&id=' + file.getId()
+        });
+      }
+    }
+
+    return {
+      success: true,
+      folderName: folder.getName(),
+      photos: photos
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: err.toString(),
+      photos: []
+    };
+  }
+}
+
+/**
+ * 上傳多張照片至 Albums 資料夾
+ * 自動建立「YYYY-MM-DD_主題」子資料夾
+ */
+function uploadPhotosToAlbum(dateStr, titleStr, filesArray, password) {
+  if (!checkPassword(password)) {
+    return { success: false, error: '管理員密碼錯誤！' };
+  }
+
+  try {
+    if (!dateStr || !titleStr || !filesArray || filesArray.length === 0) {
+      return { success: false, error: '請提供上傳日期、活動主題及至少一張照片！' };
+    }
+
+    const folderName = `${dateStr}_${titleStr}`;
+    const rootFolder = DriveApp.getFolderById(ALBUMS_FOLDER_ID);
+
+    // 尋找是否已有同名子資料夾，若無則新建
+    let targetFolder;
+    const subFolders = rootFolder.getFoldersByName(folderName);
+    if (subFolders.hasNext()) {
+      targetFolder = subFolders.next();
+    } else {
+      targetFolder = rootFolder.createFolder(folderName);
+      try {
+        targetFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      } catch (e) {
+        console.warn('Set sharing error: ' + e);
+      }
+    }
+
+    let uploadCount = 0;
+    for (let i = 0; i < filesArray.length; i++) {
+      const f = filesArray[i];
+      const decodedBytes = Utilities.base64Decode(f.base64);
+      const blob = Utilities.newBlob(decodedBytes, f.mimeType || 'image/jpeg', f.name || `photo_${i + 1}.jpg`);
+      const newFile = targetFolder.createFile(blob);
+      try {
+        newFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      } catch (e) {}
+      uploadCount++;
+    }
+
+    return {
+      success: true,
+      message: `成功上傳 ${uploadCount} 張照片至相簿「${folderName}」！`,
+      folderId: targetFolder.getId(),
+      folderName: folderName
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: '上傳照片失敗: ' + err.toString()
+    };
+  }
+}
+
+/**
+ * 上傳文件至 Docs 資料夾並登記至 Docs 試算表
+ */
+function uploadDocument(docMeta, fileObj, password) {
+  if (!checkPassword(password)) {
+    return { success: false, error: '管理員密碼錯誤！' };
+  }
+
+  try {
+    const rootFolder = DriveApp.getFolderById(DOCS_FOLDER_ID);
+    const decodedBytes = Utilities.base64Decode(fileObj.base64);
+    const blob = Utilities.newBlob(decodedBytes, fileObj.mimeType || 'application/pdf', fileObj.name);
+    const newFile = rootFolder.createFile(blob);
+    try {
+      newFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    } catch (e) {}
+
+    const fileId = newFile.getId();
+    const downloadUrl = 'https://drive.google.com/uc?export=download&id=' + fileId;
+    const todayStr = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd');
+
+    const ss = getSpreadsheet();
+    const sheet = ss.getSheetByName('Docs');
+    const docId = 'DOC-' + Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyyMMddHHmmss');
+
+    sheet.appendRow([
+      docId,
+      docMeta.fileName || fileObj.name,
+      docMeta.category || '一般文件',
+      docMeta.description || '',
+      fileId,
+      downloadUrl,
+      todayStr
+    ]);
+
+    return {
+      success: true,
+      message: '文件已成功上傳並發佈！',
+      fileId: fileId,
+      downloadUrl: downloadUrl
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: '上傳文件失敗: ' + err.toString()
+    };
+  }
+}
+
+/**
+ * 驗證管理員密碼
+ */
+function verifyPassword(password) {
+  const isValid = checkPassword(password);
+  return { success: isValid, message: isValid ? '驗證成功' : '密碼不正確' };
+}
+
+function checkPassword(password) {
+  if (!password) return false;
+  try {
+    const ss = getSpreadsheet();
+    const sheet = ss.getSheetByName('Settings');
+    const settings = getSettingsObject(sheet);
+    const realPassword = settings.ADMIN_PASSWORD || 'nobel-a-2026';
+    return String(password).trim() === String(realPassword).trim();
+  } catch (e) {
+    return password === 'nobel-a-2026';
+  }
+}
+
+/**
+ * 儲存/編輯 行事曆活動
+ */
+function saveEvent(eventData, password) {
+  if (!checkPassword(password)) return { success: false, error: '管理員密碼錯誤！' };
+  try {
+    const ss = getSpreadsheet();
+    const sheet = ss.getSheetByName('Events');
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    const idIndex = headers.indexOf('id');
+    const dateIndex = headers.indexOf('date');
+
+    const rowData = [
+      eventData.id || ('EV-' + Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyyMMddHHmmss')),
+      eventData.date || '',
+      eventData.endDate || '',
+      eventData.title || '',
+      eventData.target || '全園',
+      eventData.category || '重要活動',
+      eventData.timeLocation || '',
+      eventData.description || '',
+      eventData.theme || ''
+    ];
+
+    let foundRow = -1;
+    if (eventData.id) {
+      for (let i = 1; i < data.length; i++) {
+        if (String(data[i][idIndex]) === String(eventData.id)) {
+          foundRow = i + 1;
+          break;
+        }
+      }
+    }
+
+    if (foundRow > -1) {
+      sheet.getRange(foundRow, 1, 1, rowData.length).setValues([rowData]);
+    } else {
+      sheet.appendRow(rowData);
+    }
+
+    return { success: true, message: '活動已儲存成功！' };
+  } catch (err) {
+    return { success: false, error: err.toString() };
+  }
+}
+
+/**
+ * 刪除行事曆活動
+ */
+function deleteEvent(eventId, password) {
+  if (!checkPassword(password)) return { success: false, error: '管理員密碼錯誤！' };
+  try {
+    const ss = getSpreadsheet();
+    const sheet = ss.getSheetByName('Events');
+    const data = sheet.getDataRange().getValues();
+    const idIndex = data[0].indexOf('id');
+
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][idIndex]) === String(eventId)) {
+        sheet.deleteRow(i + 1);
+        return { success: true, message: '活動已成功刪除！' };
+      }
+    }
+    return { success: false, error: '找不到該活動編號' };
+  } catch (err) {
+    return { success: false, error: err.toString() };
+  }
+}
+
+/**
+ * 儲存/編輯 當日菜單
+ */
+function saveMenu(menuData, password) {
+  if (!checkPassword(password)) return { success: false, error: '管理員密碼錯誤！' };
+  try {
+    const ss = getSpreadsheet();
+    const sheet = ss.getSheetByName('Menus');
+    const data = sheet.getDataRange().getValues();
+    const dateIndex = data[0].indexOf('date');
+
+    const rowData = [
+      menuData.date || '',
+      menuData.morningSnack || '',
+      menuData.fruit || '',
+      menuData.lunchStaple || '',
+      menuData.lunchMain || '',
+      menuData.lunchSide1 || '',
+      menuData.lunchSide2 || '',
+      menuData.lunchSoup || '',
+      menuData.afternoonSnack || '',
+      menuData.nutrients || '全穀雜糧類,豆魚蛋肉類,蔬菜類,水果類',
+      menuData.note || ''
+    ];
+
+    let foundRow = -1;
+    for (let i = 1; i < data.length; i++) {
+      const cellDate = normalizeDateString(data[i][dateIndex]);
+      if (cellDate === menuData.date) {
+        foundRow = i + 1;
+        break;
+      }
+    }
+
+    if (foundRow > -1) {
+      sheet.getRange(foundRow, 1, 1, rowData.length).setValues([rowData]);
+    } else {
+      sheet.appendRow(rowData);
+    }
+
+    return { success: true, message: '菜單已儲存成功！' };
+  } catch (err) {
+    return { success: false, error: err.toString() };
+  }
+}
+
+/**
+ * 刪除當日菜單
+ */
+function deleteMenu(dateStr, password) {
+  if (!checkPassword(password)) return { success: false, error: '管理員密碼錯誤！' };
+  try {
+    const ss = getSpreadsheet();
+    const sheet = ss.getSheetByName('Menus');
+    const data = sheet.getDataRange().getValues();
+    const dateIndex = data[0].indexOf('date');
+
+    for (let i = 1; i < data.length; i++) {
+      if (normalizeDateString(data[i][dateIndex]) === dateStr) {
+        sheet.deleteRow(i + 1);
+        return { success: true, message: '菜單已成功刪除！' };
+      }
+    }
+    return { success: false, error: '找不到該日期菜單' };
+  } catch (err) {
+    return { success: false, error: err.toString() };
+  }
+}
+
+/**
+ * 儲存/編輯 Spotlight 重點活動
+ */
+function saveSpotlight(spData, password) {
+  if (!checkPassword(password)) return { success: false, error: '管理員密碼錯誤！' };
+  try {
+    const ss = getSpreadsheet();
+    const sheet = ss.getSheetByName('Spotlight');
+    const data = sheet.getDataRange().getValues();
+    const idIndex = data[0].indexOf('id');
+
+    const rowData = [
+      spData.id || ('SP-' + Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyyMMddHHmmss')),
+      spData.title || '',
+      spData.subtitle || '',
+      spData.imageUrl || '',
+      spData.tags || '',
+      spData.bulletPoints || '',
+      spData.priority || 1,
+      spData.status || '啟用'
+    ];
+
+    let foundRow = -1;
+    if (spData.id) {
+      for (let i = 1; i < data.length; i++) {
+        if (String(data[i][idIndex]) === String(spData.id)) {
+          foundRow = i + 1;
+          break;
+        }
+      }
+    }
+
+    if (foundRow > -1) {
+      sheet.getRange(foundRow, 1, 1, rowData.length).setValues([rowData]);
+    } else {
+      sheet.appendRow(rowData);
+    }
+
+    return { success: true, message: 'Spotlight 重點活動儲存成功！' };
+  } catch (err) {
+    return { success: false, error: err.toString() };
+  }
+}
+
+/**
+ * 刪除 Spotlight
+ */
+function deleteSpotlight(spId, password) {
+  if (!checkPassword(password)) return { success: false, error: '管理員密碼錯誤！' };
+  try {
+    const ss = getSpreadsheet();
+    const sheet = ss.getSheetByName('Spotlight');
+    const data = sheet.getDataRange().getValues();
+    const idIndex = data[0].indexOf('id');
+
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][idIndex]) === String(spId)) {
+        sheet.deleteRow(i + 1);
+        return { success: true, message: 'Spotlight 已成功刪除！' };
+      }
+    }
+    return { success: false, error: '找不到該 Spotlight 編號' };
+  } catch (err) {
+    return { success: false, error: err.toString() };
+  }
+}
+
+/**
+ * 刪除文件紀錄
+ */
+function deleteDoc(docId, password) {
+  if (!checkPassword(password)) return { success: false, error: '管理員密碼錯誤！' };
+  try {
+    const ss = getSpreadsheet();
+    const sheet = ss.getSheetByName('Docs');
+    const data = sheet.getDataRange().getValues();
+    const idIndex = data[0].indexOf('id');
+
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][idIndex]) === String(docId)) {
+        sheet.deleteRow(i + 1);
+        return { success: true, message: '文件已成功自清單移除！' };
+      }
+    }
+    return { success: false, error: '找不到該文件編號' };
+  } catch (err) {
+    return { success: false, error: err.toString() };
+  }
+}
+
+/**
+ * 更新系統設定（含管理員密碼、跑馬燈文字）
+ */
+function updateSettings(newSettings, password) {
+  if (!checkPassword(password)) return { success: false, error: '目前管理員密碼錯誤！' };
+  try {
+    const ss = getSpreadsheet();
+    const sheet = ss.getSheetByName('Settings');
+    const data = sheet.getDataRange().getValues();
+
+    for (let i = 1; i < data.length; i++) {
+      const key = String(data[i][0]).trim();
+      if (newSettings[key] !== undefined) {
+        sheet.getRange(i + 1, 2).setValue(newSettings[key]);
+      }
+    }
+
+    return { success: true, message: '系統設定已更新完成！' };
+  } catch (err) {
+    return { success: false, error: err.toString() };
+  }
+}
+
+// -------------------------------------------------------------
+// 資料庫初始化與輔助工具函式
+// -------------------------------------------------------------
+
+function ensureDatabaseInitialized() {
+  const ss = getSpreadsheet();
+  if (!ss) return;
+
+  const eventsSheet = ss.getSheetByName('Events');
+  if (!eventsSheet || eventsSheet.getLastRowNum() <= 1) {
+    setupInitialDatabase();
+  }
+}
+
+function normalizeDateString(val) {
+  if (!val) return '';
+  if (val instanceof Date) {
+    return Utilities.formatDate(val, 'Asia/Taipei', 'yyyy-MM-dd');
+  }
+  const str = String(val).trim();
+  // 若只有日期數字 1~31，補上年份月份
+  if (/^\d{1,2}$/.test(str)) {
+    const d = ('0' + str).slice(-2);
+    return '2026-10-' + d;
+  }
+  return str.replace(/\//g, '-');
+}
+
+function getSheetDataAsObjects(sheet) {
+  if (!sheet) return [];
+  const range = sheet.getDataRange();
+  const values = range.getValues();
+  if (values.length <= 1) return [];
+
+  const headers = values[0];
+  const list = [];
+
+  for (let i = 1; i < values.length; i++) {
+    const row = values[i];
+    // 空行略過
+    if (!row[0] && !row[1] && !row[3]) continue;
+
+    const obj = {};
+    for (let j = 0; j < headers.length; j++) {
+      const header = headers[j];
+      let val = row[j];
+      if (val instanceof Date) {
+        val = Utilities.formatDate(val, 'Asia/Taipei', 'yyyy-MM-dd');
+      }
+      obj[header] = val;
+    }
+    list.push(obj);
+  }
+  return list;
+}
+
+function getSettingsObject(sheet) {
+  if (!sheet) return {};
+  const values = sheet.getDataRange().getValues();
+  const settings = {};
+  for (let i = 1; i < values.length; i++) {
+    const key = String(values[i][0]).trim();
+    const val = values[i][1];
+    if (key) {
+      settings[key] = val;
+    }
+  }
+  return settings;
+}
+
+/**
+ * 一鍵初始化試算表資料庫結構與預設示範資料
+ */
+function setupInitialDatabase() {
+  const ss = getSpreadsheet();
+  if (!ss) throw new Error('無法取得 Google 試算表！');
+
+  // 1. Events 工作表
+  let eventsSheet = ss.getSheetByName('Events');
+  if (!eventsSheet) eventsSheet = ss.insertSheet('Events');
+  eventsSheet.clear();
+  eventsSheet.appendRow(['id', 'date', 'endDate', 'title', 'target', 'category', 'timeLocation', 'description', 'theme']);
+  eventsSheet.getRange(1, 1, 1, 9).setFontWeight('bold').setBackground('#FEE2E2');
+
+  const sampleEvents = [
+    ['EV-01', '2026-08-03', '', '新學期開學日', '全園', '全園活動', '', '新學期開始，歡迎所有小朋友回到幼兒園！', '快樂上學趣'],
+    ['EV-02', '2026-08-21', '', '八月壽星慶生', '全園', '全園活動', '', '祝福八月份小壽星生日快樂！', '快樂上學趣'],
+    ['EV-03', '2026-08-25', '', '米羅 A、B、雨果班親師座談', '米羅/雨果', '親職活動', '17:00 開始', '各班親師座談，屆時視狀況調整實體或線上辦理', '快樂上學趣'],
+    ['EV-04', '2026-08-26', '', '雨奧、奧斯卡、諾奧親師座談', '雨奧/奧斯卡/諾奧', '親職活動', '17:00 開始', '各班親師座談，屆時視狀況調整實體或線上辦理', '快樂上學趣'],
+    ['EV-05', '2026-08-27', '', '諾貝爾 A、B、C 親師座談', '諾貝爾A班', '親職活動', '17:00 開始', '🌟 諾貝爾 A 班親師座談，誠摯邀請家長共同參與！', '快樂上學趣'],
+    ['EV-06', '2026-09-07', '', '幸福廚房（米A/米B/兩果）', '米A/米B/兩果', '班級主題', '', '幸福廚房手作生活體驗', '快樂上學趣'],
+    ['EV-07', '2026-09-08', '', '幸福廚房（雨奧/奧斯卡/諾奧）', '雨奧/奧斯卡/諾奧', '班級主題', '', '幸福廚房手作生活體驗', '快樂上學趣'],
+    ['EV-08', '2026-09-09', '', '幸福廚房（諾C/諾B/諾A）', '諾貝爾A班', '班級主題', '', '🌟 諾 A 班今日輪到幸福廚房體驗！化身小小烘焙師！', '快樂上學趣'],
+    ['EV-09', '2026-09-11', '', '九月壽星慶生', '全園', '全園活動', '', '九月份壽星慶祝活動', '快樂上學趣'],
+    ['EV-10', '2026-09-24', '', '社區親職講座：感覺統合輕鬆練習', '全園', '親職講座', '19:00-21:00', '講師：潘宇賢職能治療師（菇菇老師）', '快樂上學趣'],
+    ['EV-11', '2026-09-25', '2026-09-28', '中秋節／教師節連假', '全園', '節慶放假', '連假四日', '連假期間請注意幼兒居家安全與作息健康', '快樂上學趣'],
+    ['EV-12', '2026-10-05', '', '幸福廚房（米A/米B/兩果）', '米A/米B/兩果', '班級主題', '', '幸福廚房手作生活體驗', '主題活動：人與自己／人與他人概念'],
+    ['EV-13', '2026-10-06', '', '幸福廚房（雨奧/奧斯卡/諾奧）', '雨奧/奧斯卡/諾奧', '班級主題', '', '幸福廚房手作生活體驗', '主題活動：人與自己／人與他人概念'],
+    ['EV-14', '2026-10-07', '', '幸福廚房（諾C/諾B/諾A）', '諾貝爾A班', '班級主題', '', '🌟 諾 A 班十月份幸福廚房手作日！', '主題活動：人與自己／人與他人概念'],
+    ['EV-15', '2026-10-08', '', '十月壽星慶生會', '全園', '全園活動', '', '十月份小壽星慶生會，分享快樂分享愛！', '主題活動：人與自己／人與他人概念'],
+    ['EV-16', '2026-10-09', '2026-10-11', '雙十節連假', '全園', '節慶放假', '連假三日', '國慶連續假期放假三日', '主題活動：人與自己／人與他人概念'],
+    ['EV-17', '2026-10-23', '', '牙齒塗氟日 口腔保健檢查', '諾貝爾A班', '重要活動', '08:30 (五)', '🌟 全園定期塗氟檢查，請家長務必攜帶健保卡！未攜帶無法參加喔！', '主題活動：人與自己／人與他人概念'],
+    ['EV-18', '2026-10-24', '2026-10-26', '光復節連假', '全園', '節慶放假', '連假三日', '光復節連續假期放假三日', '主題活動：人與自己／人與他人概念'],
+    ['EV-19', '2026-11-04', '', '幸福廚房（諾C/諾B/諾A）', '諾貝爾A班', '班級主題', '', '🌟 諾 A 班十一月份幸福廚房手作活動', '主題活動：人與自己／人與他人概念'],
+    ['EV-20', '2026-11-12', '', '社區親職講座：找回孩子的專注力', '全園', '親職講座', '19:00-21:00 (線上)', '講師：廖笙光（光光老師），歡迎家長踴躍線上參與', '主題活動：人與自己／人與他人概念'],
+    ['EV-21', '2026-11-13', '', '十一月壽星慶生', '全園', '全園活動', '', '十一月份壽星慶祝活動', '主題活動：人與自己／人與他人概念'],
+    ['EV-22', '2026-11-20', '', '緊急傷病宣導及演練 / 感恩節闖關活動', '全園', '全園活動', '放學時間', '宣導防護演練，放學時間舉行溫馨感恩節闖關活動！', '主題活動：人與自己／人與他人概念'],
+    ['EV-23', '2026-12-02', '', '幸福廚房（諾C/諾B/諾A）', '諾貝爾A班', '班級主題', '', '🌟 諾 A 班十二月份幸福廚房體驗', '主題活動：冬令月'],
+    ['EV-24', '2026-12-18', '', '十二月壽星慶生會', '全園', '全園活動', '', '十二月份壽星慶祝活動', '主題活動：冬令月'],
+    ['EV-25', '2026-12-21', '2026-12-31', '學期高峰活動週', '全園', '重要活動', '全週進行', '全園學期主題高峰成果發表週', '主題活動：冬令月'],
+    ['EV-26', '2026-12-25', '2026-12-27', '行憲紀念日連假', '全園', '節慶放假', '連假三日', '連假三日放假', '主題活動：冬令月'],
+    ['EV-27', '2027-01-01', '', '元旦假期放假', '全園', '節慶放假', '放假一日', '新年元旦假期放假一日', '冬令月'],
+    ['EV-28', '2027-01-08', '', '一月壽星慶生 / 全園性歲末活動', '全園', '全園活動', '', '一月壽星慶祝與歲末團聚溫馨活動', '冬令月'],
+    ['EV-29', '2027-01-25', '2027-01-29', '全園消毒日', '全園', '園務消毒', '全園消毒', '學期末全園環境深層清潔與消毒作業', '冬令月']
+  ];
+  eventsSheet.getRange(2, 1, sampleEvents.length, 9).setValues(sampleEvents);
+
+  // 2. Menus 工作表
+  let menusSheet = ss.getSheetByName('Menus');
+  if (!menusSheet) menusSheet = ss.insertSheet('Menus');
+  menusSheet.clear();
+  menusSheet.appendRow(['date', 'morningSnack', 'fruit', 'lunchStaple', 'lunchMain', 'lunchSide1', 'lunchSide2', 'lunchSoup', 'afternoonSnack', 'nutrients', 'note']);
+  menusSheet.getRange(1, 1, 1, 11).setFontWeight('bold').setBackground('#FEF3C7');
+
+  const sampleMenus = [
+    ['2026-10-01', '紅藜雙色饅頭、米漿', '當季水果', '糙白米飯', '青椒炒雞柳', '木須炒蛋', '有機蔬菜', '玉米濃湯', '滑蛋雞肉粥', '全穀雜糧類,豆魚蛋肉類,蔬菜類,水果類', '本園未使用主管機關公告之不合格油品'],
+    ['2026-10-02', '全麥吐司、黑芝麻豆漿', '當季水果', '日式和風拉麵', '有機蔬菜', '蘿蔔貢丸湯', '', '', '豆花', '全穀雜糧類,豆魚蛋肉類,蔬菜類,水果類', ''],
+    ['2026-10-05', '奶皇包、黑芝麻豆漿', '當季水果', '古早味滷肉飯', '有機蔬菜', '什錦蔬菜湯', '', '', '鹹粥', '全穀雜糧類,豆魚蛋肉類,蔬菜類,水果類', ''],
+    ['2026-10-06', '芋頭堅果饅頭、燕麥豆漿', '當季水果', '糙白米飯', '什錦冬粉', '番茄豆腐', '有機蔬菜', '營養蔬菜湯', '綠豆薏仁湯', '全穀雜糧類,豆魚蛋肉類,蔬菜類,水果類', ''],
+    ['2026-10-07', '什錦穀片、鮮奶', '當季水果', '糙白米飯', '瓜仔肉', '蛋香大黃瓜', '有機蔬菜', '魚丸湯', '芋頭粥', '全穀雜糧類,豆魚蛋肉類,蔬菜類,水果類', ''],
+    ['2026-10-08', '果醬吐司、豆漿', '當季水果', '味噌豬肉湯麵', '有機蔬菜', '', '', '', '慶生會點心', '全穀雜糧類,豆魚蛋肉類,蔬菜類,水果類', '今日十月壽星慶生會'],
+    ['2026-10-12', '鮮果穀片、鮮奶', '當季水果', '美味水餃', '有機蔬菜', '紫菜蛋花湯', '', '', '薑絲魚片粥', '全穀雜糧類,豆魚蛋肉類,蔬菜類,水果類', ''],
+    ['2026-10-13', '乳酪捲、黑芝麻豆漿', '當季水果', '糙白米飯', '三杯菇菇', '玉米炒蛋', '有機蔬菜', '青菜豆腐湯', '米苔目甜湯', '全穀雜糧類,豆魚蛋肉類,蔬菜類,水果類', ''],
+    ['2026-10-14', '葡萄吐司、燕麥豆漿', '當季水果', '糙白米飯', '冬瓜燒肉', '開陽白菜', '有機蔬菜', '肉羹湯', '關東煮', '全穀雜糧類,豆魚蛋肉類,蔬菜類,水果類', ''],
+    ['2026-10-15', '黑糖雙色饅頭、豆漿', '當季水果', '糙白米飯', '洋蔥炒雞肉', '小黃瓜炒豆腐', '有機蔬菜', '番茄蛋花湯', '地瓜西米露', '全穀雜糧類,豆魚蛋肉類,蔬菜類,水果類', ''],
+    ['2026-10-16', '小菠蘿餐包、米漿', '當季水果', '茄汁豬肉燉飯', '有機蔬菜', '蒜頭雞湯', '', '', '台式米粉', '全穀雜糧類,豆魚蛋肉類,蔬菜類,水果類', ''],
+    ['2026-10-19', '豆沙包、燕麥豆漿', '當季水果', '蔬菜雞肉蓋飯', '有機蔬菜', '鮮菇湯', '', '', '仙草蜜', '全穀雜糧類,豆魚蛋肉類,蔬菜類,水果類', ''],
+    ['2026-10-20', '原味穀片、鮮奶', '當季水果', '糙白米飯', '塔香豆腐', '鮮菇炒時蔬', '有機蔬菜', '海帶芽湯', '香菇玉米粥', '全穀雜糧類,豆魚蛋肉類,蔬菜類,水果類', ''],
+    ['2026-10-21', '奶油麵包、豆漿', '當季水果', '糙白米飯', '蔥爆雞絲', '芹香麵腸', '有機蔬菜', '香菇雞湯', '紅豆湯', '全穀雜糧類,豆魚蛋肉類,蔬菜類,水果類', ''],
+    ['2026-10-22', '銀絲卷、黑芝麻豆漿', '當季水果', '糙白米飯', '糖醋里肌', '家常滷味', '有機蔬菜', '馬鈴薯蘿蔔湯', '陽春麵', '全穀雜糧類,豆魚蛋肉類,蔬菜類,水果類', ''],
+    ['2026-10-23', '鹹奶油餐包、米漿', '當季水果', '日式炒烏龍', '有機蔬菜', '味噌湯', '', '', '桂圓燕麥粥', '全穀雜糧類,豆魚蛋肉類,蔬菜類,水果類', '今日塗氟檢查日'],
+    ['2026-10-27', '玉米穀片、鮮奶', '當季水果', '田園蛋炒飯', '有機蔬菜', '青菜豆腐湯', '', '', '玉米香菇粥', '全穀雜糧類,豆魚蛋肉類,蔬菜類,水果類', ''],
+    ['2026-10-28', '紅豆麵包、豆漿', '當季水果', '糙白米飯', '紅燒雞丁', '青蔥炒蛋', '有機蔬菜', '火腿豆腐湯', '絲瓜冬粉湯', '全穀雜糧類,豆魚蛋肉類,蔬菜類,水果類', ''],
+    ['2026-10-29', '鮮奶饅頭、燕麥豆漿', '當季水果', '糙白米飯', '絞肉炒三丁', '香菇燴絲瓜', '有機蔬菜', '金針湯', '地瓜甜湯', '全穀雜糧類,豆魚蛋肉類,蔬菜類,水果類', ''],
+    ['2026-10-30', '芝麻包、米漿', '當季水果', '沙茶拌麵', '有機蔬菜', '冬瓜湯', '', '', '吻仔魚粥', '全穀雜糧類,豆魚蛋肉類,蔬菜類,水果類', '']
+  ];
+  menusSheet.getRange(2, 1, sampleMenus.length, 11).setValues(sampleMenus);
+
+  // 3. Spotlight 工作表
+  let spSheet = ss.getSheetByName('Spotlight');
+  if (!spSheet) spSheet = ss.insertSheet('Spotlight');
+  spSheet.clear();
+  spSheet.appendRow(['id', 'title', 'subtitle', 'imageUrl', 'tags', 'bulletPoints', 'priority', 'status']);
+  spSheet.getRange(1, 1, 1, 8).setFontWeight('bold').setBackground('#CCFBF1');
+
+  const sampleSpotlights = [
+    [
+      'SP-01',
+      '桃子腳幼兒園 牙齒塗氟日 活動攻略圖',
+      '日期：2026/10/23 (五) 08:30',
+      'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=1200&q=80',
+      '口腔衛教,牙齒塗氟,重要提醒',
+      '【衛教宣導】正確刷牙示範，養成潔牙好習慣！\n【塗氟檢查】每六個月定期口腔保健，保護小乳牙！\n【注意事項】請家長務必攜帶「健保卡」，未攜帶無法參加喔！\n【活動尾聲】守護健康小乳牙，順利完成打卡領小禮物！',
+      1,
+      '啟用'
+    ]
+  ];
+  spSheet.getRange(2, 1, sampleSpotlights.length, 8).setValues(sampleSpotlights);
+
+  // 4. Docs 工作表
+  let docsSheet = ss.getSheetByName('Docs');
+  if (!docsSheet) docsSheet = ss.insertSheet('Docs');
+  docsSheet.clear();
+  docsSheet.appendRow(['id', 'fileName', 'category', 'description', 'driveFileId', 'downloadUrl', 'updatedAt']);
+  docsSheet.getRange(1, 1, 1, 7).setFontWeight('bold').setBackground('#E0E7FF');
+
+  const sampleDocs = [
+    ['DOC-01', '幼兒用藥委託單.pdf', '保健用藥', '若幼兒當日需要委託老師餵藥，請家長下載列印填妥簽名後連同藥品一併交由老師。', '', 'https://drive.google.com/drive/folders/1Ie8medB2JPYdUA9LOryVnPAdko1t5rjR', '2026-09-01'],
+    ['DOC-02', '115學年度(上)全園活動規劃暨親職活動行事曆.pdf', '學期行事曆', '115學年度上學期完整行事曆，包含親師座談、幸福廚房排程與各連假公告。', '', 'https://drive.google.com/drive/folders/1Ie8medB2JPYdUA9LOryVnPAdko1t5rjR', '2026-08-01'],
+    ['DOC-03', '10月份營養午餐及點心菜單表.pdf', '餐飲菜單', '新北市桃子腳非營利幼兒園10月份每日早午點、當季水果與午餐五菜一湯明細。', '', 'https://drive.google.com/drive/folders/1Ie8medB2JPYdUA9LOryVnPAdko1t5rjR', '2026-10-01'],
+    ['DOC-04', '諾貝爾A班作息與入園須知手冊.pdf', '親師手冊', '包含諾貝爾A班每日晨間作息、生活自理引導與接送注意事項。', '', 'https://drive.google.com/drive/folders/1Ie8medB2JPYdUA9LOryVnPAdko1t5rjR', '2026-08-15']
+  ];
+  docsSheet.getRange(2, 1, sampleDocs.length, 7).setValues(sampleDocs);
+
+  // 5. Settings 工作表
+  let setSheet = ss.getSheetByName('Settings');
+  if (!setSheet) setSheet = ss.insertSheet('Settings');
+  setSheet.clear();
+  setSheet.appendRow(['key', 'value', 'description']);
+  setSheet.getRange(1, 1, 1, 3).setFontWeight('bold').setBackground('#F3F4F6');
+
+  const sampleSettings = [
+    ['ADMIN_PASSWORD', 'nobel-a-2026', '後台管理員登入密碼（可於後台直接更改）'],
+    ['CLASS_NAME', '諾貝爾 A 班', '班級名稱'],
+    ['KINDERGARTEN_NAME', '新北市桃子腳非營利幼兒園', '幼兒園全名'],
+    ['ALBUMS_FOLDER_ID', ALBUMS_FOLDER_ID, '相簿根目錄 Google Drive 資料夾 ID'],
+    ['DOCS_FOLDER_ID', DOCS_FOLDER_ID, '文件根目錄 Google Drive 資料夾 ID'],
+    ['TICKER_MESSAGE', '🌟 歡迎來到諾貝爾 A 班！10/23 (五) 為全園牙齒塗氟日，請家長記得備妥健保卡喔！', '頂部即時公告走馬燈訊息']
+  ];
+  setSheet.getRange(2, 1, sampleSettings.length, 3).setValues(sampleSettings);
+
+  // 自動調整所有欄寬
+  [eventsSheet, menusSheet, spSheet, docsSheet, setSheet].forEach(sh => {
+    sh.autoResizeColumns(1, sh.getLastColumn());
+  });
+
+  console.log('Database initialized successfully!');
+  return { success: true, message: '試算表資料庫初始化完成！' };
+}

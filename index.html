@@ -1,0 +1,2391 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>桃子腳非營利幼兒園 - 諾貝爾 A 班</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700;900&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            peach: {
+              50: '#FFF5F5',
+              100: '#FED7D7',
+              200: '#FEB2B2',
+              400: '#F87171',
+              500: '#FF7A85',
+              600: '#E05362',
+            },
+            mint: {
+              50: '#F0FDF4',
+              100: '#DCFCE7',
+              400: '#34D399',
+              500: '#10B981',
+              600: '#059669',
+            },
+            sun: {
+              50: '#FFFBEB',
+              100: '#FEF3C7',
+              400: '#FBBF24',
+              500: '#F59E0B',
+            },
+            berry: {
+              50: '#F5F3FF',
+              100: '#EDE9FE',
+              400: '#A78BFA',
+              500: '#8B5CF6',
+              600: '#7C3AED',
+            },
+            warmbg: '#FDFBF7'
+          },
+          fontFamily: {
+            sans: ['"Zen Maru Gothic"', '"Noto Sans TC"', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #FDFBF7;
+      font-family: 'Zen Maru Gothic', 'Noto Sans TC', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    /* 自訂可愛滾動條 */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #FDFBF7;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #FED7D7;
+      border-radius: 9999px;
+    }
+    .tap-bounce:active {
+      transform: scale(0.96);
+      transition: transform 0.1s ease;
+    }
+    .modal-backdrop {
+      background-color: rgba(30, 41, 59, 0.45);
+      backdrop-filter: blur(4px);
+    }
+    @keyframes pulse-subtle {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+    .animate-pulse-subtle {
+      animation: pulse-subtle 2.5s infinite;
+    }
+  </style>
+</head>
+<body class="text-slate-700 min-h-screen flex flex-col antialiased selection:bg-peach-200">
+
+  <!-- ==================== 頂部全園公告走馬燈 ==================== -->
+  <div class="bg-gradient-to-r from-peach-500 via-sun-400 to-mint-400 text-white text-xs sm:text-sm font-medium py-1.5 px-3 shadow-sm sticky top-0 z-40">
+    <div class="max-w-5xl mx-auto flex items-center justify-between gap-2">
+      <div class="flex items-center gap-1.5 overflow-hidden whitespace-nowrap">
+        <span class="bg-white/25 px-2 py-0.5 rounded-full text-xs font-bold tracking-wide flex items-center gap-1">
+          <span>📢</span> 最新快訊
+        </span>
+        <span id="tickerText" class="truncate font-medium">歡迎蒞臨諾貝爾 A 班生活網！10/23 (五) 為全園塗氟日，請記得備妥健保卡喔～</span>
+      </div>
+      <div class="shrink-0 flex items-center gap-1 text-xs opacity-90">
+        <span id="liveClock" class="font-mono">--:--</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== HEADER 導覽標題列 ==================== -->
+  <header class="bg-white/90 backdrop-blur-md border-b border-rose-100 shadow-sm sticky top-7 z-30">
+    <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+      <!-- 園所與班級 Logo 識別 -->
+      <div class="flex items-center gap-3 cursor-pointer" onclick="switchTab('home')">
+        <div class="w-12 h-12 rounded-2xl bg-white shadow-md border-2 border-rose-200 p-0.5 flex items-center justify-center overflow-hidden shrink-0 transition-transform active:scale-95">
+          <img src="data:image/jpeg;base64,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" alt="三之三生命教育 Logo" class="w-full h-full object-contain">
+        </div>
+        <div>
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="text-xs font-bold text-peach-600 bg-peach-50 px-2 py-0.5 rounded-full border border-peach-100">三之三生命教育基金會</span>
+            <span class="text-xs font-medium text-slate-500 hidden sm:inline">新北市桃子腳非營利幼兒園</span>
+          </div>
+          <h1 class="text-lg sm:text-xl font-black text-slate-800 tracking-tight flex items-center gap-1.5 mt-0.5">
+            <span>諾貝爾 A 班</span>
+            <span class="text-xs font-semibold text-white bg-gradient-to-r from-peach-500 to-rose-500 px-2 py-0.5 rounded-md shadow-sm">生活與行事曆</span>
+          </h1>
+        </div>
+      </div>
+
+      <!-- 導覽頁籤 (Desktop & Tablet) -->
+      <nav class="hidden md:flex items-center gap-1 bg-slate-50 p-1 rounded-2xl border border-slate-200/80">
+        <button onclick="switchTab('home')" id="tabBtn-home" class="tab-btn px-3.5 py-1.5 rounded-xl text-sm font-bold flex items-center gap-1.5 transition-all bg-peach-500 text-white shadow-sm">
+          <span>🏠</span> 班級日常
+        </button>
+        <button onclick="switchTab('albums')" id="tabBtn-albums" class="tab-btn px-3.5 py-1.5 rounded-xl text-sm font-bold flex items-center gap-1.5 transition-all text-slate-600 hover:text-slate-900 hover:bg-slate-100">
+          <span>📸</span> 活動相簿
+        </button>
+        <button onclick="switchTab('docs')" id="tabBtn-docs" class="tab-btn px-3.5 py-1.5 rounded-xl text-sm font-bold flex items-center gap-1.5 transition-all text-slate-600 hover:text-slate-900 hover:bg-slate-100">
+          <span>📁</span> 常用文件
+        </button>
+        <button onclick="switchTab('admin')" id="tabBtn-admin" class="tab-btn px-3.5 py-1.5 rounded-xl text-sm font-bold flex items-center gap-1.5 transition-all text-slate-600 hover:text-slate-900 hover:bg-slate-100">
+          <span>⚙️</span> 管理後台
+        </button>
+      </nav>
+
+      <!-- 手機版管理後台捷徑按鈕 -->
+      <div class="flex md:hidden items-center gap-2">
+        <button onclick="switchTab('admin')" class="px-2.5 py-1.5 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200 flex items-center gap-1 tap-bounce">
+          <span>⚙️</span> 後台
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== 手機版底部浮動導覽列 ==================== -->
+  <div class="md:hidden fixed bottom-3 left-3 right-3 z-40 bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-rose-100 p-1.5 flex items-center justify-around">
+    <button onclick="switchTab('home')" id="mTabBtn-home" class="m-tab-btn flex-1 py-1.5 flex flex-col items-center justify-center text-xs font-bold rounded-xl transition-all text-peach-600 bg-peach-50">
+      <span class="text-lg">🏠</span>
+      <span>今日生活</span>
+    </button>
+    <button onclick="switchTab('albums')" id="mTabBtn-albums" class="m-tab-btn flex-1 py-1.5 flex flex-col items-center justify-center text-xs font-bold rounded-xl transition-all text-slate-500 hover:text-slate-800">
+      <span class="text-lg">📸</span>
+      <span>活動影像</span>
+    </button>
+    <button onclick="switchTab('docs')" id="mTabBtn-docs" class="m-tab-btn flex-1 py-1.5 flex flex-col items-center justify-center text-xs font-bold rounded-xl transition-all text-slate-500 hover:text-slate-800">
+      <span class="text-lg">📁</span>
+      <span>檔案下載</span>
+    </button>
+    <button onclick="switchTab('admin')" id="mTabBtn-admin" class="m-tab-btn flex-1 py-1.5 flex flex-col items-center justify-center text-xs font-bold rounded-xl transition-all text-slate-500 hover:text-slate-800">
+      <span class="text-lg">⚙️</span>
+      <span>管理設定</span>
+    </button>
+  </div>
+
+  <!-- ==================== 主要內容區塊 CONTAINER ==================== -->
+  <main class="max-w-5xl mx-auto px-4 py-5 flex-1 w-full mb-16 md:mb-6">
+
+    <!-- 全域載入狀態提示 -->
+    <div id="loadingOverlay" class="py-12 flex flex-col items-center justify-center gap-3">
+      <div class="w-12 h-12 border-4 border-peach-200 border-t-peach-500 rounded-full animate-spin"></div>
+      <p class="text-sm font-bold text-slate-500 animate-pulse">正在載入諾貝爾 A 班生活資料庫，請稍候...</p>
+    </div>
+
+    <!-- ==================== TAB 1: 班級日常 (HOME) ==================== -->
+    <section id="tabContent-home" class="space-y-6 hidden">
+
+      <!-- 1. SPOTLIGHT 重點活動焦點卡片 -->
+      <div id="spotlightContainer" class="bg-gradient-to-br from-rose-50 via-amber-50 to-teal-50 rounded-3xl p-4 sm:p-5 border-2 border-rose-200/80 shadow-md relative overflow-hidden transition-all">
+        <!-- 裝飾背景符號 -->
+        <div class="absolute -right-6 -bottom-6 text-7xl opacity-15 select-none pointer-events-none">🍑</div>
+
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2">
+            <span class="bg-peach-500 text-white text-xs font-extrabold px-3 py-1 rounded-full shadow-sm flex items-center gap-1">
+              <span>✨</span> SPOTLIGHT 近期焦點
+            </span>
+            <span id="spotlightDateTag" class="text-xs font-bold text-amber-700 bg-amber-100/90 px-2.5 py-0.5 rounded-full">
+              2026/10/23 (五)
+            </span>
+          </div>
+          <span class="text-xs text-slate-500 font-medium">幼兒園重點活動指南</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+          <!-- 焦點視覺/攻略圖卡 -->
+          <div class="md:col-span-5 bg-white p-2.5 rounded-2xl shadow-sm border border-rose-100 flex flex-col items-center justify-center group cursor-pointer tap-bounce" onclick="openSpotlightModal()">
+            <div class="w-full aspect-[16/10] bg-rose-50 rounded-xl overflow-hidden relative flex items-center justify-center">
+              <img id="spotlightImg" src="https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=800&q=80" alt="牙齒塗氟日" class="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300">
+              <div class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <span class="bg-white/90 text-slate-800 text-xs font-bold px-3 py-1.5 rounded-full shadow">點擊放大檢視攻略</span>
+              </div>
+            </div>
+            <div class="mt-2 text-center">
+              <span class="text-xs text-rose-500 font-bold flex items-center justify-center gap-1">
+                🔍 點此查看清晰活動攻略圖
+              </span>
+            </div>
+          </div>
+
+          <!-- 焦點文字與說明卡片 -->
+          <div class="md:col-span-7 space-y-2.5">
+            <h2 id="spotlightTitle" class="text-lg sm:text-xl font-black text-slate-800 leading-snug">
+              桃子腳幼兒園 牙齒塗氟日 活動攻略圖
+            </h2>
+            <p id="spotlightSubtitle" class="text-xs sm:text-sm text-slate-600 font-semibold flex items-center gap-1">
+              📅 日期：2026/10/23 (五) 08:30 起全園分班檢查
+            </p>
+
+            <!-- 重點標籤清單 -->
+            <div id="spotlightPoints" class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+              <div class="bg-white/80 p-2.5 rounded-xl border border-rose-100 shadow-2xs">
+                <div class="font-bold text-rose-600 flex items-center gap-1 mb-0.5">
+                  <span>🦷</span> 【衛教宣導】
+                </div>
+                <div class="text-slate-600">正確刷牙示範，引導幼兒養成每日潔牙好習慣。</div>
+              </div>
+              <div class="bg-white/80 p-2.5 rounded-xl border border-rose-100 shadow-2xs">
+                <div class="font-bold text-teal-600 flex items-center gap-1 mb-0.5">
+                  <span>🩺</span> 【塗氟檢查】
+                </div>
+                <div class="text-slate-600">每六個月定期專業口腔保健，細心守護孩子健康小乳牙。</div>
+              </div>
+              <div class="bg-white/80 p-2.5 rounded-xl border border-amber-200 bg-amber-50/70 shadow-2xs col-span-1 sm:col-span-2">
+                <div class="font-bold text-amber-700 flex items-center gap-1 mb-0.5">
+                  <span>⚠️</span> 【重要注意事項】
+                </div>
+                <div class="text-slate-700 font-medium">請家長務必攜帶「健保卡」！未攜帶健保卡將無法參加塗氟檢查喔！</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. 行事曆切換工具列與主要互動日曆 -->
+      <div class="bg-white rounded-3xl p-4 sm:p-6 border border-slate-200/80 shadow-sm space-y-4">
+        
+        <!-- 工具列：年月份切換、檢視模式切換、回到今天 -->
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pb-3 border-b border-slate-100">
+          <!-- 年月與切換鈕 -->
+          <div class="flex items-center gap-2">
+            <button onclick="changeMonth(-1)" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-peach-100 hover:text-peach-600 flex items-center justify-center font-bold text-slate-600 transition-colors tap-bounce" title="上個月">
+              ‹
+            </button>
+            <h3 id="calendarCurrentMonthText" class="text-base sm:text-lg font-black text-slate-800 min-w-[130px] text-center tracking-tight">
+              2026 年 10 月
+            </h3>
+            <button onclick="changeMonth(1)" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-peach-100 hover:text-peach-600 flex items-center justify-center font-bold text-slate-600 transition-colors tap-bounce" title="下個月">
+              ›
+            </button>
+            <button onclick="goToToday()" class="px-3 py-1.5 rounded-xl bg-rose-50 text-peach-600 hover:bg-peach-100 text-xs font-bold border border-rose-200/70 tap-bounce ml-1">
+              今天
+            </button>
+          </div>
+
+          <!-- 檢視模式選擇按鈕 (每日點選 / 本週行程 / 本月活動) -->
+          <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-2xl w-full sm:w-auto justify-center">
+            <button onclick="setCalViewMode('day')" id="viewModeBtn-day" class="cal-view-btn flex-1 sm:flex-none px-3 py-1 rounded-xl text-xs font-bold transition-all bg-white text-slate-800 shadow-xs">
+              📅 單日點選
+            </button>
+            <button onclick="setCalViewMode('week')" id="viewModeBtn-week" class="cal-view-btn flex-1 sm:flex-none px-3 py-1 rounded-xl text-xs font-bold transition-all text-slate-600 hover:text-slate-900">
+              📋 查看本週
+            </button>
+            <button onclick="setCalViewMode('month')" id="viewModeBtn-month" class="cal-view-btn flex-1 sm:flex-none px-3 py-1 rounded-xl text-xs font-bold transition-all text-slate-600 hover:text-slate-900">
+              🗓️ 本月總覽
+            </button>
+          </div>
+        </div>
+
+        <!-- 星期表頭 (週日為每週第一天) -->
+        <div class="grid grid-cols-7 gap-1 text-center font-bold text-xs">
+          <div class="text-rose-500 py-1.5 bg-rose-50/50 rounded-lg">週日</div>
+          <div class="text-slate-600 py-1.5">週一</div>
+          <div class="text-slate-600 py-1.5">週二</div>
+          <div class="text-slate-600 py-1.5">週三</div>
+          <div class="text-slate-600 py-1.5">週四</div>
+          <div class="text-slate-600 py-1.5">週五</div>
+          <div class="text-teal-600 py-1.5 bg-teal-50/50 rounded-lg">週六</div>
+        </div>
+
+        <!-- 日曆天數格子 (7欄網格，動態生成) -->
+        <div id="calendarGrid" class="grid grid-cols-7 gap-1 sm:gap-1.5">
+          <!-- JS 動態插入 -->
+        </div>
+
+        <!-- 圖例說明 -->
+        <div class="flex items-center justify-center gap-4 text-xs text-slate-500 pt-2 border-t border-slate-100 flex-wrap">
+          <span class="flex items-center gap-1">
+            <span class="w-2.5 h-2.5 rounded-full bg-peach-500"></span> 諾貝爾 A 班活動
+          </span>
+          <span class="flex items-center gap-1">
+            <span class="w-2.5 h-2.5 rounded-full bg-berry-500"></span> 全園活動/慶生
+          </span>
+          <span class="flex items-center gap-1">
+            <span class="w-2.5 h-2.5 rounded-full bg-sun-400"></span> 幸福廚房
+          </span>
+          <span class="flex items-center gap-1">
+            <span class="w-2.5 h-2.5 rounded-full bg-mint-500"></span> 每日營養菜單
+          </span>
+        </div>
+      </div>
+
+      <!-- 3. 【連動區段】點擊個別日期時帶出之當日生活與活動 / 菜單 -->
+      <div id="linkedContentSection" class="space-y-4">
+        
+        <!-- 當日選取抬頭 -->
+        <div class="flex items-center justify-between bg-white px-4 py-3 rounded-2xl border border-rose-100 shadow-2xs">
+          <div class="flex items-center gap-2">
+            <span class="text-xl">🌟</span>
+            <div>
+              <div class="text-xs text-slate-400 font-medium">生活動態與餐點資訊</div>
+              <div id="selectedDateHeader" class="text-base sm:text-lg font-black text-slate-800">
+                2026 年 10 月 23 日（週五）
+              </div>
+            </div>
+          </div>
+          <div id="selectedDayBadges" class="flex items-center gap-1 flex-wrap justify-end">
+            <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-peach-100 text-peach-700">諾A塗氟日</span>
+          </div>
+        </div>
+
+        <!-- 雙欄卡片：左側【今日活動與行程】、右側【今日營養美味菜單】 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          
+          <!-- 左側：活動行程區段 (參考 115 上 行事曆) -->
+          <div class="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+                <div class="flex items-center gap-2">
+                  <div class="w-8 h-8 rounded-xl bg-rose-100 text-peach-600 flex items-center justify-center font-bold text-sm">
+                    📅
+                  </div>
+                  <div>
+                    <h4 class="font-black text-slate-800 text-base">當日活動與行程</h4>
+                    <p class="text-xs text-slate-400">依全園及諾A班行事曆安排</p>
+                  </div>
+                </div>
+                <span id="activeEventCount" class="text-xs font-bold text-peach-600 bg-peach-50 px-2.5 py-1 rounded-full border border-peach-100">
+                  1 項活動
+                </span>
+              </div>
+
+              <!-- 活動列表容器 -->
+              <div id="selectedDayEventsList" class="space-y-3">
+                <!-- JS 動態帶出 -->
+              </div>
+            </div>
+
+            <!-- 底部主題資訊 -->
+            <div id="semesterThemeNotice" class="mt-4 pt-3 border-t border-slate-100 text-xs text-slate-500 flex items-center gap-1.5">
+              <span>🌱</span>
+              <span>本期學期主題：<strong id="themeNameText" class="text-slate-700">主題活動：人與自己／人與他人概念</strong></span>
+            </div>
+          </div>
+
+          <!-- 右側：菜單區段 (參考 10 月份菜單) -->
+          <div class="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+                <div class="flex items-center gap-2">
+                  <div class="w-8 h-8 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center font-bold text-sm">
+                    🍱
+                  </div>
+                  <div>
+                    <h4 class="font-black text-slate-800 text-base">每日營養美味菜單</h4>
+                    <p class="text-xs text-slate-400">三之三用心烹調・均衡健康守護</p>
+                  </div>
+                </div>
+                <span class="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                  食安檢核合格
+                </span>
+              </div>
+
+              <!-- 菜單餐點列表容器 -->
+              <div id="selectedDayMenuList" class="space-y-2.5 text-xs sm:text-sm">
+                <!-- JS 動態帶出 -->
+              </div>
+            </div>
+
+            <!-- 營養檢核與安心說明標籤 -->
+            <div class="mt-4 pt-3 border-t border-slate-100 space-y-2">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="text-xs font-bold text-slate-500">營養類別檢核：</span>
+                <span class="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded-md font-bold">🌾 全穀雜糧</span>
+                <span class="bg-rose-100 text-rose-800 text-xs px-2 py-0.5 rounded-md font-bold">🥩 豆魚蛋肉</span>
+                <span class="bg-emerald-100 text-emerald-800 text-xs px-2 py-0.5 rounded-md font-bold">🥦 有機蔬菜</span>
+                <span class="bg-purple-100 text-purple-800 text-xs px-2 py-0.5 rounded-md font-bold">🍎 當季水果</span>
+              </div>
+              <p class="text-xs text-slate-400">
+                註：本園餐點未使用主管機關公告之不合格油品。配合當令食材適時調整。
+              </p>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- 4. 【本週行程總覽容器】(切換至查看本週時呈現) -->
+      <div id="weekViewContainer" class="hidden bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+          <h4 class="text-base font-black text-slate-800 flex items-center gap-2">
+            <span>📋</span> 本週生活與餐點總覽（週日～週六）
+          </h4>
+          <button onclick="setCalViewMode('day')" class="text-xs text-peach-600 font-bold hover:underline">
+            返回單日點選
+          </button>
+        </div>
+        <div id="weekDaysList" class="space-y-3">
+          <!-- JS 動態產生本週 7 天 -->
+        </div>
+      </div>
+
+      <!-- 5. 【本月活動總覽容器】(切換至查看本月時呈現) -->
+      <div id="monthViewContainer" class="hidden bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+          <h4 class="text-base font-black text-slate-800 flex items-center gap-2">
+            <span>🗓️</span> <span id="monthViewTitle">2026年10月份 全月重點活動列表</span>
+          </h4>
+          <button onclick="setCalViewMode('day')" class="text-xs text-peach-600 font-bold hover:underline">
+            返回單日點選
+          </button>
+        </div>
+        <div id="monthEventsTimeline" class="space-y-2.5">
+          <!-- JS 動態產生本月所有活動時間軸 -->
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ==================== TAB 2: 活動影像相簿 (ALBUMS) ==================== -->
+    <section id="tabContent-albums" class="space-y-6 hidden">
+      <!-- 相簿區抬頭 -->
+      <div class="bg-gradient-to-r from-teal-50 via-sky-50 to-rose-50 p-5 rounded-3xl border border-teal-200/70 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-2xl">📸</span>
+            <h2 class="text-xl font-black text-slate-800 tracking-tight">諾貝爾 A 班 活動影像館</h2>
+          </div>
+          <p class="text-xs sm:text-sm text-slate-600 mt-1">
+            紀錄寶貝在幼兒園成長探索的點滴歡笑！相簿同步存放於 Google Drive 雲端硬碟。
+          </p>
+        </div>
+        <div class="flex items-center gap-2">
+          <a href="https://drive.google.com/drive/folders/1iRFAr3FZMqV-okmktipdwamjAR7WWp6d" target="_blank" class="px-3.5 py-2 rounded-xl bg-white text-teal-700 border border-teal-300 text-xs font-bold hover:bg-teal-50 flex items-center gap-1.5 shadow-2xs tap-bounce">
+            <span>📂</span> 開啟 Google Drive 相簿
+          </a>
+          <button onclick="refreshAlbums()" class="px-3 py-2 rounded-xl bg-teal-600 text-white text-xs font-bold hover:bg-teal-700 shadow-sm tap-bounce">
+            🔄 重新整理
+          </button>
+        </div>
+      </div>
+
+      <!-- 相簿列表格 -->
+      <div id="albumsLoading" class="py-12 text-center text-slate-400 font-bold flex flex-col items-center justify-center gap-2">
+        <div class="w-8 h-8 border-3 border-teal-200 border-t-teal-600 rounded-full animate-spin"></div>
+        <span>正在讀取雲端相簿資料夾...</span>
+      </div>
+
+      <div id="albumsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <!-- JS 動態產生相簿卡片 -->
+      </div>
+    </section>
+
+    <!-- ==================== TAB 3: 常用文件下載 (DOCS) ==================== -->
+    <section id="tabContent-docs" class="space-y-6 hidden">
+      <!-- 文件區抬頭 -->
+      <div class="bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 p-5 rounded-3xl border border-indigo-200/70 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-2xl">📁</span>
+            <h2 class="text-xl font-black text-slate-800 tracking-tight">園所常用資訊與表單下載</h2>
+          </div>
+          <p class="text-xs sm:text-sm text-slate-600 mt-1">
+            提供請假單、用藥委託單、學期行事曆與幼兒園作息手冊，方便家長線上預覽與列印。
+          </p>
+        </div>
+        <a href="https://drive.google.com/drive/folders/1Ie8medB2JPYdUA9LOryVnPAdko1t5rjR" target="_blank" class="px-3.5 py-2 rounded-xl bg-white text-indigo-700 border border-indigo-300 text-xs font-bold hover:bg-indigo-50 flex items-center gap-1.5 shadow-2xs tap-bounce">
+          <span>📂</span> 瀏覽雲端 Docs 資料夾
+        </a>
+      </div>
+
+      <!-- 文件分類與搜尋 -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-1.5 flex-wrap" id="docCategoryPills">
+          <button onclick="filterDocs('全部')" class="doc-cat-btn px-3 py-1 rounded-xl text-xs font-bold bg-indigo-600 text-white shadow-xs">全部文件</button>
+          <button onclick="filterDocs('保健用藥')" class="doc-cat-btn px-3 py-1 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">保健用藥</button>
+          <button onclick="filterDocs('學期行事曆')" class="doc-cat-btn px-3 py-1 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">學期行事曆</button>
+          <button onclick="filterDocs('餐飲菜單')" class="doc-cat-btn px-3 py-1 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">餐飲菜單</button>
+          <button onclick="filterDocs('親師手冊')" class="doc-cat-btn px-3 py-1 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">親師手冊</button>
+        </div>
+        <div class="text-xs text-slate-400">
+          點擊可立即下載或直接預覽
+        </div>
+      </div>
+
+      <!-- 文件列表清單 -->
+      <div id="docsListContainer" class="space-y-3">
+        <!-- JS 動態插入文件項目 -->
+      </div>
+    </section>
+
+    <!-- ==================== TAB 4: 管理後台 (ADMIN) ==================== -->
+    <section id="tabContent-admin" class="space-y-6 hidden">
+      
+      <!-- 未登入：密碼驗證卡片 -->
+      <div id="adminLoginCard" class="max-w-md mx-auto bg-white rounded-3xl p-6 sm:p-8 border border-rose-200 shadow-lg text-center space-y-4 my-8">
+        <div class="w-16 h-16 rounded-3xl bg-peach-100 text-peach-600 flex items-center justify-center text-3xl mx-auto shadow-inner">
+          🔒
+        </div>
+        <div>
+          <h3 class="text-xl font-black text-slate-800">管理員身分驗證</h3>
+          <p class="text-xs sm:text-sm text-slate-500 mt-1">
+            此後台供桃子腳幼兒園老師與管理者編輯行事曆、菜單與上傳檔案。
+          </p>
+        </div>
+        <div class="space-y-3">
+          <div>
+            <input type="password" id="adminPasswordInput" placeholder="請輸入管理員密碼..." class="w-full px-4 py-3 rounded-2xl border-2 border-slate-200 focus:border-peach-500 focus:outline-none text-center font-bold tracking-widest text-base transition-colors" onkeydown="if(event.key==='Enter') doAdminLogin()">
+          </div>
+          <button onclick="doAdminLogin()" id="loginSubmitBtn" class="w-full py-3 rounded-2xl bg-gradient-to-r from-peach-500 to-rose-500 text-white font-black text-sm shadow-md hover:from-peach-600 hover:to-rose-600 transition-all tap-bounce">
+            確認進入管理後台
+          </button>
+          <div class="text-xs text-slate-400 pt-2">
+            預設初設密碼：<code class="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">nobel-a-2026</code>（進入後可自行修改）
+          </div>
+        </div>
+      </div>
+
+      <!-- 已登入：後台主控制台 -->
+      <div id="adminDashboard" class="hidden space-y-6">
+        
+        <!-- 後台頂部列 -->
+        <div class="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-emerald-500 animate-ping"></span>
+            <span class="font-black text-slate-800 text-base">諾貝爾 A 班 內容管理中心</span>
+            <span class="bg-emerald-100 text-emerald-800 text-xs px-2 py-0.5 rounded-full font-bold">已認證</span>
+          </div>
+          <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <button onclick="triggerResetDatabase()" class="px-3 py-1.5 rounded-xl bg-amber-50 text-amber-700 hover:bg-amber-100 text-xs font-bold border border-amber-200 tap-bounce" title="重新填入預設示範資料">
+              🔄 重新初始化資料庫
+            </button>
+            <button onclick="doAdminLogout()" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-rose-50 hover:text-rose-600 text-xs font-bold tap-bounce">
+              登出
+            </button>
+          </div>
+        </div>
+
+        <!-- 後台功能子分頁籤 -->
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 border-b border-slate-200">
+          <button onclick="switchAdminSubtab('events')" id="adminSubtabBtn-events" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold bg-peach-500 text-white shadow-xs whitespace-nowrap">
+            📅 行事曆活動管理
+          </button>
+          <button onclick="switchAdminSubtab('menu')" id="adminSubtabBtn-menu" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
+            🍱 每日菜單管理
+          </button>
+          <button onclick="switchAdminSubtab('uploadPhoto')" id="adminSubtabBtn-uploadPhoto" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
+            📸 相簿批次上傳
+          </button>
+          <button onclick="switchAdminSubtab('uploadDoc')" id="adminSubtabBtn-uploadDoc" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
+            📂 文件檔案上傳
+          </button>
+          <button onclick="switchAdminSubtab('spotlight')" id="adminSubtabBtn-spotlight" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
+            🌟 Spotlight 管理
+          </button>
+          <button onclick="switchAdminSubtab('settings')" id="adminSubtabBtn-settings" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
+            ⚙️ 密碼與設定
+          </button>
+        </div>
+
+        <!-- 子分頁 1: 行事曆活動管理 -->
+        <div id="adminPanel-events" class="admin-panel space-y-4">
+          <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
+            <h4 class="font-black text-slate-800 text-base mb-3 flex items-center justify-between">
+              <span>新增／編輯行事曆活動</span>
+              <button onclick="clearEventForm()" class="text-xs text-peach-600 font-bold hover:underline">清空表單</button>
+            </h4>
+            <form id="eventForm" onsubmit="handleSaveEvent(event)" class="space-y-3">
+              <input type="hidden" id="eventForm-id">
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 mb-1">活動日期 *</label>
+                  <input type="date" id="eventForm-date" required class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-peach-500 focus:outline-none">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 mb-1">結束日期 (連假填寫)</label>
+                  <input type="date" id="eventForm-endDate" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-peach-500 focus:outline-none">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 mb-1">活動名稱 *</label>
+                  <input type="text" id="eventForm-title" placeholder="如：幸福廚房、牙齒塗氟日" required class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-peach-500 focus:outline-none">
+                </div>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 mb-1">適用對象 *</label>
+                  <select id="eventForm-target" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-peach-500 focus:outline-none">
+                    <option value="諾貝爾A班">🌟 諾貝爾 A 班專屬</option>
+                    <option value="全園">🏫 全園活動</option>
+                    <option value="親職活動">👨‍👩‍👧 親師座談 / 親職活動</option>
+                    <option value="米A/米B/兩果">米A/米B/兩果</option>
+                    <option value="雨奧/奧斯卡/諾奧">雨奧/奧斯卡/諾奧</option>
+                    <option value="其他">其他班級</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 mb-1">活動類別</label>
+                  <select id="eventForm-category" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-peach-500 focus:outline-none">
+                    <option value="重要活動">重要活動</option>
+                    <option value="班級主題">班級主題 / 幸福廚房</option>
+                    <option value="親職講座">親職講座</option>
+                    <option value="全園活動">全園慶生/歲末</option>
+                    <option value="節慶放假">節慶放假</option>
+                    <option value="園務消毒">園務消毒</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 mb-1">時間／地點備註</label>
+                  <input type="text" id="eventForm-timeLocation" placeholder="如：08:30、17:00 開始" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-peach-500 focus:outline-none">
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-600 mb-1">活動詳細說明 / 攜帶物品注意事項</label>
+                <textarea id="eventForm-description" rows="2" placeholder="詳細說明、講師介紹或請家長配合攜帶之健保卡等..." class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-peach-500 focus:outline-none"></textarea>
+              </div>
+              <div class="flex justify-end gap-2 pt-1">
+                <button type="submit" id="saveEventBtn" class="px-5 py-2 rounded-xl bg-peach-500 hover:bg-peach-600 text-white font-bold text-xs shadow-sm tap-bounce">
+                  儲存活動
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- 已排定活動列表 -->
+          <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
+            <h4 class="font-black text-slate-800 text-base">既有排定活動一覽</h4>
+            <div id="adminEventsTableContainer" class="overflow-x-auto max-h-96">
+              <!-- JS 動態插入 -->
+            </div>
+          </div>
+        </div>
+
+        <!-- 子分頁 2: 每日菜單管理 -->
+        <div id="adminPanel-menu" class="admin-panel space-y-4 hidden">
+          <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
+            <h4 class="font-black text-slate-800 text-base mb-3 flex items-center justify-between">
+              <span>編輯每日菜單</span>
+              <button onclick="loadMenuForSelectedDate()" class="text-xs text-amber-600 font-bold hover:underline">載入該日菜單</button>
+            </h4>
+            <form id="menuForm" onsubmit="handleSaveMenu(event)" class="space-y-3">
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 mb-1">菜單日期 *</label>
+                  <input type="date" id="menuForm-date" required onchange="loadMenuForSelectedDate()" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-amber-500 focus:outline-none">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 mb-1">早點</label>
+                  <input type="text" id="menuForm-morningSnack" placeholder="如：紅藜雙色饅頭、米漿" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-amber-500 focus:outline-none">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 mb-1">當季水果</label>
+                  <input type="text" id="menuForm-fruit" placeholder="如：當季水果（香蕉/芭樂）" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-amber-500 focus:outline-none">
+                </div>
+              </div>
+
+              <!-- 午餐五菜一湯 -->
+              <div class="bg-amber-50/50 p-3 rounded-2xl border border-amber-200 space-y-2">
+                <div class="text-xs font-bold text-amber-800">午餐內容配置（主食、主菜、兩道副菜、湯品）</div>
+                <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                  <div>
+                    <label class="block text-xs text-slate-500 mb-0.5">主食</label>
+                    <input type="text" id="menuForm-lunchStaple" placeholder="糙白米飯" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-medium">
+                  </div>
+                  <div>
+                    <label class="block text-xs text-slate-500 mb-0.5">主菜</label>
+                    <input type="text" id="menuForm-lunchMain" placeholder="青椒炒雞柳" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-medium">
+                  </div>
+                  <div>
+                    <label class="block text-xs text-slate-500 mb-0.5">副菜一</label>
+                    <input type="text" id="menuForm-lunchSide1" placeholder="木須炒蛋" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-medium">
+                  </div>
+                  <div>
+                    <label class="block text-xs text-slate-500 mb-0.5">副菜二</label>
+                    <input type="text" id="menuForm-lunchSide2" placeholder="有機蔬菜" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-medium">
+                  </div>
+                  <div>
+                    <label class="block text-xs text-slate-500 mb-0.5">湯品</label>
+                    <input type="text" id="menuForm-lunchSoup" placeholder="玉米濃湯" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-medium">
+                  </div>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 mb-1">午點（下午點心）</label>
+                  <input type="text" id="menuForm-afternoonSnack" placeholder="如：滑蛋雞肉粥、綠豆薏仁湯" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-amber-500 focus:outline-none">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 mb-1">備註說明</label>
+                  <input type="text" id="menuForm-note" placeholder="如：今日十月慶生會點心" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-amber-500 focus:outline-none">
+                </div>
+              </div>
+
+              <div class="flex justify-end gap-2 pt-1">
+                <button type="button" onclick="handleDeleteMenu()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 font-bold text-xs tap-bounce">
+                  刪除此日菜單
+                </button>
+                <button type="submit" id="saveMenuBtn" class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-sm tap-bounce">
+                  儲存菜單
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- 子分頁 3: 相簿批次上傳 (Google Drive Albums) -->
+        <div id="adminPanel-uploadPhoto" class="admin-panel space-y-4 hidden">
+          <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+            <div>
+              <h4 class="font-black text-slate-800 text-base">上傳活動相簿至 Google Drive</h4>
+              <p class="text-xs text-slate-500 mt-0.5">
+                依照需求，系統會自動在 Albums 根目錄建立「<span class="text-teal-600 font-bold">上傳日期_活動主題</span>」的子資料夾，並存放照片。
+              </p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-bold text-slate-600 mb-1">活動日期 *</label>
+                <input type="date" id="albumUpload-date" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-teal-500 focus:outline-none" oninput="updateAlbumPreviewName()">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-600 mb-1">活動主題 *</label>
+                <input type="text" id="albumUpload-title" placeholder="如：牙齒塗氟日、萬聖節變裝、幸福廚房" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-teal-500 focus:outline-none" oninput="updateAlbumPreviewName()">
+              </div>
+            </div>
+
+            <!-- 自動預覽資料夾名稱 -->
+            <div class="bg-teal-50 p-3 rounded-2xl border border-teal-200 text-xs text-teal-800 flex items-center justify-between">
+              <span>預計建立資料夾名稱：</span>
+              <strong id="albumUpload-previewName" class="font-mono text-sm text-teal-900">2026-10-23_牙齒塗氟日</strong>
+            </div>
+
+            <!-- 檔案選取區塊 -->
+            <div class="border-2 border-dashed border-teal-200 rounded-2xl p-6 text-center hover:bg-teal-50/50 transition-colors cursor-pointer" onclick="document.getElementById('albumFileInput').click()">
+              <input type="file" id="albumFileInput" multiple accept="image/*" class="hidden" onchange="handleAlbumFilesSelected(event)">
+              <div class="text-3xl mb-1">📸</div>
+              <div class="text-xs font-bold text-slate-700">點此選取照片（支援多張選取）</div>
+              <div class="text-xs text-slate-400 mt-1">支援 JPG, PNG, WEBP，手機可直接拍照或選取多張圖檔</div>
+            </div>
+
+            <!-- 待上傳縮圖預覽 -->
+            <div id="albumUploadPreviewArea" class="hidden space-y-2">
+              <div class="flex items-center justify-between text-xs font-bold text-slate-600">
+                <span id="albumSelectedCountText">已選擇 0 張相片</span>
+                <button onclick="clearSelectedPhotos()" class="text-rose-500 hover:underline">清除重選</button>
+              </div>
+              <div id="albumThumbnails" class="grid grid-cols-4 sm:grid-cols-6 gap-2 max-h-48 overflow-y-auto p-1 bg-slate-50 rounded-xl"></div>
+            </div>
+
+            <div class="flex justify-end pt-2">
+              <button onclick="startUploadAlbumPhotos()" id="albumUploadBtn" class="px-6 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs shadow-sm tap-bounce disabled:opacity-50">
+                開始上傳相簿至 Google Drive
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 子分頁 4: 常用文件上傳 (Google Drive Docs) -->
+        <div id="adminPanel-uploadDoc" class="admin-panel space-y-4 hidden">
+          <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+            <div>
+              <h4 class="font-black text-slate-800 text-base">上傳常用文件至 Google Drive Docs</h4>
+              <p class="text-xs text-slate-500 mt-0.5">檔案將直接存入您的 Docs 雲端資料夾，並即時於前台顯示下載按鈕。</p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-bold text-slate-600 mb-1">文件顯示名稱 *</label>
+                <input type="text" id="docUpload-name" placeholder="如：幼兒用藥委託單.pdf" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-indigo-500 focus:outline-none">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-600 mb-1">文件類別 *</label>
+                <select id="docUpload-category" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-indigo-500 focus:outline-none">
+                  <option value="保健用藥">保健用藥</option>
+                  <option value="學期行事曆">學期行事曆</option>
+                  <option value="餐飲菜單">餐飲菜單</option>
+                  <option value="親師手冊">親師手冊</option>
+                  <option value="其他常用">其他常用</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">說明備註</label>
+              <textarea id="docUpload-desc" rows="2" placeholder="請家長下載列印填妥後交給老師..." class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-indigo-500 focus:outline-none"></textarea>
+            </div>
+
+            <div class="border-2 border-dashed border-indigo-200 rounded-2xl p-6 text-center hover:bg-indigo-50/50 transition-colors cursor-pointer" onclick="document.getElementById('docFileInput').click()">
+              <input type="file" id="docFileInput" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.png" class="hidden" onchange="handleDocFileSelected(event)">
+              <div class="text-3xl mb-1">📄</div>
+              <div id="docFileSelectedName" class="text-xs font-bold text-slate-700">點此選取文件檔案（PDF、Word、Excel）</div>
+              <div class="text-xs text-slate-400 mt-1">選取後將直接上傳至雲端硬碟 Docs 資料夾</div>
+            </div>
+
+            <div class="flex justify-end pt-2">
+              <button onclick="startUploadDocument()" id="docUploadBtn" class="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm tap-bounce">
+                上傳文件並發佈
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 子分頁 5: Spotlight 管理 -->
+        <div id="adminPanel-spotlight" class="admin-panel space-y-4 hidden">
+          <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
+            <h4 class="font-black text-slate-800 text-base">編輯 Spotlight 近期重點活動</h4>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-bold text-slate-600 mb-1">主標題 *</label>
+                <input type="text" id="spForm-title" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-600 mb-1">副標題/時間 *</label>
+                <input type="text" id="spForm-subtitle" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium">
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">圖片網址 (可用 Drive 圖床或圖片連結)</label>
+              <input type="text" id="spForm-imageUrl" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">重點說明與注意事項 (換行分隔)</label>
+              <textarea id="spForm-bulletPoints" rows="4" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium"></textarea>
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+              <button onclick="saveSpotlightSettings()" class="px-5 py-2 rounded-xl bg-peach-500 hover:bg-peach-600 text-white font-bold text-xs shadow-sm tap-bounce">
+                儲存 Spotlight
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 子分頁 6: 密碼與系統設定 -->
+        <div id="adminPanel-settings" class="admin-panel space-y-4 hidden">
+          <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4 max-w-xl">
+            <h4 class="font-black text-slate-800 text-base">密碼與系統設定</h4>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">修改管理員密碼</label>
+              <input type="text" id="setting-newPassword" placeholder="輸入新的管理密碼" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">頂部公告跑馬燈訊息</label>
+              <input type="text" id="setting-tickerMessage" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium">
+            </div>
+            <div class="flex justify-end pt-2">
+              <button onclick="saveSystemSettings()" class="px-5 py-2 rounded-xl bg-slate-800 hover:bg-black text-white font-bold text-xs shadow-sm tap-bounce">
+                儲存系統設定
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ==================== SPOTLIGHT 攻略大圖彈窗 (MODAL) ==================== -->
+  <div id="spotlightModal" class="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-5 shadow-2xl space-y-4 relative">
+      <button onclick="closeSpotlightModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-base tap-bounce">
+        ✕
+      </button>
+      <div class="flex items-center gap-2">
+        <span class="text-xl">🍑</span>
+        <h3 id="modalSpotlightTitle" class="text-lg font-black text-slate-800">桃子腳幼兒園 牙齒塗氟日 活動攻略圖</h3>
+      </div>
+      <div class="rounded-2xl overflow-hidden border border-rose-100 bg-rose-50 flex items-center justify-center">
+        <img id="modalSpotlightImg" src="https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=1200&q=80" alt="塗氟攻略" class="w-full max-h-[60vh] object-contain">
+      </div>
+      <div id="modalSpotlightDesc" class="text-xs sm:text-sm text-slate-700 whitespace-pre-line bg-rose-50/60 p-4 rounded-2xl border border-rose-100">
+        <!-- JS 插入 -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 相簿照片瀏覽彈窗 (ALBUM LIGHTBOX MODAL) ==================== -->
+  <div id="albumPhotosModal" class="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-3 sm:p-5 hidden">
+    <div class="bg-white rounded-3xl max-w-4xl w-full h-[90vh] flex flex-col p-4 sm:p-6 shadow-2xl relative">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">📸</span>
+          <h3 id="modalAlbumTitle" class="text-base sm:text-lg font-black text-slate-800 truncate max-w-xs sm:max-w-md">相簿照片</h3>
+        </div>
+        <button onclick="closeAlbumModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-base tap-bounce">
+          ✕
+        </button>
+      </div>
+
+      <!-- 相片縮圖網格 -->
+      <div id="albumPhotosGrid" class="flex-1 overflow-y-auto py-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+        <!-- JS 動態插入照片 -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 單張照片大圖檢視 (PHOTO VIEWER) ==================== -->
+  <div id="photoViewerModal" class="fixed inset-0 z-60 bg-black/90 flex flex-col items-center justify-center p-2 hidden">
+    <button onclick="closePhotoViewer()" class="absolute top-4 right-4 text-white text-2xl font-bold w-10 h-10 rounded-full bg-white/20 flex items-center justify-center tap-bounce">
+      ✕
+    </button>
+    <a id="photoDownloadBtn" href="#" target="_blank" class="absolute top-4 left-4 text-white text-xs font-bold px-3 py-1.5 rounded-full bg-white/20 flex items-center gap-1 tap-bounce">
+      ⬇️ 下載原始照片
+    </a>
+    <img id="photoViewerImg" src="" alt="Photo" class="max-w-full max-h-[85vh] object-contain rounded-lg">
+  </div>
+
+  <!-- ==================== 全域提示訊息 TOAST ==================== -->
+  <div id="toast" class="fixed bottom-16 sm:bottom-6 left-1/2 -translate-x-1/2 z-70 bg-slate-800 text-white text-xs sm:text-sm font-bold px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 transition-all opacity-0 pointer-events-none transform translate-y-3">
+    <span id="toastIcon">✨</span>
+    <span id="toastMsg">訊息內容</span>
+  </div>
+
+  <!-- ==================== 頁尾 FOOTER ==================== -->
+  <footer class="bg-white border-t border-rose-100/80 py-6 mt-12 text-center text-xs text-slate-400 space-y-1">
+    <div class="flex items-center justify-center gap-2">
+      <img src="data:image/jpeg;base64,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" alt="3&3" class="w-5 h-5 object-contain inline-block">
+      <span class="font-bold text-slate-600">新北市桃子腳非營利幼兒園</span>
+      <span>•</span>
+      <span class="font-bold text-peach-600">諾貝爾 A 班</span>
+    </div>
+    <p>財團法人三之三生命教育基金會辦理 ｜ 用愛陪伴孩子成長的每一步</p>
+  </footer>
+
+  <!-- ==================== 前端邏輯 JS SCRIPT ==================== -->
+  <script>
+    // 全域應用狀態
+    const state = {
+      currentTab: 'home',
+      currentCalView: 'day', // 'day', 'week', 'month'
+      viewYear: 2026,
+      viewMonth: 10, // 1~12 (以10月為示範基準)
+      selectedDateStr: '2026-10-23', // 預設塗氟日
+      events: [],
+      menus: [],
+      spotlights: [],
+      docs: [],
+      settings: {},
+      adminPassword: '',
+      selectedAlbumFiles: [],
+      selectedDocFile: null,
+      cachedAlbums: []
+    };
+
+    // 初始化程式
+    window.addEventListener('DOMContentLoaded', () => {
+      startLiveClock();
+      // 初始化今天日期（若當前月在2026年10月附近則自動對齊）
+      const today = new Date();
+      const yr = today.getFullYear();
+      const mo = today.getMonth() + 1;
+      const dy = ('0' + today.getDate()).slice(-2);
+      
+      // 如果年月份在示範資料區間（2026-08~2027-01），預設今天，否則預設10月
+      if (yr === 2026 && mo >= 8 && mo <= 12) {
+        state.viewYear = yr;
+        state.viewMonth = mo;
+        state.selectedDateStr = `${yr}-${('0'+mo).slice(-2)}-${dy}`;
+      } else {
+        state.viewYear = 2026;
+        state.viewMonth = 10;
+        state.selectedDateStr = '2026-10-23';
+      }
+
+      loadAppData();
+    });
+
+    // 啟動即時時鐘
+    function startLiveClock() {
+      const update = () => {
+        const now = new Date();
+        const hrs = ('0' + now.getHours()).slice(-2);
+        const mins = ('0' + now.getMinutes()).slice(-2);
+        const el = document.getElementById('liveClock');
+        if (el) el.textContent = `${hrs}:${mins}`;
+      };
+      update();
+      setInterval(update, 1000);
+    }
+
+    // 從 GAS 後端載入全站資料
+    
+    const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxngSEbmXLW2_M7FNVxBLpbp-X1w1Z8ZX_33Kpj-ZekpGwS19Ao262HmLKkTbl3156A8g/exec';
+
+    // 跨環境後端通訊橋樑 (支援 GAS 內部環境與 GitHub Pages 外部環境)
+    function callBackend(action, payload, successCb, errorCb) {
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        const runner = google.script.run
+          .withSuccessHandler(res => { if (successCb) successCb(res); })
+          .withFailureHandler(err => { if (errorCb) errorCb(err); else showToast('執行失敗: ' + err, '❌'); });
+
+        if (action === 'getAppData') runner.getAppData();
+        else if (action === 'getAlbums') runner.getAlbums();
+        else if (action === 'getAlbumPhotos') runner.getAlbumPhotos(payload.albumId);
+        else if (action === 'verifyPassword') runner.verifyPassword(payload.password);
+        else if (action === 'saveEvent') runner.saveEvent(payload.data, payload.password);
+        else if (action === 'deleteEvent') runner.deleteEvent(payload.id, payload.password);
+        else if (action === 'saveMenu') runner.saveMenu(payload.data, payload.password);
+        else if (action === 'deleteMenu') runner.deleteMenu(payload.date, payload.password);
+        else if (action === 'saveSpotlight') runner.saveSpotlight(payload.data, payload.password);
+        else if (action === 'deleteSpotlight') runner.deleteSpotlight(payload.id, payload.password);
+        else if (action === 'uploadPhotosToAlbum') runner.uploadPhotosToAlbum(payload.date, payload.title, payload.files, payload.password);
+        else if (action === 'uploadDocument') runner.uploadDocument(payload.meta, payload.file, payload.password);
+        else if (action === 'deleteDoc') runner.deleteDoc(payload.id, payload.password);
+        else if (action === 'updateSettings') runner.updateSettings(payload.settings, payload.password);
+        else if (action === 'setupInitialDatabase') runner.setupInitialDatabase();
+      } else {
+        // GitHub Pages / 外網模式
+        if (action === 'getAppData' || action === 'getAlbums' || action === 'getAlbumPhotos') {
+          let url = GAS_API_URL + '?action=' + encodeURIComponent(action);
+          if (payload && payload.albumId) url += '&albumId=' + encodeURIComponent(payload.albumId);
+          fetch(url)
+            .then(r => r.json())
+            .then(res => { if (successCb) successCb(res); })
+            .catch(err => { if (errorCb) errorCb(err); });
+        } else {
+          fetch(GAS_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ action, ...payload })
+          })
+            .then(r => r.json())
+            .then(res => { if (successCb) successCb(res); })
+            .catch(err => { if (errorCb) errorCb(err); });
+        }
+      }
+    }
+
+    function loadAppData() {
+      showLoading(true);
+      callBackend('getAppData', {}, res => {
+        showLoading(false);
+        if (res && res.success) {
+          handleDataLoaded(res.data);
+        } else {
+          renderFallbackLocalData();
+        }
+      }, err => {
+        showLoading(false);
+        renderFallbackLocalData();
+      });
+    }
+
+    // 處理遠端資料
+    function handleDataLoaded(data) {
+      state.events = data.events || [];
+      state.menus = data.menus || [];
+      state.spotlights = data.spotlights || [];
+      state.docs = data.docs || [];
+      state.settings = data.settings || {};
+
+      if (state.settings.tickerMessage) {
+        document.getElementById('tickerText').textContent = state.settings.tickerMessage;
+      }
+
+      // 渲染 Spotlight
+      renderSpotlightSection();
+      // 渲染行事曆
+      renderCalendar();
+      // 渲染選取日期的生活與菜單
+      renderSelectedDayDetails(state.selectedDateStr);
+      // 渲染文件列表
+      renderDocsList();
+
+      document.getElementById('tabContent-home').classList.remove('hidden');
+    }
+
+    // 本地備援示範資料 (保證預覽時完全不空白)
+    function renderFallbackLocalData() {
+      state.events = [
+        { id: 'EV-01', date: '2026-08-03', title: '新學期開學日', target: '全園', category: '全園活動', timeLocation: '', description: '開學第一天', theme: '快樂上學趣' },
+        { id: 'EV-05', date: '2026-08-27', title: '諾貝爾 A、B、C 親師座談', target: '諾貝爾A班', category: '親職活動', timeLocation: '17:00 開始', description: '諾A班親師座談交流', theme: '快樂上學趣' },
+        { id: 'EV-08', date: '2026-09-09', title: '幸福廚房（諾C/諾B/諾A）', target: '諾貝爾A班', category: '班級主題', timeLocation: '', description: '諾A班小小烘焙師手作體驗', theme: '快樂上學趣' },
+        { id: 'EV-14', date: '2026-10-07', title: '幸福廚房（諾C/諾B/諾A）', target: '諾貝爾A班', category: '班級主題', timeLocation: '', description: '諾A班十月份幸福廚房手作日', theme: '主題活動：人與自己／人與他人概念' },
+        { id: 'EV-15', date: '2026-10-08', title: '十月壽星慶生會', target: '全園', category: '全園活動', timeLocation: '', description: '分享快樂分享愛！', theme: '主題活動：人與自己／人與他人概念' },
+        { id: 'EV-16', date: '2026-10-09', endDate: '2026-10-11', title: '雙十節連假', target: '全園', category: '節慶放假', timeLocation: '連假三日', description: '國慶連續假期放假', theme: '主題活動：人與自己／人與他人概念' },
+        { id: 'EV-17', date: '2026-10-23', title: '牙齒塗氟日 口腔保健檢查', target: '諾貝爾A班', category: '重要活動', timeLocation: '08:30 (五)', description: '🌟 全園定期塗氟檢查，請家長務必攜帶健保卡！未攜帶無法參加喔！', theme: '主題活動：人與自己／人與他人概念' },
+        { id: 'EV-18', date: '2026-10-24', endDate: '2026-10-26', title: '光復節連假', target: '全園', category: '節慶放假', timeLocation: '連假三日', description: '光復節連續假期', theme: '主題活動：人與自己／人與他人概念' }
+      ];
+
+      state.menus = [
+        { date: '2026-10-01', morningSnack: '紅藜雙色饅頭、米漿', fruit: '當季水果', lunchStaple: '糙白米飯', lunchMain: '青椒炒雞柳', lunchSide1: '木須炒蛋', lunchSide2: '有機蔬菜', lunchSoup: '玉米濃湯', afternoonSnack: '滑蛋雞肉粥', nutrients: '全穀雜糧類,豆魚蛋肉類,蔬菜類,水果類', note: '本園未使用不合格油品' },
+        { date: '2026-10-02', morningSnack: '全麥吐司、黑芝麻豆漿', fruit: '當季水果', lunchStaple: '日式和風拉麵', lunchMain: '有機蔬菜', lunchSide1: '蘿蔔貢丸湯', lunchSide2: '', lunchSoup: '', afternoonSnack: '豆花', nutrients: '全穀雜糧類,豆魚蛋肉類,蔬菜類,水果類', note: '' },
+        { date: '2026-10-05', morningSnack: '奶皇包、黑芝麻豆漿', fruit: '當季水果', lunchStaple: '古早味滷肉飯', lunchMain: '有機蔬菜', lunchSide1: '什錦蔬菜湯', lunchSide2: '', lunchSoup: '', afternoonSnack: '鹹粥', nutrients: '全穀雜糧類,豆魚蛋肉類,蔬菜類,水果類', note: '' },
+        { date: '2026-10-06', morningSnack: '芋頭堅果饅頭、燕麥豆漿', fruit: '當季水果', lunchStaple: '糙白米飯', lunchMain: '什錦冬粉', lunchSide1: '番茄豆腐', lunchSide2: '有機蔬菜', lunchSoup: '營養蔬菜湯', afternoonSnack: '綠豆薏仁湯', nutrients: '全穀雜糧類,豆魚蛋肉類,蔬菜類,水果類', note: '' },
+        { date: '2026-10-07', morningSnack: '什錦穀片、鮮奶', fruit: '當季水果', lunchStaple: '糙白米飯', lunchMain: '瓜仔肉', lunchSide1: '蛋香大黃瓜', lunchSide2: '有機蔬菜', lunchSoup: '魚丸湯', afternoonSnack: '芋頭粥', nutrients: '全穀雜糧類,豆魚蛋肉類,蔬菜類,水果類', note: '' },
+        { date: '2026-10-08', morningSnack: '果醬吐司、豆漿', fruit: '當季水果', lunchStaple: '味噌豬肉湯麵', lunchMain: '有機蔬菜', lunchSide1: '', lunchSide2: '', lunchSoup: '', afternoonSnack: '慶生會', nutrients: '全穀雜糧類,豆魚蛋肉類,蔬菜類,水果類', note: '十月慶生會' },
+        { date: '2026-10-23', morningSnack: '鹹奶油餐包、米漿', fruit: '當季水果', lunchStaple: '日式炒烏龍', lunchMain: '有機蔬菜', lunchSide1: '味噌湯', lunchSide2: '', lunchSoup: '', afternoonSnack: '桂圓燕麥粥', nutrients: '全穀雜糧類,豆魚蛋肉類,蔬菜類,水果類', note: '今日塗氟檢查日' }
+      ];
+
+      state.spotlights = [
+        {
+          id: 'SP-01',
+          title: '桃子腳幼兒園 牙齒塗氟日 活動攻略圖',
+          subtitle: '日期：2026/10/23 (五) 08:30',
+          imageUrl: 'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=1200&q=80',
+          bulletPoints: '【衛教宣導】正確刷牙示範，養成潔牙好習慣！\n【塗氟檢查】每六個月定期口腔保健，保護小乳牙！\n【注意事項】請家長務必攜帶「健保卡」，未攜帶無法參加喔！\n【活動尾聲】守護健康小乳牙，順利完成打卡領小禮物！'
+        }
+      ];
+
+      state.docs = [
+        { id: 'DOC-01', fileName: '幼兒用藥委託單.pdf', category: '保健用藥', description: '幼兒在園需協助用藥時請家長填寫委託單', downloadUrl: 'https://drive.google.com/drive/folders/1Ie8medB2JPYdUA9LOryVnPAdko1t5rjR', updatedAt: '2026-09-01' },
+        { id: 'DOC-02', fileName: '115學年度(上)全園活動規劃暨親職活動行事曆.pdf', category: '學期行事曆', description: '包含全學期各月份主題與親師座談日期', downloadUrl: 'https://drive.google.com/drive/folders/1Ie8medB2JPYdUA9LOryVnPAdko1t5rjR', updatedAt: '2026-08-01' },
+        { id: 'DOC-03', fileName: '10月份營養午餐及點心菜單表.pdf', category: '餐飲菜單', description: '本月幼兒每日三餐營養菜單與檢核表', downloadUrl: 'https://drive.google.com/drive/folders/1Ie8medB2JPYdUA9LOryVnPAdko1t5rjR', updatedAt: '2026-10-01' },
+        { id: 'DOC-04', fileName: '諾貝爾A班新生家長入園須知手冊.pdf', category: '親師手冊', description: '作息時間表、接送規定與常規說明', downloadUrl: 'https://drive.google.com/drive/folders/1Ie8medB2JPYdUA9LOryVnPAdko1t5rjR', updatedAt: '2026-08-15' }
+      ];
+
+      renderSpotlightSection();
+      renderCalendar();
+      renderSelectedDayDetails(state.selectedDateStr);
+      renderDocsList();
+
+      document.getElementById('tabContent-home').classList.remove('hidden');
+    }
+
+    // ==================== 頁籤切換邏輯 ====================
+    function switchTab(tabName) {
+      state.currentTab = tabName;
+      ['home', 'albums', 'docs', 'admin'].forEach(tab => {
+        const contentEl = document.getElementById(`tabContent-${tab}`);
+        const btnEl = document.getElementById(`tabBtn-${tab}`);
+        const mBtnEl = document.getElementById(`mTabBtn-${tab}`);
+
+        if (tab === tabName) {
+          contentEl.classList.remove('hidden');
+          if (btnEl) {
+            btnEl.className = 'tab-btn px-3.5 py-1.5 rounded-xl text-sm font-bold flex items-center gap-1.5 transition-all bg-peach-500 text-white shadow-sm';
+          }
+          if (mBtnEl) {
+            mBtnEl.className = 'm-tab-btn flex-1 py-1.5 flex flex-col items-center justify-center text-xs font-bold rounded-xl transition-all text-peach-600 bg-peach-50';
+          }
+        } else {
+          contentEl.classList.add('hidden');
+          if (btnEl) {
+            btnEl.className = 'tab-btn px-3.5 py-1.5 rounded-xl text-sm font-bold flex items-center gap-1.5 transition-all text-slate-600 hover:text-slate-900 hover:bg-slate-100';
+          }
+          if (mBtnEl) {
+            mBtnEl.className = 'm-tab-btn flex-1 py-1.5 flex flex-col items-center justify-center text-xs font-bold rounded-xl transition-all text-slate-500 hover:text-slate-800';
+          }
+        }
+      });
+
+      if (tabName === 'albums' && state.cachedAlbums.length === 0) {
+        refreshAlbums();
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // ==================== SPOTLIGHT 區塊渲染 ====================
+    function renderSpotlightSection() {
+      if (state.spotlights.length === 0) return;
+      const sp = state.spotlights[0];
+      document.getElementById('spotlightTitle').textContent = sp.title || '桃子腳幼兒園 牙齒塗氟日 活動攻略圖';
+      document.getElementById('spotlightSubtitle').textContent = sp.subtitle || '日期：2026/10/23 (五) 08:30';
+      if (sp.imageUrl) {
+        document.getElementById('spotlightImg').src = sp.imageUrl;
+      }
+    }
+
+    function openSpotlightModal() {
+      const sp = state.spotlights[0] || {};
+      document.getElementById('modalSpotlightTitle').textContent = sp.title || '牙齒塗氟日 活動攻略圖';
+      if (sp.imageUrl) {
+        document.getElementById('modalSpotlightImg').src = sp.imageUrl;
+      }
+      document.getElementById('modalSpotlightDesc').textContent = sp.bulletPoints || '請務必攜帶健保卡，按時參加塗氟口腔保健！';
+      document.getElementById('spotlightModal').classList.remove('hidden');
+    }
+
+    function closeSpotlightModal() {
+      document.getElementById('spotlightModal').classList.add('hidden');
+    }
+
+    // ==================== 行事曆邏輯 (週日為第一天) ====================
+    function changeMonth(delta) {
+      state.viewMonth += delta;
+      if (state.viewMonth > 12) {
+        state.viewMonth = 1;
+        state.viewYear++;
+      } else if (state.viewMonth < 1) {
+        state.viewMonth = 12;
+        state.viewYear--;
+      }
+      renderCalendar();
+      if (state.currentCalView === 'week') {
+        renderWeekView();
+      } else if (state.currentCalView === 'month') {
+        renderMonthView();
+      }
+    }
+
+    function goToToday() {
+      state.viewYear = 2026;
+      state.viewMonth = 10;
+      state.selectedDateStr = '2026-10-23';
+      renderCalendar();
+      renderSelectedDayDetails(state.selectedDateStr);
+      setCalViewMode('day');
+    }
+
+    function setCalViewMode(mode) {
+      state.currentCalView = mode;
+      ['day', 'week', 'month'].forEach(m => {
+        const btn = document.getElementById(`viewModeBtn-${m}`);
+        if (m === mode) {
+          btn.className = 'cal-view-btn flex-1 sm:flex-none px-3 py-1 rounded-xl text-xs font-bold transition-all bg-white text-slate-800 shadow-xs';
+        } else {
+          btn.className = 'cal-view-btn flex-1 sm:flex-none px-3 py-1 rounded-xl text-xs font-bold transition-all text-slate-600 hover:text-slate-900';
+        }
+      });
+
+      const daySec = document.getElementById('linkedContentSection');
+      const weekSec = document.getElementById('weekViewContainer');
+      const monthSec = document.getElementById('monthViewContainer');
+
+      if (mode === 'day') {
+        daySec.classList.remove('hidden');
+        weekSec.classList.add('hidden');
+        monthSec.classList.add('hidden');
+      } else if (mode === 'week') {
+        daySec.classList.add('hidden');
+        weekSec.classList.remove('hidden');
+        monthSec.classList.add('hidden');
+        renderWeekView();
+      } else if (mode === 'month') {
+        daySec.classList.add('hidden');
+        weekSec.classList.add('hidden');
+        monthSec.classList.remove('hidden');
+        renderMonthView();
+      }
+    }
+
+    function renderCalendar() {
+      const year = state.viewYear;
+      const month = state.viewMonth;
+      document.getElementById('calendarCurrentMonthText').textContent = `${year} 年 ${month} 月`;
+
+      const grid = document.getElementById('calendarGrid');
+      grid.innerHTML = '';
+
+      // 計算本月第一天是星期幾 (0 = 週日, 1 = 週一 ... 6 = 週六)
+      const firstDayIndex = new Date(year, month - 1, 1).getDay();
+      // 計算本月總天數
+      const daysInMonth = new Date(year, month, 0).getDate();
+      // 上個月總天數
+      const daysInPrevMonth = new Date(year, month - 1, 0).getDate();
+
+      // 1. 填補上個月的尾端格子
+      for (let i = firstDayIndex - 1; i >= 0; i--) {
+        const d = daysInPrevMonth - i;
+        const cell = document.createElement('div');
+        cell.className = 'min-h-[58px] sm:min-h-[68px] p-1 rounded-xl bg-slate-50/50 text-slate-300 font-medium text-xs flex flex-col justify-between select-none opacity-40';
+        cell.innerHTML = `<span>${d}</span>`;
+        grid.appendChild(cell);
+      }
+
+      // 2. 本月天數格子
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dayStr = `${year}-${('0' + month).slice(-2)}-${('0' + day).slice(-2)}`;
+        const dateObj = new Date(year, month - 1, day);
+        const dayOfWeek = dateObj.getDay(); // 0 is Sunday, 6 is Saturday
+
+        const isSunday = (dayOfWeek === 0);
+        const isSaturday = (dayOfWeek === 6);
+        const isWeekend = isSunday || isSaturday;
+        const isSelected = (dayStr === state.selectedDateStr);
+
+        // 查找該日活動與菜單
+        const dayEvents = getEventsForDate(dayStr);
+        const dayMenu = getMenuForDate(dayStr);
+
+        const cell = document.createElement('div');
+        cell.onclick = () => onDateClicked(dayStr);
+
+        // 基本外觀 class
+        let cellClasses = 'min-h-[58px] sm:min-h-[68px] p-1 sm:p-1.5 rounded-2xl font-bold text-xs flex flex-col justify-between transition-all cursor-pointer tap-bounce border ';
+        
+        if (isSelected) {
+          cellClasses += 'bg-gradient-to-b from-peach-100 to-rose-50 border-peach-500 shadow-md ring-2 ring-peach-300 ';
+        } else if (isWeekend) {
+          cellClasses += 'bg-slate-50/80 border-slate-100 text-slate-400 hover:bg-slate-100 ';
+        } else {
+          cellClasses += 'bg-white border-slate-100/90 text-slate-700 hover:border-peach-200 hover:shadow-xs ';
+        }
+
+        cell.className = cellClasses;
+
+        // 格子上方：日期數字與特色小徽章
+        let dayNumColor = isSunday ? 'text-rose-500' : isSaturday ? 'text-teal-600' : 'text-slate-700';
+        if (isSelected) dayNumColor = 'text-peach-700 font-black';
+
+        // 標記小圓點或文字
+        let badgesHtml = '<div class="flex items-center gap-0.5 flex-wrap justify-end">';
+        let hasNobelA = dayEvents.some(e => (e.target || '').includes('諾貝爾A班') || (e.title || '').includes('諾A'));
+
+        if (hasNobelA) {
+          badgesHtml += '<span class="w-2 h-2 rounded-full bg-peach-500 ring-1 ring-white" title="諾A班活動"></span>';
+        } else if (dayEvents.length > 0) {
+          badgesHtml += '<span class="w-2 h-2 rounded-full bg-berry-500 ring-1 ring-white" title="全園活動"></span>';
+        }
+
+        if (dayMenu) {
+          badgesHtml += '<span class="w-1.5 h-1.5 rounded-full bg-mint-400" title="已有菜單"></span>';
+        }
+        badgesHtml += '</div>';
+
+        // 格子下方：精簡活動小標題 (文字截短)
+        let eventBrief = '';
+        if (dayEvents.length > 0) {
+          const firstEv = dayEvents[0];
+          const isHighlight = (firstEv.target || '').includes('諾貝爾A班');
+          const title = firstEv.title.length > 5 ? firstEv.title.slice(0, 4) + '..' : firstEv.title;
+          eventBrief = `<div class="truncate text-[10px] leading-tight px-1 py-0.5 rounded ${isHighlight ? 'bg-peach-500 text-white font-black' : 'bg-rose-100/80 text-rose-700 font-medium'}">${title}</div>`;
+        } else if (dayMenu && !isWeekend) {
+          eventBrief = '<div class="truncate text-[9px] text-slate-400 font-normal">🍱 有點心</div>';
+        }
+
+        cell.innerHTML = `
+          <div class="flex items-center justify-between w-full">
+            <span class="${dayNumColor}">${day}</span>
+            ${badgesHtml}
+          </div>
+          <div class="w-full">
+            ${eventBrief}
+          </div>
+        `;
+
+        grid.appendChild(cell);
+      }
+
+      // 3. 填補下個月開頭格子保持整齊
+      const totalCells = firstDayIndex + daysInMonth;
+      const nextMonthCells = (7 - (totalCells % 7)) % 7;
+      for (let d = 1; d <= nextMonthCells; d++) {
+        const cell = document.createElement('div');
+        cell.className = 'min-h-[58px] sm:min-h-[68px] p-1 rounded-xl bg-slate-50/50 text-slate-300 font-medium text-xs flex flex-col justify-between select-none opacity-40';
+        cell.innerHTML = `<span>${d}</span>`;
+        grid.appendChild(cell);
+      }
+    }
+
+    // 點選行事曆日期
+    function onDateClicked(dateStr) {
+      state.selectedDateStr = dateStr;
+      renderCalendar();
+      renderSelectedDayDetails(dateStr);
+      if (state.currentCalView !== 'day') {
+        setCalViewMode('day');
+      }
+      // 平滑滑動至連動區段
+      const el = document.getElementById('linkedContentSection');
+      if (el && window.innerWidth < 768) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+    // 查詢特定日期的活動清單 (支援單日與跨日連假)
+    function getEventsForDate(dateStr) {
+      return state.events.filter(e => {
+        if (!e.date) return false;
+        const start = normalizeDate(e.date);
+        const end = e.endDate ? normalizeDate(e.endDate) : start;
+        return dateStr >= start && dateStr <= end;
+      });
+    }
+
+    // 查詢特定日期的菜單
+    function getMenuForDate(dateStr) {
+      return state.menus.find(m => normalizeDate(m.date) === dateStr);
+    }
+
+    function normalizeDate(d) {
+      if (!d) return '';
+      if (d instanceof Date) {
+        return d.toISOString().split('T')[0];
+      }
+      const s = String(d).trim().replace(/\//g, '-');
+      if (/^\d{1,2}$/.test(s)) {
+        return `2026-10-${('0' + s).slice(-2)}`;
+      }
+      return s;
+    }
+
+    // ==================== 渲染選定日期的生活與菜單連動區段 ====================
+    function renderSelectedDayDetails(dateStr) {
+      const dateParts = dateStr.split('-');
+      const y = dateParts[0];
+      const m = parseInt(dateParts[1], 10);
+      const d = parseInt(dateParts[2], 10);
+      const dateObj = new Date(y, m - 1, d);
+      const daysArr = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
+      const dayName = daysArr[dateObj.getDay()];
+
+      // 更新頂部抬頭
+      document.getElementById('selectedDateHeader').textContent = `${y} 年 ${m} 月 ${d} 日（${dayName}）`;
+
+      const dayEvents = getEventsForDate(dateStr);
+      const dayMenu = getMenuForDate(dateStr);
+
+      // 更新標籤
+      const badgesContainer = document.getElementById('selectedDayBadges');
+      badgesContainer.innerHTML = '';
+      if (dayEvents.length > 0) {
+        dayEvents.forEach(ev => {
+          const isNobel = (ev.target || '').includes('諾貝爾A班');
+          badgesContainer.innerHTML += `<span class="px-2.5 py-0.5 rounded-full text-xs font-bold ${isNobel ? 'bg-peach-500 text-white' : 'bg-berry-100 text-berry-700'}">${ev.title}</span>`;
+        });
+      }
+
+      // 1. 渲染活動卡片
+      document.getElementById('activeEventCount').textContent = `${dayEvents.length} 項活動`;
+      const eventsListEl = document.getElementById('selectedDayEventsList');
+      eventsListEl.innerHTML = '';
+
+      if (dayEvents.length === 0) {
+        const isWeekend = (dateObj.getDay() === 0 || dateObj.getDay() === 6);
+        eventsListEl.innerHTML = `
+          <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100 text-center space-y-1">
+            <div class="text-2xl">${isWeekend ? '🏡' : '🎈'}</div>
+            <div class="text-xs font-bold text-slate-600">${isWeekend ? '週末溫馨放假日' : '今日常態在園學習作息'}</div>
+            <div class="text-xs text-slate-400">${isWeekend ? '在家好好休息充電，享受美好的家庭時光！' : '寶貝在班級常規學習、角落探索與同儕互動中快樂成長～'}</div>
+          </div>
+        `;
+      } else {
+        dayEvents.forEach(ev => {
+          const isNobelA = (ev.target || '').includes('諾貝爾A班');
+          const isHoliday = (ev.category || '').includes('放假');
+          const cardBg = isNobelA ? 'bg-peach-50/70 border-peach-200' : isHoliday ? 'bg-amber-50/70 border-amber-200' : 'bg-slate-50 border-slate-200';
+          
+          eventsListEl.innerHTML += `
+            <div class="p-3.5 rounded-2xl border ${cardBg} space-y-1.5 shadow-2xs">
+              <div class="flex items-center justify-between gap-2 flex-wrap">
+                <span class="text-xs font-bold px-2 py-0.5 rounded-md ${isNobelA ? 'bg-peach-500 text-white' : 'bg-slate-200 text-slate-700'}">
+                  ${isNobelA ? '🌟 諾貝爾A班焦點' : ev.target || '全園'}
+                </span>
+                <span class="text-xs font-bold text-slate-500">${ev.timeLocation || ''}</span>
+              </div>
+              <h5 class="text-sm font-black text-slate-800 flex items-center gap-1">
+                ${ev.title}
+              </h5>
+              ${ev.description ? `<p class="text-xs text-slate-600 leading-relaxed font-medium bg-white/70 p-2 rounded-xl">${ev.description}</p>` : ''}
+            </div>
+          `;
+        });
+      }
+
+      // 學期主題名稱
+      const firstEvent = dayEvents[0];
+      const themeText = (firstEvent && firstEvent.theme) ? firstEvent.theme : '主題活動：人與自己／人與他人概念';
+      document.getElementById('themeNameText').textContent = themeText;
+
+      // 2. 渲染菜單卡片
+      const menuListEl = document.getElementById('selectedDayMenuList');
+      menuListEl.innerHTML = '';
+
+      const isWeekend = (dateObj.getDay() === 0 || dateObj.getDay() === 6);
+
+      if (!dayMenu && isWeekend) {
+        menuListEl.innerHTML = `
+          <div class="p-4 rounded-2xl bg-amber-50/50 border border-amber-100 text-center space-y-1">
+            <div class="text-2xl">🍲</div>
+            <div class="text-xs font-bold text-amber-800">週末家庭美味日</div>
+            <div class="text-xs text-amber-600">週末幼兒園不供餐，讓爸爸媽媽陪伴孩子品嚐美味家庭料理！</div>
+          </div>
+        `;
+      } else if (!dayMenu) {
+        menuListEl.innerHTML = `
+          <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100 text-center space-y-1">
+            <div class="text-2xl">🥣</div>
+            <div class="text-xs font-bold text-slate-600">尚無當日特定菜單資料</div>
+            <div class="text-xs text-slate-400">廚房將依營養師規律調配三餐點心與當季蔬果。</div>
+          </div>
+        `;
+      } else {
+        // 午餐內容整合
+        const lunchItems = [
+          dayMenu.lunchStaple ? `主食：${dayMenu.lunchStaple}` : '',
+          dayMenu.lunchMain ? `主菜：${dayMenu.lunchMain}` : '',
+          dayMenu.lunchSide1 ? `副菜一：${dayMenu.lunchSide1}` : '',
+          dayMenu.lunchSide2 ? `副菜二：${dayMenu.lunchSide2}` : '',
+          dayMenu.lunchSoup ? `湯品：${dayMenu.lunchSoup}` : ''
+        ].filter(Boolean).join('、');
+
+        menuListEl.innerHTML = `
+          <div class="grid grid-cols-1 gap-2">
+            <!-- 早點 -->
+            <div class="flex items-start gap-2.5 p-2 rounded-xl bg-orange-50/60 border border-orange-100">
+              <span class="text-base">🥛</span>
+              <div class="flex-1">
+                <span class="font-bold text-orange-900 text-xs">早點（08:30）：</span>
+                <span class="text-slate-700 font-medium">${dayMenu.morningSnack || '營養早點'}</span>
+              </div>
+            </div>
+            <!-- 當季水果 -->
+            <div class="flex items-start gap-2.5 p-2 rounded-xl bg-rose-50/60 border border-rose-100">
+              <span class="text-base">🍎</span>
+              <div class="flex-1">
+                <span class="font-bold text-rose-900 text-xs">當季水果：</span>
+                <span class="text-slate-700 font-medium">${dayMenu.fruit || '新鮮當季水果'}</span>
+              </div>
+            </div>
+            <!-- 午餐五菜一湯 -->
+            <div class="flex items-start gap-2.5 p-2.5 rounded-xl bg-amber-50/80 border border-amber-200">
+              <span class="text-base">🍛</span>
+              <div class="flex-1">
+                <div class="font-bold text-amber-900 text-xs mb-0.5">營養午餐（11:30）：</div>
+                <div class="text-slate-800 font-bold text-xs sm:text-sm leading-relaxed">${lunchItems || '當日特製美味午餐'}</div>
+              </div>
+            </div>
+            <!-- 午點 -->
+            <div class="flex items-start gap-2.5 p-2 rounded-xl bg-teal-50/60 border border-teal-100">
+              <span class="text-base">🍰</span>
+              <div class="flex-1">
+                <span class="font-bold text-teal-900 text-xs">午後點心（14:30）：</span>
+                <span class="text-slate-700 font-medium">${dayMenu.afternoonSnack || '自製活力點心'}</span>
+              </div>
+            </div>
+          </div>
+          ${dayMenu.note ? `<div class="text-xs font-bold text-amber-700 bg-amber-50 p-2 rounded-xl border border-amber-200 flex items-center gap-1">📌 備註：${dayMenu.note}</div>` : ''}
+        `;
+      }
+    }
+
+    // ==================== 查看本週檢視 (WEEK VIEW) ====================
+    function renderWeekView() {
+      const container = document.getElementById('weekDaysList');
+      container.innerHTML = '';
+
+      // 以選定日期為基準，找出該週的週日 (週日為第一天)
+      const baseDate = new Date(state.selectedDateStr);
+      const dayOfWeek = baseDate.getDay(); // 0 is Sunday
+      const sundayDate = new Date(baseDate);
+      sundayDate.setDate(baseDate.getDate() - dayOfWeek);
+
+      const daysArr = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
+
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(sundayDate);
+        d.setDate(sundayDate.getDate() + i);
+        const dStr = d.toISOString().split('T')[0];
+        const dayEvents = getEventsForDate(dStr);
+        const dayMenu = getMenuForDate(dStr);
+
+        const isToday = (dStr === state.selectedDateStr);
+
+        let eventsSummary = dayEvents.map(e => `<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-peach-100 text-peach-700 mr-1">${e.title}</span>`).join('') || '<span class="text-slate-400 text-xs">常態作息</span>';
+        let lunchSummary = dayMenu ? `主食:${dayMenu.lunchStaple || ''} / 主菜:${dayMenu.lunchMain || ''} / 午點:${dayMenu.afternoonSnack || ''}` : '未供餐/家庭日';
+
+        container.innerHTML += `
+          <div class="p-3.5 rounded-2xl border ${isToday ? 'bg-peach-50/80 border-peach-300' : 'bg-slate-50 border-slate-100'} flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 cursor-pointer hover:bg-peach-50 transition-colors" onclick="onDateClicked('${dStr}')">
+            <div class="flex items-center gap-2">
+              <span class="w-10 h-10 rounded-xl bg-white border border-slate-200 flex flex-col items-center justify-center font-bold text-xs shrink-0">
+                <span class="text-[10px] text-slate-400">${daysArr[i]}</span>
+                <span class="text-slate-800 font-black">${d.getDate()}</span>
+              </span>
+              <div>
+                <div class="font-bold text-xs text-slate-700">${dStr} (${daysArr[i]})</div>
+                <div class="mt-0.5">${eventsSummary}</div>
+              </div>
+            </div>
+            <div class="text-xs text-slate-500 font-medium bg-white/80 px-3 py-1.5 rounded-xl border border-slate-100 w-full sm:w-auto">
+              🍱 ${lunchSummary}
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    // ==================== 查看本月總覽 (MONTH VIEW) ====================
+    function renderMonthView() {
+      const year = state.viewYear;
+      const month = state.viewMonth;
+      document.getElementById('monthViewTitle').textContent = `${year} 年 ${month} 月份 全月行程總覽`;
+      const timeline = document.getElementById('monthEventsTimeline');
+      timeline.innerHTML = '';
+
+      // 篩選出該月份的所有活動
+      const monthPrefix = `${year}-${('0' + month).slice(-2)}`;
+      const monthEvents = state.events.filter(e => {
+        const start = normalizeDate(e.date);
+        return start.startsWith(monthPrefix);
+      });
+
+      if (monthEvents.length === 0) {
+        timeline.innerHTML = '<div class="py-6 text-center text-xs text-slate-400">本月份暫無特殊大行事曆活動安排。</div>';
+        return;
+      }
+
+      // 依日期排序
+      monthEvents.sort((a, b) => normalizeDate(a.date).localeCompare(normalizeDate(b.date)));
+
+      monthEvents.forEach(ev => {
+        const isNobelA = (ev.target || '').includes('諾貝爾A班');
+        timeline.innerHTML += `
+          <div class="p-3 rounded-2xl bg-slate-50 hover:bg-peach-50 border border-slate-100 transition-colors flex items-center justify-between gap-3 cursor-pointer" onclick="onDateClicked('${normalizeDate(ev.date)}')">
+            <div class="flex items-center gap-3">
+              <div class="w-14 text-center shrink-0">
+                <div class="text-xs font-mono font-bold text-peach-600">${normalizeDate(ev.date).slice(5)}</div>
+                ${ev.endDate ? `<div class="text-[9px] text-slate-400">至${normalizeDate(ev.endDate).slice(5)}</div>` : ''}
+              </div>
+              <div>
+                <div class="flex items-center gap-1.5">
+                  <span class="text-xs font-bold ${isNobelA ? 'text-peach-600' : 'text-slate-800'}">${ev.title}</span>
+                  <span class="text-[10px] px-1.5 py-0.5 rounded font-bold ${isNobelA ? 'bg-peach-500 text-white' : 'bg-slate-200 text-slate-600'}">${ev.target || '全園'}</span>
+                </div>
+                <div class="text-xs text-slate-400 mt-0.5">${ev.description || ev.timeLocation || '精彩生活體驗'}</div>
+              </div>
+            </div>
+            <span class="text-xs font-bold text-slate-400">點此查看 ➔</span>
+          </div>
+        `;
+      });
+    }
+
+    // ==================== 活動相簿頁面 (ALBUMS) ====================
+    function refreshAlbums() {
+      const loading = document.getElementById('albumsLoading');
+      const grid = document.getElementById('albumsGrid');
+      loading.classList.remove('hidden');
+      grid.innerHTML = '';
+
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(res => {
+            loading.classList.add('hidden');
+            if (res && res.success) {
+              state.cachedAlbums = res.albums || [];
+              renderAlbumsList(state.cachedAlbums);
+            } else {
+              renderFallbackAlbums();
+            }
+          })
+          .withFailureHandler(err => {
+            loading.classList.add('hidden');
+            renderFallbackAlbums();
+          })
+          .getAlbums();
+      } else {
+        setTimeout(() => {
+          loading.classList.add('hidden');
+          renderFallbackAlbums();
+        }, 300);
+      }
+    }
+
+    function renderFallbackAlbums() {
+      state.cachedAlbums = [
+        {
+          id: 'demo_album_1',
+          folderName: '2026-10-23_牙齒塗氟日',
+          date: '2026-10-23',
+          title: '牙齒塗氟日口腔檢查',
+          photoCount: 18,
+          coverUrl: 'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=600&q=80',
+          folderUrl: 'https://drive.google.com/drive/folders/1iRFAr3FZMqV-okmktipdwamjAR7WWp6d'
+        },
+        {
+          id: 'demo_album_2',
+          folderName: '2026-10-07_幸福廚房手作生活',
+          date: '2026-10-07',
+          title: '幸福廚房手作生活體驗',
+          photoCount: 24,
+          coverUrl: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=600&q=80',
+          folderUrl: 'https://drive.google.com/drive/folders/1iRFAr3FZMqV-okmktipdwamjAR7WWp6d'
+        },
+        {
+          id: 'demo_album_3',
+          folderName: '2026-08-27_新學期親師座談會',
+          date: '2026-08-27',
+          title: '新學期親師座談交流',
+          photoCount: 12,
+          coverUrl: 'https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=600&q=80',
+          folderUrl: 'https://drive.google.com/drive/folders/1iRFAr3FZMqV-okmktipdwamjAR7WWp6d'
+        }
+      ];
+      renderAlbumsList(state.cachedAlbums);
+    }
+
+    function renderAlbumsList(albums) {
+      const grid = document.getElementById('albumsGrid');
+      grid.innerHTML = '';
+
+      if (albums.length === 0) {
+        grid.innerHTML = `
+          <div class="col-span-full py-12 text-center text-slate-400 space-y-2">
+            <div class="text-4xl">📸</div>
+            <div class="text-sm font-bold">目前相簿資料夾內尚無相片</div>
+            <div class="text-xs">請至管理後台或 Google Drive Albums 資料夾上傳活動照片！</div>
+          </div>
+        `;
+        return;
+      }
+
+      albums.forEach(alb => {
+        const cover = alb.coverUrl || 'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=600&q=80';
+        grid.innerHTML += `
+          <div class="bg-white rounded-3xl p-3 border border-slate-200/80 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer tap-bounce" onclick="openAlbumPhotos('${alb.id}', '${alb.title}')">
+            <div class="aspect-[4/3] rounded-2xl overflow-hidden bg-slate-100 relative">
+              <img src="${cover}" alt="${alb.title}" class="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300">
+              <div class="absolute top-2 right-2 bg-black/60 text-white text-[11px] font-bold px-2 py-0.5 rounded-full backdrop-blur-xs flex items-center gap-1">
+                <span>📷</span> ${alb.photoCount} 張
+              </div>
+              <div class="absolute bottom-2 left-2 bg-white/90 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded-md backdrop-blur-xs">
+                ${alb.date || '活動影像'}
+              </div>
+            </div>
+            <div class="pt-3 px-1">
+              <h4 class="font-black text-slate-800 text-sm truncate">${alb.title}</h4>
+              <div class="flex items-center justify-between text-xs text-slate-400 mt-1">
+                <span>點擊瀏覽相簿</span>
+                <span class="text-teal-600 font-bold">開啟 ➔</span>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    function openAlbumPhotos(albumId, albumTitle) {
+      document.getElementById('modalAlbumTitle').textContent = albumTitle || '相簿照片';
+      const grid = document.getElementById('albumPhotosGrid');
+      grid.innerHTML = '<div class="col-span-full py-12 text-center text-slate-400 font-bold">讀取照片中...</div>';
+      document.getElementById('albumPhotosModal').classList.remove('hidden');
+
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(res => {
+            if (res && res.success) {
+              renderAlbumPhotosGrid(res.photos);
+            } else {
+              renderFallbackPhotos();
+            }
+          })
+          .withFailureHandler(() => renderFallbackPhotos())
+          .getAlbumPhotos(albumId);
+      } else {
+        setTimeout(renderFallbackPhotos, 200);
+      }
+    }
+
+    function renderFallbackPhotos() {
+      const demoPhotos = [
+        { id: 'p1', name: '塗氟檢查01.jpg', thumbnailUrl: 'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=600&q=80', viewUrl: 'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=1200&q=80', downloadUrl: '#' },
+        { id: 'p2', name: '小朋友刷牙示範.jpg', thumbnailUrl: 'https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=600&q=80', viewUrl: 'https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=1200&q=80', downloadUrl: '#' },
+        { id: 'p3', name: '小禮物獎勵.jpg', thumbnailUrl: 'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=600&q=80', viewUrl: 'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=1200&q=80', downloadUrl: '#' }
+      ];
+      renderAlbumPhotosGrid(demoPhotos);
+    }
+
+    function renderAlbumPhotosGrid(photos) {
+      const grid = document.getElementById('albumPhotosGrid');
+      grid.innerHTML = '';
+      if (!photos || photos.length === 0) {
+        grid.innerHTML = '<div class="col-span-full py-12 text-center text-slate-400">此相簿目前無照片檔案。</div>';
+        return;
+      }
+      photos.forEach(p => {
+        grid.innerHTML += `
+          <div class="aspect-square rounded-2xl overflow-hidden bg-slate-100 group relative cursor-pointer tap-bounce border border-slate-100" onclick="openPhotoViewer('${p.thumbnailUrl || p.viewUrl}', '${p.downloadUrl}')">
+            <img src="${p.thumbnailUrl || p.viewUrl}" alt="${p.name}" class="w-full h-full object-cover transition-transform group-hover:scale-105 duration-200">
+            <div class="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold">
+              🔍 放大
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    function closeAlbumModal() {
+      document.getElementById('albumPhotosModal').classList.add('hidden');
+    }
+
+    function openPhotoViewer(url, downloadUrl) {
+      document.getElementById('photoViewerImg').src = url;
+      document.getElementById('photoDownloadBtn').href = downloadUrl || url;
+      document.getElementById('photoViewerModal').classList.remove('hidden');
+    }
+
+    function closePhotoViewer() {
+      document.getElementById('photoViewerModal').classList.add('hidden');
+    }
+
+    // ==================== 常用文件專區 (DOCS) ====================
+    function renderDocsList(filterCat = '全部') {
+      const container = document.getElementById('docsListContainer');
+      container.innerHTML = '';
+
+      const filtered = (filterCat === '全部') 
+        ? state.docs 
+        : state.docs.filter(d => (d.category || '') === filterCat);
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<div class="py-12 text-center text-xs text-slate-400">目前無符合分類之文件。</div>';
+        return;
+      }
+
+      filtered.forEach(doc => {
+        const url = doc.downloadUrl || 'https://drive.google.com/drive/folders/1Ie8medB2JPYdUA9LOryVnPAdko1t5rjR';
+        container.innerHTML += `
+          <div class="p-4 rounded-3xl bg-white border border-slate-200/90 shadow-2xs hover:shadow-md transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div class="flex items-start gap-3">
+              <div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center text-2xl shrink-0">
+                📄
+              </div>
+              <div>
+                <div class="flex items-center gap-2 flex-wrap">
+                  <h4 class="font-black text-slate-800 text-sm sm:text-base">${doc.fileName}</h4>
+                  <span class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-indigo-100 text-indigo-800">${doc.category || '一般'}</span>
+                </div>
+                <p class="text-xs text-slate-500 mt-1 leading-relaxed">${doc.description || '點擊即可線上下載或預覽文件'}</p>
+                <div class="text-[11px] text-slate-400 mt-1">更新日期：${doc.updatedAt || '2026-09-01'}</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 w-full sm:w-auto justify-end shrink-0 pt-2 sm:pt-0">
+              <a href="${url}" target="_blank" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm flex items-center gap-1.5 tap-bounce">
+                <span>⬇️</span> 下載文件
+              </a>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    function filterDocs(cat) {
+      document.querySelectorAll('.doc-cat-btn').forEach(btn => {
+        if (btn.textContent.trim() === cat || (cat === '全部' && btn.textContent.includes('全部'))) {
+          btn.className = 'doc-cat-btn px-3 py-1 rounded-xl text-xs font-bold bg-indigo-600 text-white shadow-xs';
+        } else {
+          btn.className = 'doc-cat-btn px-3 py-1 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200';
+        }
+      });
+      renderDocsList(cat);
+    }
+
+    // ==================== 管理後台邏輯 (ADMIN) ====================
+    function doAdminLogin() {
+      const input = document.getElementById('adminPasswordInput');
+      const pwd = input.value.trim();
+      if (!pwd) {
+        showToast('請輸入密碼！', '⚠️');
+        return;
+      }
+
+      showToast('驗證中...', '⏳');
+
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(res => {
+            if (res && res.success) {
+              state.adminPassword = pwd;
+              showAdminDashboard();
+              showToast('歡迎登入管理後台！', '🎉');
+            } else {
+              showToast('密碼不正確，請重新輸入！', '❌');
+            }
+          })
+          .withFailureHandler(() => {
+            showToast('連線驗證失敗', '❌');
+          })
+          .verifyPassword(pwd);
+      } else {
+        // 本地預覽測試
+        if (pwd === 'nobel-a-2026' || pwd.length > 0) {
+          state.adminPassword = pwd;
+          showAdminDashboard();
+          showToast('測試環境已登入！', '🎉');
+        } else {
+          showToast('密碼不正確！', '❌');
+        }
+      }
+    }
+
+    function showAdminDashboard() {
+      document.getElementById('adminLoginCard').classList.add('hidden');
+      document.getElementById('adminDashboard').classList.remove('hidden');
+      renderAdminEventsTable();
+      updateAlbumPreviewName();
+    }
+
+    function doAdminLogout() {
+      state.adminPassword = '';
+      document.getElementById('adminPasswordInput').value = '';
+      document.getElementById('adminLoginCard').classList.remove('hidden');
+      document.getElementById('adminDashboard').classList.add('hidden');
+      showToast('已安全登出後台', '👋');
+    }
+
+    function switchAdminSubtab(subtab) {
+      document.querySelectorAll('.admin-panel').forEach(p => p.classList.add('hidden'));
+      document.querySelectorAll('.admin-subtab-btn').forEach(btn => {
+        btn.className = 'admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap';
+      });
+
+      const targetPanel = document.getElementById(`adminPanel-${subtab}`);
+      const targetBtn = document.getElementById(`adminSubtabBtn-${subtab}`);
+      if (targetPanel) targetPanel.classList.remove('hidden');
+      if (targetBtn) targetBtn.className = 'admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold bg-peach-500 text-white shadow-xs whitespace-nowrap';
+
+      if (subtab === 'events') renderAdminEventsTable();
+      if (subtab === 'spotlight') loadSpotlightToForm();
+    }
+
+    // 後台行事曆管理
+    function handleSaveEvent(e) {
+      e.preventDefault();
+      const eventData = {
+        id: document.getElementById('eventForm-id').value,
+        date: document.getElementById('eventForm-date').value,
+        endDate: document.getElementById('eventForm-endDate').value,
+        title: document.getElementById('eventForm-title').value,
+        target: document.getElementById('eventForm-target').value,
+        category: document.getElementById('eventForm-category').value,
+        timeLocation: document.getElementById('eventForm-timeLocation').value,
+        description: document.getElementById('eventForm-description').value,
+        theme: '主題活動：人與自己／人與他人概念'
+      };
+
+      showToast('儲存中...', '⏳');
+
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(res => {
+            if (res && res.success) {
+              showToast(res.message, '✅');
+              clearEventForm();
+              loadAppData();
+            } else {
+              showToast('儲存失敗: ' + res.error, '❌');
+            }
+          })
+          .saveEvent(eventData, state.adminPassword);
+      } else {
+        // 本地模擬
+        state.events.unshift(eventData);
+        showToast('活動已儲存（本地預覽）', '✅');
+        clearEventForm();
+        renderAdminEventsTable();
+        renderCalendar();
+      }
+    }
+
+    function clearEventForm() {
+      document.getElementById('eventForm-id').value = '';
+      document.getElementById('eventForm-date').value = '';
+      document.getElementById('eventForm-endDate').value = '';
+      document.getElementById('eventForm-title').value = '';
+      document.getElementById('eventForm-timeLocation').value = '';
+      document.getElementById('eventForm-description').value = '';
+      document.getElementById('saveEventBtn').textContent = '儲存活動';
+    }
+
+    function editEventInAdmin(id) {
+      const ev = state.events.find(x => x.id === id);
+      if (!ev) return;
+      document.getElementById('eventForm-id').value = ev.id;
+      document.getElementById('eventForm-date').value = normalizeDate(ev.date);
+      document.getElementById('eventForm-endDate').value = ev.endDate ? normalizeDate(ev.endDate) : '';
+      document.getElementById('eventForm-title').value = ev.title;
+      document.getElementById('eventForm-target').value = ev.target || '全園';
+      document.getElementById('eventForm-category').value = ev.category || '重要活動';
+      document.getElementById('eventForm-timeLocation').value = ev.timeLocation || '';
+      document.getElementById('eventForm-description').value = ev.description || '';
+      document.getElementById('saveEventBtn').textContent = '更新此活動';
+      window.scrollTo({ top: 100, behavior: 'smooth' });
+    }
+
+    function deleteEventInAdmin(id) {
+      if (!confirm('確定要刪除這筆活動紀錄嗎？')) return;
+      showToast('刪除中...', '⏳');
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(res => {
+            if (res && res.success) {
+              showToast(res.message, '🗑️');
+              loadAppData();
+            } else {
+              showToast(res.error, '❌');
+            }
+          })
+          .deleteEvent(id, state.adminPassword);
+      } else {
+        state.events = state.events.filter(x => x.id !== id);
+        renderAdminEventsTable();
+        renderCalendar();
+        showToast('已刪除（本地測試）', '🗑️');
+      }
+    }
+
+    function renderAdminEventsTable() {
+      const container = document.getElementById('adminEventsTableContainer');
+      if (!container) return;
+      let html = `
+        <table class="w-full text-left text-xs border-collapse">
+          <thead>
+            <tr class="border-b border-slate-200 text-slate-400">
+              <th class="py-2 px-2">日期</th>
+              <th class="py-2 px-2">活動名稱</th>
+              <th class="py-2 px-2">對象</th>
+              <th class="py-2 px-2 text-right">操作</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+      `;
+      state.events.forEach(ev => {
+        html += `
+          <tr class="hover:bg-slate-50">
+            <td class="py-2 px-2 font-mono">${normalizeDate(ev.date)}</td>
+            <td class="py-2 px-2 font-bold text-slate-800">${ev.title}</td>
+            <td class="py-2 px-2"><span class="bg-slate-100 px-1.5 py-0.5 rounded text-[10px]">${ev.target || '全園'}</span></td>
+            <td class="py-2 px-2 text-right space-x-1">
+              <button onclick="editEventInAdmin('${ev.id}')" class="text-peach-600 hover:underline font-bold">編輯</button>
+              <button onclick="deleteEventInAdmin('${ev.id}')" class="text-rose-500 hover:underline">刪除</button>
+            </td>
+          </tr>
+        `;
+      });
+      html += '</tbody></table>';
+      container.innerHTML = html;
+    }
+
+    // 後台菜單管理
+    function loadMenuForSelectedDate() {
+      const d = document.getElementById('menuForm-date').value;
+      if (!d) return;
+      const m = getMenuForDate(d);
+      if (m) {
+        document.getElementById('menuForm-morningSnack').value = m.morningSnack || '';
+        document.getElementById('menuForm-fruit').value = m.fruit || '';
+        document.getElementById('menuForm-lunchStaple').value = m.lunchStaple || '';
+        document.getElementById('menuForm-lunchMain').value = m.lunchMain || '';
+        document.getElementById('menuForm-lunchSide1').value = m.lunchSide1 || '';
+        document.getElementById('menuForm-lunchSide2').value = m.lunchSide2 || '';
+        document.getElementById('menuForm-lunchSoup').value = m.lunchSoup || '';
+        document.getElementById('menuForm-afternoonSnack').value = m.afternoonSnack || '';
+        document.getElementById('menuForm-note').value = m.note || '';
+        showToast('已載入該日菜單！', '🍱');
+      } else {
+        document.getElementById('menuForm-morningSnack').value = '';
+        document.getElementById('menuForm-fruit').value = '當季水果';
+        document.getElementById('menuForm-lunchStaple').value = '糙白米飯';
+        document.getElementById('menuForm-lunchMain').value = '';
+        document.getElementById('menuForm-lunchSide1').value = '';
+        document.getElementById('menuForm-lunchSide2').value = '有機蔬菜';
+        document.getElementById('menuForm-lunchSoup').value = '';
+        document.getElementById('menuForm-afternoonSnack').value = '';
+        document.getElementById('menuForm-note').value = '';
+      }
+    }
+
+    function handleSaveMenu(e) {
+      e.preventDefault();
+      const menuData = {
+        date: document.getElementById('menuForm-date').value,
+        morningSnack: document.getElementById('menuForm-morningSnack').value,
+        fruit: document.getElementById('menuForm-fruit').value,
+        lunchStaple: document.getElementById('menuForm-lunchStaple').value,
+        lunchMain: document.getElementById('menuForm-lunchMain').value,
+        lunchSide1: document.getElementById('menuForm-lunchSide1').value,
+        lunchSide2: document.getElementById('menuForm-lunchSide2').value,
+        lunchSoup: document.getElementById('menuForm-lunchSoup').value,
+        afternoonSnack: document.getElementById('menuForm-afternoonSnack').value,
+        nutrients: '全穀雜糧類,豆魚蛋肉類,蔬菜類,水果類',
+        note: document.getElementById('menuForm-note').value
+      };
+
+      showToast('儲存菜單中...', '⏳');
+
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(res => {
+            if (res && res.success) {
+              showToast(res.message, '✅');
+              loadAppData();
+            } else {
+              showToast(res.error, '❌');
+            }
+          })
+          .saveMenu(menuData, state.adminPassword);
+      } else {
+        showToast('菜單已儲存（本地測試）', '✅');
+      }
+    }
+
+    function handleDeleteMenu() {
+      const d = document.getElementById('menuForm-date').value;
+      if (!d) return showToast('請先選取日期！', '⚠️');
+      if (!confirm(`確定要刪除 ${d} 的菜單嗎？`)) return;
+
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(res => {
+            if (res && res.success) {
+              showToast(res.message, '🗑️');
+              loadAppData();
+            } else {
+              showToast(res.error, '❌');
+            }
+          })
+          .deleteMenu(d, state.adminPassword);
+      }
+    }
+
+    // 後台相簿批次上傳 (Albums)
+    function updateAlbumPreviewName() {
+      const d = document.getElementById('albumUpload-date').value || 'YYYY-MM-DD';
+      const t = document.getElementById('albumUpload-title').value.trim() || '活動主題';
+      document.getElementById('albumUpload-previewName').textContent = `${d}_${t}`;
+    }
+
+    function handleAlbumFilesSelected(e) {
+      const files = e.target.files;
+      if (!files || files.length === 0) return;
+      state.selectedAlbumFiles = Array.from(files);
+
+      const previewArea = document.getElementById('albumUploadPreviewArea');
+      const countText = document.getElementById('albumSelectedCountText');
+      const thumbsContainer = document.getElementById('albumThumbnails');
+
+      previewArea.classList.remove('hidden');
+      countText.textContent = `已選取 ${files.length} 張相片`;
+      thumbsContainer.innerHTML = '';
+
+      Array.from(files).slice(0, 12).forEach(f => {
+        const url = URL.createObjectURL(f);
+        thumbsContainer.innerHTML += `
+          <div class="aspect-square rounded-lg overflow-hidden bg-slate-200">
+            <img src="${url}" class="w-full h-full object-cover">
+          </div>
+        `;
+      });
+    }
+
+    function clearSelectedPhotos() {
+      state.selectedAlbumFiles = [];
+      document.getElementById('albumFileInput').value = '';
+      document.getElementById('albumUploadPreviewArea').classList.add('hidden');
+    }
+
+    function startUploadAlbumPhotos() {
+      const d = document.getElementById('albumUpload-date').value;
+      const t = document.getElementById('albumUpload-title').value.trim();
+      if (!d || !t) return showToast('請填寫活動日期與主題！', '⚠️');
+      if (state.selectedAlbumFiles.length === 0) return showToast('請選擇要上傳的照片！', '⚠️');
+
+      showToast(`正在讀取並準備上傳 ${state.selectedAlbumFiles.length} 張照片...`, '⏳');
+      const btn = document.getElementById('albumUploadBtn');
+      btn.disabled = true;
+      btn.textContent = '上傳中，請勿關閉網頁...';
+
+      // 轉換檔案為 Base64
+      const filePromises = state.selectedAlbumFiles.map(file => {
+        return new Promise(resolve => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const base64 = reader.result.split(',')[1];
+            resolve({
+              name: file.name,
+              mimeType: file.type,
+              base64: base64
+            });
+          };
+          reader.readAsDataURL(file);
+        });
+      });
+
+      Promise.all(filePromises).then(encodedFiles => {
+        if (typeof google !== 'undefined' && google.script && google.script.run) {
+          google.script.run
+            .withSuccessHandler(res => {
+              btn.disabled = false;
+              btn.textContent = '開始上傳相簿至 Google Drive';
+              if (res && res.success) {
+                showToast(res.message, '🎉');
+                clearSelectedPhotos();
+                refreshAlbums();
+              } else {
+                showToast('上傳失敗: ' + res.error, '❌');
+              }
+            })
+            .withFailureHandler(err => {
+              btn.disabled = false;
+              btn.textContent = '開始上傳相簿至 Google Drive';
+              showToast('上傳失敗: ' + err.toString(), '❌');
+            })
+            .uploadPhotosToAlbum(d, t, encodedFiles, state.adminPassword);
+        } else {
+          setTimeout(() => {
+            btn.disabled = false;
+            btn.textContent = '開始上傳相簿至 Google Drive';
+            showToast('相片已成功上傳（測試模式）', '🎉');
+            clearSelectedPhotos();
+          }, 1000);
+        }
+      });
+    }
+
+    // 後台文件上傳 (Docs)
+    function handleDocFileSelected(e) {
+      const f = e.target.files[0];
+      if (!f) return;
+      state.selectedDocFile = f;
+      document.getElementById('docFileSelectedName').textContent = `已選取：${f.name} (${(f.size/1024).toFixed(1)} KB)`;
+      if (!document.getElementById('docUpload-name').value) {
+        document.getElementById('docUpload-name').value = f.name;
+      }
+    }
+
+    function startUploadDocument() {
+      const fileName = document.getElementById('docUpload-name').value.trim();
+      const cat = document.getElementById('docUpload-category').value;
+      const desc = document.getElementById('docUpload-desc').value.trim();
+
+      if (!fileName || !state.selectedDocFile) {
+        return showToast('請填寫文件名稱並選取檔案！', '⚠️');
+      }
+
+      showToast('正在上傳文件至 Google Drive Docs...', '⏳');
+      const btn = document.getElementById('docUploadBtn');
+      btn.disabled = true;
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = reader.result.split(',')[1];
+        const fileObj = {
+          name: fileName,
+          mimeType: state.selectedDocFile.type,
+          base64: base64
+        };
+
+        const docMeta = {
+          fileName: fileName,
+          category: cat,
+          description: desc
+        };
+
+        if (typeof google !== 'undefined' && google.script && google.script.run) {
+          google.script.run
+            .withSuccessHandler(res => {
+              btn.disabled = false;
+              if (res && res.success) {
+                showToast(res.message, '🎉');
+                loadAppData();
+              } else {
+                showToast('上傳失敗: ' + res.error, '❌');
+              }
+            })
+            .withFailureHandler(err => {
+              btn.disabled = false;
+              showToast('上傳失敗: ' + err.toString(), '❌');
+            })
+            .uploadDocument(docMeta, fileObj, state.adminPassword);
+        } else {
+          btn.disabled = false;
+          showToast('文件已上傳（測試）', '🎉');
+        }
+      };
+      reader.readAsDataURL(state.selectedDocFile);
+    }
+
+    // Spotlight 管理
+    function loadSpotlightToForm() {
+      if (state.spotlights.length > 0) {
+        const sp = state.spotlights[0];
+        document.getElementById('spForm-title').value = sp.title || '';
+        document.getElementById('spForm-subtitle').value = sp.subtitle || '';
+        document.getElementById('spForm-imageUrl').value = sp.imageUrl || '';
+        document.getElementById('spForm-bulletPoints').value = sp.bulletPoints || '';
+      }
+    }
+
+    function saveSpotlightSettings() {
+      const spData = {
+        id: (state.spotlights[0] && state.spotlights[0].id) || 'SP-01',
+        title: document.getElementById('spForm-title').value.trim(),
+        subtitle: document.getElementById('spForm-subtitle').value.trim(),
+        imageUrl: document.getElementById('spForm-imageUrl').value.trim(),
+        bulletPoints: document.getElementById('spForm-bulletPoints').value.trim(),
+        priority: 1,
+        status: '啟用'
+      };
+
+      showToast('儲存 Spotlight 中...', '⏳');
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(res => {
+            if (res && res.success) {
+              showToast(res.message, '✅');
+              loadAppData();
+            } else {
+              showToast(res.error, '❌');
+            }
+          })
+          .saveSpotlight(spData, state.adminPassword);
+      } else {
+        showToast('Spotlight 已儲存（測試）', '✅');
+      }
+    }
+
+    // 系統設定管理
+    function saveSystemSettings() {
+      const newPwd = document.getElementById('setting-newPassword').value.trim();
+      const ticker = document.getElementById('setting-tickerMessage').value.trim();
+
+      const newSettings = {};
+      if (newPwd) newSettings.ADMIN_PASSWORD = newPwd;
+      if (ticker) newSettings.TICKER_MESSAGE = ticker;
+
+      showToast('儲存系統設定中...', '⏳');
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(res => {
+            if (res && res.success) {
+              showToast(res.message, '✅');
+              if (newPwd) state.adminPassword = newPwd;
+              loadAppData();
+            } else {
+              showToast(res.error, '❌');
+            }
+          })
+          .updateSettings(newSettings, state.adminPassword);
+      } else {
+        showToast('設定已儲存（測試）', '✅');
+      }
+    }
+
+    function triggerResetDatabase() {
+      if (!confirm('此操作將會重新初始化試算表預設欄位與示範活動資料，確定繼續嗎？')) return;
+      showToast('資料庫初始化中...', '⏳');
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(res => {
+            showToast(res.message || '初始化完成！', '🎉');
+            loadAppData();
+          })
+          .setupInitialDatabase();
+      }
+    }
+
+    // 全域 Toast 通知
+    function showToast(msg, icon = '✨') {
+      const toast = document.getElementById('toast');
+      const msgEl = document.getElementById('toastMsg');
+      const iconEl = document.getElementById('toastIcon');
+      msgEl.textContent = msg;
+      iconEl.textContent = icon;
+      toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-3');
+      toast.classList.add('opacity-100', 'translate-y-0');
+      clearTimeout(window.toastTimer);
+      window.toastTimer = setTimeout(() => {
+        toast.classList.remove('opacity-100', 'translate-y-0');
+        toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-3');
+      }, 3000);
+    }
+
+    function showLoading(show) {
+      const el = document.getElementById('loadingOverlay');
+      if (el) {
+        if (show) el.classList.remove('hidden');
+        else el.classList.add('hidden');
+      }
+    }
+  </script>
+</body>
+</html>
