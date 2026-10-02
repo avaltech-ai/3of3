@@ -67,3 +67,14 @@
 - Modified `uploadDocument` in `Code.js` to reuse `docMeta.id`.
 - Replaced the direct `sheet.appendRow` call in `uploadDocument` with a call to the existing `saveDoc()` function, ensuring it correctly updates an existing row if `docMeta.id` is found, or appends a new one if not.
 - Fixed the frontend ID assignment (`res.docId || id || ...`) to ensure local state IDs remain strictly synchronized with the backend sheet IDs.
+
+### 9. Sidebar Redesign (Accordion / Pinnable Navigation)
+- **Feature**: Transformed the top desktop navigation menu into a fixed left-side accordion (drawer) sidebar.
+- **Layout Mechanics**: 
+  - Placed the sidebar inside a layout shell alongside a hidden layout spacer `sidebarWrapper`.
+  - The actual sidebar `desktopSidebar` is `fixed` and floats above the content.
+  - Hovering expands the floating sidebar from `w-16` to `w-56` overlapping the main content smoothly.
+  - Clicking the "📌" pin button expands the structural `sidebarWrapper` to `w-56`, effectively pushing the main content to the right without overlapping.
+- **Mobile Responsive**: 
+  - Retained the highly intuitive bottom navigation bar (`fixed bottom-3`) for mobile and tablet devices (`md:hidden`).
+  - Removed the duplicate top-right "管理後台" shortcut on mobile since it is already accessible via the bottom nav.
