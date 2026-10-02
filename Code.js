@@ -156,14 +156,21 @@ function doGet(e) {
 }
 
 /**
- * REST API POST 入口（支援 GitHub Pages 外部呼叫）
+ * REST API POST 入口（支援 google.script.run 內部呼叫、GitHub Pages 跨域 iframe form 呼叫）
  */
 function doPost(e) {
+  let isFormMode = false;
   try {
     let postData = {};
-    if (e && e.postData && e.postData.contents) {
+
+    // 優先檢查 form 表單欄位 'payload'（來自 GitHub Pages 隱藏 iframe form 提交）
+    if (e && e.parameter && e.parameter.payload) {
+      postData = JSON.parse(e.parameter.payload);
+      isFormMode = true;
+    } else if (e && e.postData && e.postData.contents) {
       postData = JSON.parse(e.postData.contents);
     }
+
     const action = postData.action;
     let result = { success: false, error: '未知 POST 動作' };
 
@@ -197,10 +204,28 @@ function doPost(e) {
       result = setupInitialDatabase();
     }
 
+    // 若為 form 模式（來自 GitHub Pages iframe），回傳帶有 postMessage 的 HTML 頁面
+    if (isFormMode) {
+      const resultJson = JSON.stringify(result).replace(/</g, '\\u003c').replace(/>/g, '\\u003e');
+      const html = '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>' +
+        '<script>try{window.parent.postMessage(' + resultJson + ',"*");}catch(e){}</script>' +
+        '</body></html>';
+      return HtmlService.createHtmlOutput(html)
+        .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+    }
+
     return ContentService.createTextOutput(JSON.stringify(result))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
-    return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.toString() }))
+    const errResult = JSON.stringify({ success: false, error: err.toString() });
+    if (isFormMode) {
+      const html = '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>' +
+        '<script>try{window.parent.postMessage(' + errResult.replace(/</g, '\\u003c').replace(/>/g, '\\u003e') + ',"*");}catch(e){}</script>' +
+        '</body></html>';
+      return HtmlService.createHtmlOutput(html)
+        .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+    }
+    return ContentService.createTextOutput(errResult)
       .setMimeType(ContentService.MimeType.JSON);
   }
 }
