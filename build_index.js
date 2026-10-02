@@ -92,30 +92,18 @@ const htmlContent = `<!DOCTYPE html>
 </head>
 <body class="text-slate-700 min-h-screen flex flex-col antialiased selection:bg-peach-200">
 
-  <!-- ==================== 頂部全園公告走馬燈 ==================== -->
-  <div class="bg-gradient-to-r from-peach-500 via-sun-400 to-mint-400 text-white text-xs sm:text-sm font-medium py-1.5 px-3 shadow-sm sticky top-0 z-40">
-    <div class="max-w-5xl mx-auto flex items-center justify-between gap-2">
-      <div class="flex items-center gap-1.5 overflow-hidden whitespace-nowrap">
-        <span class="bg-white/25 px-2 py-0.5 rounded-full text-xs font-bold tracking-wide flex items-center gap-1">
-          <span>📢</span> 最新快訊
-        </span>
-        <span id="tickerText" class="truncate font-medium">歡迎蒞臨諾貝爾 A 班生活網！10/23 (五) 為全園塗氟日，請記得備妥健保卡喔～</span>
-      </div>
-      <div class="shrink-0 flex items-center gap-1 text-xs opacity-90">
-        <span id="liveClock" class="font-mono">--:--</span>
-      </div>
-    </div>
-  </div>
+  <!-- ==================== 頂部全彩色帶 (取代原本的走馬燈) ==================== -->
+  <div class="bg-gradient-to-r from-peach-500 via-sun-400 to-mint-400 h-1.5 w-full sticky top-0 z-50"></div>
 
   <!-- ==================== HEADER 導覽標題列 ==================== -->
   
-  <div class="flex flex-row w-full min-h-[calc(100vh-28px)] items-stretch">
+  <div class="flex flex-row w-full min-h-[calc(100vh-6px)] items-stretch">
     
     <!-- Desktop Sidebar Wrapper (occupies layout space when pinned) -->
     <div id="sidebarWrapper" class="hidden md:block w-16 shrink-0 transition-all duration-300"></div>
 
     <!-- The actual floating/sticky sidebar -->
-    <aside id="desktopSidebar" class="hidden md:flex flex-col bg-white border-r border-slate-200/80 shadow-sm fixed top-7 bottom-0 left-0 z-40 w-16 transition-all duration-300 overflow-hidden group" onmouseenter="expandSidebar()" onmouseleave="collapseSidebar()">
+    <aside id="desktopSidebar" class="hidden md:flex flex-col bg-white border-r border-slate-200/80 shadow-sm fixed top-1.5 bottom-0 left-0 z-40 w-16 transition-all duration-300 overflow-hidden group" onmouseenter="expandSidebar()" onmouseleave="collapseSidebar()">
       <div class="p-3 flex items-center justify-center border-b border-slate-100 relative min-h-[64px] whitespace-nowrap overflow-hidden">
         <span class="text-2xl cursor-pointer transition-transform hover:scale-110 shrink-0 select-none" onclick="switchTab('home')">🍄</span>
         <span class="font-black text-slate-700 ml-4 opacity-0 transition-opacity duration-300 sidebar-text text-lg select-none">選單導覽</span>
@@ -147,7 +135,7 @@ const htmlContent = `<!DOCTYPE html>
 
     <!-- Main Content -->
     <div class="flex-1 flex flex-col min-w-0 transition-all duration-300 relative">
-      <header class="bg-white/90 backdrop-blur-md border-b border-rose-100 shadow-sm sticky top-7 z-30 flex-shrink-0">
+      <header class="bg-white/90 backdrop-blur-md border-b border-rose-100 shadow-sm sticky top-1.5 z-30 flex-shrink-0">
     <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
       <!-- 園所與班級 Logo 識別 -->
       <div class="flex items-center gap-3 cursor-pointer" onclick="switchTab('home')">
@@ -1087,10 +1075,7 @@ const htmlContent = `<!DOCTYPE html>
               <label class="block text-xs font-bold text-slate-600 mb-1">修改管理員密碼</label>
               <input type="text" id="setting-newPassword" placeholder="輸入新的管理密碼" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium">
             </div>
-            <div>
-              <label class="block text-xs font-bold text-slate-600 mb-1">頂部公告跑馬燈訊息</label>
-              <input type="text" id="setting-tickerMessage" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium">
-            </div>
+            
             <div>
               <label class="block text-xs font-bold text-slate-600 mb-1">Acticity 雲端資料夾網址或 ID</label>
               <input type="text" id="setting-activityFolderUrl" placeholder="例如：https://drive.google.com/drive/folders/..." class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium">
@@ -1301,8 +1286,7 @@ const htmlContent = `<!DOCTYPE html>
 
     // 初始化程式
     window.addEventListener('DOMContentLoaded', () => {
-      startLiveClock();
-      try {
+            try {
         const savedPwd = sessionStorage.getItem('nobel_a_admin_pwd') || localStorage.getItem('nobel_a_admin_pwd');
         if (savedPwd) {
           state.adminPassword = savedPwd;
@@ -1330,18 +1314,7 @@ const htmlContent = `<!DOCTYPE html>
       loadAppData();
     });
 
-    // 啟動即時時鐘
-    function startLiveClock() {
-      const update = () => {
-        const now = new Date();
-        const hrs = ('0' + now.getHours()).slice(-2);
-        const mins = ('0' + now.getMinutes()).slice(-2);
-        const el = document.getElementById('liveClock');
-        if (el) el.textContent = \`\${hrs}:\${mins}\`;
-      };
-      update();
-      setInterval(update, 1000);
-    }
+    
 
     // 從 GAS 後端載入全站資料
     
@@ -1488,9 +1461,7 @@ const htmlContent = `<!DOCTYPE html>
       state.docs = data.docs || [];
       state.settings = data.settings || {};
 
-      if (state.settings.tickerMessage) {
-        document.getElementById('tickerText').textContent = state.settings.tickerMessage;
-      }
+      
 
       // 渲染 Spotlight
       renderSpotlightSection();
@@ -1595,10 +1566,7 @@ const htmlContent = `<!DOCTYPE html>
         const localSettings = localStorage.getItem('nobel_a_settings_custom');
         if (localSettings) {
           state.settings = JSON.parse(localSettings);
-          if (state.settings.tickerMessage) {
-            const el = document.getElementById('tickerText');
-            if (el) el.textContent = state.settings.tickerMessage;
-          }
+          
         }
       } catch (e) {}
 
@@ -4068,8 +4036,7 @@ const htmlContent = `<!DOCTYPE html>
 
     // 系統設定管理
     function loadSettingsToForm() {
-      const tickerInput = document.getElementById('setting-tickerMessage');
-      if (tickerInput) tickerInput.value = (state.settings && state.settings.tickerMessage) || '';
+      
       const actFolderInput = document.getElementById('setting-activityFolderUrl');
       if (actFolderInput) {
         actFolderInput.value = (state.settings && (state.settings.activityFolderUrl || (state.settings.activityFolderId ? 'https://drive.google.com/drive/folders/' + state.settings.activityFolderId : ''))) || '';
@@ -4078,7 +4045,7 @@ const htmlContent = `<!DOCTYPE html>
 
     function saveSystemSettings() {
       const newPwd = document.getElementById('setting-newPassword').value.trim();
-      const ticker = document.getElementById('setting-tickerMessage').value.trim();
+      
       const actFolderUrl = document.getElementById('setting-activityFolderUrl').value.trim();
 
       const newSettings = {};
@@ -4086,12 +4053,7 @@ const htmlContent = `<!DOCTYPE html>
         newSettings.ADMIN_PASSWORD = newPwd;
         state.adminPassword = newPwd;
       }
-      if (ticker) {
-        newSettings.TICKER_MESSAGE = ticker;
-        state.settings.tickerMessage = ticker;
-        const tickerEl = document.getElementById('tickerText');
-        if (tickerEl) tickerEl.textContent = ticker;
-      }
+      
       if (actFolderUrl) {
         newSettings.ACTIVITY_FOLDER_URL = actFolderUrl;
         state.settings.activityFolderUrl = actFolderUrl;
