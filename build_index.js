@@ -58,7 +58,7 @@ const htmlContent = `<!DOCTYPE html>
   <style>
     
     html {
-      font-size: 17.5px; /* Base font size increased from 16px for larger text globally */
+      font-size: 19px; /* Base font size increased from 16px for larger text globally */
     }
     body {
       background-color: #FDFBF7;
