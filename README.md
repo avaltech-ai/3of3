@@ -6,7 +6,11 @@
 
 ## 🌐 網頁與資料庫連結
 
-* **正式發佈 Web App 網址**：
+* **🌟 GitHub Pages 專屬網址（推薦使用）**：
+  👉 [https://chieh-ai.github.io/3of3/](https://chieh-ai.github.io/3of3/)
+* **📦 GitHub 專案原始碼倉庫**：
+  👉 [https://github.com/chieh-ai/3of3](https://github.com/chieh-ai/3of3)
+* **⚡ Google Apps Script Web App 備用網址**：
   👉 [https://script.google.com/macros/s/AKfycbxngSEbmXLW2_M7FNVxBLpbp-X1w1Z8ZX_33Kpj-ZekpGwS19Ao262HmLKkTbl3156A8g/exec](https://script.google.com/macros/s/AKfycbxngSEbmXLW2_M7FNVxBLpbp-X1w1Z8ZX_33Kpj-ZekpGwS19Ao262HmLKkTbl3156A8g/exec)
 * **GAS 專案編輯器**：
   👉 [https://script.google.com/d/1vCAafbDcotTym_8F8w0lmhONdcOfr2CB7fBy77Fp533PQ0w9kDJVVYsE/edit](https://script.google.com/d/1vCAafbDcotTym_8F8w0lmhONdcOfr2CB7fBy77Fp533PQ0w9kDJVVYsE/edit)
