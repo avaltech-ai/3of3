@@ -1422,29 +1422,46 @@
     function detectMediaKind(url, explicitType) {
       if (explicitType === 'video') return 'video';
       if (!url) return 'image';
-      const str = url.trim();
-      if (/youtube.com|youtu.be/i.test(str)) return 'video';
-      if (/.(mp4|webm|ogg|mov)(?|$)/i.test(str)) return 'video';
-      if (//preview$/i.test(str)) return 'video';
+      const str = url.trim().toLowerCase();
+      if (str.includes('youtube.com') || str.includes('youtu.be')) return 'video';
+      if (['.mp4', '.webm', '.ogg', '.mov'].some(ext => str.includes(ext))) return 'video';
+      if (str.includes('/preview')) return 'video';
       return explicitType || 'image';
     }
 
     function getEmbedVideoInfo(url) {
       if (!url) return { type: 'none', src: '' };
       const str = url.trim();
-      const ytMatch = str.match(/(?:youtube.com/(?:watch?v=|embed/|shorts/)|youtu.be/)([a-zA-Z0-9_-]{11})/i);
-      if (ytMatch) {
-        return { type: 'iframe', src: 'https://www.youtube-nocookie.com/embed/' + ytMatch[1] + '?rel=0&modestbranding=1' };
+      // YouTube 網址解析
+      if (str.includes('youtu.be/')) {
+        const id = str.split('youtu.be/')[1].split(/[?&#]/)[0];
+        if (id) return { type: 'iframe', src: 'https://www.youtube-nocookie.com/embed/' + id + '?rel=0&modestbranding=1' };
       }
-      const driveMatch = str.match(//file/d/([a-zA-Z0-9_-]+)/i) || str.match(/[?&]id=([a-zA-Z0-9_-]+)/i);
-      if (driveMatch && (str.indexOf('/preview') > -1 || str.indexOf('video') > -1)) {
-        return { type: 'iframe', src: 'https://drive.google.com/file/d/' + driveMatch[1] + '/preview' };
+      if (str.includes('youtube.com/')) {
+        let id = '';
+        if (str.includes('watch?v=')) id = str.split('watch?v=')[1].split('&')[0];
+        else if (str.includes('embed/')) id = str.split('embed/')[1].split(/[?&#]/)[0];
+        else if (str.includes('shorts/')) id = str.split('shorts/')[1].split(/[?&#]/)[0];
+        if (id) return { type: 'iframe', src: 'https://www.youtube-nocookie.com/embed/' + id + '?rel=0&modestbranding=1' };
       }
-      if (/.(mp4|webm|ogg|mov)(?|$)/i.test(str)) {
+      // Google Drive 雲端預覽影片
+      let driveId = '';
+      if (str.includes('/file/d/')) {
+        driveId = str.split('/file/d/')[1].split('/')[0].split('?')[0];
+      } else if (str.includes('id=')) {
+        try {
+          const qPart = str.split('?')[1] || '';
+          const sp = new URLSearchParams(qPart);
+          driveId = sp.get('id') || '';
+        } catch (e) {}
+      }
+      if (driveId) {
+        return { type: 'iframe', src: 'https://drive.google.com/file/d/' + driveId + '/preview' };
+      }
+      // 原生 HTML5 影片檔
+      const lower = str.toLowerCase();
+      if (['.mp4', '.webm', '.ogg', '.mov'].some(ext => lower.includes(ext))) {
         return { type: 'video', src: str };
-      }
-      if (driveMatch) {
-        return { type: 'iframe', src: 'https://drive.google.com/file/d/' + driveMatch[1] + '/preview' };
       }
       return { type: 'none', src: '' };
     }
@@ -1547,7 +1564,7 @@
           }
           if (html5Video) {
             html5Video.classList.add('hidden');
-            html5Video.pause();
+            try { if (typeof html5Video.pause === 'function') html5Video.pause(); } catch (e) {}
           }
         } else if (vInfo.type === 'video') {
           if (html5Video) {
@@ -1564,7 +1581,7 @@
         if (videoBox) videoBox.classList.add('hidden');
         if (iframeEl) iframeEl.src = '';
         if (html5Video) {
-          html5Video.pause();
+          try { if (typeof html5Video.pause === 'function') html5Video.pause(); } catch (e) {}
           html5Video.classList.add('hidden');
         }
         if (imgEl) {
@@ -3313,7 +3330,6 @@
       }, err => {
         showToast('設定已更新！', '✅');
       });
-    }
     }
 
     function triggerResetDatabase() {
