@@ -195,21 +195,21 @@ const htmlContent = `<!DOCTYPE html>
 
           <!-- 輪播控制與狀態 (多活動自動顯示) -->
           <div id="spotlightNavControls" class="flex items-center gap-2">
-            <span id="spotlightSlideCounter" class="text-[11px] font-extrabold text-slate-500 bg-white/80 px-2.5 py-0.5 rounded-full border border-rose-100 shadow-2xs">
+            <span id="spotlightSlideCounter" class="text-sm font-extrabold text-slate-500 bg-white/80 px-4 py-1.5 rounded-full border border-rose-100 shadow-2xs">
               1 / 1
             </span>
             <div class="flex items-center gap-1">
-              <button type="button" onclick="prevSpotlightSlide(event)" class="w-7 h-7 rounded-full bg-white/90 hover:bg-white text-slate-700 hover:text-peach-600 border border-rose-100 flex items-center justify-center text-xs font-black shadow-2xs transition-all tap-bounce" title="上一個焦點活動">
+              <button type="button" onclick="prevSpotlightSlide(event)" class="w-10 h-10 rounded-full bg-white/90 hover:bg-white text-slate-700 hover:text-peach-600 border border-rose-100 flex items-center justify-center text-lg font-black shadow-md transition-all tap-bounce" title="上一個焦點活動">
                 ❮
               </button>
-              <button type="button" onclick="nextSpotlightSlide(event)" class="w-7 h-7 rounded-full bg-white/90 hover:bg-white text-slate-700 hover:text-peach-600 border border-rose-100 flex items-center justify-center text-xs font-black shadow-2xs transition-all tap-bounce" title="下一個焦點活動">
+              <button type="button" onclick="nextSpotlightSlide(event)" class="w-10 h-10 rounded-full bg-white/90 hover:bg-white text-slate-700 hover:text-peach-600 border border-rose-100 flex items-center justify-center text-lg font-black shadow-md transition-all tap-bounce" title="下一個焦點活動">
                 ❯
               </button>
             </div>
           </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
           <!-- 焦點視覺/攻略圖或影片卡 -->
           <div class="md:col-span-5 bg-white p-2.5 rounded-2xl shadow-sm border border-rose-100 flex flex-col items-center justify-center group relative">
             <div class="w-full aspect-[16/10] bg-rose-50 rounded-xl overflow-hidden relative flex items-center justify-center">
@@ -236,9 +236,12 @@ const htmlContent = `<!DOCTYPE html>
 
           <!-- 焦點文字與說明卡片 -->
           <div class="md:col-span-7 space-y-2.5">
-            <h2 id="spotlightTitle" class="text-lg sm:text-xl font-black text-slate-800 leading-snug">
-              桃子腳幼兒園 牙齒塗氟日 活動攻略圖
-            </h2>
+            <div class="flex items-start gap-2 flex-wrap">
+              <h2 id="spotlightTitle" class="text-lg sm:text-xl font-black text-slate-800 leading-snug">
+                桃子腳幼兒園 牙齒塗氟日 活動攻略圖
+              </h2>
+              <span id="spotlightStatusBadge" class="text-xs font-bold px-2 py-0.5 rounded-md mt-1 hidden shrink-0 whitespace-nowrap"></span>
+            </div>
             <p id="spotlightSubtitle" class="text-xs sm:text-sm text-slate-600 font-semibold flex items-center gap-1">
               📅 日期：2026/10/23 (五) 08:30 起全園分班檢查
             </p>
@@ -268,7 +271,7 @@ const htmlContent = `<!DOCTYPE html>
         </div>
 
         <!-- 輪播圓點指示器 -->
-        <div id="spotlightDots" class="flex items-center justify-center gap-1.5 mt-3 pt-2 border-t border-rose-100/60">
+        <div id="spotlightDots" class="flex items-center justify-center gap-3 mt-3 pt-2 border-t border-rose-100/60">
         </div>
       </div>
 
@@ -1093,7 +1096,7 @@ const htmlContent = `<!DOCTYPE html>
       </div>
 
       <div id="activityPickerLoading" class="py-12 text-center text-slate-400 font-bold flex flex-col items-center justify-center gap-2">
-        <div class="w-7 h-7 border-3 border-teal-200 border-t-teal-600 rounded-full animate-spin"></div>
+        <div class="w-10 h-10 border-3 border-teal-200 border-t-teal-600 rounded-full animate-spin"></div>
         <span class="text-xs">正在讀取 Acticity 資料夾檔案清單...</span>
       </div>
 
@@ -1604,6 +1607,39 @@ const htmlContent = `<!DOCTYPE html>
 
       const titleEl = document.getElementById('spotlightTitle');
       if (titleEl) titleEl.textContent = sp.title || '桃子腳幼兒園 焦點活動';
+      
+      const statusBadge = document.getElementById('spotlightStatusBadge');
+      if (statusBadge) {
+        // try to parse date from sp.subtitle
+        let dateStr = '';
+        if (sp.subtitle) {
+          const match = sp.subtitle.match(/\d{4}\/\d{1,2}\/\d{1,2}/);
+          if (match) dateStr = match[0];
+        }
+        if (!dateStr && sp.date) {
+           dateStr = sp.date;
+        }
+        
+        if (dateStr) {
+          statusBadge.classList.remove('hidden');
+          const evDate = new Date(dateStr);
+          const now = new Date();
+          // Normalize to midnight for accurate day comparison
+          evDate.setHours(0,0,0,0);
+          now.setHours(0,0,0,0);
+          
+          if (evDate >= now) {
+            statusBadge.textContent = '即將到來';
+            statusBadge.className = 'text-xs font-bold px-2 py-0.5 rounded-md mt-1 shrink-0 whitespace-nowrap bg-emerald-100 text-emerald-700 border border-emerald-200';
+          } else {
+            statusBadge.textContent = '活動結束';
+            statusBadge.className = 'text-xs font-bold px-2 py-0.5 rounded-md mt-1 shrink-0 whitespace-nowrap bg-slate-100 text-slate-500 border border-slate-200';
+          }
+        } else {
+          statusBadge.classList.add('hidden');
+        }
+      }
+
       const subEl = document.getElementById('spotlightSubtitle');
       if (subEl) subEl.textContent = sp.subtitle || '';
 
@@ -1668,7 +1704,7 @@ const htmlContent = `<!DOCTYPE html>
             iframeEl.src = '';
           }
         }
-        if (mediaHint) mediaHint.innerHTML = '🎬 點此檢視活動影音詳情';
+        if (mediaHint) mediaHint.innerHTML = '🎬 播放影音';
       } else {
         if (videoBox) videoBox.classList.add('hidden');
         if (iframeEl) iframeEl.src = '';
@@ -1743,8 +1779,8 @@ const htmlContent = `<!DOCTYPE html>
         const dot = document.createElement('button');
         dot.type = 'button';
         dot.className = i === activeIdx
-          ? 'h-2 w-6 bg-peach-500 rounded-full transition-all duration-300 shadow-2xs'
-          : 'h-2 w-2 bg-rose-200 hover:bg-rose-300 rounded-full transition-all duration-200 cursor-pointer';
+          ? 'h-3 w-10 bg-peach-500 rounded-full transition-all duration-300 shadow-2xs'
+          : 'h-3 w-3 bg-rose-200 hover:bg-rose-300 rounded-full transition-all duration-200 cursor-pointer';
         dot.title = '切換至第 ' + (i + 1) + ' 個焦點活動';
         dot.onclick = (function(slideIdx) {
           return function(ev) {
