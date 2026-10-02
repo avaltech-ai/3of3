@@ -483,7 +483,7 @@
         <div>
           <div class="flex items-center gap-2">
             <span class="text-2xl">📸</span>
-            <h2 class="text-xl font-black text-slate-800 tracking-tight">諾貝爾 A 班 活動影像館</h2>
+            <h2 class="text-xl font-black text-slate-800 tracking-tight">影像記錄</h2>
           </div>
           <p class="text-xs sm:text-sm text-slate-600 mt-1">
             紀錄寶貝在幼兒園成長探索的點滴歡笑！
@@ -514,7 +514,7 @@
     <section id="tabContent-docs" class="space-y-6 hidden">
       <!-- 文件區抬頭 -->
       <!-- 管理者模式專用快捷列 (已登入時顯示) -->
-      <div id="docAdminBar" class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 p-3.5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-amber-900 font-bold" style="display: none;">
+      <div id="docAdminBar" class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 p-3.5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-amber-900 font-bold hidden" hidden>
         <div class="flex items-center gap-2">
           <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
           <span>管理者權限已啟用：您可直接在下方任一文件卡片點選「✏️ 編輯」或「🗑️ 刪除」，或點擊右側按鈕新增文件。</span>
@@ -528,7 +528,7 @@
         <div>
           <div class="flex items-center gap-2">
             <span class="text-2xl">📁</span>
-            <h2 class="text-xl font-black text-slate-800 tracking-tight">園所常用資訊與表單下載</h2>
+            <h2 class="text-xl font-black text-slate-800 tracking-tight">常用文件</h2>
           </div>
           <p class="text-xs sm:text-sm text-slate-600 mt-1">
             提供請假單、用藥委託單、學期行事曆與幼兒園作息手冊，方便家長線上預覽與列印。
@@ -2743,17 +2743,17 @@
       const adminBar = document.getElementById('docAdminBar');
       const browseBtn = document.getElementById('btnBrowseCloudDocs');
       if (adminBar) {
-        if (isAdmin) adminBar.style.display = 'flex';
-        else adminBar.style.display = 'none';
+        if (isAdmin) { adminBar.classList.remove('hidden'); adminBar.removeAttribute('hidden'); }
+        else { adminBar.classList.add('hidden'); adminBar.setAttribute('hidden', ''); }
       }
       if (browseBtn) {
-        if (isAdmin) browseBtn.classList.remove('hidden');
-        else browseBtn.classList.add('hidden');
+        if (isAdmin) { browseBtn.classList.remove('hidden'); browseBtn.removeAttribute('hidden'); }
+        else { browseBtn.classList.add('hidden'); browseBtn.setAttribute('hidden', ''); }
       }
       const browseAlbumsBtn = document.getElementById('btnBrowseCloudAlbums');
       if (browseAlbumsBtn) {
-        if (isAdmin) browseAlbumsBtn.classList.remove('hidden');
-        else browseAlbumsBtn.classList.add('hidden');
+        if (isAdmin) { browseAlbumsBtn.classList.remove('hidden'); browseAlbumsBtn.removeAttribute('hidden'); }
+        else { browseAlbumsBtn.classList.add('hidden'); browseAlbumsBtn.setAttribute('hidden', ''); }
       }
 
       const filtered = (filterCat === '全部') 
