@@ -186,14 +186,20 @@ const htmlContent = `<!DOCTYPE html>
   <!-- ==================== 主要內容區塊 CONTAINER ==================== -->
   <main class="max-w-5xl mx-auto px-4 py-5 flex-1 w-full mb-16 md:mb-6">
 
-    <!-- 全域載入狀態提示 -->
-    <div id="loadingOverlay" class="py-12 flex flex-col items-center justify-center gap-3">
+    <!-- 雲端靜默同步提示 Badge (非阻塞式，保證隨時可順暢操作) -->
+    <div id="bgSyncBadge" class="fixed top-2 right-2 bg-white/95 backdrop-blur border border-peach-200 text-peach-600 text-[0.6875rem] font-bold px-2.5 py-1 rounded-full shadow-sm flex items-center gap-1.5 hidden z-50 transition-all pointer-events-none">
+      <span class="inline-block w-2 h-2 rounded-full bg-peach-500 animate-ping"></span>
+      <span>雲端資料同步中...</span>
+    </div>
+
+    <!-- 全域載入狀態提示（備用） -->
+    <div id="loadingOverlay" class="py-12 flex flex-col items-center justify-center gap-3 hidden">
       <div class="w-12 h-12 border-4 border-peach-200 border-t-peach-500 rounded-full animate-spin"></div>
       <p class="text-sm font-bold text-slate-500 animate-pulse">正在連線至雲端讀取最新資料庫，請稍候...</p>
     </div>
 
     <!-- ==================== TAB 1: 班級日常 (HOME) ==================== -->
-    <section id="tabContent-home" class="space-y-6 hidden">
+    <section id="tabContent-home" class="space-y-6">
 
       <!-- 1. SPOTLIGHT 重點活動焦點卡片 -->
       <div id="spotlightContainer" class="bg-gradient-to-br from-rose-50 via-amber-50 to-teal-50 rounded-3xl p-4 sm:p-5 border-2 border-rose-200/80 shadow-md relative overflow-hidden transition-all" onmouseenter="pauseSpotlightTimer()" onmouseleave="resumeSpotlightTimer()" ontouchstart="pauseSpotlightTimer()" ontouchend="resumeSpotlightTimer()">
@@ -643,7 +649,7 @@ const htmlContent = `<!DOCTYPE html>
               <span>新增／編輯行事曆活動</span>
               <button onclick="clearEventForm()" class="text-xs text-peach-600 font-bold hover:underline">清空表單</button>
             </h4>
-            <form id="eventForm" onsubmit="handleSaveEvent(event)" class="space-y-3">
+            <form id="eventForm" onsubmit="event.preventDefault(); handleSaveEvent(event)" class="space-y-3">
               <input type="hidden" id="eventForm-id">
               <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
@@ -710,7 +716,7 @@ const htmlContent = `<!DOCTYPE html>
               <span>編輯每日菜單</span>
               <button onclick="loadMenuForSelectedDate()" class="text-xs text-amber-600 font-bold hover:underline">載入該日菜單</button>
             </h4>
-            <form id="menuForm" onsubmit="handleSaveMenu(event)" class="space-y-3">
+            <form id="menuForm" onsubmit="event.preventDefault(); handleSaveMenu(event)" class="space-y-3">
               <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label class="block text-xs font-bold text-slate-600 mb-1">菜單日期 *</label>
@@ -1190,7 +1196,7 @@ const htmlContent = `<!DOCTYPE html>
         <h3 id="docModalTitle" class="font-black text-slate-800 text-base sm:text-lg">編輯常用文件資訊</h3>
       </div>
 
-      <form id="docEditForm" onsubmit="handleSaveDocModal(event)" class="space-y-3.5">
+      <form id="docEditForm" onsubmit="event.preventDefault(); handleSaveDocModal(event)" class="space-y-3.5">
         <input type="hidden" id="docModal-id">
         <input type="hidden" id="docModal-driveFileId">
 
@@ -1279,15 +1285,15 @@ const htmlContent = `<!DOCTYPE html>
     };
 
     // 初始化程式
-    window.addEventListener('DOMContentLoaded', () => {
-            try {
+    function initApp() {
+      try {
         const savedPwd = sessionStorage.getItem('nobel_a_admin_pwd') || localStorage.getItem('nobel_a_admin_pwd');
         if (savedPwd) {
           state.adminPassword = savedPwd;
           showAdminDashboard();
-          renderDocsList();
         }
       } catch (e) {}
+
       // 初始化今天日期（若當前月在2026年10月附近則自動對齊）
       const today = new Date();
       const yr = today.getFullYear();
@@ -1305,8 +1311,36 @@ const htmlContent = `<!DOCTYPE html>
         state.selectedDateStr = '2026-10-23';
       }
 
-      loadAppData();
-    });
+      // 1. 優先嘗試即時載入上次快取的資料（0 秒閃開，絕不讓使用者卡在空白讀取畫面）
+      let hasCachedData = false;
+      try {
+        const cachedStr = localStorage.getItem('nobel_a_cached_app_data');
+        if (cachedStr) {
+          const cached = JSON.parse(cachedStr);
+          if (cached && typeof cached === 'object' && cached.events && cached.events.length > 0) {
+            handleDataLoaded(cached);
+            hasCachedData = true;
+          }
+        }
+      } catch (e) {}
+
+      // 若完全無快取（首次造訪），先載入內建模範資料並立即渲染，保證前台 0 秒可見
+      if (!hasCachedData) {
+        renderFallbackLocalData();
+      }
+
+      // 確保 loadingOverlay 隱藏，主要畫面立即呈現
+      showLoading(false);
+
+      // 2. 靜默在背景連線至雲端讀取最新資料庫並自動無縫更新（Stale-While-Revalidate）
+      loadAppData(true);
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initApp);
+    } else {
+      initApp();
+    }
 
     
 
@@ -1344,10 +1378,34 @@ const htmlContent = `<!DOCTYPE html>
         if (action === 'getAppData' || action === 'getAlbums' || action === 'getAlbumPhotos' || action === 'getActivityImages') {
           let url = GAS_API_URL + '?action=' + encodeURIComponent(action);
           if (payload && payload.albumId) url += '&albumId=' + encodeURIComponent(payload.albumId);
-          fetch(url, { redirect: 'follow' })
-            .then(r => r.json())
-            .then(res => { if (successCb) successCb(res); })
-            .catch(err => { if (errorCb) errorCb(err); });
+          
+          let isDone = false;
+          const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+          const timeoutTimer = setTimeout(() => {
+            if (!isDone) {
+              isDone = true;
+              if (controller) controller.abort();
+              if (errorCb) errorCb(new Error('伺服器連線逾時'));
+            }
+          }, 10000);
+
+          fetch(url, { redirect: 'follow', signal: controller ? controller.signal : undefined })
+            .then(r => {
+              if (isDone) return;
+              isDone = true;
+              clearTimeout(timeoutTimer);
+              return r.json();
+            })
+            .then(res => {
+              if (res && successCb) successCb(res);
+            })
+            .catch(err => {
+              if (!isDone) {
+                isDone = true;
+                clearTimeout(timeoutTimer);
+                if (errorCb) errorCb(err);
+              }
+            });
         } else {
           // 外部環境備援方案：隱藏 iframe form POST (完全繞過跨域)
           gasPostViaIframe(action, payload, successCb, errorCb);
@@ -1424,22 +1482,34 @@ const htmlContent = `<!DOCTYPE html>
       setTimeout(() => { form.remove(); }, 100);
     }
 
-    function loadAppData() {
-      // 顯示載入畫面，直到讀取到遠端最新資料
-      showLoading(true);
+    function loadAppData(isSilent = true) {
+      const syncBadge = document.getElementById('bgSyncBadge');
+      if (isSilent) {
+        if (syncBadge) syncBadge.classList.remove('hidden');
+      } else {
+        showLoading(true);
+      }
 
       callBackend('getAppData', {}, res => {
+        if (syncBadge) syncBadge.classList.add('hidden');
+        showLoading(false);
         if (res && res.success && res.data) {
+          try {
+            localStorage.setItem('nobel_a_cached_app_data', JSON.stringify(res.data));
+          } catch (e) {}
           handleDataLoaded(res.data);
-          showLoading(false);
         } else {
-          renderFallbackLocalData();
-          showLoading(false);
+          if (!state.events || state.events.length === 0) {
+            renderFallbackLocalData();
+          }
         }
       }, err => {
-        console.warn('GAS 連線失敗，載入本機預設資料:', err);
-        renderFallbackLocalData();
+        if (syncBadge) syncBadge.classList.add('hidden');
         showLoading(false);
+        console.warn('GAS 連線失敗或逾時，已保持目前最新資料:', err);
+        if (!state.events || state.events.length === 0) {
+          renderFallbackLocalData();
+        }
       });
     }
 
@@ -3176,6 +3246,7 @@ const htmlContent = `<!DOCTYPE html>
 
     // 後台行事曆管理
     function handleSaveEvent(e) {
+      if (e && typeof e.preventDefault === 'function') e.preventDefault();
       const evId = document.getElementById('eventForm-id').value;
       const existing = evId ? state.events.find(x => x.id === evId) : null;
       const themeVal = existing && existing.theme ? existing.theme : '主題活動：人與自己／人與他人概念';

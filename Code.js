@@ -249,10 +249,29 @@ function getSpreadsheet() {
 }
 
 /**
+ * 清除 getAppData 雲端快取，確保寫入時立即生效
+ */
+function clearAppDataCache() {
+  try {
+    const cache = CacheService.getScriptCache();
+    cache.remove('app_data_v2');
+  } catch (e) {}
+}
+
+/**
  * 取得前台初始化所需的全部資料（一次取得，加速前端渲染）
  */
 function getAppData() {
   try {
+    // 1. 優先嘗試讀取快取（大幅降低延遲至 0.2s，避免前端久候）
+    try {
+      const cache = CacheService.getScriptCache();
+      const cached = cache.get('app_data_v2');
+      if (cached) {
+        return JSON.parse(cached);
+      }
+    } catch (e) {}
+
     const ss = getSpreadsheet();
     if (!ss) throw new Error('無法開啟 Google 試算表');
 
@@ -392,7 +411,7 @@ function getAppData() {
       console.warn('Get activity folder for getAppData failed: ' + e);
     }
 
-    return {
+    const result = {
       success: true,
       data: {
         events: events || [],
@@ -414,6 +433,11 @@ function getAppData() {
         }
       }
     };
+    try {
+      const cache = CacheService.getScriptCache();
+      cache.put('app_data_v2', JSON.stringify(result), 300); // 快取 5 分鐘
+    } catch (e) {}
+    return result;
   } catch (err) {
     return {
       success: false,
@@ -776,6 +800,7 @@ function saveEvent(eventData, password) {
       sheet.appendRow(rowData);
     }
 
+    clearAppDataCache();
     return { success: true, message: '活動已儲存成功！' };
   } catch (err) {
     return { success: false, error: err.toString() };
@@ -796,6 +821,7 @@ function deleteEvent(eventId, password) {
     for (let i = 1; i < data.length; i++) {
       if (String(data[i][idIndex]) === String(eventId)) {
         sheet.deleteRow(i + 1);
+        clearAppDataCache();
         return { success: true, message: '活動已成功刪除！' };
       }
     }
@@ -845,6 +871,7 @@ function saveMenu(menuData, password) {
       sheet.appendRow(rowData);
     }
 
+    clearAppDataCache();
     return { success: true, message: '菜單已儲存成功！' };
   } catch (err) {
     return { success: false, error: err.toString() };
@@ -865,6 +892,7 @@ function deleteMenu(dateStr, password) {
     for (let i = 1; i < data.length; i++) {
       if (normalizeDateString(data[i][dateIndex]) === dateStr) {
         sheet.deleteRow(i + 1);
+        clearAppDataCache();
         return { success: true, message: '菜單已成功刪除！' };
       }
     }
@@ -953,6 +981,7 @@ function saveSpotlight(spData, password) {
       sheet.appendRow(rowData);
     }
 
+    clearAppDataCache();
     return { success: true, message: 'Spotlight 重點活動儲存成功！', id: id };
   } catch (err) {
     return { success: false, error: err.toString() };
@@ -973,6 +1002,7 @@ function deleteSpotlight(spId, password) {
     for (let i = 1; i < data.length; i++) {
       if (String(data[i][idIndex]) === String(spId)) {
         sheet.deleteRow(i + 1);
+        clearAppDataCache();
         return { success: true, message: 'Spotlight 已成功刪除！' };
       }
     }
@@ -1026,6 +1056,7 @@ function updateSpotlightsOrder(orderList, password) {
       sheet.getRange(2, 1, data.length - 1, headers.length).sort({ column: priorityIndex + 1, ascending: true });
     }
 
+    clearAppDataCache();
     return { success: true, message: 'Spotlight 輪播順序已成功更新！' };
   } catch (err) {
     return { success: false, error: err.toString() };
@@ -1074,10 +1105,12 @@ function saveDoc(docData, password) {
           sheet.getRange(targetRow, colIdx + 1).setValue(fieldMap[h]);
         }
       });
+      clearAppDataCache();
       return { success: true, message: '文件資訊已成功更新！' };
     } else {
       const newRow = headers.map(function(h) { return fieldMap[h] !== undefined ? fieldMap[h] : ''; });
       sheet.appendRow(newRow);
+      clearAppDataCache();
       return { success: true, message: '新文件已成功加入清單！' };
     }
   } catch (err) {
@@ -1099,6 +1132,7 @@ function deleteDoc(docId, password) {
     for (let i = 1; i < data.length; i++) {
       if (String(data[i][idIndex]) === String(docId)) {
         sheet.deleteRow(i + 1);
+        clearAppDataCache();
         return { success: true, message: '文件已成功自清單移除！' };
       }
     }
@@ -1125,6 +1159,7 @@ function updateSettings(newSettings, password) {
       }
     }
 
+    clearAppDataCache();
     return { success: true, message: '系統設定已更新完成！' };
   } catch (err) {
     return { success: false, error: err.toString() };
@@ -1364,5 +1399,6 @@ function setupInitialDatabase() {
   });
 
   console.log('Database initialized successfully!');
+  clearAppDataCache();
   return { success: true, message: '試算表資料庫初始化完成！' };
 }
