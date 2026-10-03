@@ -155,10 +155,17 @@ const htmlContent = `<!DOCTYPE html>
         </div>
       </div>
 
-      <!-- 導覽頁籤 (Desktop & Tablet) -->
-      
-
-      
+      <!-- 頁面最右上角：系統管理員登入狀態與即時登出按鈕 -->
+      <div id="globalAdminStatus" class="hidden items-center gap-2">
+        <div class="hidden sm:flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200/90 text-xs px-2.5 py-1 rounded-full font-bold shadow-2xs">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span>管理員已登入</span>
+        </div>
+        <button onclick="doAdminLogout()" class="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-rose-50 hover:text-rose-600 border border-slate-200/90 text-xs font-bold transition-all tap-bounce flex items-center gap-1 shadow-2xs" title="即時登出系統管理員">
+          <span class="text-xs">🚪</span>
+          <span>登出</span>
+        </button>
+      </div>
     </div>
   </header>
 
@@ -187,7 +194,7 @@ const htmlContent = `<!DOCTYPE html>
   <main class="max-w-5xl mx-auto px-4 py-5 flex-1 w-full mb-16 md:mb-6">
 
     <!-- 雲端靜默同步提示 Badge (非阻塞式，保證隨時可順暢操作) -->
-    <div id="bgSyncBadge" class="fixed top-2 right-2 bg-white/95 backdrop-blur border border-peach-200 text-peach-600 text-[0.6875rem] font-bold px-2.5 py-1 rounded-full shadow-sm flex items-center gap-1.5 hidden z-50 transition-all pointer-events-none">
+    <div id="bgSyncBadge" class="fixed top-16 right-4 bg-white/95 backdrop-blur border border-peach-200 text-peach-600 text-[0.6875rem] font-bold px-2.5 py-1 rounded-full shadow-sm flex items-center gap-1.5 hidden z-50 transition-all pointer-events-none">
       <span class="inline-block w-2 h-2 rounded-full bg-peach-500 animate-ping"></span>
       <span>雲端資料同步中...</span>
     </div>
@@ -613,16 +620,11 @@ const htmlContent = `<!DOCTYPE html>
       <div id="adminDashboard" class="hidden space-y-6">
         
         <!-- 後台頂部列 -->
-        <div class="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div class="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm flex items-center justify-between gap-3">
           <div class="flex items-center gap-2">
             <span class="w-3 h-3 rounded-full bg-emerald-500 animate-ping"></span>
             <span class="font-black text-slate-800 text-base">諾貝爾 A 班 內容管理中心</span>
             <span class="bg-emerald-100 text-emerald-800 text-xs px-2 py-0.5 rounded-full font-bold">已認證</span>
-          </div>
-          <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
-            <button onclick="doAdminLogout()" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-rose-50 hover:text-rose-600 text-xs font-bold tap-bounce">
-              登出
-            </button>
           </div>
         </div>
 
@@ -1313,6 +1315,7 @@ const htmlContent = `<!DOCTYPE html>
           showAdminDashboard();
         }
       } catch (e) {}
+      updateAdminAuthUI();
 
       // 初始化今天日期（若當前月在2026年10月附近則自動對齊）
       const today = new Date();
@@ -2014,6 +2017,7 @@ const htmlContent = `<!DOCTYPE html>
       if (tabName === 'docs') {
         renderDocsList();
       }
+      updateAdminAuthUI();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -3435,6 +3439,7 @@ const htmlContent = `<!DOCTYPE html>
       document.getElementById('adminDashboard').classList.remove('hidden');
       renderAdminEventsTable();
       updateAlbumPreviewName();
+      updateAdminAuthUI();
     }
 
     function doAdminLogout() {
@@ -3444,7 +3449,29 @@ const htmlContent = `<!DOCTYPE html>
       document.getElementById('adminLoginCard').classList.remove('hidden');
       document.getElementById('adminDashboard').classList.add('hidden');
       renderDocsList();
-      showToast('已安全登出後台', '👋');
+      updateAdminAuthUI();
+      showToast('已安全登出系統管理員', '👋');
+    }
+
+    function updateAdminAuthUI() {
+      let pwd = state.adminPassword;
+      if (!pwd) {
+        try {
+          pwd = sessionStorage.getItem('nobel_a_admin_pwd') || localStorage.getItem('nobel_a_admin_pwd') || '';
+          if (pwd) state.adminPassword = pwd;
+        } catch (e) {}
+      }
+      const isAdmin = !!pwd;
+      const statusEl = document.getElementById('globalAdminStatus');
+      if (statusEl) {
+        if (isAdmin) {
+          statusEl.classList.remove('hidden');
+          statusEl.classList.add('flex');
+        } else {
+          statusEl.classList.add('hidden');
+          statusEl.classList.remove('flex');
+        }
+      }
     }
 
     function switchAdminSubtab(subtab) {
