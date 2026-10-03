@@ -1569,7 +1569,7 @@
         const isAll = t.includes('全園');
         const isParent = t.includes('親職') || t.includes('親師') || t.includes('家長');
 
-        let colorClasses = 'bg-slate-100 text-slate-700 border border-slate-200/90';
+        let colorClasses = 'bg-slate-100 text-slate-700 border border-slate-200/90 font-medium';
         let icon = '';
 
         if (isNobelA) {
@@ -1581,7 +1581,11 @@
         } else if (isParent) {
           colorClasses = 'bg-amber-50 text-amber-700 border border-amber-200 font-bold';
           icon = '<span class="mr-0.5">👨‍👩‍👧</span>';
-        } else if (t.includes('諾貝爾') || t.includes('奧斯卡') || t.includes('雨奧') || t.includes('米A') || t.includes('米B') || t.includes('兩果')) {
+        } else if (t.includes('其他') || t.includes('備註')) {
+          colorClasses = 'bg-slate-100 text-slate-700 border border-slate-200/90 font-medium';
+          icon = '';
+        } else {
+          // 所有其他幼兒園班級（諾貝爾 B、諾貝爾 C、諾奧、奧斯卡、雨奧、米羅 A、米羅 B、雨果、兩果等）
           colorClasses = 'bg-indigo-50 text-indigo-700 border border-indigo-200 font-bold';
           icon = '<span class="mr-0.5">🌱</span>';
         }
@@ -1667,12 +1671,19 @@
 
             state.docCategories = data.docCategories || ['全部文件', '保健用藥', '學期行事曆', '餐飲菜單', '親師手冊'];
       state.eventTargets = data.eventTargets || [
-        {targetName: '諾貝爾A班', displayName: '🌟 諾貝爾 A 班專屬'},
-        {targetName: '全園', displayName: '🏫 全園活動'},
-        {targetName: '親職活動', displayName: '👨‍👩‍👧 親師座談 / 親職活動'},
-        {targetName: '米A/米B/兩果', displayName: '米A/米B/兩果'},
-        {targetName: '雨奧/奧斯卡/諾奧', displayName: '雨奧/奧斯卡/諾奧'},
-        {targetName: '其他', displayName: '其他班級'}
+        {targetName: '全園活動', displayName: '🏫 全園活動'},
+        {targetName: '親職活動', displayName: '👨‍👩‍👧 親職活動'},
+        {targetName: '親師座談', displayName: '👨‍👩‍👧 親師座談'},
+        {targetName: '諾貝爾 A ', displayName: '🌟 諾貝爾 A'},
+        {targetName: '諾貝爾 B', displayName: '🌱 諾貝爾 B'},
+        {targetName: '諾貝爾 C', displayName: '🌱 諾貝爾 C'},
+        {targetName: '諾奧', displayName: '🌱 諾奧'},
+        {targetName: '奧斯卡', displayName: '🌱 奧斯卡'},
+        {targetName: '雨奧', displayName: '🌱 雨奧'},
+        {targetName: '米羅 A', displayName: '🌱 米羅 A'},
+        {targetName: '米羅 B', displayName: '🌱 米羅 B'},
+        {targetName: '兩果', displayName: '🌱 兩果'},
+        {targetName: '雨果', displayName: '🌱 雨果'}
       ];
       state.eventCategoriesMajor = data.eventCategoriesMajor || []; state.eventCategoriesMinor = data.eventCategoriesMinor || [];
       renderDocCategoriesUI();
