@@ -559,7 +559,7 @@ const htmlContent = `<!DOCTYPE html>
         <div class="space-y-1.5">
           <div class="flex items-center justify-between text-xs text-slate-600 font-bold px-0.5">
             <span class="flex items-center gap-1.5">
-              <span>🏷️</span> 活動類別標籤（可複選）：
+              <span>🏷️</span> 活動類別標籤：
             </span>
             <span class="text-[11px] font-normal text-slate-400 hidden sm:inline">點擊標籤可單選或複選多個類別</span>
           </div>
@@ -3369,11 +3369,11 @@ const htmlContent = `<!DOCTYPE html>
       allBtn.type = 'button';
       allBtn.onclick = function() { toggleAlbumCategoryFilter(''); };
       if (isAll) {
-        allBtn.className = 'px-3.5 py-1.5 rounded-full text-xs font-black shadow-xs bg-teal-600 text-white ring-2 ring-teal-500/40 cursor-pointer tap-bounce transition-all flex items-center gap-1';
-        allBtn.innerHTML = '<span>✨ 全部</span>';
+        allBtn.className = 'px-3.5 py-1.5 rounded-full text-xs font-black shadow-xs bg-teal-600 text-white ring-2 ring-teal-500/40 cursor-pointer tap-bounce transition-all inline-flex items-center justify-center';
+        allBtn.textContent = '全部';
       } else {
-        allBtn.className = 'px-3.5 py-1.5 rounded-full text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200/80 cursor-pointer tap-bounce transition-all flex items-center gap-1';
-        allBtn.innerHTML = '<span>全部</span>';
+        allBtn.className = 'px-3.5 py-1.5 rounded-full text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200/80 cursor-pointer tap-bounce transition-all inline-flex items-center justify-center';
+        allBtn.textContent = '全部';
       }
       container.appendChild(allBtn);
 
@@ -3384,11 +3384,11 @@ const htmlContent = `<!DOCTYPE html>
         pill.type = 'button';
         pill.onclick = function() { toggleAlbumCategoryFilter(c); };
         if (isSelected) {
-          pill.className = 'px-3.5 py-1.5 rounded-full text-xs font-black shadow-xs bg-teal-600 text-white ring-2 ring-teal-500/40 cursor-pointer tap-bounce transition-all flex items-center gap-1.5 scale-102';
-          pill.innerHTML = '<span>✓</span> <span>' + c + '</span>';
+          pill.className = 'px-3.5 py-1.5 rounded-full text-xs font-black shadow-xs bg-teal-600 text-white ring-2 ring-teal-500/40 cursor-pointer tap-bounce transition-all inline-flex items-center justify-center scale-102';
+          pill.textContent = c;
         } else {
-          pill.className = 'px-3.5 py-1.5 rounded-full text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/80 cursor-pointer tap-bounce transition-all flex items-center gap-1.5';
-          pill.innerHTML = '<span>' + c + '</span>';
+          pill.className = 'px-3.5 py-1.5 rounded-full text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/80 cursor-pointer tap-bounce transition-all inline-flex items-center justify-center';
+          pill.textContent = c;
         }
         container.appendChild(pill);
       });
@@ -3605,12 +3605,8 @@ const htmlContent = `<!DOCTYPE html>
               </div>
             </div>
 
-            <div class="pt-3 px-1">
+            <div class="pt-2.5 pb-0.5 px-1">
               <h4 class="font-black text-slate-800 text-sm truncate" title="\${alb.title}">\${alb.title}</h4>
-              <div class="flex items-center justify-between text-xs text-slate-400 mt-1.5">
-                <span class="text-slate-500 font-medium text-[11px]">\${alb.category || '活動相簿'}</span>
-                <span class="text-teal-600 font-bold group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5 text-xs">瀏覽相簿 ➔</span>
-              </div>
             </div>
           </div>
         \`;
