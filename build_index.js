@@ -1857,7 +1857,7 @@ const htmlContent = `<!DOCTYPE html>
         { id: 'EV-15', date: '2026-10-08', title: '十月壽星慶生會', target: '全園活動', category: '全園活動', timeLocation: '', description: '分享快樂分享愛！', theme: '主題活動：人與自己／人與他人概念' },
         { id: 'EV-16', date: '2026-10-09', endDate: '2026-10-11', title: '雙十節連假', target: '全園適用', category: '節慶放假', timeLocation: '連假三日', description: '國慶連續假期放假', theme: '主題活動：人與自己／人與他人概念' },
         { id: 'EV-17', date: '2026-10-23', title: '牙齒塗氟日 口腔保健檢查', calendarPrompt: '牙齒塗氟', target: '諾貝爾 A, 全園活動', category: '重要活動', timeLocation: '08:30 (五)', description: '🌟 全園定期塗氟檢查，請家長務必攜帶健保卡！未攜帶無法參加喔！', theme: '主題活動：人與自己／人與他人概念' },
-        { id: 'EV-18', date: '2026-10-24', endDate: '2026-10-26', title: '光復節連假', target: '全園適用', category: '節慶放假', timeLocation: '連假三日', description: '光復節連續假期', theme: '主題活動：人與自己／人與他人概念' }
+        { id: 'EV-18', date: '2026-10-24', endDate: '2026-10-26', title: '光復節連假', calendarPrompt: '光復節連假', target: '全園適用', category: '節慶放假', timeLocation: '連假三日', description: '光復節連續假期', theme: '主題活動：人與自己／人與他人概念' }
       ];
 
       state.menus = [
@@ -2632,8 +2632,7 @@ const htmlContent = `<!DOCTYPE html>
           const banners = promptEvents.map(pe => {
             const promptText = (pe.calendarPrompt || pe['行事曆提示']).trim();
             const isHighlight = (pe.target || '').includes('諾貝爾A') || (pe.target || '').includes('諾貝爾 A') || (pe.target || '').includes('諾A');
-            const displayPrompt = promptText.length > 5 ? promptText.slice(0, 4) + '..' : promptText;
-            return \`<div class="truncate text-[0.625rem] leading-tight px-1 py-0.5 rounded \${isHighlight ? 'bg-peach-500 text-white font-black' : 'bg-rose-100/80 text-rose-700 font-medium'}" title="\${promptText}">\${displayPrompt}</div>\`;
+            return \`<div class="text-[0.625rem] tracking-tight leading-tight px-1.5 py-0.5 rounded break-words \${isHighlight ? 'bg-peach-500 text-white font-black' : 'bg-rose-100/80 text-rose-700 font-medium'}" title="\${promptText}">\${promptText}</div>\`;
           });
           bannerHtml = banners.slice(0, 2).join('');
         }
