@@ -342,18 +342,27 @@
         </div>
 
         <!-- 圖例說明 -->
-        <div class="flex items-center justify-center gap-4 text-xs text-slate-500 pt-2 border-t border-slate-100 flex-wrap">
-          <span class="flex items-center gap-1">
-            <span class="w-2.5 h-2.5 rounded-full bg-peach-500"></span> 諾貝爾 A 班活動
+        <div class="flex items-center justify-center gap-3 sm:gap-4 text-xs text-slate-500 pt-2 border-t border-slate-100 flex-wrap">
+          <span class="flex items-center gap-1 font-bold text-peach-600">
+            <span>❤️</span> 諾貝爾 A 班
           </span>
           <span class="flex items-center gap-1">
-            <span class="w-2.5 h-2.5 rounded-full bg-berry-500"></span> 全園活動/慶生
+            <span class="w-2.5 h-2.5 rounded-full bg-purple-500"></span> 全園活動
           </span>
           <span class="flex items-center gap-1">
-            <span class="w-2.5 h-2.5 rounded-full bg-sun-400"></span> 幸福廚房
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span> 班級主題
           </span>
           <span class="flex items-center gap-1">
-            <span class="w-2.5 h-2.5 rounded-full bg-mint-500"></span> 每日營養菜單
+            <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> 重要活動
+          </span>
+          <span class="flex items-center gap-1 text-slate-600">
+            <span>🍱</span> 每日點心／餐點
+          </span>
+          <span class="flex items-center gap-1 text-slate-600">
+            <span>🥐</span> 幸福廚房日
+          </span>
+          <span class="flex items-center gap-1 text-slate-600">
+            <span>🎂</span> 當月慶生日
           </span>
         </div>
       </div>
@@ -1823,6 +1832,8 @@
         { id: 'EV-01', date: '2026-08-03', title: '新學期開學日', target: '全園', category: '全園活動', timeLocation: '', description: '開學第一天', theme: '快樂上學趣' },
         { id: 'EV-05', date: '2026-08-27', title: '諾貝爾 A、B、C 親師座談', target: '親職活動, 諾貝爾 A, 諾貝爾 B, 諾貝爾 C', category: '親職活動', timeLocation: '17:00 開始', description: '諾A班親師座談交流', theme: '快樂上學趣' },
         { id: 'EV-08', date: '2026-09-09', title: '幸福廚房（諾C/諾B/諾A）', target: '諾貝爾 A, 諾貝爾 B, 諾貝爾 C', category: '班級主題', timeLocation: '', description: '諾A班小小烘焙師手作體驗', theme: '快樂上學趣' },
+        { id: 'EV-12', date: '2026-10-05', title: '幸福廚房（雨奧/奧斯卡/諾奧）', target: '雨奧, 奧斯卡, 諾奧', category: '班級主題', timeLocation: '', description: '雨奧、奧斯卡、諾奧幸福廚房手作體驗', theme: '主題活動：人與自己／人與他人概念' },
+        { id: 'EV-13', date: '2026-10-06', title: '幸福廚房（米羅 A, 米羅 B, 雨果）', target: '米羅 A, 米羅 B, 雨果', category: '班級主題', timeLocation: '', description: '米羅 A、米羅 B、雨果幸福廚房手作體驗', theme: '主題活動：人與自己／人與他人概念' },
         { id: 'EV-14', date: '2026-10-07', title: '幸福廚房（諾C/諾B/諾A）', target: '諾貝爾 A, 諾貝爾 B, 諾貝爾 C', category: '班級主題', timeLocation: '', description: '諾A班十月份幸福廚房手作日', theme: '主題活動：人與自己／人與他人概念' },
         { id: 'EV-15', date: '2026-10-08', title: '十月壽星慶生會', target: '全園', category: '全園活動', timeLocation: '', description: '分享快樂分享愛！', theme: '主題活動：人與自己／人與他人概念' },
         { id: 'EV-16', date: '2026-10-09', endDate: '2026-10-11', title: '雙十節連假', target: '全園', category: '節慶放假', timeLocation: '連假三日', description: '國慶連續假期放假', theme: '主題活動：人與自己／人與他人概念' },
@@ -2536,42 +2547,81 @@
         let dayNumColor = isSunday ? 'text-rose-500' : isSaturday ? 'text-teal-600' : 'text-slate-700';
         if (isSelected) dayNumColor = 'text-peach-700 font-black';
 
-        // 標記小圓點或文字
+        // 標記小圓點或圖示（僅全園活動、班級主題、重要活動標示圓點；諾貝爾 A 標示❤️；不標示菜單綠點）
         let badgesHtml = '<div class="flex items-center gap-0.5 flex-wrap justify-end">';
-        let hasNobelA = dayEvents.some(e => (e.target || '').includes('諾貝爾A') || (e.target || '').includes('諾貝爾 A') || (e.target || '').includes('諾A') || (e.title || '').includes('諾A'));
-        let hasKitchen = dayEvents.some(e => (e.categoryMajor || '').includes('幸福廚房') || (e.categoryMinor || '').includes('幸福廚房') || (e.category || '').includes('幸福廚房') || (e.title || '').includes('幸福廚房'));
-        let hasWholeSchool = dayEvents.some(e => (e.categoryMajor || '').includes('全園') || (e.categoryMinor || '').includes('全園') || (e.category || '').includes('全園') || (e.categoryMajor || '').includes('慶生') || (e.categoryMinor || '').includes('慶生') || (e.category || '').includes('慶生') || (e.title || '').includes('壽星'));
 
-        if (hasNobelA) {
-          badgesHtml += '<span class="w-2 h-2 rounded-full bg-peach-500 ring-1 ring-white" title="諾A班活動"></span>';
-        }
-        if (hasKitchen) {
-          badgesHtml += '<span class="w-2 h-2 rounded-full bg-sun-400 ring-1 ring-white" title="幸福廚房"></span>';
-        }
-        if (hasWholeSchool) {
-          badgesHtml += '<span class="w-2 h-2 rounded-full bg-berry-500 ring-1 ring-white" title="全園活動/慶生"></span>';
-        }
+        const hasNobelA = dayEvents.some(e => (e.target || '').includes('諾貝爾A') || (e.target || '').includes('諾貝爾 A') || (e.target || '').includes('諾A') || (e.title || '').includes('諾A'));
         
-        // 若有其他活動但不屬於上述三類，給一個預設紫色
-        if (dayEvents.length > 0 && !hasNobelA && !hasKitchen && !hasWholeSchool) {
-          badgesHtml += '<span class="w-2 h-2 rounded-full bg-berry-500 ring-1 ring-white" title="活動"></span>';
+        // 只有全園活動、班級主題以及重要活動，才會以不同顏色的圓點顯示
+        const isWholeSchool = dayEvents.some(e => {
+          const cat = (e.categoryMajor || e.category || '');
+          return cat.includes('全園') || (e.target || '').includes('全園') || cat.includes('慶生') || (e.title || '').includes('壽星');
+        });
+        const isClassTheme = dayEvents.some(e => {
+          const cat = (e.categoryMajor || e.category || '');
+          return cat.includes('班級') || cat.includes('主題') || cat.includes('幸福廚房') || (e.title || '').includes('幸福廚房');
+        });
+        const isImportant = dayEvents.some(e => {
+          const cat = (e.categoryMajor || e.category || '');
+          return cat.includes('重要') || cat.includes('塗氟') || cat.includes('檢查') || (e.title || '').includes('塗氟');
+        });
+
+        // 1. 諾貝爾 A 班愛心標示
+        if (hasNobelA) {
+          badgesHtml += '<span class="text-[0.6875rem] leading-none select-none" title="諾貝爾 A 班活動">❤️</span>';
         }
 
-        if (dayMenu) {
-          // Sync with legend mint-500 and size
-          badgesHtml += '<span class="w-2 h-2 rounded-full bg-mint-500 ring-1 ring-white" title="每日營養菜單"></span>';
+        // 2. 三大活動類別專屬圓點
+        // 全園活動：💜 雅緻紫
+        if (isWholeSchool) {
+          badgesHtml += '<span class="w-2 h-2 rounded-full bg-purple-500 ring-1 ring-white" title="全園活動"></span>';
         }
+        // 班級主題：💛 金黃暖陽
+        if (isClassTheme) {
+          badgesHtml += '<span class="w-2 h-2 rounded-full bg-amber-400 ring-1 ring-white" title="班級主題"></span>';
+        }
+        // 重要活動：🔥 珊瑚櫻紅
+        if (isImportant) {
+          badgesHtml += '<span class="w-2 h-2 rounded-full bg-rose-500 ring-1 ring-white" title="重要活動"></span>';
+        }
+
         badgesHtml += '</div>';
 
-        // 格子下方：精簡活動小標題 (文字截短)
+        // 判定幸福廚房日與當月慶生日
+        const isKitchen = dayEvents.some(e => (e.title || '').includes('幸福廚房') || (e.categoryMajor || '').includes('幸福廚房') || (e.categoryMinor || '').includes('幸福廚房')) || 
+          (dayMenu && ((dayMenu.note || '').includes('幸福廚房') || (dayMenu.afternoonSnack || '').includes('幸福廚房') || (dayMenu.lunchMain || '').includes('幸福廚房')));
+
+        const isBirthday = dayEvents.some(e => (e.title || '').includes('慶生') || (e.title || '').includes('壽星') || (e.categoryMajor || '').includes('慶生') || (e.categoryMinor || '').includes('慶生')) || 
+          (dayMenu && ((dayMenu.note || '').includes('慶生') || (dayMenu.afternoonSnack || '').includes('慶生') || (dayMenu.lunchMain || '').includes('慶生')));
+
+        // 餐點圖示：🍱，若為幸福廚房日旁加🥐，慶生日旁加🎂
+        let menuIcons = '';
+        if (dayMenu && !isWeekend) {
+          menuIcons = '🍱';
+          if (isKitchen) menuIcons += '🥐';
+          if (isBirthday) menuIcons += '🎂';
+        }
+
+        // 格子下方：精簡活動小標題 (文字截短) 與餐點圖示（移除「有點心」文字標籤，僅保留圖示）
         let eventBrief = '';
         if (dayEvents.length > 0) {
           const firstEv = dayEvents[0];
           const isHighlight = (firstEv.target || '').includes('諾貝爾A') || (firstEv.target || '').includes('諾貝爾 A') || (firstEv.target || '').includes('諾A');
           const title = firstEv.title.length > 5 ? firstEv.title.slice(0, 4) + '..' : firstEv.title;
-          eventBrief = `<div class="truncate text-[0.625rem] leading-tight px-1 py-0.5 rounded ${isHighlight ? 'bg-peach-500 text-white font-black' : 'bg-rose-100/80 text-rose-700 font-medium'}">${title}</div>`;
-        } else if (dayMenu && !isWeekend) {
-          eventBrief = '<div class="truncate text-[0.5625rem] text-slate-400 font-normal">🍱 有點心</div>';
+          const bannerHtml = `<div class="truncate text-[0.625rem] leading-tight px-1 py-0.5 rounded ${isHighlight ? 'bg-peach-500 text-white font-black' : 'bg-rose-100/80 text-rose-700 font-medium'}">${title}</div>`;
+
+          if (menuIcons) {
+            eventBrief = `
+              <div class="space-y-0.5">
+                ${bannerHtml}
+                <div class="text-[0.625rem] text-slate-500 font-normal leading-none px-0.5">${menuIcons}</div>
+              </div>
+            `;
+          } else {
+            eventBrief = bannerHtml;
+          }
+        } else if (menuIcons) {
+          eventBrief = `<div class="text-[0.625rem] text-slate-500 font-normal leading-none px-0.5">${menuIcons}</div>`;
         }
 
         cell.innerHTML = `
