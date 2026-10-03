@@ -94,8 +94,16 @@ function getActivityFolder() {
  */
 function onOpen() {
   try {
+    ensureAlbumSheetsExist();
+  } catch (e) {
+    console.warn('ensureAlbumSheetsExist in onOpen skipped: ' + e);
+  }
+
+  try {
     SpreadsheetApp.getUi()
       .createMenu('🌟 諾貝爾A班專屬功能')
+      .addItem('📁 立即建立／檢查相簿工作表 (AlbumCategories 與 Albums)', 'menuEnsureAlbumSheets')
+      .addItem('🔄 清除快取並強制重新整理', 'menuClearCache')
       .addItem('🚀 一鍵初始化／重設資料庫 (5大工作表與示範資料)', 'setupInitialDatabase')
       .addItem('🌐 開啟班級網頁應用程式', 'openWebApp')
       .addToUi();
@@ -104,8 +112,19 @@ function onOpen() {
   }
 }
 
+function menuEnsureAlbumSheets() {
+  const res = ensureAlbumSheetsExist();
+  SpreadsheetApp.getUi().alert('✅ ' + (res.message || '相簿工作表建立與同步完成！'));
+}
+
+function menuClearCache() {
+  clearAppDataCache();
+  ensureAlbumSheetsExist();
+  SpreadsheetApp.getUi().alert('✅ 快取已清除，所有最新資料與工作表已同步！');
+}
+
 function openWebApp() {
-  const url = 'https://script.google.com/macros/s/AKfycbxhp0gicx82NNCI58dNmoceEfTUCldZ9Eqp9Uh4zOOGU6vXeowbZuO9DmqDcvG62PLRkQ/exec';
+  const url = 'https://script.google.com/macros/s/AKfycbx5JGeiSH2J1vkOu4rh9NPwFBWNSkn5PkHfY5o25t-K4WcOK8b3VQjXi-TqUOzS8TvdJg/exec';
   const html = '<div style="font-family:sans-serif;padding:16px;text-align:center;">' +
     '<h3 style="color:#E05362;margin-bottom:12px;">🍑 諾貝爾 A 班生活網</h3>' +
     '<p style="font-size:13px;color:#666;margin-bottom:16px;">網頁已部署完成，點擊下方按鈕即可開啟！</p>' +
@@ -118,13 +137,36 @@ function openWebApp() {
  * Web App 入口 (支援 HTML 網頁呈現與 REST API JSON 回應)
  */
 function doGet(e) {
+  // 自動檢查相簿與分類工作表是否已建立
+  try {
+    ensureAlbumSheetsExist();
+  } catch (err) {
+    console.error('ensureAlbumSheetsExist in doGet failed: ' + err.toString());
+  }
+
   // 如果帶有 action 參數，則作為 REST API 回傳 JSON（支援 GitHub Pages 跨網域讀取）
   if (e && e.parameter && e.parameter.action) {
     let result = { success: false, error: '未知動作' };
     const action = e.parameter.action;
     try {
       if (action === 'getAppData') {
+        if (e.parameter.refresh === 'true' || e.parameter.noCache === 'true') {
+          clearAppDataCache();
+        }
         result = getAppData();
+      } else if (action === 'ensureAlbumSheets' || action === 'initAlbumSheets') {
+        result = ensureAlbumSheetsExist();
+      } else if (action === 'listSheetNames') {
+        const ss = getSpreadsheet();
+        result = {
+          success: true,
+          spreadsheetId: ss ? ss.getId() : null,
+          spreadsheetName: ss ? ss.getName() : null,
+          sheets: ss ? ss.getSheets().map(s => s.getName()) : []
+        };
+      } else if (action === 'clearCache') {
+        clearAppDataCache();
+        result = ensureAlbumSheetsExist();
       } else if (action === 'getAlbums') {
         result = getAlbums();
       } else if (action === 'getAlbumPhotos') {
@@ -208,6 +250,8 @@ function doPost(e) {
       result = deleteDoc(postData.id || postData.docId, postData.password);
     } else if (action === 'updateSettings') {
       result = updateSettings(postData.settings, postData.password);
+    } else if (action === 'ensureAlbumSheets' || action === 'initAlbumSheets') {
+      result = ensureAlbumSheetsExist();
     } else if (action === 'setupInitialDatabase') {
       result = setupInitialDatabase();
     }
@@ -259,6 +303,7 @@ function clearAppDataCache() {
   try {
     const cache = CacheService.getScriptCache();
     cache.remove('app_data_v3');
+    cache.remove('app_data_v4');
   } catch (e) {}
 }
 
@@ -270,7 +315,7 @@ function getAppData() {
     // 1. 優先嘗試讀取快取（大幅降低延遲至 0.2s，避免前端久候）
     try {
       const cache = CacheService.getScriptCache();
-      const cached = cache.get('app_data_v3');
+      const cached = cache.get('app_data_v4');
       if (cached) {
         return JSON.parse(cached);
       }
@@ -522,7 +567,7 @@ function getAppData() {
     };
     try {
       const cache = CacheService.getScriptCache();
-      cache.put('app_data_v3', JSON.stringify(result), 300); // 快取 5 分鐘
+      cache.put('app_data_v4', JSON.stringify(result), 300); // 快取 5 分鐘
     } catch (e) {}
     return result;
   } catch (err) {
@@ -1630,6 +1675,141 @@ function updateSettings(newSettings, password) {
 // 資料庫初始化與輔助工具函式
 // -------------------------------------------------------------
 
+/**
+ * 確保 AlbumCategories 與 Albums 兩大工作表存在，若不存在則自動建立、設定格式並匯入資料
+ */
+function ensureAlbumSheetsExist() {
+  const ss = getSpreadsheet();
+  if (!ss) return { success: false, error: '無法開啟試算表' };
+
+  let createdSheets = [];
+
+  // 1. 確保 AlbumCategories 工作表存在（相簿活動類別，可由使用者於試算表自行編輯）
+  let albumCatSheet = ss.getSheetByName('AlbumCategories');
+  if (!albumCatSheet) {
+    albumCatSheet = ss.insertSheet('AlbumCategories');
+    albumCatSheet.appendRow(['categoryName']);
+    albumCatSheet.getRange(1, 1, 1, 1).setFontWeight('bold').setBackground('#CCFBF1');
+    const defaultAlbumCats = [
+      ['班級主題'],
+      ['全園活動'],
+      ['親職活動'],
+      ['節慶活動'],
+      ['幸福廚房'],
+      ['健康檢查'],
+      ['戶外踏訪'],
+      ['日常生活']
+    ];
+    albumCatSheet.getRange(2, 1, defaultAlbumCats.length, 1).setValues(defaultAlbumCats);
+    albumCatSheet.autoResizeColumns(1, 1);
+    createdSheets.push('AlbumCategories');
+  } else if (albumCatSheet.getLastRow() <= 1) {
+    // 若工作表存在但只有標題列，補入預設類別
+    const defaultAlbumCats = [
+      ['班級主題'],
+      ['全園活動'],
+      ['親職活動'],
+      ['節慶活動'],
+      ['幸福廚房'],
+      ['健康檢查'],
+      ['戶外踏訪'],
+      ['日常生活']
+    ];
+    albumCatSheet.getRange(2, 1, defaultAlbumCats.length, 1).setValues(defaultAlbumCats);
+    albumCatSheet.autoResizeColumns(1, 1);
+  }
+
+  // 2. 確保 Albums 工作表存在（相簿資料庫紀錄）
+  let albumsSheet = ss.getSheetByName('Albums');
+  if (!albumsSheet) {
+    albumsSheet = ss.insertSheet('Albums');
+    albumsSheet.appendRow(['id', 'year', 'month', 'category', 'title', 'folderName', 'photoCount', 'coverUrl', 'folderUrl', 'updatedAt']);
+    albumsSheet.getRange(1, 1, 1, 10).setFontWeight('bold').setBackground('#CCFBF1');
+
+    // 自動掃描 Google Drive ALBUMS_FOLDER_ID 資料夾，直接將現有相簿資料夾載入 Albums 工作表
+    let initialAlbums = [];
+    try {
+      const albumsFolder = DriveApp.getFolderById(ALBUMS_FOLDER_ID);
+      const subfolders = albumsFolder.getFolders();
+      while (subfolders.hasNext()) {
+        const folder = subfolders.next();
+        const fName = folder.getName();
+        let y = '2026';
+        let m = '10';
+        let cat = '班級主題';
+        let title = fName;
+
+        const parts = fName.split('_');
+        if (parts.length >= 2) {
+          const datePart = parts[0];
+          title = parts.slice(1).join('_');
+          const dParts = datePart.split('-');
+          if (dParts.length >= 1 && /^\d{4}$/.test(dParts[0])) y = dParts[0];
+          if (dParts.length >= 2) m = ('0' + dParts[1]).slice(-2);
+        }
+
+        if (title.includes('塗氟') || title.includes('牙') || title.includes('檢查') || title.includes('衛教')) cat = '健康檢查';
+        else if (title.includes('幸福廚房') || title.includes('烘焙') || title.includes('點心') || title.includes('手作')) cat = '幸福廚房';
+        else if (title.includes('親師') || title.includes('親職') || title.includes('座談') || title.includes('家長')) cat = '親職活動';
+        else if (title.includes('節慶') || title.includes('中秋') || title.includes('國慶') || title.includes('新年') || title.includes('萬聖') || title.includes('聖誕')) cat = '節慶活動';
+        else if (title.includes('全園') || title.includes('開學') || title.includes('運動會') || title.includes('慶生')) cat = '全園活動';
+
+        let count = 0;
+        let cover = '';
+        const files = folder.getFiles();
+        while (files.hasNext()) {
+          const file = files.next();
+          const mime = file.getMimeType();
+          if (mime.indexOf('image/') === 0) {
+            count++;
+            if (!cover) {
+              cover = 'https://drive.google.com/thumbnail?id=' + file.getId() + '&sz=w600';
+            }
+          }
+        }
+        if (!cover) {
+          cover = 'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=600&q=80';
+        }
+
+        initialAlbums.push([
+          folder.getId(),
+          y,
+          m,
+          cat,
+          title,
+          fName,
+          count,
+          cover,
+          folder.getUrl(),
+          Utilities.formatDate(folder.getLastUpdated(), 'Asia/Taipei', 'yyyy-MM-dd')
+        ]);
+      }
+    } catch (err) {
+      console.warn('Scan drive folders for Albums sheet failed: ' + err);
+    }
+
+    if (initialAlbums.length > 0) {
+      albumsSheet.getRange(2, 1, initialAlbums.length, 10).setValues(initialAlbums);
+    } else {
+      const sampleAlbums = [
+        ['demo_alb_01', '2026', '10', '健康檢查', '牙齒塗氟日口腔檢查', '2026-10_牙齒塗氟日口腔檢查', 18, 'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=600&q=80', 'https://drive.google.com/drive/folders/1iRFAr3FZMqV-okmktipdwamjAR7WWp6d', '2026-10-23'],
+        ['demo_alb_02', '2026', '10', '幸福廚房', '幸福廚房手作生活體驗', '2026-10_幸福廚房手作生活體驗', 24, 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=600&q=80', 'https://drive.google.com/drive/folders/1iRFAr3FZMqV-okmktipdwamjAR7WWp6d', '2026-10-07'],
+        ['demo_alb_03', '2026', '08', '親職活動', '新學期親師座談交流', '2026-08_新學期親師座談交流', 12, 'https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=600&q=80', 'https://drive.google.com/drive/folders/1iRFAr3FZMqV-okmktipdwamjAR7WWp6d', '2026-08-27']
+      ];
+      albumsSheet.getRange(2, 1, sampleAlbums.length, 10).setValues(sampleAlbums);
+    }
+    albumsSheet.autoResizeColumns(1, 10);
+    createdSheets.push('Albums');
+  }
+
+  clearAppDataCache();
+  return {
+    success: true,
+    created: createdSheets,
+    message: createdSheets.length > 0 ? ('已成功建立工作表：' + createdSheets.join(', ')) : '工作表均已存在'
+  };
+}
+
 function ensureDatabaseInitialized() {
   const ss = getSpreadsheet();
   if (!ss) return;
@@ -1637,6 +1817,8 @@ function ensureDatabaseInitialized() {
   const eventsSheet = ss.getSheetByName('Events');
   if (!eventsSheet || eventsSheet.getLastRow() <= 1) {
     setupInitialDatabase();
+  } else {
+    ensureAlbumSheetsExist();
   }
 }
 
