@@ -1364,9 +1364,10 @@
     <!-- 頂部工具列 -->
     <div class="w-full max-w-5xl flex items-center justify-between z-20 text-white shrink-0">
       <div class="flex items-center gap-2 sm:gap-3">
-        <a id="photoDownloadBtn" href="#" target="_blank" download class="text-white text-xs font-bold px-3.5 py-1.5 rounded-full bg-white/15 hover:bg-white/25 flex items-center gap-1.5 backdrop-blur-md tap-bounce transition-colors">
-          <span>⬇️</span> <span class="hidden sm:inline">下載原圖</span>
-        </a>
+        <button id="photoAutoPlayBtn" onclick="togglePhotoAutoPlay()" class="text-white text-xs font-bold px-3.5 py-1.5 rounded-full bg-white/15 hover:bg-white/25 flex items-center gap-1.5 backdrop-blur-md tap-bounce transition-all" title="自動播放幻燈片 (每 3 秒自動換張)">
+          <span id="photoAutoPlayIcon">▶</span>
+          <span id="photoAutoPlayText">Auto Play</span>
+        </button>
         <span id="photoViewerCounter" class="text-xs sm:text-sm font-bold text-white/80 bg-white/10 px-3 py-1 rounded-full backdrop-blur-md">1 / 1</span>
       </div>
       <button onclick="closePhotoViewer()" class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center justify-center font-bold text-lg backdrop-blur-md tap-bounce transition-colors" title="關閉 (Esc)">
@@ -3614,6 +3615,9 @@
 
     let currentAlbumPhotosList = [];
     let currentAlbumPhotoIndex = 0;
+    let photoAutoPlayTimer = null;
+    let isPhotoAutoPlaying = false;
+    const PHOTO_AUTO_PLAY_DELAY = 3000;
 
     function openAlbumPhotos(albumId, albumTitle) {
       document.getElementById('modalAlbumTitle').textContent = albumTitle || '相簿照片';
@@ -3689,13 +3693,14 @@
     }
 
     function closeAlbumModal() {
+      stopPhotoAutoPlay();
       document.getElementById('albumPhotosModal').classList.add('hidden');
     }
 
     function openPhotoViewerByIndex(index) {
       if (!currentAlbumPhotosList || currentAlbumPhotosList.length === 0) return;
-      if (index < 0) index = 0;
-      if (index >= currentAlbumPhotosList.length) index = currentAlbumPhotosList.length - 1;
+      if (index < 0) index = currentAlbumPhotosList.length - 1;
+      if (index >= currentAlbumPhotosList.length) index = 0;
       currentAlbumPhotoIndex = index;
       const p = currentAlbumPhotosList[currentAlbumPhotoIndex];
 
@@ -3723,10 +3728,6 @@
         imgEl.src = highResUrl;
       }
 
-      const dlBtn = document.getElementById('photoDownloadBtn');
-      const dlUrl = p.downloadUrl || (p.id ? `https://drive.google.com/uc?export=download&id=${p.id}` : highResUrl);
-      if (dlBtn) dlBtn.href = dlUrl;
-
       const titleEl = document.getElementById('photoViewerTitle');
       if (titleEl) titleEl.textContent = p.name || '';
 
@@ -3735,16 +3736,90 @@
 
       const prevBtn = document.getElementById('photoViewerPrevBtn');
       const nextBtn = document.getElementById('photoViewerNextBtn');
-      if (prevBtn) prevBtn.style.visibility = (currentAlbumPhotoIndex > 0) ? 'visible' : 'hidden';
-      if (nextBtn) nextBtn.style.visibility = (currentAlbumPhotoIndex < currentAlbumPhotosList.length - 1) ? 'visible' : 'hidden';
+      const hasMultiple = currentAlbumPhotosList.length > 1;
+      if (prevBtn) prevBtn.style.visibility = hasMultiple ? 'visible' : 'hidden';
+      if (nextBtn) nextBtn.style.visibility = hasMultiple ? 'visible' : 'hidden';
 
+      updateAutoPlayButtonUI();
       document.getElementById('photoViewerModal').classList.remove('hidden');
     }
 
+    function togglePhotoAutoPlay() {
+      if (isPhotoAutoPlaying) {
+        stopPhotoAutoPlay();
+      } else {
+        startPhotoAutoPlay();
+      }
+    }
+
+    function startPhotoAutoPlay() {
+      if (!currentAlbumPhotosList || currentAlbumPhotosList.length === 0) return;
+      isPhotoAutoPlaying = true;
+      updateAutoPlayButtonUI();
+      scheduleNextAutoPlay();
+    }
+
+    function stopPhotoAutoPlay() {
+      isPhotoAutoPlaying = false;
+      if (photoAutoPlayTimer) {
+        clearTimeout(photoAutoPlayTimer);
+        photoAutoPlayTimer = null;
+      }
+      updateAutoPlayButtonUI();
+    }
+
+    function scheduleNextAutoPlay() {
+      if (photoAutoPlayTimer) {
+        clearTimeout(photoAutoPlayTimer);
+        photoAutoPlayTimer = null;
+      }
+      if (!isPhotoAutoPlaying) return;
+
+      photoAutoPlayTimer = setTimeout(() => {
+        if (!isPhotoAutoPlaying) return;
+        const modal = document.getElementById('photoViewerModal');
+        if (!modal || modal.classList.contains('hidden')) {
+          stopPhotoAutoPlay();
+          return;
+        }
+
+        let nextIndex = currentAlbumPhotoIndex + 1;
+        if (nextIndex >= currentAlbumPhotosList.length) {
+          nextIndex = 0; // 循環播放回到第一張
+        }
+        openPhotoViewerByIndex(nextIndex);
+        scheduleNextAutoPlay();
+      }, PHOTO_AUTO_PLAY_DELAY);
+    }
+
+    function updateAutoPlayButtonUI() {
+      const btn = document.getElementById('photoAutoPlayBtn');
+      const icon = document.getElementById('photoAutoPlayIcon');
+      const text = document.getElementById('photoAutoPlayText');
+      if (!btn || !icon || !text) return;
+
+      if (isPhotoAutoPlaying) {
+        icon.textContent = '⏸';
+        text.textContent = '暫停播放 (3s)';
+        btn.className = 'text-white text-xs font-bold px-3.5 py-1.5 rounded-full bg-emerald-500 hover:bg-emerald-600 flex items-center gap-1.5 backdrop-blur-md tap-bounce transition-all shadow-lg shadow-emerald-500/30';
+      } else {
+        icon.textContent = '▶';
+        text.textContent = 'Auto Play';
+        btn.className = 'text-white text-xs font-bold px-3.5 py-1.5 rounded-full bg-white/15 hover:bg-white/25 flex items-center gap-1.5 backdrop-blur-md tap-bounce transition-all';
+      }
+    }
+
     function navigatePhoto(direction) {
-      const newIndex = currentAlbumPhotoIndex + direction;
-      if (newIndex >= 0 && newIndex < currentAlbumPhotosList.length) {
-        openPhotoViewerByIndex(newIndex);
+      if (!currentAlbumPhotosList || currentAlbumPhotosList.length === 0) return;
+      let newIndex = currentAlbumPhotoIndex + direction;
+      if (newIndex < 0) {
+        newIndex = currentAlbumPhotosList.length - 1;
+      } else if (newIndex >= currentAlbumPhotosList.length) {
+        newIndex = 0;
+      }
+      openPhotoViewerByIndex(newIndex);
+      if (isPhotoAutoPlaying) {
+        scheduleNextAutoPlay(); // 手動切換時重新倒數 3 秒
       }
     }
 
@@ -3753,7 +3828,7 @@
       if (idx !== -1) {
         openPhotoViewerByIndex(idx);
       } else {
-        const dummy = { viewUrl: url, thumbnailUrl: url, downloadUrl: downloadUrl };
+        const dummy = { viewUrl: url, thumbnailUrl: url };
         const directUrl = getPhotoDisplayUrl(dummy, true);
         const spinnerEl = document.getElementById('photoViewerSpinner');
         if (spinnerEl) spinnerEl.classList.remove('hidden');
@@ -3770,8 +3845,6 @@
           };
           imgEl.src = directUrl;
         }
-        const dlBtn = document.getElementById('photoDownloadBtn');
-        if (dlBtn) dlBtn.href = downloadUrl || directUrl;
         const counterEl = document.getElementById('photoViewerCounter');
         if (counterEl) counterEl.textContent = '';
         const titleEl = document.getElementById('photoViewerTitle');
@@ -3780,11 +3853,13 @@
         const nextBtn = document.getElementById('photoViewerNextBtn');
         if (prevBtn) prevBtn.style.visibility = 'hidden';
         if (nextBtn) nextBtn.style.visibility = 'hidden';
+        updateAutoPlayButtonUI();
         document.getElementById('photoViewerModal').classList.remove('hidden');
       }
     }
 
     function closePhotoViewer() {
+      stopPhotoAutoPlay();
       document.getElementById('photoViewerModal').classList.add('hidden');
     }
 
