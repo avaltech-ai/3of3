@@ -708,7 +708,7 @@
               </div>
               <div>
                 <label class="block text-xs font-bold text-slate-600 mb-1">活動詳細說明 / 攜帶物品注意事項</label>
-                <textarea id="eventForm-description" rows="2" placeholder="詳細說明、講師介紹或請家長配合攜帶之健保卡等..." class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-peach-500 focus:outline-none"></textarea>
+                <textarea id="eventForm-description" rows="4" placeholder="詳細說明、講師介紹或請家長配合攜帶之健保卡等..." class="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-peach-500 focus:outline-none min-h-[5.5rem] leading-relaxed resize-y"></textarea>
               </div>
               <div class="flex justify-end gap-2 pt-1">
                 <button type="submit" id="saveEventBtn" class="px-5 py-2 rounded-xl bg-peach-500 hover:bg-peach-600 text-white font-bold text-xs shadow-sm tap-bounce">
@@ -2771,7 +2771,7 @@
               <h5 class="text-sm font-black text-slate-800 flex items-center gap-1">
                 ${ev.title}
               </h5>
-              ${ev.description ? `<p class="text-xs text-slate-600 leading-relaxed font-medium bg-white/70 p-2 rounded-xl">${ev.description}</p>` : ''}
+              ${ev.description ? `<p class="text-xs text-slate-600 leading-relaxed font-medium bg-white/70 p-2.5 rounded-xl whitespace-pre-line">${ev.description}</p>` : ''}
             </div>
           `;
         });
