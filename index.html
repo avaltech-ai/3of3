@@ -552,26 +552,17 @@
         </div>
 
         <!-- 活動類別氣泡按鈕（支援複選，預設全部） -->
-        <div class="space-y-1.5">
-          <div class="flex items-center justify-between text-xs text-slate-600 font-bold px-0.5">
-            <span class="flex items-center gap-1.5">
-              <span>🏷️</span> 活動類別標籤：
-            </span>
-            <span class="text-[11px] font-normal text-slate-400 hidden sm:inline">點擊標籤可單選或複選多個類別</span>
-          </div>
-          <div id="albumCategoryPills" class="flex flex-wrap items-center gap-2 pt-0.5">
-            <!-- 由 JS 動態產生氣泡按鈕 -->
-          </div>
+        <div id="albumCategoryPills" class="flex flex-wrap items-center gap-2 pt-0.5">
+          <!-- 由 JS 動態產生氣泡按鈕 -->
         </div>
 
         <!-- 篩選狀態與重設列 -->
         <div class="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-500">
           <div class="flex items-center gap-2">
             <span id="albumFilterCountText" class="font-bold text-slate-700">共 0 本相簿</span>
-            <span id="albumFilterActiveBadge" class="hidden px-2 py-0.5 rounded-full bg-teal-100 text-teal-800 text-[10px] font-bold">已套用篩選</span>
           </div>
           <button id="btnResetAlbumFilters" onclick="resetAlbumFilters()" class="text-teal-600 hover:text-teal-800 font-bold hover:underline flex items-center gap-1 tap-bounce">
-            <span>🔄</span> 重設全部篩選
+            <span>🔄</span> 重設
           </button>
         </div>
       </div>
@@ -3532,21 +3523,16 @@
         return true;
       });
 
-      // 更新計數與啟用標籤
+      // 更新計數
       const countText = document.getElementById('albumFilterCountText');
-      const activeBadge = document.getElementById('albumFilterActiveBadge');
       const isFiltering = !!(kw || selectedCats.size > 0);
 
       if (countText) {
         if (isFiltering) {
-          countText.textContent = '篩選出 ' + filtered.length + ' 本相簿（共 ' + allAlbums.length + ' 本）';
+          countText.textContent = '已篩選 ' + filtered.length + ' 本相簿';
         } else {
           countText.textContent = '共 ' + allAlbums.length + ' 本相簿';
         }
-      }
-      if (activeBadge) {
-        if (isFiltering) activeBadge.classList.remove('hidden');
-        else activeBadge.classList.add('hidden');
       }
 
       renderAlbumsList(filtered);
@@ -3574,7 +3560,7 @@
           <div class="col-span-full py-12 text-center text-slate-400 space-y-2">
             <div class="text-4xl">📸</div>
             <div class="text-sm font-bold">沒有符合條件的活動相簿</div>
-            <div class="text-xs">請嘗試調整關鍵字或活動類別標籤，或點擊「重設全部篩選」。</div>
+            <div class="text-xs">請嘗試調整關鍵字或活動類別標籤，或點擊「重設」。</div>
           </div>
         `;
         return;
