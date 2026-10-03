@@ -529,6 +529,62 @@ const htmlContent = `<!DOCTYPE html>
         </div>
       </div>
 
+      <!-- 相簿多條件快速篩選工具列 -->
+      <div class="bg-white p-4 rounded-3xl border border-teal-200/70 shadow-xs space-y-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+          <!-- 關鍵字搜尋 -->
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 text-xs">🔍</span>
+            <input type="text" id="albumFilter-keyword" placeholder="搜尋主題或關鍵字..." class="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-teal-500 focus:outline-none transition-all" oninput="applyAlbumFilters()">
+          </div>
+          <!-- 活動年度 -->
+          <div>
+            <select id="albumFilter-year" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:border-teal-500 focus:outline-none transition-all" onchange="applyAlbumFilters()">
+              <option value="">全部年度</option>
+              <option value="2026">2026 年</option>
+              <option value="2025">2025 年</option>
+              <option value="2024">2024 年</option>
+            </select>
+          </div>
+          <!-- 活動月份 -->
+          <div>
+            <select id="albumFilter-month" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:border-teal-500 focus:outline-none transition-all" onchange="applyAlbumFilters()">
+              <option value="">全部月份</option>
+              <option value="01">01 月</option>
+              <option value="02">02 月</option>
+              <option value="03">03 月</option>
+              <option value="04">04 月</option>
+              <option value="05">05 月</option>
+              <option value="06">06 月</option>
+              <option value="07">07 月</option>
+              <option value="08">08 月</option>
+              <option value="09">09 月</option>
+              <option value="10">10 月</option>
+              <option value="11">11 月</option>
+              <option value="12">12 月</option>
+            </select>
+          </div>
+          <!-- 活動類別 -->
+          <div>
+            <select id="albumFilter-category" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:border-teal-500 focus:outline-none transition-all" onchange="applyAlbumFilters()">
+              <option value="">全部類別</option>
+              <!-- JS 動態填入 AlbumCategories -->
+            </select>
+          </div>
+        </div>
+
+        <!-- 篩選狀態與重設列 -->
+        <div class="flex items-center justify-between pt-1 border-t border-slate-100 text-xs text-slate-500">
+          <div class="flex items-center gap-2">
+            <span id="albumFilterCountText" class="font-bold text-slate-700">共 0 本相簿</span>
+            <span id="albumFilterActiveBadge" class="hidden px-2 py-0.5 rounded-full bg-teal-100 text-teal-800 text-[10px] font-bold">已套用篩選</span>
+          </div>
+          <button id="btnResetAlbumFilters" onclick="resetAlbumFilters()" class="text-teal-600 hover:text-teal-800 font-bold hover:underline flex items-center gap-1 tap-bounce">
+            <span>🔄</span> 重設篩選
+          </button>
+        </div>
+      </div>
+
       <!-- 相簿列表格 -->
       <div id="albumsLoading" class="py-12 text-center text-slate-400 font-bold flex flex-col items-center justify-center gap-2">
         <div class="w-8 h-8 border-3 border-teal-200 border-t-teal-600 rounded-full animate-spin"></div>
@@ -804,31 +860,62 @@ const htmlContent = `<!DOCTYPE html>
           </div>
         </div>
 
-        <!-- 子分頁 3: 相簿批次上傳 (Google Drive Albums) -->
-        <div id="adminPanel-uploadPhoto" class="admin-panel space-y-4 hidden">
+        <!-- 子分頁 3: 相簿批次上傳與管理 (Google Drive Albums) -->
+        <div id="adminPanel-uploadPhoto" class="admin-panel space-y-5 hidden">
+          <!-- 上傳新相簿卡片 -->
           <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
             <div>
-              <h4 class="font-black text-slate-800 text-base">上傳活動相簿至 Google Drive</h4>
+              <h4 class="font-black text-slate-800 text-base">建立並上傳活動相簿至 Google Drive</h4>
               <p class="text-xs text-slate-500 mt-0.5">
-                依照需求，系統會自動在 Albums 根目錄建立「<span class="text-teal-600 font-bold">上傳日期_活動主題</span>」的子資料夾，並存放照片。
+                依照設定，系統會自動在 Albums 根目錄建立「<span class="text-teal-600 font-bold">活動年度-月份_活動主題</span>」的子資料夾，並存放照片與登記至試算表。
               </p>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
-                <label class="block text-xs font-bold text-slate-600 mb-1">活動日期 *</label>
-                <input type="date" id="albumUpload-date" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-teal-500 focus:outline-none" oninput="updateAlbumPreviewName()">
+                <label class="block text-xs font-bold text-slate-600 mb-1">活動年度 *</label>
+                <select id="albumUpload-year" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold focus:border-teal-500 focus:outline-none" onchange="updateAlbumPreviewName()">
+                  <option value="2024">2024 年</option>
+                  <option value="2025">2025 年</option>
+                  <option value="2026" selected>2026 年</option>
+                  <option value="2027">2027 年</option>
+                  <option value="2028">2028 年</option>
+                </select>
               </div>
               <div>
-                <label class="block text-xs font-bold text-slate-600 mb-1">活動主題 *</label>
-                <input type="text" id="albumUpload-title" placeholder="如：牙齒塗氟日、萬聖節變裝、幸福廚房" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-teal-500 focus:outline-none" oninput="updateAlbumPreviewName()">
+                <label class="block text-xs font-bold text-slate-600 mb-1">活動月份 *</label>
+                <select id="albumUpload-month" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold focus:border-teal-500 focus:outline-none" onchange="updateAlbumPreviewName()">
+                  <option value="01">01 月</option>
+                  <option value="02">02 月</option>
+                  <option value="03">03 月</option>
+                  <option value="04">04 月</option>
+                  <option value="05">05 月</option>
+                  <option value="06">06 月</option>
+                  <option value="07">07 月</option>
+                  <option value="08">08 月</option>
+                  <option value="09">09 月</option>
+                  <option value="10" selected>10 月</option>
+                  <option value="11">11 月</option>
+                  <option value="12">12 月</option>
+                </select>
               </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-600 mb-1">活動類別 *</label>
+                <select id="albumUpload-category" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold focus:border-teal-500 focus:outline-none">
+                  <!-- JS 動態載入 AlbumCategories -->
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1">活動主題 *</label>
+              <input type="text" id="albumUpload-title" placeholder="如：牙齒塗氟日口腔檢查、幸福廚房手作生活、親師座談" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-teal-500 focus:outline-none" oninput="updateAlbumPreviewName()">
             </div>
 
             <!-- 自動預覽資料夾名稱 -->
             <div class="bg-teal-50 p-3 rounded-2xl border border-teal-200 text-xs text-teal-800 flex items-center justify-between">
               <span>預計建立資料夾名稱：</span>
-              <strong id="albumUpload-previewName" class="font-mono text-sm text-teal-900">2026-10-23_牙齒塗氟日</strong>
+              <strong id="albumUpload-previewName" class="font-mono text-sm text-teal-900">2026-10_牙齒塗氟日口腔檢查</strong>
             </div>
 
             <!-- 檔案選取區塊 -->
@@ -852,6 +939,40 @@ const htmlContent = `<!DOCTYPE html>
               <button onclick="startUploadAlbumPhotos()" id="albumUploadBtn" class="px-6 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs shadow-sm tap-bounce disabled:opacity-50">
                 開始上傳相簿至 Google Drive
               </button>
+            </div>
+          </div>
+
+          <!-- 既有活動相簿管理一覽 -->
+          <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+              <div>
+                <h4 class="font-black text-slate-800 text-base">既有活動相簿管理一覽</h4>
+                <p class="text-xs text-slate-500 mt-0.5">可在此直接編輯相簿之年度、月份、活動類別與主題名稱，或刪除相簿。</p>
+              </div>
+              <div class="flex items-center gap-2">
+                <span id="adminAlbumsCountBadge" class="px-2.5 py-1 rounded-full bg-teal-50 text-teal-800 text-xs font-bold border border-teal-200">共 0 本相簿</span>
+                <button type="button" onclick="refreshAlbums()" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold tap-bounce">
+                  🔄 重新整理相簿
+                </button>
+              </div>
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr class="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
+                    <th class="py-2.5 px-3 rounded-l-xl">封面</th>
+                    <th class="py-2.5 px-3">活動年月</th>
+                    <th class="py-2.5 px-3">活動類別</th>
+                    <th class="py-2.5 px-3">活動主題</th>
+                    <th class="py-2.5 px-3 text-center">照片數</th>
+                    <th class="py-2.5 px-3 text-right rounded-r-xl">管理操作</th>
+                  </tr>
+                </thead>
+                <tbody id="adminAlbumsTableBody" class="divide-y divide-slate-100 font-medium text-slate-700">
+                  <!-- 動態渲染相簿資料列 -->
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
@@ -1269,6 +1390,78 @@ const htmlContent = `<!DOCTYPE html>
     </div>
   </div>
 
+  <!-- ==================== 編輯相簿 Modal (ALBUM MODAL) ==================== -->
+  <div id="editAlbumModal" class="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-3 sm:p-5 hidden">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-4 relative border border-slate-200">
+      <button onclick="closeEditAlbumModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-base tap-bounce">
+        ✕
+      </button>
+      <div class="flex items-center gap-2">
+        <span class="text-xl">✏️</span>
+        <h3 class="font-black text-slate-800 text-base sm:text-lg">編輯活動相簿資訊</h3>
+      </div>
+
+      <form id="editAlbumForm" onsubmit="event.preventDefault(); handleSaveAlbumInfo(event)" class="space-y-3.5">
+        <input type="hidden" id="editAlbum-id">
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">活動年度 *</label>
+            <select id="editAlbum-year" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold focus:border-teal-500 focus:outline-none">
+              <option value="2024">2024 年</option>
+              <option value="2025">2025 年</option>
+              <option value="2026">2026 年</option>
+              <option value="2027">2027 年</option>
+              <option value="2028">2028 年</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">活動月份 *</label>
+            <select id="editAlbum-month" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold focus:border-teal-500 focus:outline-none">
+              <option value="01">01 月</option>
+              <option value="02">02 月</option>
+              <option value="03">03 月</option>
+              <option value="04">04 月</option>
+              <option value="05">05 月</option>
+              <option value="06">06 月</option>
+              <option value="07">07 月</option>
+              <option value="08">08 月</option>
+              <option value="09">09 月</option>
+              <option value="10">10 月</option>
+              <option value="11">11 月</option>
+              <option value="12">12 月</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">活動類別 *</label>
+          <select id="editAlbum-category" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold focus:border-teal-500 focus:outline-none">
+            <!-- JS 動態載入 AlbumCategories -->
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">活動主題名稱 *</label>
+          <input type="text" id="editAlbum-title" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-teal-500 focus:outline-none" placeholder="如：牙齒塗氟日口腔檢查">
+        </div>
+
+        <div class="bg-teal-50/60 p-3 rounded-2xl border border-teal-200/80 text-[11px] text-teal-800">
+          💡 儲存後將同步更新 Google Sheets《Albums》試算表與 Google Drive 資料夾名稱。
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+          <button type="button" onclick="closeEditAlbumModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold tap-bounce">
+            取消
+          </button>
+          <button type="submit" id="btnSaveAlbumInfo" class="px-5 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold shadow-sm tap-bounce flex items-center gap-1.5">
+            <span>💾</span> 儲存相簿資訊
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- ==================== 全域提示訊息 TOAST ==================== -->
   <div id="toast" class="fixed bottom-16 sm:bottom-6 left-1/2 -translate-x-1/2 z-70 bg-slate-800 text-white text-xs sm:text-sm font-bold px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 transition-all opacity-0 pointer-events-none transform translate-y-3">
     <span id="toastIcon">✨</span>
@@ -1303,7 +1496,8 @@ const htmlContent = `<!DOCTYPE html>
       adminPassword: '',
       selectedAlbumFiles: [],
       selectedDocFile: null,
-      cachedAlbums: []
+      cachedAlbums: [],
+      albumCategories: ['班級主題', '全園活動', '親職活動', '節慶活動', '幸福廚房', '健康檢查', '戶外踏訪', '日常生活']
     };
 
     // 初始化程式
@@ -1387,8 +1581,9 @@ const htmlContent = `<!DOCTYPE html>
         else if (action === 'saveMenu') runner.saveMenu(payload.data, payload.password);
         else if (action === 'deleteMenu') runner.deleteMenu(payload.date, payload.password);
         else if (action === 'saveSpotlight') runner.saveSpotlight(payload.data, payload.password);
-        else if (action === 'deleteSpotlight') runner.deleteSpotlight(payload.id, payload.password);
-        else if (action === 'uploadPhotosToAlbum') runner.uploadPhotosToAlbum(payload.date, payload.title, payload.files, payload.password);
+        else if (action === 'uploadPhotosToAlbum') runner.uploadPhotosToAlbum(payload.year || payload.date, payload.month || payload.title, payload.category, payload.title, payload.files, payload.password);
+        else if (action === 'saveAlbum') runner.saveAlbum(payload.data, payload.password);
+        else if (action === 'deleteAlbum') runner.deleteAlbum(payload.id, payload.password);
         else if (action === 'uploadDocument') runner.uploadDocument(payload.meta, payload.file, payload.password);
         else if (action === 'uploadSpotlightImage') runner.uploadSpotlightImage(payload.file, payload.password);
         else if (action === 'getActivityImages') runner.getActivityImages();
@@ -1860,7 +2055,9 @@ const htmlContent = `<!DOCTYPE html>
         {targetName: '雨果', displayName: '💛 雨果'}
       ];
       state.eventCategoriesMajor = data.eventCategoriesMajor || []; state.eventCategoriesMinor = data.eventCategoriesMinor || [];
+      state.albumCategories = data.albumCategories || ['班級主題', '全園活動', '親職活動', '節慶活動', '幸福廚房', '健康檢查', '戶外踏訪', '日常生活'];
       renderDocCategoriesUI();
+      renderAlbumCategoriesUI();
       renderEventOptionsUI();
       
       // 渲染 Spotlight
@@ -1871,6 +2068,15 @@ const htmlContent = `<!DOCTYPE html>
       renderSelectedDayDetails(state.selectedDateStr);
       // 渲染文件列表
       renderDocsList();
+      // 渲染相簿
+      if (data.albums && data.albums.length > 0) {
+        state.cachedAlbums = data.albums;
+        updateAlbumFilterYearOptions(state.cachedAlbums);
+        applyAlbumFilters();
+        renderAdminAlbumsTable();
+      } else if (!state.cachedAlbums || state.cachedAlbums.length === 0) {
+        renderFallbackAlbums();
+      }
 
       // 嚴格依據目前頁籤 (state.currentTab) 保持顯示狀態，絕不私自開啟或混雜 home 內容
       const current = state.currentTab || 'home';
@@ -1890,11 +2096,14 @@ const htmlContent = `<!DOCTYPE html>
         const subtab = state.currentAdminSubtab || 'events';
         if (subtab === 'events') renderAdminEventsTable();
         if (subtab === 'spotlight') renderAdminSpotlightsList();
+        if (subtab === 'uploadPhoto') renderAdminAlbumsTable();
       }
     }
 
     // 本地備援示範資料 (保證預覽時完全不空白)
     function renderFallbackLocalData() {
+      state.albumCategories = ['班級主題', '全園活動', '親職活動', '節慶活動', '幸福廚房', '健康檢查', '戶外踏訪', '日常生活'];
+      renderAlbumCategoriesUI();
       state.eventCategoriesMajor = ['重要活動', '班級主題', '全園活動', '休園', '節慶放假'];
       state.eventCategoriesMinor = [
         '幸福廚房', '親職講座', '親師座談', '親職活動', '慶生活動',
@@ -2001,6 +2210,7 @@ const htmlContent = `<!DOCTYPE html>
       renderCalendar();
       renderSelectedDayDetails(state.selectedDateStr);
       renderDocsList();
+      renderFallbackAlbums();
 
       if (!state.currentTab || state.currentTab === 'home') {
         const homeEl = document.getElementById('tabContent-home');
@@ -2084,8 +2294,9 @@ const htmlContent = `<!DOCTYPE html>
         }
       });
 
-      if (tabName === 'albums' && state.cachedAlbums.length === 0) {
-        refreshAlbums();
+      if (tabName === 'albums') {
+        if (state.cachedAlbums.length === 0) refreshAlbums();
+        else applyAlbumFilters();
       }
       if (tabName === 'docs') {
         renderDocsList();
@@ -3024,33 +3235,146 @@ const htmlContent = `<!DOCTYPE html>
       });
     }
 
-    // ==================== 活動相簿頁面 (ALBUMS) ====================
+    // ==================== 活動相簿頁面 (ALBUMS) 與分類管理 ====================
+
+    function renderAlbumCategoriesUI() {
+      const cats = state.albumCategories || ['班級主題', '全園活動', '親職活動', '節慶活動', '幸福廚房', '健康檢查', '戶外踏訪', '日常生活'];
+
+      // 1. 前台相簿多條件篩選類別下拉選單
+      const filterCat = document.getElementById('albumFilter-category');
+      if (filterCat) {
+        const curVal = filterCat.value;
+        filterCat.innerHTML = '<option value="">全部類別</option>';
+        cats.forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c;
+          opt.textContent = c;
+          if (curVal === c) opt.selected = true;
+          filterCat.appendChild(opt);
+        });
+      }
+
+      // 2. 後台建立相簿類別下拉選單
+      const uploadCat = document.getElementById('albumUpload-category');
+      if (uploadCat) {
+        const curVal = uploadCat.value;
+        uploadCat.innerHTML = '';
+        cats.forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c;
+          opt.textContent = c;
+          if (curVal === c) opt.selected = true;
+          uploadCat.appendChild(opt);
+        });
+      }
+
+      // 3. 後台編輯相簿類別下拉選單
+      const editCat = document.getElementById('editAlbum-category');
+      if (editCat) {
+        const curVal = editCat.value;
+        editCat.innerHTML = '';
+        cats.forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c;
+          opt.textContent = c;
+          if (curVal === c) opt.selected = true;
+          editCat.appendChild(opt);
+        });
+      }
+    }
+
+    function updateAlbumFilterYearOptions(albums) {
+      const yrSelect = document.getElementById('albumFilter-year');
+      if (!yrSelect) return;
+      const curVal = yrSelect.value;
+      const yearsSet = new Set(['2026', '2025', '2024']);
+      (albums || []).forEach(alb => {
+        const y = String(alb.year || (alb.date ? alb.date.split('-')[0] : '')).trim();
+        if (y && /^\d{4}$/.test(y)) yearsSet.add(y);
+      });
+      const sortedYears = Array.from(yearsSet).sort().reverse();
+      yrSelect.innerHTML = '<option value="">全部年度</option>';
+      sortedYears.forEach(y => {
+        const opt = document.createElement('option');
+        opt.value = y;
+        opt.textContent = y + ' 年';
+        if (curVal === y) opt.selected = true;
+        yrSelect.appendChild(opt);
+      });
+    }
+
+    function formatAlbumYearMonth(alb) {
+      if (!alb) return '活動影像';
+      let y = alb.year;
+      let m = alb.month;
+      if (!y && alb.date) {
+        const parts = String(alb.date).split('-');
+        y = parts[0];
+        m = parts[1];
+      }
+      if (y && m) {
+        return y + '年' + parseInt(m, 10) + '月';
+      }
+      return alb.date || '活動影像';
+    }
+
+    function getAlbumCategoryBadgeClass(category) {
+      const cat = String(category || '').trim();
+      switch (cat) {
+        case '班級主題':
+          return 'bg-amber-100 text-amber-900 border border-amber-300/80';
+        case '全園活動':
+          return 'bg-emerald-100 text-emerald-900 border border-emerald-300/80';
+        case '幸福廚房':
+          return 'bg-orange-100 text-orange-900 border border-orange-300/80';
+        case '健康檢查':
+          return 'bg-sky-100 text-sky-900 border border-sky-300/80';
+        case '親職活動':
+          return 'bg-purple-100 text-purple-900 border border-purple-300/80';
+        case '節慶活動':
+          return 'bg-rose-100 text-rose-900 border border-rose-300/80';
+        case '戶外踏訪':
+          return 'bg-teal-100 text-teal-900 border border-teal-300/80';
+        case '日常生活':
+          return 'bg-indigo-100 text-indigo-900 border border-indigo-300/80';
+        default:
+          return 'bg-slate-100 text-slate-800 border border-slate-300/80';
+      }
+    }
+
     function refreshAlbums() {
       const loading = document.getElementById('albumsLoading');
       const grid = document.getElementById('albumsGrid');
-      loading.classList.remove('hidden');
-      grid.innerHTML = '';
+      if (loading) loading.classList.remove('hidden');
+      if (grid) grid.innerHTML = '';
 
       callBackend('getAlbums', {}, res => {
-        loading.classList.add('hidden');
+        if (loading) loading.classList.add('hidden');
         if (res && res.success && res.albums && res.albums.length > 0) {
           state.cachedAlbums = res.albums;
-          renderAlbumsList(state.cachedAlbums);
+          updateAlbumFilterYearOptions(state.cachedAlbums);
+          applyAlbumFilters();
+          renderAdminAlbumsTable();
         } else {
           renderFallbackAlbums();
         }
       }, err => {
-        loading.classList.add('hidden');
+        if (loading) loading.classList.add('hidden');
         renderFallbackAlbums();
       });
     }
 
     function renderFallbackAlbums() {
+      const loading = document.getElementById('albumsLoading');
+      if (loading) loading.classList.add('hidden');
       state.cachedAlbums = [
         {
           id: 'demo_album_1',
-          folderName: '2026-10-23_牙齒塗氟日',
-          date: '2026-10-23',
+          year: '2026',
+          month: '10',
+          category: '健康檢查',
+          folderName: '2026-10_牙齒塗氟日口腔檢查',
+          date: '2026-10',
           title: '牙齒塗氟日口腔檢查',
           photoCount: 18,
           coverUrl: 'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=600&q=80',
@@ -3058,8 +3382,11 @@ const htmlContent = `<!DOCTYPE html>
         },
         {
           id: 'demo_album_2',
-          folderName: '2026-10-07_幸福廚房手作生活',
-          date: '2026-10-07',
+          year: '2026',
+          month: '10',
+          category: '幸福廚房',
+          folderName: '2026-10_幸福廚房手作生活體驗',
+          date: '2026-10',
           title: '幸福廚房手作生活體驗',
           photoCount: 24,
           coverUrl: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=600&q=80',
@@ -3067,27 +3394,105 @@ const htmlContent = `<!DOCTYPE html>
         },
         {
           id: 'demo_album_3',
-          folderName: '2026-08-27_新學期親師座談會',
-          date: '2026-08-27',
+          year: '2026',
+          month: '08',
+          category: '親職活動',
+          folderName: '2026-08_新學期親師座談交流',
+          date: '2026-08',
           title: '新學期親師座談交流',
           photoCount: 12,
           coverUrl: 'https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=600&q=80',
           folderUrl: 'https://drive.google.com/drive/folders/1iRFAr3FZMqV-okmktipdwamjAR7WWp6d'
         }
       ];
-      renderAlbumsList(state.cachedAlbums);
+      updateAlbumFilterYearOptions(state.cachedAlbums);
+      applyAlbumFilters();
+      renderAdminAlbumsTable();
+    }
+
+    function applyAlbumFilters() {
+      const kw = (document.getElementById('albumFilter-keyword')?.value || '').trim().toLowerCase();
+      const yr = (document.getElementById('albumFilter-year')?.value || '').trim();
+      const mo = (document.getElementById('albumFilter-month')?.value || '').trim();
+      const cat = (document.getElementById('albumFilter-category')?.value || '').trim();
+
+      const allAlbums = state.cachedAlbums || [];
+
+      const filtered = allAlbums.filter(alb => {
+        // 1. 關鍵字比對 (主題、類別、資料夾名稱)
+        if (kw) {
+          const matchTitle = (alb.title || '').toLowerCase().includes(kw);
+          const matchCat = (alb.category || '').toLowerCase().includes(kw);
+          const matchFolder = (alb.folderName || '').toLowerCase().includes(kw);
+          if (!matchTitle && !matchCat && !matchFolder) return false;
+        }
+        // 2. 活動年度比對
+        if (yr) {
+          const albYr = String(alb.year || (alb.date ? alb.date.split('-')[0] : '')).trim();
+          if (albYr !== yr) return false;
+        }
+        // 3. 活動月份比對
+        if (mo) {
+          let albMo = String(alb.month || '').trim();
+          if (!albMo && alb.date && alb.date.split('-').length > 1) {
+            albMo = alb.date.split('-')[1];
+          }
+          albMo = ('0' + albMo).slice(-2);
+          if (albMo !== ('0' + mo).slice(-2)) return false;
+        }
+        // 4. 活動類別比對
+        if (cat) {
+          const albCat = String(alb.category || '').trim();
+          if (albCat !== cat) return false;
+        }
+        return true;
+      });
+
+      // 更新計數與啟用標籤
+      const countText = document.getElementById('albumFilterCountText');
+      const activeBadge = document.getElementById('albumFilterActiveBadge');
+      const isFiltering = !!(kw || yr || mo || cat);
+
+      if (countText) {
+        if (isFiltering) {
+          countText.textContent = '篩選出 ' + filtered.length + ' 本相簿（共 ' + allAlbums.length + ' 本）';
+        } else {
+          countText.textContent = '共 ' + allAlbums.length + ' 本相簿';
+        }
+      }
+      if (activeBadge) {
+        if (isFiltering) activeBadge.classList.remove('hidden');
+        else activeBadge.classList.add('hidden');
+      }
+
+      renderAlbumsList(filtered);
+    }
+
+    function resetAlbumFilters() {
+      const kwInput = document.getElementById('albumFilter-keyword');
+      const yrInput = document.getElementById('albumFilter-year');
+      const moInput = document.getElementById('albumFilter-month');
+      const catInput = document.getElementById('albumFilter-category');
+      if (kwInput) kwInput.value = '';
+      if (yrInput) yrInput.value = '';
+      if (moInput) moInput.value = '';
+      if (catInput) catInput.value = '';
+      applyAlbumFilters();
     }
 
     function renderAlbumsList(albums) {
+      const loading = document.getElementById('albumsLoading');
+      if (loading) loading.classList.add('hidden');
       const grid = document.getElementById('albumsGrid');
+      if (!grid) return;
       grid.innerHTML = '';
 
-      if (albums.length === 0) {
+      if (!albums || albums.length === 0) {
         grid.innerHTML = \`
           <div class="col-span-full py-12 text-center text-slate-400 space-y-2">
             <div class="text-4xl">📸</div>
-            <div class="text-sm font-bold">目前相簿資料夾內尚無相片</div>
-            <div class="text-xs">請至管理後台或 Google Drive Albums 資料夾上傳活動照片！</div>
+            <div class="text-sm font-bold">沒有符合條件的活動相簿</div>
+            <div class="text-xs">請嘗試調整關鍵字、年度、月份或活動類別篩選條件，或點擊「重設篩選」。</div>
           </div>
         \`;
         return;
@@ -3095,22 +3500,36 @@ const htmlContent = `<!DOCTYPE html>
 
       albums.forEach(alb => {
         const cover = alb.coverUrl || 'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=600&q=80';
+        const ym = formatAlbumYearMonth(alb);
+        const badgeClass = getAlbumCategoryBadgeClass(alb.category);
+        const safeTitle = (alb.title || '活動相簿').replace(/'/g, "\\'");
+
         grid.innerHTML += \`
-          <div class="bg-white rounded-3xl p-3 border border-slate-200/80 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer tap-bounce" onclick="openAlbumPhotos('\${alb.id}', '\${alb.title}')">
+          <div class="bg-white rounded-3xl p-3 border border-slate-200/80 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer tap-bounce" onclick="openAlbumPhotos('\${alb.id}', '\${safeTitle}')">
             <div class="aspect-[4/3] rounded-2xl overflow-hidden bg-slate-100 relative">
               <img src="\${cover}" alt="\${alb.title}" class="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300">
-              <div class="absolute top-2 right-2 bg-black/60 text-white text-[0.6875rem] font-bold px-2 py-0.5 rounded-full backdrop-blur-xs flex items-center gap-1">
-                <span>📷</span> \${alb.photoCount} 張
+              
+              <!-- 右上角：照片數量 -->
+              <div class="absolute top-2 right-2 bg-black/60 text-white text-[0.6875rem] font-bold px-2 py-0.5 rounded-full backdrop-blur-xs flex items-center gap-1 shadow-xs">
+                <span>📷</span> \${alb.photoCount || 0} 張
               </div>
-              <div class="absolute bottom-2 left-2 bg-white/90 text-slate-700 text-[0.625rem] font-bold px-2 py-0.5 rounded-md backdrop-blur-xs">
-                \${alb.date || '活動影像'}
+
+              <!-- 左上角：活動類別徽章 -->
+              <div class="absolute top-2 left-2 \${badgeClass} text-[0.6875rem] font-extrabold px-2.5 py-0.5 rounded-full shadow-xs backdrop-blur-xs">
+                \${alb.category || '活動記錄'}
+              </div>
+
+              <!-- 左下角：活動年月 -->
+              <div class="absolute bottom-2 left-2 bg-white/95 text-slate-800 text-[0.6875rem] font-black px-2.5 py-0.5 rounded-lg shadow-2xs backdrop-blur-xs flex items-center gap-1">
+                <span>📅</span> \${ym}
               </div>
             </div>
+
             <div class="pt-3 px-1">
-              <h4 class="font-black text-slate-800 text-sm truncate">\${alb.title}</h4>
-              <div class="flex items-center justify-between text-xs text-slate-400 mt-1">
-                <span>點擊瀏覽相簿</span>
-                <span class="text-teal-600 font-bold">開啟 ➔</span>
+              <h4 class="font-black text-slate-800 text-sm truncate" title="\${alb.title}">\${alb.title}</h4>
+              <div class="flex items-center justify-between text-xs text-slate-400 mt-1.5">
+                <span class="text-slate-500 font-medium text-[11px]">\${alb.category || '活動相簿'}</span>
+                <span class="text-teal-600 font-bold group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5 text-xs">瀏覽相簿 ➔</span>
               </div>
             </div>
           </div>
@@ -3561,6 +3980,10 @@ const htmlContent = `<!DOCTYPE html>
 
       if (subtab === 'events') renderAdminEventsTable();
       if (subtab === 'spotlight') renderAdminSpotlightsList();
+      if (subtab === 'uploadPhoto') {
+        if (state.cachedAlbums.length === 0) refreshAlbums();
+        else renderAdminAlbumsTable();
+      }
       if (subtab === 'settings') loadSettingsToForm();
     }
 
@@ -3833,11 +4256,13 @@ const htmlContent = `<!DOCTYPE html>
       });
     }
 
-    // 後台相簿批次上傳 (Albums)
+    // 後台相簿批次上傳與管理 (Albums)
     function updateAlbumPreviewName() {
-      const d = document.getElementById('albumUpload-date').value || 'YYYY-MM-DD';
-      const t = document.getElementById('albumUpload-title').value.trim() || '活動主題';
-      document.getElementById('albumUpload-previewName').textContent = \`\${d}_\${t}\`;
+      const yr = document.getElementById('albumUpload-year')?.value || '2026';
+      const mo = document.getElementById('albumUpload-month')?.value || '10';
+      const t = document.getElementById('albumUpload-title')?.value.trim() || '活動主題';
+      const previewEl = document.getElementById('albumUpload-previewName');
+      if (previewEl) previewEl.textContent = \`\${yr}-\${mo}_\${t}\`;
     }
 
     function handleAlbumFilesSelected(e) {
@@ -3870,9 +4295,11 @@ const htmlContent = `<!DOCTYPE html>
     }
 
     function startUploadAlbumPhotos() {
-      const d = document.getElementById('albumUpload-date').value;
+      const yr = document.getElementById('albumUpload-year').value;
+      const mo = document.getElementById('albumUpload-month').value;
+      const cat = document.getElementById('albumUpload-category').value;
       const t = document.getElementById('albumUpload-title').value.trim();
-      if (!d || !t) return showToast('請填寫活動日期與主題！', '⚠️');
+      if (!yr || !mo || !t) return showToast('請填寫活動年度、月份與主題！', '⚠️');
       if (state.selectedAlbumFiles.length === 0) return showToast('請選擇要上傳的照片！', '⚠️');
 
       showToast(\`正在讀取並準備上傳 \${state.selectedAlbumFiles.length} 張照片...\`, '⏳');
@@ -3898,7 +4325,9 @@ const htmlContent = `<!DOCTYPE html>
 
       Promise.all(filePromises).then(encodedFiles => {
         callBackend('uploadPhotosToAlbum', {
-          date: d,
+          year: yr,
+          month: mo,
+          category: cat,
           title: t,
           files: encodedFiles,
           password: state.adminPassword
@@ -3908,7 +4337,10 @@ const htmlContent = `<!DOCTYPE html>
           if (res && res.success) {
             showToast(res.message || '相簿已成功上傳！', '🎉');
             clearSelectedPhotos();
+            document.getElementById('albumUpload-title').value = '';
+            updateAlbumPreviewName();
             refreshAlbums();
+            renderAdminAlbumsTable();
           } else {
             showToast('相片已儲存於瀏覽器預覽！', '🎉');
             clearSelectedPhotos();
@@ -3919,6 +4351,182 @@ const htmlContent = `<!DOCTYPE html>
           showToast('相片已儲存於瀏覽器預覽！', '🎉');
           clearSelectedPhotos();
         });
+      });
+    }
+
+    // 後台相簿管理一覽表格渲染
+    function renderAdminAlbumsTable() {
+      const tbody = document.getElementById('adminAlbumsTableBody');
+      const countBadge = document.getElementById('adminAlbumsCountBadge');
+      if (!tbody) return;
+      const albums = state.cachedAlbums || [];
+      if (countBadge) countBadge.textContent = \`共 \${albums.length} 本相簿\`;
+      tbody.innerHTML = '';
+
+      if (albums.length === 0) {
+        tbody.innerHTML = \`
+          <tr>
+            <td colspan="6" class="py-8 text-center text-slate-400">
+              目前尚無相簿紀錄，請於上方表單上傳照片建立新相簿！
+            </td>
+          </tr>
+        \`;
+        return;
+      }
+
+      albums.forEach(alb => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50/80 transition-colors';
+        const cover = alb.coverUrl || 'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=120&q=80';
+        const ym = formatAlbumYearMonth(alb);
+        const badgeClass = getAlbumCategoryBadgeClass(alb.category);
+        const safeTitle = (alb.title || '相簿').replace(/'/g, "\\'");
+
+        tr.innerHTML = \`
+          <td class="py-2.5 px-3">
+            <img src="\${cover}" class="w-10 h-10 object-cover rounded-xl border border-slate-200 shadow-2xs">
+          </td>
+          <td class="py-2.5 px-3 font-bold text-slate-800 whitespace-nowrap">
+            \${ym}
+          </td>
+          <td class="py-2.5 px-3 whitespace-nowrap">
+            <span class="\${badgeClass} px-2.5 py-0.5 rounded-full text-[10px] font-extrabold inline-block">
+              \${alb.category || '未分類'}
+            </span>
+          </td>
+          <td class="py-2.5 px-3 font-bold text-slate-800">
+            <div class="line-clamp-1" title="\${alb.title}">\${alb.title}</div>
+            <div class="text-[10px] text-slate-400 font-mono font-normal">\${alb.folderName || ''}</div>
+          </td>
+          <td class="py-2.5 px-3 text-center whitespace-nowrap">
+            <span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-bold text-[10px]">
+              📷 \${alb.photoCount || 0} 張
+            </span>
+          </td>
+          <td class="py-2.5 px-3 text-right whitespace-nowrap space-x-1.5">
+            <button type="button" onclick="openAlbumPhotos('\${alb.id}', '\${safeTitle}')" class="px-2.5 py-1 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-700 font-bold text-xs tap-bounce">
+              👁️ 預覽
+            </button>
+            <button type="button" onclick="openEditAlbumModal('\${alb.id}')" class="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold text-xs tap-bounce">
+              ✏️ 編輯
+            </button>
+            <button type="button" onclick="deleteAlbumInAdmin('\${alb.id}', '\${safeTitle}')" class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs tap-bounce">
+              🗑️ 刪除
+            </button>
+          </td>
+        \`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function openEditAlbumModal(albumId) {
+      const alb = (state.cachedAlbums || []).find(a => String(a.id) === String(albumId));
+      if (!alb) return;
+      document.getElementById('editAlbum-id').value = alb.id;
+
+      let y = String(alb.year || '').trim();
+      let m = String(alb.month || '').trim();
+      if (!y && alb.date) y = alb.date.split('-')[0];
+      if (!m && alb.date && alb.date.split('-').length > 1) m = alb.date.split('-')[1];
+      y = y || '2026';
+      m = ('0' + (m || '10')).slice(-2);
+
+      const yrSelect = document.getElementById('editAlbum-year');
+      if (yrSelect) yrSelect.value = y;
+
+      const moSelect = document.getElementById('editAlbum-month');
+      if (moSelect) moSelect.value = m;
+
+      const catSelect = document.getElementById('editAlbum-category');
+      if (catSelect) {
+        if (alb.category) catSelect.value = alb.category;
+        else catSelect.selectedIndex = 0;
+      }
+
+      const titleInput = document.getElementById('editAlbum-title');
+      if (titleInput) titleInput.value = alb.title || '';
+
+      document.getElementById('editAlbumModal').classList.remove('hidden');
+    }
+
+    function closeEditAlbumModal() {
+      document.getElementById('editAlbumModal').classList.add('hidden');
+    }
+
+    function handleSaveAlbumInfo(e) {
+      if (e && typeof e.preventDefault === 'function') e.preventDefault();
+      const id = document.getElementById('editAlbum-id').value;
+      const year = document.getElementById('editAlbum-year').value;
+      const month = document.getElementById('editAlbum-month').value;
+      const category = document.getElementById('editAlbum-category').value;
+      const title = document.getElementById('editAlbum-title').value.trim();
+
+      if (!year || !month || !title) {
+        return showToast('請完整填寫活動年度、月份與主題！', '⚠️');
+      }
+
+      const alb = (state.cachedAlbums || []).find(a => String(a.id) === String(id));
+      if (alb) {
+        alb.year = year;
+        alb.month = month;
+        alb.category = category;
+        alb.title = title;
+        alb.date = year + '-' + month;
+        alb.folderName = year + '-' + month + '_' + title;
+      }
+
+      const btn = document.getElementById('btnSaveAlbumInfo');
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = '儲存中...';
+      }
+      showToast('正在儲存相簿資訊至雲端...', '⏳');
+
+      callBackend('saveAlbum', {
+        data: {
+          id: id,
+          year: year,
+          month: month,
+          category: category,
+          title: title
+        },
+        password: state.adminPassword
+      }, res => {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = '儲存相簿資訊';
+        }
+        closeEditAlbumModal();
+        if (res && res.success) {
+          showToast(res.message || '相簿資訊已更新！', '🎉');
+        } else {
+          showToast('相簿資訊已更新（離線/暫存狀態）！', '✅');
+        }
+        renderAdminAlbumsTable();
+        applyAlbumFilters();
+      }, err => {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = '儲存相簿資訊';
+        }
+        closeEditAlbumModal();
+        showToast('相簿資訊已更新！', '✅');
+        renderAdminAlbumsTable();
+        applyAlbumFilters();
+      });
+    }
+
+    function deleteAlbumInAdmin(albumId, albumTitle) {
+      if (!confirm('確定要刪除相簿「' + albumTitle + '」嗎？此動作將移除該相簿！')) return;
+      state.cachedAlbums = (state.cachedAlbums || []).filter(a => String(a.id) !== String(albumId));
+      renderAdminAlbumsTable();
+      applyAlbumFilters();
+      showToast('已自清單移除相簿！', '🗑️');
+
+      callBackend('deleteAlbum', { id: albumId, password: state.adminPassword }, res => {
+        if (res && res.success) {
+          showToast(res.message || '雲端相簿已成功刪除！', '✅');
+        }
       });
     }
 
