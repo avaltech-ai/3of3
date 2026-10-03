@@ -620,9 +620,6 @@ const htmlContent = `<!DOCTYPE html>
             <span class="bg-emerald-100 text-emerald-800 text-xs px-2 py-0.5 rounded-full font-bold">已認證</span>
           </div>
           <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
-            <button onclick="triggerResetDatabase()" class="px-3 py-1.5 rounded-xl bg-amber-50 text-amber-700 hover:bg-amber-100 text-xs font-bold border border-amber-200 tap-bounce" title="重新填入預設示範資料">
-              🔄 重新初始化資料庫
-            </button>
             <button onclick="doAdminLogout()" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-rose-50 hover:text-rose-600 text-xs font-bold tap-bounce">
               登出
             </button>
@@ -4616,17 +4613,7 @@ const htmlContent = `<!DOCTYPE html>
       });
     }
 
-    function triggerResetDatabase() {
-      if (!confirm('此操作將會重新初始化試算表預設欄位與示範活動資料，確定繼續嗎？')) return;
-      showToast('資料庫初始化中...', '⏳');
-      callBackend('setupInitialDatabase', {}, res => {
-        showToast((res && res.message) || '初始化完成！', '🎉');
-        localStorage.clear();
-        loadAppData();
-      }, err => {
-        showToast('初始化完成！', '🎉');
-      });
-    }
+
 
     // 全域 Toast 通知
     function showToast(msg, icon = '✨') {
