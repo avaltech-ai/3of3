@@ -235,7 +235,7 @@ function doPost(e) {
     } else if (action === 'uploadPhotosToAlbum') {
       result = uploadPhotosToAlbum(postData, postData.password);
     } else if (action === 'saveAlbum') {
-      result = saveAlbum(postData.albumData || postData.data, postData.password);
+      result = saveAlbum(postData.albumData || postData.data || postData.album, postData.password);
     } else if (action === 'deleteAlbum') {
       result = deleteAlbum(postData.id || postData.albumId, postData.password);
     } else if (action === 'uploadDocument') {
@@ -526,8 +526,8 @@ function getAppData() {
     let albumsSheet = ss.getSheetByName('Albums');
     if (!albumsSheet) {
       albumsSheet = ss.insertSheet('Albums');
-      albumsSheet.appendRow(['id', 'year', 'month', 'category', 'title', 'folderName', 'photoCount', 'coverUrl', 'folderUrl', 'updatedAt']);
-      albumsSheet.getRange(1, 1, 1, 10).setFontWeight('bold').setBackground('#CCFBF1');
+      albumsSheet.appendRow(['id', 'category', 'title', 'folderName', 'photoCount', 'coverUrl', 'folderUrl', 'updatedAt']);
+      albumsSheet.getRange(1, 1, 1, 8).setFontWeight('bold').setBackground('#CCFBF1');
     }
 
     let actFolderUrl = '';
@@ -587,8 +587,8 @@ function getAlbums() {
     let albumsSheet = ss ? ss.getSheetByName('Albums') : null;
     if (ss && !albumsSheet) {
       albumsSheet = ss.insertSheet('Albums');
-      albumsSheet.appendRow(['id', 'year', 'month', 'category', 'title', 'folderName', 'photoCount', 'coverUrl', 'folderUrl', 'updatedAt']);
-      albumsSheet.getRange(1, 1, 1, 10).setFontWeight('bold').setBackground('#CCFBF1');
+      albumsSheet.appendRow(['id', 'category', 'title', 'folderName', 'photoCount', 'coverUrl', 'folderUrl', 'updatedAt']);
+      albumsSheet.getRange(1, 1, 1, 8).setFontWeight('bold').setBackground('#CCFBF1');
     }
 
     // 1. 讀取 Google Sheets Albums 表既有資料
@@ -614,28 +614,18 @@ function getAlbums() {
       // 檢查是否已在 Sheets 中
       const existing = sheetAlbumMap.get(folderId) || sheetAlbumMap.get(folderName);
 
-      let year = existing && existing.year ? String(existing.year).trim() : '';
-      let month = existing && existing.month ? ('0' + String(existing.month).trim()).slice(-2) : '';
       let category = existing && existing.category ? String(existing.category).trim() : '';
       let title = existing && existing.title ? String(existing.title).trim() : '';
 
-      // 若尚未記錄或欄位為空，嘗試由 folderName 解析
-      if (!year || !month || !title) {
+      // 若尚未記錄或欄位為空，嘗試由 folderName 解析（移除可能的歷史日期前綴如 2026-10_）
+      if (!title) {
         if (folderName.indexOf('_') > -1) {
           const parts = folderName.split('_');
-          const datePart = parts[0];
-          title = title || parts.slice(1).join('_');
-          if (datePart.indexOf('-') > -1) {
-            const dateSplits = datePart.split('-');
-            year = year || dateSplits[0];
-            month = month || ('0' + dateSplits[1]).slice(-2);
-          }
+          title = parts.slice(1).join('_');
         } else {
-          title = title || folderName;
+          title = folderName;
         }
       }
-      if (!year) year = '2026';
-      if (!month) month = '10';
 
       // 智慧辨識預設分類
       if (!category) {
@@ -673,12 +663,9 @@ function getAlbums() {
 
       const albumObj = {
         id: folderId,
-        year: year,
-        month: month,
         category: category,
         title: title,
         folderName: folderName,
-        date: `${year}-${month}`,
         photoCount: photoCount,
         coverUrl: coverUrl,
         folderUrl: subFolder.getUrl(),
@@ -691,8 +678,6 @@ function getAlbums() {
       if (!existing && albumsSheet) {
         albumsSheet.appendRow([
           folderId,
-          year,
-          month,
           category,
           title,
           folderName,
@@ -707,16 +692,11 @@ function getAlbums() {
     // 同時加入在 sheet 中記錄但可能不在 Drive 或為外部連結之相簿 (若有)
     sheetAlbums.forEach(sAlb => {
       if (sAlb.id && !driveFolderMap.has(String(sAlb.id))) {
-        const y = String(sAlb.year || '2026').trim();
-        const m = ('0' + String(sAlb.month || '10').trim()).slice(-2);
         albumList.push({
           id: sAlb.id,
-          year: y,
-          month: m,
           category: sAlb.category || '班級主題',
           title: sAlb.title || sAlb.folderName || '活動相簿',
-          folderName: sAlb.folderName || `${y}-${m}_${sAlb.title}`,
-          date: `${y}-${m}`,
+          folderName: sAlb.folderName || sAlb.title,
           photoCount: parseInt(sAlb.photoCount || 0, 10),
           coverUrl: sAlb.coverUrl || '',
           folderUrl: sAlb.folderUrl || '',
@@ -725,12 +705,12 @@ function getAlbums() {
       }
     });
 
-    // 依年份與月份由新到舊排序
+    // 依更新時間由新到舊排序
     albumList.sort((a, b) => {
-      const ymA = `${a.year}-${a.month}`;
-      const ymB = `${b.year}-${b.month}`;
-      if (ymA !== ymB) return ymB.localeCompare(ymA);
-      return (b.title || '').localeCompare(a.title || '');
+      const dateA = a.updatedAt || '';
+      const dateB = b.updatedAt || '';
+      if (dateA !== dateB) return dateB.localeCompare(dateA);
+      return (a.title || '').localeCompare(b.title || '');
     });
 
     return {
@@ -786,45 +766,33 @@ function getAlbumPhotos(albumFolderId) {
 
 /**
  * 上傳多張照片至 Albums 資料夾並登記至 Albums 試算表
- * 支援 (year, month, category, title, filesArray, password) 或 postData 物件傳遞
+ * 支援 (category, title, filesArray, password) 或 postData 物件傳遞
  */
 function uploadPhotosToAlbum(param1, param2, param3, param4, param5, param6) {
-  let year, month, category, title, filesArray, password;
+  let category, title, filesArray, password;
 
   if (typeof param1 === 'object' && param1 !== null && !Array.isArray(param1)) {
-    year = param1.year;
-    month = param1.month;
     category = param1.category;
     title = param1.title;
     filesArray = param1.files;
     password = param1.password || param2;
-    if (!year && param1.date) {
-      const parts = String(param1.date).split('-');
-      year = parts[0];
-      month = parts[1] || '01';
-    }
+  } else if (param4 !== undefined && param5 === undefined) {
+    // 4 個參數: (category, title, filesArray, password)
+    category = param1;
+    title = param2;
+    filesArray = param3;
+    password = param4;
   } else if (param6 !== undefined) {
-    year = param1;
-    month = param2;
+    // 舊版 6 個參數相容: (year, month, category, title, filesArray, password)
     category = param3;
     title = param4;
     filesArray = param5;
     password = param6;
   } else {
-    // 舊版 4 個參數相容: (dateStr, titleStr, filesArray, password)
-    const dateStr = param1;
+    category = '班級主題';
     title = param2;
     filesArray = param3;
     password = param4;
-    category = '班級主題';
-    if (dateStr && dateStr.indexOf('-') > -1) {
-      const parts = dateStr.split('-');
-      year = parts[0];
-      month = parts[1];
-    } else {
-      year = '2026';
-      month = '10';
-    }
   }
 
   if (!checkPassword(password)) {
@@ -832,8 +800,6 @@ function uploadPhotosToAlbum(param1, param2, param3, param4, param5, param6) {
   }
 
   try {
-    year = String(year || '2026').trim();
-    month = ('0' + String(month || '10').trim()).slice(-2);
     category = String(category || '班級主題').trim();
     title = String(title || '').trim();
 
@@ -841,7 +807,7 @@ function uploadPhotosToAlbum(param1, param2, param3, param4, param5, param6) {
       return { success: false, error: '請提供活動主題及至少一張照片！' };
     }
 
-    const folderName = `${year}-${month}_${title}`;
+    const folderName = title;
     const rootFolder = DriveApp.getFolderById(ALBUMS_FOLDER_ID);
 
     // 尋找是否已有同名子資料夾，若無則新建
@@ -894,8 +860,8 @@ function uploadPhotosToAlbum(param1, param2, param3, param4, param5, param6) {
       let albumsSheet = ss.getSheetByName('Albums');
       if (!albumsSheet) {
         albumsSheet = ss.insertSheet('Albums');
-        albumsSheet.appendRow(['id', 'year', 'month', 'category', 'title', 'folderName', 'photoCount', 'coverUrl', 'folderUrl', 'updatedAt']);
-        albumsSheet.getRange(1, 1, 1, 10).setFontWeight('bold').setBackground('#CCFBF1');
+        albumsSheet.appendRow(['id', 'category', 'title', 'folderName', 'photoCount', 'coverUrl', 'folderUrl', 'updatedAt']);
+        albumsSheet.getRange(1, 1, 1, 8).setFontWeight('bold').setBackground('#CCFBF1');
       }
 
       const data = albumsSheet.getDataRange().getValues();
@@ -916,8 +882,6 @@ function uploadPhotosToAlbum(param1, param2, param3, param4, param5, param6) {
       const nowIso = new Date().toISOString();
       const rowData = {
         id: folderId,
-        year: year,
-        month: month,
         category: category,
         title: title,
         folderName: folderName,
@@ -971,8 +935,8 @@ function saveAlbum(albumData, password) {
     let sheet = ss.getSheetByName('Albums');
     if (!sheet) {
       sheet = ss.insertSheet('Albums');
-      sheet.appendRow(['id', 'year', 'month', 'category', 'title', 'folderName', 'photoCount', 'coverUrl', 'folderUrl', 'updatedAt']);
-      sheet.getRange(1, 1, 1, 10).setFontWeight('bold').setBackground('#CCFBF1');
+      sheet.appendRow(['id', 'category', 'title', 'folderName', 'photoCount', 'coverUrl', 'folderUrl', 'updatedAt']);
+      sheet.getRange(1, 1, 1, 8).setFontWeight('bold').setBackground('#CCFBF1');
     }
 
     const data = sheet.getDataRange().getValues();
@@ -989,16 +953,12 @@ function saveAlbum(albumData, password) {
       }
     }
 
-    const year = String(albumData.year || '2026').trim();
-    const month = ('0' + String(albumData.month || '10').trim()).slice(-2);
     const category = String(albumData.category || '班級主題').trim();
     const title = String(albumData.title || '').trim();
-    const newFolderName = `${year}-${month}_${title}`;
+    const newFolderName = title;
 
     const updateFields = {
       id: albumData.id,
-      year: year,
-      month: month,
       category: category,
       title: title,
       folderName: newFolderName,
@@ -1720,11 +1680,37 @@ function ensureAlbumSheetsExist() {
   }
 
   // 2. 確保 Albums 工作表存在（相簿資料庫紀錄）
+  const targetHeaders = ['id', 'category', 'title', 'folderName', 'photoCount', 'coverUrl', 'folderUrl', 'updatedAt'];
   let albumsSheet = ss.getSheetByName('Albums');
-  if (!albumsSheet) {
+  if (albumsSheet) {
+    const data = albumsSheet.getDataRange().getValues();
+    if (data.length > 0) {
+      const curHeaders = data[0].map(h => String(h).trim());
+      // 檢查是否含有 year 或 month 欄位，若有則進行結構遷移移除 year / month
+      if (curHeaders.indexOf('year') > -1 || curHeaders.indexOf('month') > -1) {
+        const migratedRows = [];
+        for (let r = 1; r < data.length; r++) {
+          const rowObj = {};
+          curHeaders.forEach((h, c) => {
+            rowObj[h] = data[r][c];
+          });
+          const newRow = targetHeaders.map(h => rowObj[h] !== undefined ? rowObj[h] : '');
+          migratedRows.push(newRow);
+        }
+        albumsSheet.clear();
+        albumsSheet.appendRow(targetHeaders);
+        albumsSheet.getRange(1, 1, 1, targetHeaders.length).setFontWeight('bold').setBackground('#CCFBF1');
+        if (migratedRows.length > 0) {
+          albumsSheet.getRange(2, 1, migratedRows.length, targetHeaders.length).setValues(migratedRows);
+        }
+        albumsSheet.autoResizeColumns(1, targetHeaders.length);
+        createdSheets.push('Albums(已熱遷移移除活動年月欄位)');
+      }
+    }
+  } else {
     albumsSheet = ss.insertSheet('Albums');
-    albumsSheet.appendRow(['id', 'year', 'month', 'category', 'title', 'folderName', 'photoCount', 'coverUrl', 'folderUrl', 'updatedAt']);
-    albumsSheet.getRange(1, 1, 1, 10).setFontWeight('bold').setBackground('#CCFBF1');
+    albumsSheet.appendRow(targetHeaders);
+    albumsSheet.getRange(1, 1, 1, targetHeaders.length).setFontWeight('bold').setBackground('#CCFBF1');
 
     // 自動掃描 Google Drive ALBUMS_FOLDER_ID 資料夾，直接將現有相簿資料夾載入 Albums 工作表
     let initialAlbums = [];
@@ -1734,18 +1720,12 @@ function ensureAlbumSheetsExist() {
       while (subfolders.hasNext()) {
         const folder = subfolders.next();
         const fName = folder.getName();
-        let y = '2026';
-        let m = '10';
         let cat = '班級主題';
         let title = fName;
 
         const parts = fName.split('_');
         if (parts.length >= 2) {
-          const datePart = parts[0];
           title = parts.slice(1).join('_');
-          const dParts = datePart.split('-');
-          if (dParts.length >= 1 && /^\d{4}$/.test(dParts[0])) y = dParts[0];
-          if (dParts.length >= 2) m = ('0' + dParts[1]).slice(-2);
         }
 
         if (title.includes('塗氟') || title.includes('牙') || title.includes('檢查') || title.includes('衛教')) cat = '健康檢查';
@@ -1773,8 +1753,6 @@ function ensureAlbumSheetsExist() {
 
         initialAlbums.push([
           folder.getId(),
-          y,
-          m,
           cat,
           title,
           fName,
@@ -1789,16 +1767,16 @@ function ensureAlbumSheetsExist() {
     }
 
     if (initialAlbums.length > 0) {
-      albumsSheet.getRange(2, 1, initialAlbums.length, 10).setValues(initialAlbums);
+      albumsSheet.getRange(2, 1, initialAlbums.length, targetHeaders.length).setValues(initialAlbums);
     } else {
       const sampleAlbums = [
-        ['demo_alb_01', '2026', '10', '健康檢查', '牙齒塗氟日口腔檢查', '2026-10_牙齒塗氟日口腔檢查', 18, 'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=600&q=80', 'https://drive.google.com/drive/folders/1iRFAr3FZMqV-okmktipdwamjAR7WWp6d', '2026-10-23'],
-        ['demo_alb_02', '2026', '10', '幸福廚房', '幸福廚房手作生活體驗', '2026-10_幸福廚房手作生活體驗', 24, 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=600&q=80', 'https://drive.google.com/drive/folders/1iRFAr3FZMqV-okmktipdwamjAR7WWp6d', '2026-10-07'],
-        ['demo_alb_03', '2026', '08', '親職活動', '新學期親師座談交流', '2026-08_新學期親師座談交流', 12, 'https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=600&q=80', 'https://drive.google.com/drive/folders/1iRFAr3FZMqV-okmktipdwamjAR7WWp6d', '2026-08-27']
+        ['demo_alb_01', '健康檢查', '牙齒塗氟日口腔檢查', '2026-10_牙齒塗氟日口腔檢查', 18, 'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=600&q=80', 'https://drive.google.com/drive/folders/1iRFAr3FZMqV-okmktipdwamjAR7WWp6d', '2026-10-23'],
+        ['demo_alb_02', '幸福廚房', '幸福廚房手作生活體驗', '2026-10_幸福廚房手作生活體驗', 24, 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=600&q=80', 'https://drive.google.com/drive/folders/1iRFAr3FZMqV-okmktipdwamjAR7WWp6d', '2026-10-07'],
+        ['demo_alb_03', '親職活動', '新學期親師座談交流', '2026-08_新學期親師座談交流', 12, 'https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=600&q=80', 'https://drive.google.com/drive/folders/1iRFAr3FZMqV-okmktipdwamjAR7WWp6d', '2026-08-27']
       ];
-      albumsSheet.getRange(2, 1, sampleAlbums.length, 10).setValues(sampleAlbums);
+      albumsSheet.getRange(2, 1, sampleAlbums.length, targetHeaders.length).setValues(sampleAlbums);
     }
-    albumsSheet.autoResizeColumns(1, 10);
+    albumsSheet.autoResizeColumns(1, targetHeaders.length);
     createdSheets.push('Albums');
   }
 
@@ -2065,15 +2043,15 @@ function setupInitialDatabase() {
   let albumsSheet = ss.getSheetByName('Albums');
   if (!albumsSheet) albumsSheet = ss.insertSheet('Albums');
   albumsSheet.clear();
-  albumsSheet.appendRow(['id', 'year', 'month', 'category', 'title', 'folderName', 'photoCount', 'coverUrl', 'folderUrl', 'updatedAt']);
-  albumsSheet.getRange(1, 1, 1, 10).setFontWeight('bold').setBackground('#CCFBF1');
+  albumsSheet.appendRow(['id', 'category', 'title', 'folderName', 'photoCount', 'coverUrl', 'folderUrl', 'updatedAt']);
+  albumsSheet.getRange(1, 1, 1, 8).setFontWeight('bold').setBackground('#CCFBF1');
 
   const sampleAlbums = [
-    ['demo_alb_01', '2026', '10', '健康檢查', '牙齒塗氟日口腔檢查', '2026-10_牙齒塗氟日口腔檢查', 18, 'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=600&q=80', 'https://drive.google.com/drive/folders/1iRFAr3FZMqV-okmktipdwamjAR7WWp6d', '2026-10-23'],
-    ['demo_alb_02', '2026', '10', '幸福廚房', '幸福廚房手作生活體驗', '2026-10_幸福廚房手作生活體驗', 24, 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=600&q=80', 'https://drive.google.com/drive/folders/1iRFAr3FZMqV-okmktipdwamjAR7WWp6d', '2026-10-07'],
-    ['demo_alb_03', '2026', '08', '親職活動', '新學期親師座談交流', '2026-08_新學期親師座談交流', 12, 'https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=600&q=80', 'https://drive.google.com/drive/folders/1iRFAr3FZMqV-okmktipdwamjAR7WWp6d', '2026-08-27']
+    ['demo_alb_01', '健康檢查', '牙齒塗氟日口腔檢查', '牙齒塗氟日口腔檢查', 18, 'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=600&q=80', 'https://drive.google.com/drive/folders/1iRFAr3FZMqV-okmktipdwamjAR7WWp6d', '2026-10-23'],
+    ['demo_alb_02', '幸福廚房', '幸福廚房手作生活體驗', '幸福廚房手作生活體驗', 24, 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=600&q=80', 'https://drive.google.com/drive/folders/1iRFAr3FZMqV-okmktipdwamjAR7WWp6d', '2026-10-07'],
+    ['demo_alb_03', '親職活動', '新學期親師座談交流', '新學期親師座談交流', 12, 'https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=600&q=80', 'https://drive.google.com/drive/folders/1iRFAr3FZMqV-okmktipdwamjAR7WWp6d', '2026-08-27']
   ];
-  albumsSheet.getRange(2, 1, sampleAlbums.length, 10).setValues(sampleAlbums);
+  albumsSheet.getRange(2, 1, sampleAlbums.length, 8).setValues(sampleAlbums);
 
   // 自動調整所有欄寬
   [eventsSheet, menusSheet, spSheet, docsSheet, setSheet, albumCatSheet, albumsSheet].forEach(sh => {
