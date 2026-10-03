@@ -1537,6 +1537,30 @@ const htmlContent = `<!DOCTYPE html>
     }
 
     
+    function setSelectValueSafely(selectEl, val) {
+      if (!selectEl) return;
+      const trimmed = (val !== undefined && val !== null) ? String(val).trim() : '';
+      if (!trimmed) {
+        selectEl.value = '';
+        return;
+      }
+      let matched = false;
+      for (let i = 0; i < selectEl.options.length; i++) {
+        if (selectEl.options[i].value.trim() === trimmed || selectEl.options[i].textContent.trim() === trimmed) {
+          selectEl.selectedIndex = i;
+          matched = true;
+          break;
+        }
+      }
+      if (!matched) {
+        const opt = document.createElement('option');
+        opt.value = trimmed;
+        opt.textContent = trimmed;
+        selectEl.appendChild(opt);
+        selectEl.value = trimmed;
+      }
+    }
+
     function renderEventOptionsUI() {
       const targetSelect = document.getElementById('eventForm-target');
       if (targetSelect && state.eventTargets) {
@@ -1555,7 +1579,7 @@ const htmlContent = `<!DOCTYPE html>
 
           // Clean any duplicate leading emoji if already present in displayName
           label = label.replace(/^[🌟🌱❤️💛🏫👨‍👩‍👧]\s*/, '');
-          targetSelect.innerHTML += '<label class="flex items-center gap-1 cursor-pointer hover:bg-slate-50 px-1 rounded"><input type="checkbox" value="' + t.targetName + '" class="accent-peach-500 w-3 h-3"><span class="text-[0.6875rem] text-slate-700 font-medium">' + icon + label + '</span></label>';
+          targetSelect.innerHTML += '<label class="flex items-center gap-1 cursor-pointer hover:bg-slate-50 px-1 rounded"><input type="checkbox" value="' + t.targetName.trim() + '" class="accent-peach-500 w-3 h-3"><span class="text-[0.6875rem] text-slate-700 font-medium">' + icon + label + '</span></label>';
         });
         initOrderedCheckboxes('eventForm-target');
         if (prevOrder) {
@@ -1565,20 +1589,44 @@ const htmlContent = `<!DOCTYPE html>
         }
       }
 
+      // 彙整並去重大項類別（結合系統設定、既有活動已使用類別與標準大項，絕不遺失）
       const catMajorSelect = document.getElementById('eventForm-categoryMajor');
-      if (catMajorSelect && state.eventCategoriesMajor) {
+      if (catMajorSelect) {
+        const currentSelectedMajor = catMajorSelect.value;
+        const majorSet = new Set((state.eventCategoriesMajor || []).map(c => String(c).trim()).filter(Boolean));
+        ['重要活動', '班級主題', '全園活動', '休園'].forEach(c => majorSet.add(c));
+        (state.events || []).forEach(ev => {
+          const m = (ev.categoryMajor || ev['活動類別 (大項)'] || ev['大項'] || ev.category || '').trim();
+          if (m) majorSet.add(m);
+        });
+
         catMajorSelect.innerHTML = '<option value="">請選擇大項...</option>';
-        state.eventCategoriesMajor.forEach((cat, i) => {
+        majorSet.forEach(cat => {
           catMajorSelect.innerHTML += '<option value="' + cat + '">' + cat + '</option>';
         });
+        if (currentSelectedMajor) {
+          setSelectValueSafely(catMajorSelect, currentSelectedMajor);
+        }
       }
 
+      // 彙整並去重細項類別（結合系統設定、既有活動已使用細項如「親職活動」，絕不被重設或遺失）
       const catMinorSelect = document.getElementById('eventForm-categoryMinor');
-      if (catMinorSelect && state.eventCategoriesMinor) {
+      if (catMinorSelect) {
+        const currentSelectedMinor = catMinorSelect.value;
+        const minorSet = new Set((state.eventCategoriesMinor || []).map(c => String(c).trim()).filter(Boolean));
+        ['幸福廚房', '親職講座', '親師座談', '親職活動', '慶生活動', '戶外踏訪', '高峰活動', '歲末活動', '闖關活動', '節慶放假', '園務消毒', '開學活動', '健康檢查'].forEach(c => minorSet.add(c));
+        (state.events || []).forEach(ev => {
+          const m = (ev.categoryMinor || ev['活動類別 (細項)'] || ev['細項'] || ev.category_minor || '').trim();
+          if (m) minorSet.add(m);
+        });
+
         catMinorSelect.innerHTML = '<option value="">無 / 請選擇細項...</option>';
-        state.eventCategoriesMinor.forEach((cat, i) => {
+        minorSet.forEach(cat => {
           catMinorSelect.innerHTML += '<option value="' + cat + '">' + cat + '</option>';
         });
+        if (currentSelectedMinor) {
+          setSelectValueSafely(catMinorSelect, currentSelectedMinor);
+        }
       }
     }
     
@@ -1847,17 +1895,42 @@ const htmlContent = `<!DOCTYPE html>
 
     // 本地備援示範資料 (保證預覽時完全不空白)
     function renderFallbackLocalData() {
+      state.eventCategoriesMajor = ['重要活動', '班級主題', '全園活動', '休園', '節慶放假'];
+      state.eventCategoriesMinor = [
+        '幸福廚房', '親職講座', '親師座談', '親職活動', '慶生活動',
+        '戶外踏訪', '高峰活動', '歲末活動', '闖關活動', '節慶放假',
+        '園務消毒', '開學活動', '健康檢查'
+      ];
+      state.eventTargets = state.eventTargets || [
+        {targetName: '全園活動', displayName: '🏫 全園活動'},
+        {targetName: '全園適用', displayName: '🏫 全園適用'},
+        {targetName: '親職活動', displayName: '👨‍👩‍👧 親職活動'},
+        {targetName: '親師座談', displayName: '👨‍👩‍👧 親師座談'},
+        {targetName: '諾貝爾 A', displayName: '❤️ 諾貝爾 A'},
+        {targetName: '諾貝爾 B', displayName: '💛 諾貝爾 B'},
+        {targetName: '諾貝爾 C', displayName: '💛 諾貝爾 C'},
+        {targetName: '諾奧', displayName: '💛 諾奧'},
+        {targetName: '奧斯卡', displayName: '💛 奧斯卡'},
+        {targetName: '雨奧', displayName: '💛 雨奧'},
+        {targetName: '米羅 A', displayName: '💛 米羅 A'},
+        {targetName: '米羅 B', displayName: '💛 米羅 B'},
+        {targetName: '兩果', displayName: '💛 兩果'},
+        {targetName: '雨果', displayName: '💛 雨果'}
+      ];
+
       state.events = [
-        { id: 'EV-01', date: '2026-08-03', title: '新學期開學日', target: '全園活動', category: '全園活動', timeLocation: '', description: '開學第一天', theme: '快樂上學趣' },
-        { id: 'EV-05', date: '2026-08-27', title: '諾貝爾 A、B、C 親師座談', target: '親職活動, 諾貝爾 A, 諾貝爾 B, 諾貝爾 C', category: '親職活動', timeLocation: '17:00 開始', description: '諾A班親師座談交流', theme: '快樂上學趣' },
-        { id: 'EV-08', date: '2026-09-09', title: '幸福廚房（諾C/諾B/諾A）', target: '諾貝爾 A, 諾貝爾 B, 諾貝爾 C', category: '班級主題', timeLocation: '', description: '諾A班小小烘焙師手作體驗', theme: '快樂上學趣' },
-        { id: 'EV-12', date: '2026-10-05', title: '幸福廚房（雨奧/奧斯卡/諾奧）', target: '雨奧, 奧斯卡, 諾奧', category: '班級主題', timeLocation: '', description: '雨奧、奧斯卡、諾奧幸福廚房手作體驗', theme: '主題活動：人與自己／人與他人概念' },
-        { id: 'EV-13', date: '2026-10-06', title: '幸福廚房（米羅 A, 米羅 B, 雨果）', target: '米羅 A, 米羅 B, 雨果', category: '班級主題', timeLocation: '', description: '米羅 A、米羅 B、雨果幸福廚房手作體驗', theme: '主題活動：人與自己／人與他人概念' },
-        { id: 'EV-14', date: '2026-10-07', title: '幸福廚房（諾C/諾B/諾A）', target: '諾貝爾 A, 諾貝爾 B, 諾貝爾 C', category: '班級主題', timeLocation: '', description: '諾A班十月份幸福廚房手作日', theme: '主題活動：人與自己／人與他人概念' },
-        { id: 'EV-15', date: '2026-10-08', title: '十月壽星慶生會', target: '全園活動', category: '全園活動', timeLocation: '', description: '分享快樂分享愛！', theme: '主題活動：人與自己／人與他人概念' },
-        { id: 'EV-16', date: '2026-10-09', endDate: '2026-10-11', title: '雙十節連假', target: '全園適用', category: '節慶放假', timeLocation: '連假三日', description: '國慶連續假期放假', theme: '主題活動：人與自己／人與他人概念' },
-        { id: 'EV-17', date: '2026-10-23', title: '牙齒塗氟日 口腔保健檢查', calendarPrompt: '牙齒塗氟', target: '諾貝爾 A, 全園活動', category: '重要活動', timeLocation: '08:30 (五)', description: '🌟 全園定期塗氟檢查，請家長務必攜帶健保卡！未攜帶無法參加喔！', theme: '主題活動：人與自己／人與他人概念' },
-        { id: 'EV-18', date: '2026-10-24', endDate: '2026-10-26', title: '光復節連假', calendarPrompt: '光復節連假', target: '全園適用', category: '節慶放假', timeLocation: '連假三日', description: '光復節連續假期', theme: '主題活動：人與自己／人與他人概念' }
+        { id: 'EV-01', date: '2026-08-03', title: '新學期開學日', target: '全園活動', categoryMajor: '全園活動', categoryMinor: '開學活動', category: '全園活動', timeLocation: '', description: '開學第一天', theme: '快樂上學趣' },
+        { id: 'EV-05', date: '2026-08-27', title: '諾貝爾 A、B、C 親師座談', target: '親職活動, 諾貝爾 A, 諾貝爾 B, 諾貝爾 C', categoryMajor: '班級主題', categoryMinor: '親職活動', category: '親職活動', timeLocation: '17:00 開始', description: '諾A班親師座談交流', theme: '快樂上學趣' },
+        { id: 'EV-06', date: '2026-09-07', title: '九月份幸福廚房', target: '米羅 A, 米羅 B, 兩果', categoryMajor: '班級主題', categoryMinor: '幸福廚房', category: '班級主題', timeLocation: '', description: '幸福廚房手作生活體驗', theme: '快樂上學趣' },
+        { id: 'EV-07', date: '2026-09-08', title: '九月份幸福廚房', target: '雨奧, 奧斯卡, 諾奧', categoryMajor: '班級主題', categoryMinor: '幸福廚房', category: '班級主題', timeLocation: '', description: '幸福廚房手作生活體驗。\\n\\n⏰ 雨奧 10:00、奧斯卡 10:50、諾奧 11:40', theme: '快樂上學趣' },
+        { id: 'EV-08', date: '2026-09-09', title: '幸福廚房（諾C/諾B/諾A）', target: '諾貝爾 C, 諾貝爾 B, 諾貝爾 A', categoryMajor: '班級主題', categoryMinor: '幸福廚房', category: '班級主題', timeLocation: '', description: '❤️ 諾貝爾 A 班九月份幸福廚房體驗！化身小小烘焙師！', theme: '快樂上學趣' },
+        { id: 'EV-12', date: '2026-10-05', title: '十月份幸福廚房', target: '米羅 A, 米羅 B, 兩果', categoryMajor: '班級主題', categoryMinor: '幸福廚房', category: '班級主題', timeLocation: '', description: '幸福廚房手作生活體驗', theme: '主題活動：人與自己／人與他人概念' },
+        { id: 'EV-13', date: '2026-10-06', title: '十月份幸福廚房', target: '雨奧, 奧斯卡, 諾奧', categoryMajor: '班級主題', categoryMinor: '幸福廚房', category: '班級主題', timeLocation: '', description: '幸福廚房手作生活體驗', theme: '主題活動：人與自己／人與他人概念' },
+        { id: 'EV-14', date: '2026-10-07', title: '十月份幸福廚房', target: '諾貝爾 C, 諾貝爾 B, 諾貝爾 A', categoryMajor: '班級主題', categoryMinor: '幸福廚房', category: '班級主題', timeLocation: '', description: '❤️ 諾貝爾 A 班十月份幸福廚房體驗！化身小小烘焙師！', theme: '主題活動：人與自己／人與他人概念' },
+        { id: 'EV-15', date: '2026-10-08', title: '十月壽星慶生會', target: '全園活動', categoryMajor: '全園活動', categoryMinor: '慶生活動', category: '全園活動', timeLocation: '', description: '分享快樂分享愛！', theme: '主題活動：人與自己／人與他人概念' },
+        { id: 'EV-16', date: '2026-10-09', endDate: '2026-10-11', title: '雙十節連假', target: '全園適用', categoryMajor: '休園', categoryMinor: '節慶放假', category: '節慶放假', timeLocation: '連假三日', description: '國慶連續假期放假', theme: '主題活動：人與自己／人與他人概念' },
+        { id: 'EV-17', date: '2026-10-23', title: '牙齒塗氟日 口腔保健檢查', calendarPrompt: '牙齒塗氟', target: '諾貝爾 A, 全園活動', categoryMajor: '重要活動', categoryMinor: '健康檢查', category: '重要活動', timeLocation: '08:30 (五)', description: '🌟 全園定期塗氟檢查，請家長務必攜帶健保卡！未攜帶無法參加喔！', theme: '主題活動：人與自己／人與他人概念' },
+        { id: 'EV-18', date: '2026-10-24', endDate: '2026-10-26', title: '光復節連假', calendarPrompt: '光復節連假', target: '全園適用', categoryMajor: '休園', categoryMinor: '節慶放假', category: '節慶放假', timeLocation: '連假三日', description: '光復節連續假期', theme: '主題活動：人與自己／人與他人概念' }
       ];
 
       state.menus = [
@@ -1920,10 +1993,10 @@ const htmlContent = `<!DOCTYPE html>
         const localSettings = localStorage.getItem('nobel_a_settings_custom');
         if (localSettings) {
           state.settings = JSON.parse(localSettings);
-          
         }
       } catch (e) {}
 
+      renderEventOptionsUI();
       renderSpotlightSection();
       renderCalendar();
       renderSelectedDayDetails(state.selectedDateStr);
@@ -3498,19 +3571,36 @@ const htmlContent = `<!DOCTYPE html>
       const existing = evId ? state.events.find(x => x.id === evId) : null;
       const themeVal = existing && existing.theme ? existing.theme : '主題活動：人與自己／人與他人概念';
 
+      const catMajorInput = (document.getElementById('eventForm-categoryMajor').value || '').trim();
+      const catMinorInput = (document.getElementById('eventForm-categoryMinor').value || '').trim();
+      const targetVal = getCheckedValues('eventForm-target');
+
+      // 若為既有活動且大項未選，自動保護沿用既有大項，絕不無故覆蓋或遺失
+      const catMajorFinal = catMajorInput || (existing ? (existing.categoryMajor || existing.category || '') : '');
+
       const eventData = {
         id: evId || ('EV-' + Date.now()),
         date: document.getElementById('eventForm-date').value,
         endDate: document.getElementById('eventForm-endDate').value,
         title: document.getElementById('eventForm-title').value,
         calendarPrompt: document.getElementById('eventForm-calendarPrompt').value.trim(),
-        target: getCheckedValues('eventForm-target'),
-        categoryMajor: document.getElementById('eventForm-categoryMajor').value,
-        categoryMinor: document.getElementById('eventForm-categoryMinor').value,
+        target: targetVal,
+        categoryMajor: catMajorFinal,
+        categoryMinor: catMinorInput,
         timeLocation: document.getElementById('eventForm-timeLocation').value,
         description: document.getElementById('eventForm-description').value,
         theme: themeVal
       };
+
+      if (!eventData.date || !eventData.title || !eventData.target) {
+        showToast('請填寫必填欄位 (日期、標題、對象)', '⚠️');
+        return;
+      }
+
+      if (!eventData.categoryMajor) {
+        showToast('請選擇活動類別 (大項)', '⚠️');
+        return;
+      }
 
       showToast('儲存中...', '⏳');
 
@@ -3559,16 +3649,25 @@ const htmlContent = `<!DOCTYPE html>
     function editEventInAdmin(id) {
       const ev = state.events.find(x => x.id === id);
       if (!ev) return;
+
+      // 確保下拉選項完整載入（含大項、細項、對象）
+      renderEventOptionsUI();
+
       document.getElementById('eventForm-id').value = ev.id;
       document.getElementById('eventForm-date').value = normalizeDate(ev.date);
       document.getElementById('eventForm-endDate').value = ev.endDate ? normalizeDate(ev.endDate) : '';
-      document.getElementById('eventForm-title').value = ev.title;
+      document.getElementById('eventForm-title').value = ev.title || '';
       document.getElementById('eventForm-calendarPrompt').value = ev.calendarPrompt || ev['行事曆提示'] || '';
       setCheckedValues('eventForm-target', ev.target || '');
-      document.getElementById('eventForm-categoryMajor').value = ev.categoryMajor || ev.category || '';
-      document.getElementById('eventForm-categoryMinor').value = ev.categoryMinor || '';
-      document.getElementById('eventForm-timeLocation').value = ev.timeLocation || '';
-      document.getElementById('eventForm-description').value = ev.description || '';
+
+      const catMajor = (ev.categoryMajor || ev['活動類別 (大項)'] || ev['大項'] || ev.category || '').trim();
+      const catMinor = (ev.categoryMinor || ev['活動類別 (細項)'] || ev['細項'] || ev.category_minor || '').trim();
+
+      setSelectValueSafely(document.getElementById('eventForm-categoryMajor'), catMajor);
+      setSelectValueSafely(document.getElementById('eventForm-categoryMinor'), catMinor);
+
+      document.getElementById('eventForm-timeLocation').value = ev.timeLocation || ev['時間地點'] || '';
+      document.getElementById('eventForm-description').value = ev.description || ev['詳細說明'] || '';
       document.getElementById('saveEventBtn').textContent = '更新此活動';
       window.scrollTo({ top: 100, behavior: 'smooth' });
     }
@@ -3605,7 +3704,7 @@ const htmlContent = `<!DOCTYPE html>
           <thead>
             <tr class="border-b border-slate-200 text-slate-400">
               <th class="py-2 px-2">日期</th>
-              <th class="py-2 px-2">活動名稱</th>
+              <th class="py-2 px-2">活動名稱 / 類別</th>
               <th class="py-2 px-2">對象</th>
               <th class="py-2 px-2 text-right">操作</th>
             </tr>
@@ -3613,12 +3712,15 @@ const htmlContent = `<!DOCTYPE html>
           <tbody class="divide-y divide-slate-100">
       \`;
       state.events.forEach(ev => {
+        const catMajorStr = ev.categoryMajor || ev['活動類別 (大項)'] || ev.category || '';
+        const catMinorStr = ev.categoryMinor || ev['活動類別 (細項)'] || '';
         html += \`
           <tr class="hover:bg-slate-50">
             <td class="py-2 px-2 font-mono">\${normalizeDate(ev.date)}</td>
             <td class="py-2 px-2 font-bold text-slate-800">
               <div class="flex items-center gap-1.5 flex-wrap">
                 <span>\${ev.title}</span>
+                \${catMajorStr ? \`<span class="inline-block text-[0.625rem] px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold border border-slate-200">\${catMajorStr}\${catMinorStr ? ' · ' + catMinorStr : ''}</span>\` : ''}
                 \${(ev.calendarPrompt || ev['行事曆提示']) ? \`<span class="inline-block text-[0.625rem] px-1.5 py-0.5 rounded bg-peach-50 text-peach-700 font-bold border border-peach-200">提示: \${ev.calendarPrompt || ev['行事曆提示']}</span>\` : ''}
               </div>
             </td>

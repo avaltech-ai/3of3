@@ -419,7 +419,7 @@ function getAppData() {
       ];
       evCatSheet.getRange(2, 1, defaultCats.length, 1).setValues(defaultCats);
     }
-    const eventCategoriesMajor = getSheetDataAsObjects(evCatSheet).map(row => row.categoryName).filter(Boolean);
+    let eventCategoriesMajor = getSheetDataAsObjects(evCatSheet).map(row => row.categoryName).filter(Boolean);
     
     // 確保 EventCategoriesMinor 工作表存在 (細項)
     let evCatMinorSheet = ss.getSheetByName('EventCategoriesMinor');
@@ -436,7 +436,19 @@ function getAppData() {
       ];
       evCatMinorSheet.getRange(2, 1, defaultCatsMinor.length, 1).setValues(defaultCatsMinor);
     }
-    const eventCategoriesMinor = getSheetDataAsObjects(evCatMinorSheet).map(row => row.categoryName).filter(Boolean);
+    let eventCategoriesMinor = getSheetDataAsObjects(evCatMinorSheet).map(row => row.categoryName).filter(Boolean);
+
+    // 自動補齊與去重大項與細項，包含既有活動曾出現之項目（如「親職活動」），防止前端下拉選單遺漏
+    const majorSet = new Set(eventCategoriesMajor.map(c => String(c).trim()).filter(Boolean));
+    ['重要活動', '班級主題', '全園活動', '休園'].forEach(c => majorSet.add(c));
+    const minorSet = new Set(eventCategoriesMinor.map(c => String(c).trim()).filter(Boolean));
+    ['幸福廚房', '親職講座', '親師座談', '親職活動', '慶生活動', '戶外踏訪', '高峰活動', '歲末活動', '闖關活動', '節慶放假', '園務消毒', '開學活動', '健康檢查'].forEach(c => minorSet.add(c));
+    (events || []).forEach(e => {
+      if (e.categoryMajor) majorSet.add(String(e.categoryMajor).trim());
+      if (e.categoryMinor) minorSet.add(String(e.categoryMinor).trim());
+    });
+    eventCategoriesMajor = Array.from(majorSet);
+    eventCategoriesMinor = Array.from(minorSet);
 
 
 
@@ -822,14 +834,33 @@ function saveEvent(eventData, password) {
     const id = eventData.id || ('EV-' + Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyyMMddHHmmss'));
     const promptVal = (eventData.calendarPrompt || eventData['行事曆提示'] || '').trim();
 
+    let foundRow = -1;
+    let existingCatMajor = '';
+    let existingCatMinor = '';
+    if (eventData.id) {
+      for (let i = 1; i < data.length; i++) {
+        if (String(data[i][idIndex]) === String(eventData.id)) {
+          foundRow = i + 1;
+          const majIdx = headers.indexOf('categoryMajor');
+          if (majIdx > -1) existingCatMajor = String(data[i][majIdx] || '').trim();
+          const minIdx = headers.indexOf('categoryMinor');
+          if (minIdx > -1) existingCatMinor = String(data[i][minIdx] || '').trim();
+          break;
+        }
+      }
+    }
+
+    const inputCatMajor = (eventData.categoryMajor || eventData['活動類別 (大項)'] || eventData.category || '').trim();
+    const inputCatMinor = (eventData.categoryMinor || eventData['活動類別 (細項)'] || '').trim();
+
     const fieldMap = {
       id: id,
       date: eventData.date || '',
       endDate: eventData.endDate || '',
       title: eventData.title || '',
       target: eventData.target || '全園',
-      categoryMajor: eventData.categoryMajor || eventData.category || '全園活動',
-      categoryMinor: eventData.categoryMinor || '',
+      categoryMajor: inputCatMajor || existingCatMajor || '全園活動',
+      categoryMinor: inputCatMinor,
       calendarPrompt: promptVal,
       '行事曆提示': promptVal,
       timeLocation: eventData.timeLocation || '',
@@ -838,20 +869,10 @@ function saveEvent(eventData, password) {
     };
     // 舊版單一 category 欄位相容
     if (headers.indexOf('category') > -1 && headers.indexOf('categoryMajor') === -1) {
-      fieldMap['category'] = eventData.categoryMajor || eventData.category || '全園活動';
+      fieldMap['category'] = inputCatMajor || existingCatMajor || '全園活動';
     }
 
     const rowData = headers.map(h => fieldMap[h] !== undefined ? fieldMap[h] : (eventData[h] !== undefined ? eventData[h] : ''));
-
-    let foundRow = -1;
-    if (eventData.id) {
-      for (let i = 1; i < data.length; i++) {
-        if (String(data[i][idIndex]) === String(eventData.id)) {
-          foundRow = i + 1;
-          break;
-        }
-      }
-    }
 
     if (foundRow > -1) {
       sheet.getRange(foundRow, 1, 1, rowData.length).setValues([rowData]);
@@ -1288,6 +1309,8 @@ function getSheetDataAsObjects(sheet) {
     } else if (obj.calendarPrompt !== undefined && obj['行事曆提示'] === undefined) {
       obj['行事曆提示'] = obj.calendarPrompt;
     }
+    if (obj['活動類別 (大項)'] && !obj.categoryMajor) obj.categoryMajor = obj['活動類別 (大項)'];
+    if (obj['活動類別 (細項)'] && !obj.categoryMinor) obj.categoryMinor = obj['活動類別 (細項)'];
     list.push(obj);
   }
   return list;
