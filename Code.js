@@ -385,6 +385,7 @@ function getAppData() {
       evTargetSheet.getRange(1, 1, 1, 2).setFontWeight('bold').setBackground('#E0E7FF');
       const defaultTargets = [
         ['全園活動', '🏫 全園活動'],
+        ['全園適用', '🏫 全園適用'],
         ['親職活動', '👨‍👩‍👧 親職活動'],
         ['親師座談', '👨‍👩‍👧 親師座談'],
         ['諾貝爾 A ', '❤️ 諾貝爾 A'],

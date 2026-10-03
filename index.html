@@ -1680,7 +1680,8 @@
 
       return targets.map(t => {
         const isNobelA = t.includes('諾貝爾A') || t.includes('諾貝爾 A') || t.includes('諾A');
-        const isAll = t.includes('全園');
+        const isAllEvent = t.includes('全園活動');
+        const isAllApply = t.includes('全園適用') || t === '全園';
         const isParent = t.includes('親職') || t.includes('親師') || t.includes('家長');
 
         let colorClasses = 'bg-slate-100 text-slate-700 border border-slate-200/90 font-medium';
@@ -1689,8 +1690,14 @@
         if (isNobelA) {
           colorClasses = 'bg-peach-500 text-white shadow-2xs font-extrabold';
           icon = '<span class="mr-0.5">❤️</span>';
-        } else if (isAll) {
+        } else if (isAllEvent) {
           colorClasses = 'bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold';
+          icon = '<span class="mr-0.5">🏫</span>';
+        } else if (isAllApply) {
+          colorClasses = 'bg-sky-50 text-sky-700 border border-sky-200 font-bold';
+          icon = '<span class="mr-0.5">🏫</span>';
+        } else if (t.includes('全園')) {
+          colorClasses = 'bg-sky-50 text-sky-700 border border-sky-200 font-bold';
           icon = '<span class="mr-0.5">🏫</span>';
         } else if (isParent) {
           colorClasses = 'bg-amber-50 text-amber-700 border border-amber-200 font-bold';
@@ -1786,6 +1793,7 @@
             state.docCategories = data.docCategories || ['全部文件', '保健用藥', '學期行事曆', '餐飲菜單', '親師手冊'];
       state.eventTargets = data.eventTargets || [
         {targetName: '全園活動', displayName: '🏫 全園活動'},
+        {targetName: '全園適用', displayName: '🏫 全園適用'},
         {targetName: '親職活動', displayName: '👨‍👩‍👧 親職活動'},
         {targetName: '親師座談', displayName: '👨‍👩‍👧 親師座談'},
         {targetName: '諾貝爾 A ', displayName: '❤️ 諾貝爾 A'},
@@ -2555,7 +2563,7 @@
         if (isSelected) dayNumColor = 'text-peach-700 font-black';
 
         // 標記小圓點或圖示（僅全園活動、班級主題、重要活動標示圓點；諾貝爾 A 標示❤️；不標示菜單綠點）
-        let badgesHtml = '<div class="flex items-center gap-0.5 flex-wrap justify-end">';
+        let badgesHtml = '<div class="flex items-center gap-1 flex-wrap justify-end">';
 
         const hasNobelA = dayEvents.some(e => (e.target || '').includes('諾貝爾A') || (e.target || '').includes('諾貝爾 A') || (e.target || '').includes('諾A') || (e.title || '').includes('諾A'));
         
@@ -2601,12 +2609,13 @@
         const isBirthday = dayEvents.some(e => (e.title || '').includes('慶生') || (e.title || '').includes('壽星') || (e.categoryMajor || '').includes('慶生') || (e.categoryMinor || '').includes('慶生')) || 
           (dayMenu && ((dayMenu.note || '').includes('慶生') || (dayMenu.afternoonSnack || '').includes('慶生') || (dayMenu.lunchMain || '').includes('慶生')));
 
-        // 餐點圖示：🍱，若為幸福廚房日旁加🥐，慶生日旁加🎂
+        // 餐點圖示：🍱，若為幸福廚房日旁加🥐，慶生日旁加🎂（稍微加大圖示間隙，避免視覺擁擠）
         let menuIcons = '';
         if (dayMenu && !isWeekend) {
-          menuIcons = '🍱';
-          if (isKitchen) menuIcons += '🥐';
-          if (isBirthday) menuIcons += '🎂';
+          const icons = ['🍱'];
+          if (isKitchen) icons.push('🥐');
+          if (isBirthday) icons.push('🎂');
+          menuIcons = `<span class="inline-flex items-center gap-1.5">${icons.map(ic => `<span>${ic}</span>`).join('')}</span>`;
         }
 
         // 格子下方：若有填寫「行事曆提示」則顯示提示標籤；未填寫則不顯示（不另外顯示 [十月壽星..]、[幸福廚房..] 等常用標籤）
@@ -2628,13 +2637,13 @@
           eventBrief = `
             <div class="space-y-0.5">
               ${bannerHtml}
-              <div class="text-[0.625rem] text-slate-500 font-normal leading-none px-0.5">${menuIcons}</div>
+              <div class="text-[0.6875rem] text-slate-500 font-normal leading-none px-0.5 pt-0.5">${menuIcons}</div>
             </div>
           `;
         } else if (bannerHtml) {
           eventBrief = bannerHtml;
         } else if (menuIcons) {
-          eventBrief = `<div class="text-[0.625rem] text-slate-500 font-normal leading-none px-0.5">${menuIcons}</div>`;
+          eventBrief = `<div class="text-[0.6875rem] text-slate-500 font-normal leading-none px-0.5 py-0.5">${menuIcons}</div>`;
         }
 
         cell.innerHTML = `
