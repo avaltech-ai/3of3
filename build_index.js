@@ -885,6 +885,85 @@ const htmlContent = `<!DOCTYPE html>
               <div id="albumThumbnails" class="grid grid-cols-4 sm:grid-cols-6 gap-2 max-h-48 overflow-y-auto p-1 bg-slate-50 rounded-xl"></div>
             </div>
 
+            <!-- 即時上傳進度與預估時間卡片 -->
+            <div id="albumUploadProgressCard" class="hidden bg-gradient-to-br from-teal-50 via-emerald-50/60 to-cyan-50 border-2 border-teal-300 rounded-3xl p-5 shadow-sm space-y-4 transition-all">
+              <!-- 頂部狀態列 -->
+              <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                  <span id="albumUploadSpinIcon" class="text-2xl animate-spin">⏳</span>
+                  <div>
+                    <h5 id="albumUploadStatusTitle" class="text-sm font-black text-teal-950">正在準備相簿上傳...</h5>
+                    <p id="albumUploadStatusSub" class="text-xs text-teal-700/80 font-medium mt-0.5">系統將分批安全上傳，請保持網頁開啟</p>
+                  </div>
+                </div>
+                <div class="text-right shrink-0">
+                  <span id="albumUploadPercentText" class="text-2xl font-black text-teal-700">0%</span>
+                  <div id="albumUploadCountBadge" class="text-[0.6875rem] font-bold text-teal-600">0 / 0 張</div>
+                </div>
+              </div>
+
+              <!-- 動畫進度條 -->
+              <div class="w-full bg-teal-200/50 rounded-full h-3.5 overflow-hidden p-0.5 shadow-inner">
+                <div id="albumUploadProgressBar" class="bg-gradient-to-r from-teal-500 via-emerald-500 to-teal-400 h-full rounded-full transition-all duration-300 shadow-xs" style="width: 0%"></div>
+              </div>
+
+              <!-- 資訊三格統計數據 (已完成 / 已耗時 / 預估剩餘) -->
+              <div class="grid grid-cols-3 gap-2 pt-1 text-center">
+                <div class="bg-white/80 backdrop-blur rounded-2xl p-2.5 border border-teal-100/80 shadow-2xs">
+                  <div class="text-[0.65rem] text-slate-400 font-bold">已完成相片</div>
+                  <div id="albumUploadProcessedText" class="text-xs sm:text-sm font-black text-slate-800 mt-0.5">0 張</div>
+                </div>
+                <div class="bg-white/80 backdrop-blur rounded-2xl p-2.5 border border-teal-100/80 shadow-2xs">
+                  <div class="text-[0.65rem] text-slate-400 font-bold">已耗時</div>
+                  <div id="albumUploadElapsedText" class="text-xs sm:text-sm font-black text-slate-800 mt-0.5">0 秒</div>
+                </div>
+                <div class="bg-white/80 backdrop-blur rounded-2xl p-2.5 border border-teal-100/80 shadow-2xs">
+                  <div class="text-[0.65rem] text-slate-400 font-bold">預估剩餘時間</div>
+                  <div id="albumUploadEtaText" class="text-xs sm:text-sm font-black text-teal-600 mt-0.5">計算中...</div>
+                </div>
+              </div>
+
+              <!-- 即時動態日誌 -->
+              <div class="flex items-center justify-between text-[0.6875rem] text-slate-500 px-1 border-t border-teal-100/60 pt-2.5">
+                <div class="flex items-center gap-1.5 truncate">
+                  <span class="inline-block w-2 h-2 rounded-full bg-teal-500 animate-ping"></span>
+                  <span id="albumUploadDetailLog" class="truncate font-medium">準備中...</span>
+                </div>
+                <span class="text-teal-700/80 font-bold shrink-0 ml-2">Google Drive 同步中</span>
+              </div>
+
+              <!-- 錯誤處理與重試卡片 (預設隱藏) -->
+              <div id="albumUploadErrorBox" class="hidden bg-rose-50 border border-rose-200 text-rose-800 text-xs p-3.5 rounded-2xl space-y-2">
+                <div class="flex items-center gap-2 font-bold">
+                  <span>⚠️</span> <span id="albumUploadErrorMsg">上傳過程中遇到暫時性問題</span>
+                </div>
+                <p class="text-[0.6875rem] text-rose-600">已上傳的相片已妥善儲存於 Google Drive 與試算表，點擊「繼續上傳」將接續處理剩餘相片。</p>
+                <div class="flex items-center gap-2 pt-1">
+                  <button type="button" onclick="resumeOrRetryAlbumUpload()" class="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold text-xs shadow-xs tap-bounce">
+                    🔄 繼續上傳剩餘相片
+                  </button>
+                  <button type="button" onclick="cancelAlbumUpload()" class="px-3.5 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl font-bold text-xs tap-bounce">
+                    關閉面板
+                  </button>
+                </div>
+              </div>
+
+              <!-- 上傳成功完成區塊 (完成時顯示) -->
+              <div id="albumUploadSuccessBox" class="hidden bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs p-3.5 rounded-2xl space-y-2">
+                <div class="flex items-center gap-2 font-bold text-sm text-emerald-800">
+                  <span>🎉</span> <span id="albumUploadSuccessMsg">相簿建立與相片上傳全部完成！</span>
+                </div>
+                <div class="flex flex-wrap items-center gap-2 pt-1">
+                  <a id="albumUploadDriveFolderLink" href="#" target="_blank" class="px-3.5 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold text-xs shadow-xs tap-bounce flex items-center gap-1">
+                    📂 開啟此相簿之 Google Drive 資料夾
+                  </a>
+                  <button type="button" onclick="resetUploadCard()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs tap-bounce">
+                    關閉並準備下次上傳
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <div class="flex justify-end pt-2">
               <button onclick="startUploadAlbumPhotos()" id="albumUploadBtn" class="px-6 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs shadow-sm tap-bounce disabled:opacity-50">
                 開始上傳相簿至 Google Drive
@@ -1418,7 +1497,19 @@ const htmlContent = `<!DOCTYPE html>
       selectedDocFile: null,
       cachedAlbums: [],
       albumCategories: ['班級主題', '全園活動', '親職活動', '節慶活動', '幸福廚房', '健康檢查', '戶外踏訪', '日常生活'],
-      selectedAlbumCategories: new Set()
+      selectedAlbumCategories: new Set(),
+      albumUploadState: {
+        isUploading: false,
+        albumId: null,
+        folderName: '',
+        folderUrl: '',
+        category: '',
+        files: [],
+        currentIndex: 0,
+        totalFiles: 0,
+        startTime: 0,
+        timerInterval: null
+      }
     };
 
     // 初始化程式
@@ -1497,12 +1588,14 @@ const htmlContent = `<!DOCTYPE html>
         else if (action === 'getAlbums') runner.getAlbums();
         else if (action === 'getAlbumPhotos') runner.getAlbumPhotos(payload.albumId);
         else if (action === 'verifyPassword') runner.verifyPassword(payload.password);
+        else if (action === 'initAlbumUpload') runner.initAlbumUpload(payload);
+        else if (action === 'uploadPhotosChunk') runner.uploadPhotosChunk(payload);
+        else if (action === 'uploadPhotosToAlbum') runner.uploadPhotosToAlbum(payload.year || payload.date, payload.month || payload.title, payload.category, payload.title, payload.files, payload.password);
         else if (action === 'saveEvent') runner.saveEvent(payload.data, payload.password);
         else if (action === 'deleteEvent') runner.deleteEvent(payload.id, payload.password);
         else if (action === 'saveMenu') runner.saveMenu(payload.data, payload.password);
         else if (action === 'deleteMenu') runner.deleteMenu(payload.date, payload.password);
         else if (action === 'saveSpotlight') runner.saveSpotlight(payload.data, payload.password);
-        else if (action === 'uploadPhotosToAlbum') runner.uploadPhotosToAlbum(payload.year || payload.date, payload.month || payload.title, payload.category, payload.title, payload.files, payload.password);
         else if (action === 'saveAlbum') runner.saveAlbum(payload.data, payload.password);
         else if (action === 'deleteAlbum') runner.deleteAlbum(payload.id, payload.password);
         else if (action === 'uploadDocument') runner.uploadDocument(payload.meta, payload.file, payload.password);
@@ -1556,7 +1649,8 @@ const htmlContent = `<!DOCTYPE html>
     let gasIframeCounter = 0;
 
     function gasPostViaIframe(action, payload, successCb, errorCb) {
-      const bodyStr = JSON.stringify({ action, ...payload });
+      const requestId = 'req_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+      const bodyStr = JSON.stringify({ action, requestId, ...payload });
       const frameId = 'gasPostFrame_' + (++gasIframeCounter);
 
       // 建立隱藏 iframe
@@ -1571,9 +1665,12 @@ const htmlContent = `<!DOCTYPE html>
       const timeoutMs = 120000; // 2 分鐘逾時
 
       const messageHandler = (event) => {
-        // 安全性：只接受來自 Google 網域的回傳
+        // 安全性：只接受來自 Google 網域的回傳，並比對 requestId 避免串音
         if (responded) return;
         if (event.data && typeof event.data === 'object' && ('success' in event.data || 'error' in event.data)) {
+          if (event.data.requestId && event.data.requestId !== requestId) {
+            return;
+          }
           responded = true;
           window.removeEventListener('message', messageHandler);
           clearTimeout(timeoutTimer);
@@ -4208,7 +4305,8 @@ const htmlContent = `<!DOCTYPE html>
       countText.textContent = \`已選取 \${files.length} 張相片\`;
       thumbsContainer.innerHTML = '';
 
-      Array.from(files).slice(0, 12).forEach(f => {
+      const maxPreview = 12;
+      Array.from(files).slice(0, maxPreview).forEach(f => {
         const url = URL.createObjectURL(f);
         thumbsContainer.innerHTML += \`
           <div class="aspect-square rounded-lg overflow-hidden bg-slate-200">
@@ -4216,68 +4314,411 @@ const htmlContent = `<!DOCTYPE html>
           </div>
         \`;
       });
+      if (files.length > maxPreview) {
+        thumbsContainer.innerHTML += \`
+          <div class="aspect-square rounded-lg bg-teal-100 border border-teal-200 flex flex-col items-center justify-center text-teal-800 text-xs font-bold">
+            <span>+\${files.length - maxPreview}</span>
+            <span class="text-[0.625rem] text-teal-600">更多</span>
+          </div>
+        \`;
+      }
     }
 
     function clearSelectedPhotos() {
       state.selectedAlbumFiles = [];
-      document.getElementById('albumFileInput').value = '';
-      document.getElementById('albumUploadPreviewArea').classList.add('hidden');
+      const fileInput = document.getElementById('albumFileInput');
+      if (fileInput) fileInput.value = '';
+      const previewArea = document.getElementById('albumUploadPreviewArea');
+      if (previewArea) previewArea.classList.add('hidden');
+      const thumbs = document.getElementById('albumThumbnails');
+      if (thumbs) thumbs.innerHTML = '';
+      resetUploadCard();
+    }
+
+    // 瀏覽器端輕量圖片壓縮 (等比例縮小長邊至 2048px，JPEG 品質 0.82)
+    function compressImageFile(file, maxDim = 2048, quality = 0.82) {
+      return new Promise((resolve) => {
+        if (!file || !file.type || !file.type.startsWith('image/') || file.type === 'image/gif' || file.type === 'image/svg+xml') {
+          const reader = new FileReader();
+          reader.onload = () => {
+            resolve({
+              name: (file && file.name) ? file.name : 'photo.jpg',
+              mimeType: (file && file.type) ? file.type : 'image/jpeg',
+              base64: (reader.result || '').split(',')[1] || ''
+            });
+          };
+          reader.onerror = () => {
+            resolve({ name: (file && file.name) ? file.name : 'photo.jpg', mimeType: 'image/jpeg', base64: '' });
+          };
+          reader.readAsDataURL(file);
+          return;
+        }
+
+        const img = new Image();
+        const objectUrl = URL.createObjectURL(file);
+        img.onload = () => {
+          URL.revokeObjectURL(objectUrl);
+          let w = img.naturalWidth || img.width;
+          let h = img.naturalHeight || img.height;
+
+          if (w > maxDim || h > maxDim) {
+            if (w > h) {
+              h = Math.round((h * maxDim) / w);
+              w = maxDim;
+            } else {
+              w = Math.round((w * maxDim) / h);
+              h = maxDim;
+            }
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+
+          const dataUrl = canvas.toDataURL('image/jpeg', quality);
+          // 立即釋放 canvas 記憶體
+          canvas.width = 0;
+          canvas.height = 0;
+
+          const base64 = dataUrl.split(',')[1] || '';
+          const originalName = file.name || 'photo';
+          const cleanName = originalName.replace(/\.[^/.]+$/, '') + '.jpg';
+          resolve({
+            name: cleanName,
+            mimeType: 'image/jpeg',
+            base64: base64
+          });
+        };
+        img.onerror = () => {
+          URL.revokeObjectURL(objectUrl);
+          const reader = new FileReader();
+          reader.onload = () => {
+            resolve({
+              name: file.name,
+              mimeType: file.type || 'image/jpeg',
+              base64: (reader.result || '').split(',')[1] || ''
+            });
+          };
+          reader.onerror = () => {
+            resolve({ name: file.name, mimeType: file.type || 'image/jpeg', base64: '' });
+          };
+          reader.readAsDataURL(file);
+        };
+        img.src = objectUrl;
+      });
+    }
+
+    function formatDuration(sec) {
+      if (sec < 60) return \`\${sec} 秒\`;
+      const mins = Math.floor(sec / 60);
+      const remSec = sec % 60;
+      return \`\${mins} 分 \${remSec} 秒\`;
+    }
+
+    function preventTabCloseDuringUpload(e) {
+      if (state.albumUploadState && state.albumUploadState.isUploading) {
+        e.preventDefault();
+        e.returnValue = '相簿上傳尚未完成，若離開頁面可能會中斷上傳！';
+        return e.returnValue;
+      }
+    }
+
+    function updateUploadProgressUI() {
+      const up = state.albumUploadState;
+      if (!up) return;
+
+      const total = up.totalFiles || 1;
+      const processed = Math.min(up.currentIndex, total);
+      const percent = Math.min(100, Math.round((processed / total) * 100));
+
+      const progressBar = document.getElementById('albumUploadProgressBar');
+      const percentText = document.getElementById('albumUploadPercentText');
+      const countBadge = document.getElementById('albumUploadCountBadge');
+      const processedText = document.getElementById('albumUploadProcessedText');
+      const elapsedText = document.getElementById('albumUploadElapsedText');
+      const etaText = document.getElementById('albumUploadEtaText');
+
+      if (progressBar) progressBar.style.width = percent + '%';
+      if (percentText) percentText.textContent = percent + '%';
+      if (countBadge) countBadge.textContent = \`\${processed} / \${total} 張\`;
+      if (processedText) processedText.textContent = \`\${processed} 張\`;
+
+      const elapsedSec = Math.max(0, Math.floor((Date.now() - up.startTime) / 1000));
+      if (elapsedText) elapsedText.textContent = formatDuration(elapsedSec);
+
+      if (etaText) {
+        if (processed === 0) {
+          etaText.textContent = '建立相簿中...';
+        } else if (processed >= total) {
+          etaText.textContent = '已完成';
+        } else {
+          const secPerPhoto = elapsedSec / processed;
+          const remainingSec = Math.max(1, Math.round((total - processed) * secPerPhoto));
+          etaText.textContent = formatDuration(remainingSec);
+        }
+      }
     }
 
     function startUploadAlbumPhotos() {
       const cat = document.getElementById('albumUpload-category')?.value;
       const t = document.getElementById('albumUpload-title')?.value.trim();
       if (!cat || !t) return showToast('請填寫活動類別與主題名稱！', '⚠️');
-      if (state.selectedAlbumFiles.length === 0) return showToast('請選擇要上傳的照片！', '⚠️');
+      if (!state.selectedAlbumFiles || state.selectedAlbumFiles.length === 0) return showToast('請選擇要上傳的照片！', '⚠️');
 
-      showToast(\`正在讀取並準備上傳 \${state.selectedAlbumFiles.length} 張照片...\`, '⏳');
-      const btn = document.getElementById('albumUploadBtn');
-      btn.disabled = true;
-      btn.textContent = '上傳中，請勿關閉網頁...';
+      let pwd = state.adminPassword;
+      if (!pwd) {
+        try { pwd = sessionStorage.getItem('nobel_a_admin_pwd') || localStorage.getItem('nobel_a_admin_pwd') || ''; } catch (e) {}
+      }
+      if (!pwd) return showToast('請先以系統管理員身分登入！', '⚠️');
+      state.adminPassword = pwd;
 
-      // 轉換檔案為 Base64
-      const filePromises = state.selectedAlbumFiles.map(file => {
-        return new Promise(resolve => {
-          const reader = new FileReader();
-          reader.onload = () => {
-            const base64 = reader.result.split(',')[1];
-            resolve({
-              name: file.name,
-              mimeType: file.type,
-              base64: base64
-            });
-          };
-          reader.readAsDataURL(file);
-        });
+      if (state.albumUploadState && state.albumUploadState.isUploading) {
+        return showToast('目前正在上傳中，請稍候...', '⏳');
+      }
+
+      // 初始化上傳狀態
+      state.albumUploadState = {
+        isUploading: true,
+        albumId: null,
+        folderName: t,
+        folderUrl: '',
+        category: cat,
+        files: [...state.selectedAlbumFiles],
+        currentIndex: 0,
+        totalFiles: state.selectedAlbumFiles.length,
+        startTime: Date.now(),
+        timerInterval: null
+      };
+
+      // 隱藏上傳按鈕，鎖定表單控制項
+      document.getElementById('albumUploadBtn').classList.add('hidden');
+      document.getElementById('albumUpload-category').disabled = true;
+      document.getElementById('albumUpload-title').disabled = true;
+      document.getElementById('albumFileInput').disabled = true;
+
+      // 展開即時進度卡片
+      const progressCard = document.getElementById('albumUploadProgressCard');
+      progressCard.classList.remove('hidden');
+      document.getElementById('albumUploadErrorBox').classList.add('hidden');
+      document.getElementById('albumUploadSuccessBox').classList.add('hidden');
+      document.getElementById('albumUploadSpinIcon').textContent = '⏳';
+      document.getElementById('albumUploadSpinIcon').className = 'text-2xl animate-spin';
+      document.getElementById('albumUploadStatusTitle').textContent = '正在準備相簿上傳...';
+      document.getElementById('albumUploadStatusSub').textContent = '系統將分批安全上傳，請保持網頁開啟';
+
+      updateUploadProgressUI();
+
+      // 監聽網頁離開警示
+      window.addEventListener('beforeunload', preventTabCloseDuringUpload);
+
+      // 每秒更新計時器與 ETA 預估
+      if (state.albumUploadState.timerInterval) clearInterval(state.albumUploadState.timerInterval);
+      state.albumUploadState.timerInterval = setInterval(() => {
+        if (state.albumUploadState && state.albumUploadState.isUploading) {
+          updateUploadProgressUI();
+        }
+      }, 1000);
+
+      // 第一步：在 Google Drive 建立資料夾並在 Google Sheets 登記相簿
+      document.getElementById('albumUploadStatusTitle').textContent = '正在 Google Drive 建立資料夾並登記試算表...';
+      document.getElementById('albumUploadDetailLog').textContent = \`準備在 Albums 根目錄建立「\${t}」資料夾與試算表紀錄\`;
+
+      callBackend('initAlbumUpload', {
+        category: cat,
+        title: t,
+        password: state.adminPassword
+      }, res => {
+        if (res && res.success && res.albumId) {
+          state.albumUploadState.albumId = res.albumId;
+          state.albumUploadState.folderUrl = res.folderUrl || ('https://drive.google.com/drive/folders/' + res.albumId);
+          document.getElementById('albumUploadDetailLog').textContent = \`相簿資料夾已就緒 (ID: \${res.albumId})，開始分批上傳相片...\`;
+          // 開始分批上傳相片
+          uploadNextAlbumChunk();
+        } else {
+          showUploadError(res ? (res.error || '建立相簿資料夾失敗') : '後端無回應，請檢查連線');
+        }
+      }, err => {
+        showUploadError(err.message || '連線逾時，建立相簿失敗');
       });
+    }
 
-      Promise.all(filePromises).then(encodedFiles => {
-        callBackend('uploadPhotosToAlbum', {
-          category: cat,
-          title: t,
-          files: encodedFiles,
-          password: state.adminPassword
-        }, res => {
-          btn.disabled = false;
-          btn.textContent = '開始上傳相簿至 Google Drive';
-          if (res && res.success) {
-            showToast(res.message || '相簿已成功上傳！', '🎉');
-            clearSelectedPhotos();
-            document.getElementById('albumUpload-title').value = '';
-            updateAlbumPreviewName();
-            refreshAlbums();
-            renderAdminAlbumsTable();
-          } else {
-            showToast('相片已儲存於瀏覽器預覽！', '🎉');
-            clearSelectedPhotos();
-          }
-        }, err => {
-          btn.disabled = false;
-          btn.textContent = '開始上傳相簿至 Google Drive';
-          showToast('相片已儲存於瀏覽器預覽！', '🎉');
-          clearSelectedPhotos();
-        });
+    function uploadNextAlbumChunk() {
+      const up = state.albumUploadState;
+      if (!up || !up.isUploading) return;
+
+      if (up.currentIndex >= up.totalFiles) {
+        // 全數上傳完成！
+        finishAlbumUploadSuccess();
+        return;
+      }
+
+      const chunkSize = 3;
+      const nextBatch = up.files.slice(up.currentIndex, up.currentIndex + chunkSize);
+      const isLast = (up.currentIndex + nextBatch.length >= up.totalFiles);
+      const startNum = up.currentIndex + 1;
+      const endNum = up.currentIndex + nextBatch.length;
+
+      document.getElementById('albumUploadStatusTitle').textContent = \`正在分批上傳相片 (\${startNum} ~ \${endNum} / \${up.totalFiles} 張)...\`;
+      document.getElementById('albumUploadDetailLog').textContent = \`正在進行瀏覽器端輕量壓縮 (\${startNum} ~ \${endNum})...\`;
+
+      // 壓縮本批次相片 (最多 3 張，耗時約 100-200ms)
+      Promise.all(nextBatch.map(f => compressImageFile(f))).then(compressedFiles => {
+        document.getElementById('albumUploadDetailLog').textContent = \`正在將第 \${startNum} ~ \${endNum} 張相片存入 Google Drive...\`;
+
+        function attemptChunkSend(retriesLeft = 3) {
+          callBackend('uploadPhotosChunk', {
+            albumId: up.albumId,
+            files: compressedFiles,
+            isLastChunk: isLast,
+            password: state.adminPassword
+          }, res => {
+            if (res && res.success) {
+              up.currentIndex += nextBatch.length;
+              updateUploadProgressUI();
+              // 遞迴呼叫下一批次
+              uploadNextAlbumChunk();
+            } else {
+              if (retriesLeft > 0) {
+                document.getElementById('albumUploadDetailLog').textContent = \`上傳微幅延遲，正在自動重試 (\${4 - retriesLeft}/3 次)...\`;
+                setTimeout(() => attemptChunkSend(retriesLeft - 1), 1500);
+              } else {
+                showUploadError(res ? (res.error || '區塊上傳失敗') : '伺服器連線中斷');
+              }
+            }
+          }, err => {
+            if (retriesLeft > 0) {
+              document.getElementById('albumUploadDetailLog').textContent = \`網路稍慢，1.5 秒後自動重試 (\${4 - retriesLeft}/3 次)...\`;
+              setTimeout(() => attemptChunkSend(retriesLeft - 1), 1500);
+            } else {
+              showUploadError(err.message || '網路連線逾時');
+            }
+          });
+        }
+
+        attemptChunkSend(3);
+      }).catch(compressErr => {
+        showUploadError('相片壓縮失敗: ' + compressErr);
       });
+    }
+
+    function finishAlbumUploadSuccess() {
+      const up = state.albumUploadState;
+      up.isUploading = false;
+      if (up.timerInterval) clearInterval(up.timerInterval);
+      window.removeEventListener('beforeunload', preventTabCloseDuringUpload);
+
+      const total = up.totalFiles;
+      const folderUrl = up.folderUrl || ('https://drive.google.com/drive/folders/' + up.albumId);
+
+      // 更新進度卡片為 100% 成功狀態
+      document.getElementById('albumUploadProgressBar').style.width = '100%';
+      document.getElementById('albumUploadPercentText').textContent = '100%';
+      document.getElementById('albumUploadCountBadge').textContent = \`\${total} / \${total} 張\`;
+      document.getElementById('albumUploadProcessedText').textContent = \`\${total} 張\`;
+      document.getElementById('albumUploadEtaText').textContent = '已完成';
+      document.getElementById('albumUploadStatusTitle').textContent = \`✅ 相簿建立與上傳全部完成！\`;
+      document.getElementById('albumUploadStatusSub').textContent = \`共 \${total} 張相片已全數安全儲存至 Google Drive，並同步更新試算表。\`;
+      document.getElementById('albumUploadSpinIcon').textContent = '🎉';
+      document.getElementById('albumUploadSpinIcon').className = 'text-2xl';
+      document.getElementById('albumUploadDetailLog').textContent = \`相簿資料夾: \${up.folderName} (ID: \${up.albumId})\`;
+
+      // 顯示成功區塊
+      const successBox = document.getElementById('albumUploadSuccessBox');
+      successBox.classList.remove('hidden');
+      const folderLink = document.getElementById('albumUploadDriveFolderLink');
+      if (folderLink) folderLink.href = folderUrl;
+
+      // 清除選取相片與重設表單輸入
+      state.selectedAlbumFiles = [];
+      const fileInput = document.getElementById('albumFileInput');
+      if (fileInput) fileInput.value = '';
+      const previewArea = document.getElementById('albumUploadPreviewArea');
+      if (previewArea) previewArea.classList.add('hidden');
+      const thumbs = document.getElementById('albumThumbnails');
+      if (thumbs) thumbs.innerHTML = '';
+
+      const titleInput = document.getElementById('albumUpload-title');
+      if (titleInput) titleInput.value = '';
+      updateAlbumPreviewName();
+
+      // 解除輸入欄位鎖定
+      document.getElementById('albumUpload-category').disabled = false;
+      document.getElementById('albumUpload-title').disabled = false;
+      document.getElementById('albumFileInput').disabled = false;
+
+      showToast(\`🎉 成功上傳相簿「\${up.folderName}」，共 \${total} 張相片！\`, '🎉');
+
+      // 重新讀取相簿清單與後台表格
+      refreshAlbums();
+    }
+
+    function showUploadError(errMsg) {
+      const up = state.albumUploadState;
+      if (up) {
+        up.isUploading = false;
+        if (up.timerInterval) clearInterval(up.timerInterval);
+      }
+      window.removeEventListener('beforeunload', preventTabCloseDuringUpload);
+
+      document.getElementById('albumUploadSpinIcon').textContent = '⚠️';
+      document.getElementById('albumUploadSpinIcon').className = 'text-2xl text-rose-500';
+      document.getElementById('albumUploadStatusTitle').textContent = '上傳中斷，可點選下方按鈕重試';
+      document.getElementById('albumUploadStatusSub').textContent = '已上傳之相片已安全保存在雲端硬碟，不用擔心遺失。';
+
+      const errBox = document.getElementById('albumUploadErrorBox');
+      errBox.classList.remove('hidden');
+      document.getElementById('albumUploadErrorMsg').textContent = errMsg || '上傳遭遇暫時性連線異常';
+    }
+
+    function resumeOrRetryAlbumUpload() {
+      const up = state.albumUploadState;
+      if (!up) return;
+      document.getElementById('albumUploadErrorBox').classList.add('hidden');
+      document.getElementById('albumUploadSpinIcon').textContent = '⏳';
+      document.getElementById('albumUploadSpinIcon').className = 'text-2xl animate-spin';
+
+      up.isUploading = true;
+      up.startTime = Date.now() - (up.currentIndex * 1000);
+      window.addEventListener('beforeunload', preventTabCloseDuringUpload);
+
+      if (up.timerInterval) clearInterval(up.timerInterval);
+      up.timerInterval = setInterval(() => {
+        if (up && up.isUploading) updateUploadProgressUI();
+      }, 1000);
+
+      if (!up.albumId) {
+        startUploadAlbumPhotos();
+      } else {
+        uploadNextAlbumChunk();
+      }
+    }
+
+    function cancelAlbumUpload() {
+      const up = state.albumUploadState;
+      if (up) {
+        up.isUploading = false;
+        if (up.timerInterval) clearInterval(up.timerInterval);
+      }
+      window.removeEventListener('beforeunload', preventTabCloseDuringUpload);
+
+      resetUploadCard();
+      showToast('已取消上傳程序', 'ℹ️');
+    }
+
+    function resetUploadCard() {
+      const progressCard = document.getElementById('albumUploadProgressCard');
+      if (progressCard) progressCard.classList.add('hidden');
+      const uploadBtn = document.getElementById('albumUploadBtn');
+      if (uploadBtn) {
+        uploadBtn.classList.remove('hidden');
+        uploadBtn.disabled = false;
+      }
+      document.getElementById('albumUpload-category').disabled = false;
+      document.getElementById('albumUpload-title').disabled = false;
+      document.getElementById('albumFileInput').disabled = false;
+      state.albumUploadState = { isUploading: false };
     }
 
     // 後台相簿管理一覽表格渲染
