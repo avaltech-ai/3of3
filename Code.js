@@ -421,6 +421,31 @@ function getAppData() {
     const menus = getSheetDataAsObjects(ss.getSheetByName('Menus'));
     const spotlights = getSheetDataAsObjects(ss.getSheetByName('Spotlight'));
     const docs = getSheetDataAsObjects(ss.getSheetByName('Docs'));
+    // 自動補足或推導常用文件的副檔名 (PDF, DOCX, XLSX, PPTX 等)
+    docs.forEach(function(doc) {
+      if (!doc.fileExtension) {
+        let ext = '';
+        const m = String(doc.fileName || '').match(/\.([a-zA-Z0-9]+)$/);
+        if (m) {
+          ext = m[1].toLowerCase();
+        } else if (doc.driveFileId) {
+          try {
+            const df = DriveApp.getFileById(doc.driveFileId);
+            const rName = df.getName();
+            const rm = String(rName || '').match(/\.([a-zA-Z0-9]+)$/);
+            if (rm) ext = rm[1].toLowerCase();
+            else {
+              const mime = df.getMimeType();
+              if (mime.indexOf('pdf') !== -1) ext = 'pdf';
+              else if (mime.indexOf('word') !== -1 || mime.indexOf('document') !== -1) ext = 'docx';
+              else if (mime.indexOf('sheet') !== -1 || mime.indexOf('excel') !== -1 || mime.indexOf('spreadsheet') !== -1) ext = 'xlsx';
+              else if (mime.indexOf('presentation') !== -1 || mime.indexOf('powerpoint') !== -1) ext = 'pptx';
+            }
+          } catch (e) {}
+        }
+        doc.fileExtension = ext || 'pdf';
+      }
+    });
     const settings = getSettingsObject(ss.getSheetByName('Settings'));
 
     // 確保 DocCategories 工作表存在
@@ -1348,9 +1373,21 @@ function uploadDocument(docMeta, fileObj, password) {
     const downloadUrl = 'https://drive.google.com/uc?export=download&id=' + fileId;
     const todayStr = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd');
 
+    let ext = '';
+    if (docMeta && docMeta.fileExtension) {
+      ext = String(docMeta.fileExtension).toLowerCase().replace(/^\./, '').trim();
+    } else if (fileObj && fileObj.name) {
+      const m = String(fileObj.name).match(/\.([a-zA-Z0-9]+)$/);
+      if (m) ext = m[1].toLowerCase();
+    } else if (docMeta && docMeta.fileName) {
+      const m = String(docMeta.fileName).match(/\.([a-zA-Z0-9]+)$/);
+      if (m) ext = m[1].toLowerCase();
+    }
+
     const docData = {
       id: docMeta.id || ('DOC-' + Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyyMMddHHmmss')),
       fileName: docMeta.fileName || fileObj.name,
+      fileExtension: ext || 'pdf',
       category: docMeta.category || '一般文件',
       description: docMeta.description || '',
       driveFileId: fileId,
@@ -1824,10 +1861,25 @@ function saveDoc(docData, password) {
     const idIndex = headers.indexOf('id');
     const todayStr = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd');
 
+    // 確保 fileExtension 欄位存在於 Docs 工作表
+    let extColIdx = headers.indexOf('fileExtension');
+    if (extColIdx === -1) {
+      sheet.insertColumnAfter(headers.length);
+      sheet.getRange(1, headers.length + 1).setValue('fileExtension').setFontWeight('bold');
+      headers.push('fileExtension');
+    }
+
+    let ext = docData.fileExtension || '';
+    if (!ext && docData.fileName) {
+      const m = String(docData.fileName).match(/\.([a-zA-Z0-9]+)$/);
+      if (m) ext = m[1].toLowerCase();
+    }
+
     const id = docData.id || ('DOC-' + Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyyMMddHHmmss'));
     const fieldMap = {
       id: id,
       fileName: docData.fileName || '',
+      fileExtension: ext || 'pdf',
       category: docData.category || '一般文件',
       description: docData.description || '',
       driveFileId: docData.driveFileId || '',

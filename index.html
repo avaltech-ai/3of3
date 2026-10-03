@@ -1040,9 +1040,9 @@
             </div>
 
             <div class="border-2 border-dashed border-indigo-200 rounded-2xl p-6 text-center hover:bg-indigo-50/50 transition-colors cursor-pointer" onclick="document.getElementById('docFileInput').click()">
-              <input type="file" id="docFileInput" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.png" class="hidden" onchange="handleDocFileSelected(event)">
+              <input type="file" id="docFileInput" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.webp,.txt" class="hidden" onchange="handleDocFileSelected(event)">
               <div class="text-3xl mb-1">📄</div>
-              <div id="docFileSelectedName" class="text-xs font-bold text-slate-700">點此選取文件檔案（PDF、Word、Excel）</div>
+              <div id="docFileSelectedName" class="text-xs font-bold text-slate-700">點此選取文件檔案（PDF、Word、Excel、PPT）</div>
               <div class="text-xs text-slate-400 mt-1">選取後將直接上傳至雲端硬碟 Docs 資料夾</div>
             </div>
 
@@ -3874,6 +3874,99 @@
     let docModalSelectedFile = null;
     let docModalOriginalFileName = '';
 
+    function getDocFileExtension(doc) {
+      if (!doc) return 'pdf';
+      if (doc.fileExtension) {
+        let fe = String(doc.fileExtension).toLowerCase().trim();
+        while (fe.startsWith('.')) fe = fe.slice(1);
+        if (fe) return fe;
+      }
+      const fname = String(doc.fileName || '').trim();
+      const dotIdx = fname.lastIndexOf('.');
+      if (dotIdx > -1 && dotIdx < fname.length - 1) {
+        const extCandidate = fname.slice(dotIdx + 1).split(/[?#]/)[0].toLowerCase().trim();
+        if (/^[a-zA-Z0-9]{1,10}$/.test(extCandidate)) {
+          return extCandidate;
+        }
+      }
+      const durl = String(doc.downloadUrl || '').trim();
+      const urlClean = durl.split(/[?#]/)[0];
+      const urlDotIdx = urlClean.lastIndexOf('.');
+      if (urlDotIdx > -1 && urlDotIdx < urlClean.length - 1) {
+        const urlExt = urlClean.slice(urlDotIdx + 1).toLowerCase().trim();
+        if (/^[a-zA-Z0-9]{1,10}$/.test(urlExt)) {
+          return urlExt;
+        }
+      }
+      return 'pdf';
+    }
+
+    function getDocFileIconHtml(doc) {
+      const ext = getDocFileExtension(doc).toUpperCase();
+      let pageColor = '#64748B';
+      let foldColor = '#CBD5E1';
+      let badgeTextColor = '#475569';
+      let bgClass = 'bg-slate-50 border-slate-200';
+      let displayExt = ext;
+
+      if (ext === 'PDF') {
+        pageColor = '#EF4444';
+        foldColor = '#FCA5A5';
+        badgeTextColor = '#DC2626';
+        bgClass = 'bg-rose-50/90 border-rose-100';
+        displayExt = 'PDF';
+      } else if (ext === 'DOC' || ext === 'DOCX') {
+        pageColor = '#2563EB';
+        foldColor = '#93C5FD';
+        badgeTextColor = '#1D4ED8';
+        bgClass = 'bg-blue-50/90 border-blue-100';
+        displayExt = (ext === 'DOC') ? 'DOC' : 'DOCX';
+      } else if (ext === 'XLS' || ext === 'XLSX' || ext === 'CSV') {
+        pageColor = '#059669';
+        foldColor = '#6EE7B7';
+        badgeTextColor = '#047857';
+        bgClass = 'bg-emerald-50/90 border-emerald-100';
+        displayExt = (ext === 'CSV') ? 'CSV' : ((ext === 'XLS') ? 'XLS' : 'XLSX');
+      } else if (ext === 'PPT' || ext === 'PPTX') {
+        pageColor = '#EA580C';
+        foldColor = '#FDBA74';
+        badgeTextColor = '#C2410C';
+        bgClass = 'bg-orange-50/90 border-orange-100';
+        displayExt = (ext === 'PPT') ? 'PPT' : 'PPTX';
+      } else if (['JPG', 'JPEG', 'PNG', 'WEBP', 'GIF', 'SVG'].indexOf(ext) !== -1) {
+        pageColor = '#7C3AED';
+        foldColor = '#C4B5FD';
+        badgeTextColor = '#6D28D9';
+        bgClass = 'bg-purple-50/90 border-purple-100';
+        displayExt = (ext === 'JPG' || ext === 'JPEG') ? 'JPG' : ((ext === 'PNG') ? 'PNG' : 'IMG');
+      } else if (['ZIP', 'RAR', '7Z', 'TAR'].indexOf(ext) !== -1) {
+        pageColor = '#D97706';
+        foldColor = '#FDE68A';
+        badgeTextColor = '#B45309';
+        bgClass = 'bg-amber-50/90 border-amber-100';
+        displayExt = 'ZIP';
+      } else if (ext === 'TXT' || ext === 'MD') {
+        pageColor = '#475569';
+        foldColor = '#94A3B8';
+        badgeTextColor = '#334155';
+        bgClass = 'bg-slate-100/90 border-slate-200';
+        displayExt = 'TXT';
+      }
+
+      const fontSize = (displayExt.length >= 4) ? '5.8' : '7';
+
+      return '<div class="w-12 h-12 rounded-2xl ' + bgClass + ' border flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform select-none">' +
+        '<svg class="w-7 h-7 drop-shadow-2xs" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+        '<path d="M6 3.5C4.89543 3.5 4 4.39543 4 5.5V26.5C4 27.6046 4.89543 28.5 6 28.5H26C27.1046 28.5 28 27.6046 28 26.5V11.5L20 3.5H6Z" fill="' + pageColor + '" />' +
+        '<path d="M20 3.5L28 11.5H21C20.4477 11.5 20 11.0523 20 10.5V3.5Z" fill="' + foldColor + '" />' +
+        '<rect x="7.5" y="7" width="8" height="1.8" rx="0.9" fill="#FFFFFF" fill-opacity="0.85"/>' +
+        '<rect x="7.5" y="10.5" width="10" height="1.8" rx="0.9" fill="#FFFFFF" fill-opacity="0.85"/>' +
+        '<rect x="5.5" y="16.5" width="21" height="9.5" rx="2" fill="#FFFFFF" />' +
+        '<text x="16" y="23.8" font-size="' + fontSize + '" font-weight="900" font-family="system-ui, sans-serif" text-anchor="middle" fill="' + badgeTextColor + '" letter-spacing="-0.2">' + displayExt + '</text>' +
+        '</svg>' +
+        '</div>';
+    }
+
     function renderDocsList(filterCat = '全部') {
       const container = document.getElementById('docsListContainer');
       if (!container) return;
@@ -3928,9 +4021,9 @@
         }
 
         const card = document.createElement('div');
-        card.className = 'p-4 rounded-3xl bg-white border border-slate-200/90 shadow-2xs hover:shadow-md transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3';
+        card.className = 'p-4 rounded-3xl bg-white border border-slate-200/90 shadow-2xs hover:shadow-md transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 group';
         card.innerHTML = '<div class="flex items-start gap-3">' +
-          '<div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center text-2xl shrink-0">📄</div>' +
+          getDocFileIconHtml(doc) +
           '<div>' +
           '<div class="flex items-center gap-2 flex-wrap">' +
           '<h4 class="font-black text-slate-800 text-sm sm:text-base">' + (doc.fileName || '未命名文件') + '</h4>' +
@@ -4046,9 +4139,20 @@
             base64: base64Data
           };
 
+          let modalExt = '';
+          if (docModalSelectedFile && docModalSelectedFile.name) {
+            const m = String(docModalSelectedFile.name).match(/.([a-zA-Z0-9]+)$/);
+            if (m) modalExt = m[1].toLowerCase();
+          }
+          if (!modalExt && fileName) {
+            const m = String(fileName).match(/.([a-zA-Z0-9]+)$/);
+            if (m) modalExt = m[1].toLowerCase();
+          }
+
           const docMeta = {
             id: id,
             fileName: fileName,
+            fileExtension: modalExt || 'pdf',
             category: category,
             description: description
           };
@@ -4063,6 +4167,7 @@
               const newDoc = {
                 id: res.docId || id || ('DOC-' + Date.now()),
                 fileName: fileName,
+                fileExtension: res.fileExtension || modalExt || 'pdf',
                 category: category,
                 description: description,
                 driveFileId: res.fileId || driveFileId,
@@ -4086,9 +4191,20 @@
         return;
       }
 
+      let editExt = '';
+      if (fileName) {
+        const m = String(fileName).match(/.([a-zA-Z0-9]+)$/);
+        if (m) editExt = m[1].toLowerCase();
+      }
+      if (!editExt && id) {
+        const existing = (state.docs || []).find(d => String(d.id) === String(id));
+        if (existing && existing.fileExtension) editExt = existing.fileExtension;
+      }
+
       const docData = {
         id: id || ('DOC-' + Date.now()),
         fileName: fileName,
+        fileExtension: editExt || 'pdf',
         category: category,
         description: description,
         driveFileId: driveFileId,
@@ -5150,14 +5266,25 @@
       const reader = new FileReader();
       reader.onload = () => {
         const base64 = reader.result.split(',')[1];
+        let ext = '';
+        if (state.selectedDocFile && state.selectedDocFile.name) {
+          const m = String(state.selectedDocFile.name).match(/.([a-zA-Z0-9]+)$/);
+          if (m) ext = m[1].toLowerCase();
+        }
+        if (!ext && fileName) {
+          const m = String(fileName).match(/.([a-zA-Z0-9]+)$/);
+          if (m) ext = m[1].toLowerCase();
+        }
+
         const fileObj = {
-          name: fileName,
+          name: state.selectedDocFile.name || fileName,
           mimeType: state.selectedDocFile.type,
           base64: base64
         };
 
         const docMeta = {
           fileName: fileName,
+          fileExtension: ext || 'pdf',
           category: cat,
           description: desc
         };
