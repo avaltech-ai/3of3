@@ -660,7 +660,7 @@ const htmlContent = `<!DOCTYPE html>
             </h4>
             <form id="eventForm" onsubmit="event.preventDefault(); handleSaveEvent(event)" class="space-y-3">
               <input type="hidden" id="eventForm-id">
-              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <div>
                   <label class="block text-xs font-bold text-slate-600 mb-1">活動日期 *</label>
                   <input type="date" id="eventForm-date" required class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-peach-500 focus:outline-none">
@@ -672,6 +672,13 @@ const htmlContent = `<!DOCTYPE html>
                 <div>
                   <label class="block text-xs font-bold text-slate-600 mb-1">活動名稱 *</label>
                   <input type="text" id="eventForm-title" placeholder="如：幸福廚房、牙齒塗氟日" required class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-peach-500 focus:outline-none">
+                </div>
+                <div>
+                  <div class="flex items-center justify-between mb-1">
+                    <label class="block text-xs font-bold text-slate-600">行事曆提示</label>
+                    <span class="text-[0.625rem] text-slate-400 font-normal">（選填，填寫才會顯示於月曆格）</span>
+                  </div>
+                  <input type="text" id="eventForm-calendarPrompt" placeholder="如：牙齒塗氟（未填則月曆格不顯示）" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-peach-500 focus:outline-none">
                 </div>
               </div>
               <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -1841,7 +1848,7 @@ const htmlContent = `<!DOCTYPE html>
         { id: 'EV-14', date: '2026-10-07', title: '幸福廚房（諾C/諾B/諾A）', target: '諾貝爾 A, 諾貝爾 B, 諾貝爾 C', category: '班級主題', timeLocation: '', description: '諾A班十月份幸福廚房手作日', theme: '主題活動：人與自己／人與他人概念' },
         { id: 'EV-15', date: '2026-10-08', title: '十月壽星慶生會', target: '全園', category: '全園活動', timeLocation: '', description: '分享快樂分享愛！', theme: '主題活動：人與自己／人與他人概念' },
         { id: 'EV-16', date: '2026-10-09', endDate: '2026-10-11', title: '雙十節連假', target: '全園', category: '節慶放假', timeLocation: '連假三日', description: '國慶連續假期放假', theme: '主題活動：人與自己／人與他人概念' },
-        { id: 'EV-17', date: '2026-10-23', title: '牙齒塗氟日 口腔保健檢查', target: '諾貝爾A班', category: '重要活動', timeLocation: '08:30 (五)', description: '🌟 全園定期塗氟檢查，請家長務必攜帶健保卡！未攜帶無法參加喔！', theme: '主題活動：人與自己／人與他人概念' },
+        { id: 'EV-17', date: '2026-10-23', title: '牙齒塗氟日 口腔保健檢查', calendarPrompt: '牙齒塗氟', target: '諾貝爾A班', category: '重要活動', timeLocation: '08:30 (五)', description: '🌟 全園定期塗氟檢查，請家長務必攜帶健保卡！未攜帶無法參加喔！', theme: '主題活動：人與自己／人與他人概念' },
         { id: 'EV-18', date: '2026-10-24', endDate: '2026-10-26', title: '光復節連假', target: '全園', category: '節慶放假', timeLocation: '連假三日', description: '光復節連續假期', theme: '主題活動：人與自己／人與他人概念' }
       ];
 
@@ -2606,24 +2613,30 @@ const htmlContent = `<!DOCTYPE html>
           if (isBirthday) menuIcons += '🎂';
         }
 
-        // 格子下方：精簡活動小標題 (文字截短) 與餐點圖示（移除「有點心」文字標籤，僅保留圖示）
-        let eventBrief = '';
-        if (dayEvents.length > 0) {
-          const firstEv = dayEvents[0];
-          const isHighlight = (firstEv.target || '').includes('諾貝爾A') || (firstEv.target || '').includes('諾貝爾 A') || (firstEv.target || '').includes('諾A');
-          const title = firstEv.title.length > 5 ? firstEv.title.slice(0, 4) + '..' : firstEv.title;
-          const bannerHtml = \`<div class="truncate text-[0.625rem] leading-tight px-1 py-0.5 rounded \${isHighlight ? 'bg-peach-500 text-white font-black' : 'bg-rose-100/80 text-rose-700 font-medium'}">\${title}</div>\`;
+        // 格子下方：若有填寫「行事曆提示」則顯示提示標籤；未填寫則不顯示（不另外顯示 [十月壽星..]、[幸福廚房..] 等常用標籤）
+        // 餐點圖示：🍱，若為幸福廚房日旁加🥐，慶生日旁加🎂
+        let bannerHtml = '';
+        const promptEvents = dayEvents.filter(e => (e.calendarPrompt || e['行事曆提示'] || '').trim());
+        if (promptEvents.length > 0) {
+          const banners = promptEvents.map(pe => {
+            const promptText = (pe.calendarPrompt || pe['行事曆提示']).trim();
+            const isHighlight = (pe.target || '').includes('諾貝爾A') || (pe.target || '').includes('諾貝爾 A') || (pe.target || '').includes('諾A');
+            const displayPrompt = promptText.length > 5 ? promptText.slice(0, 4) + '..' : promptText;
+            return \`<div class="truncate text-[0.625rem] leading-tight px-1 py-0.5 rounded \${isHighlight ? 'bg-peach-500 text-white font-black' : 'bg-rose-100/80 text-rose-700 font-medium'}" title="\${promptText}">\${displayPrompt}</div>\`;
+          });
+          bannerHtml = banners.slice(0, 2).join('');
+        }
 
-          if (menuIcons) {
-            eventBrief = \`
-              <div class="space-y-0.5">
-                \${bannerHtml}
-                <div class="text-[0.625rem] text-slate-500 font-normal leading-none px-0.5">\${menuIcons}</div>
-              </div>
-            \`;
-          } else {
-            eventBrief = bannerHtml;
-          }
+        let eventBrief = '';
+        if (bannerHtml && menuIcons) {
+          eventBrief = \`
+            <div class="space-y-0.5">
+              \${bannerHtml}
+              <div class="text-[0.625rem] text-slate-500 font-normal leading-none px-0.5">\${menuIcons}</div>
+            </div>
+          \`;
+        } else if (bannerHtml) {
+          eventBrief = bannerHtml;
         } else if (menuIcons) {
           eventBrief = \`<div class="text-[0.625rem] text-slate-500 font-normal leading-none px-0.5">\${menuIcons}</div>\`;
         }
@@ -3456,6 +3469,7 @@ const htmlContent = `<!DOCTYPE html>
         date: document.getElementById('eventForm-date').value,
         endDate: document.getElementById('eventForm-endDate').value,
         title: document.getElementById('eventForm-title').value,
+        calendarPrompt: document.getElementById('eventForm-calendarPrompt').value.trim(),
         target: getCheckedValues('eventForm-target'),
         categoryMajor: document.getElementById('eventForm-categoryMajor').value,
         categoryMinor: document.getElementById('eventForm-categoryMinor').value,
@@ -3499,6 +3513,7 @@ const htmlContent = `<!DOCTYPE html>
       document.getElementById('eventForm-date').value = '';
       document.getElementById('eventForm-endDate').value = '';
       document.getElementById('eventForm-title').value = '';
+      document.getElementById('eventForm-calendarPrompt').value = '';
       setCheckedValues('eventForm-target', '');
       document.getElementById('eventForm-categoryMajor').value = '';
       document.getElementById('eventForm-categoryMinor').value = '';
@@ -3514,6 +3529,7 @@ const htmlContent = `<!DOCTYPE html>
       document.getElementById('eventForm-date').value = normalizeDate(ev.date);
       document.getElementById('eventForm-endDate').value = ev.endDate ? normalizeDate(ev.endDate) : '';
       document.getElementById('eventForm-title').value = ev.title;
+      document.getElementById('eventForm-calendarPrompt').value = ev.calendarPrompt || ev['行事曆提示'] || '';
       setCheckedValues('eventForm-target', ev.target || '');
       document.getElementById('eventForm-categoryMajor').value = ev.categoryMajor || ev.category || '';
       document.getElementById('eventForm-categoryMinor').value = ev.categoryMinor || '';
@@ -3566,7 +3582,12 @@ const htmlContent = `<!DOCTYPE html>
         html += \`
           <tr class="hover:bg-slate-50">
             <td class="py-2 px-2 font-mono">\${normalizeDate(ev.date)}</td>
-            <td class="py-2 px-2 font-bold text-slate-800">\${ev.title}</td>
+            <td class="py-2 px-2 font-bold text-slate-800">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span>\${ev.title}</span>
+                \${(ev.calendarPrompt || ev['行事曆提示']) ? \`<span class="inline-block text-[0.625rem] px-1.5 py-0.5 rounded bg-peach-50 text-peach-700 font-bold border border-peach-200">提示: \${ev.calendarPrompt || ev['行事曆提示']}</span>\` : ''}
+              </div>
+            </td>
             <td class="py-2 px-2"><div class="flex items-center gap-1 flex-wrap">\${renderTargetBadges(ev.target, 'sm')}</div></td>
             <td class="py-2 px-2 text-right space-x-1">
               <button onclick="editEventInAdmin('\${ev.id}')" class="text-peach-600 hover:underline font-bold">編輯</button>
