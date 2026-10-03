@@ -663,8 +663,15 @@
               </div>
               <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label class="block text-xs font-bold text-slate-600 mb-1">適用對象 *</label>
+                  <div class="flex items-center justify-between mb-1">
+                    <label class="block text-xs font-bold text-slate-600">適用對象 *</label>
+                    <span class="text-[0.625rem] text-slate-400 font-normal">（依點擊勾選順序排序）</span>
+                  </div>
                   <div id="eventForm-target" class="w-full flex flex-wrap gap-2 pt-1 border border-slate-300 rounded-xl px-3 py-2 bg-white min-h-[38px]"></div>
+                  <div id="eventForm-target-preview" class="mt-1.5 text-[0.6875rem] text-slate-500 hidden flex items-center gap-1.5 flex-wrap bg-slate-50 p-2 rounded-xl border border-slate-200">
+                    <span class="font-bold text-slate-600 shrink-0">已選順序：</span>
+                    <div id="eventForm-target-badges" class="inline-flex items-center gap-1 flex-wrap"></div>
+                  </div>
                 </div>
                 <div>
                   
@@ -1513,6 +1520,7 @@
     function renderEventOptionsUI() {
       const targetSelect = document.getElementById('eventForm-target');
       if (targetSelect && state.eventTargets) {
+        const prevOrder = getCheckedValues('eventForm-target');
         targetSelect.innerHTML = '';
         state.eventTargets.forEach((t, i) => {
           let label = t.displayName || t.targetName;
@@ -1529,6 +1537,12 @@
           label = label.replace(/^[🌟🌱❤️💛🏫👨‍👩‍👧]s*/, '');
           targetSelect.innerHTML += '<label class="flex items-center gap-1 cursor-pointer hover:bg-slate-50 px-1 rounded"><input type="checkbox" value="' + t.targetName + '" class="accent-peach-500 w-3 h-3"><span class="text-[0.6875rem] text-slate-700 font-medium">' + icon + label + '</span></label>';
         });
+        initOrderedCheckboxes('eventForm-target');
+        if (prevOrder) {
+          setCheckedValues('eventForm-target', prevOrder);
+        } else {
+          updateTargetOrderPreview('eventForm-target');
+        }
       }
 
       const catMajorSelect = document.getElementById('eventForm-categoryMajor');
@@ -1548,19 +1562,91 @@
       }
     }
     
+    function initOrderedCheckboxes(containerId) {
+      const container = document.getElementById(containerId);
+      if (!container || container._hasOrderListener) return;
+      container._hasOrderListener = true;
+      container._selectedOrder = container._selectedOrder || [];
+
+      container.addEventListener('change', (e) => {
+        if (e.target && e.target.type === 'checkbox') {
+          const val = (e.target.value || '').trim();
+          container._selectedOrder = container._selectedOrder || [];
+          if (e.target.checked) {
+            if (!container._selectedOrder.includes(val)) {
+              container._selectedOrder.push(val);
+            }
+          } else {
+            container._selectedOrder = container._selectedOrder.filter(v => v !== val);
+          }
+          updateTargetOrderPreview(containerId);
+        }
+      });
+    }
+
+    function updateTargetOrderPreview(containerId) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      const previewEl = document.getElementById(containerId + '-preview');
+      const badgesEl = document.getElementById(containerId + '-badges');
+      if (!previewEl || !badgesEl) return;
+
+      const orderedStr = getCheckedValues(containerId);
+      if (!orderedStr) {
+        previewEl.style.display = 'none';
+        badgesEl.innerHTML = '';
+      } else {
+        previewEl.style.display = 'flex';
+        badgesEl.innerHTML = renderTargetBadges(orderedStr, 'sm');
+      }
+    }
+
     function getCheckedValues(containerId) {
       const container = document.getElementById(containerId);
       if (!container) return '';
-      return Array.from(container.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value).join(', ');
+      initOrderedCheckboxes(containerId);
+
+      const checkedBoxes = Array.from(container.querySelectorAll('input[type="checkbox"]:checked'));
+      const checkedVals = checkedBoxes.map(cb => (cb.value || '').trim()).filter(Boolean);
+      const checkedSet = new Set(checkedVals);
+
+      // 依選取順序保留仍被勾選的項目
+      let ordered = (container._selectedOrder || []).map(v => v.trim()).filter(v => checkedSet.has(v));
+      checkedVals.forEach(v => {
+        if (!ordered.includes(v)) {
+          ordered.push(v);
+        }
+      });
+
+      container._selectedOrder = ordered;
+      return ordered.join(', ');
     }
     
     function setCheckedValues(containerId, valuesStr) {
       const container = document.getElementById(containerId);
       if (!container) return;
-      const values = (valuesStr || '').split(',').map(v => v.trim());
+      initOrderedCheckboxes(containerId);
+
+      const rawValues = (valuesStr || '').split(/[,，]+/).map(v => v.trim()).filter(Boolean);
+      container._selectedOrder = [...rawValues];
+
       container.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-        cb.checked = values.includes(cb.value);
+        const val = (cb.value || '').trim();
+        cb.checked = rawValues.includes(val);
       });
+
+      const checkedBoxes = Array.from(container.querySelectorAll('input[type="checkbox"]:checked'));
+      const checkedVals = checkedBoxes.map(cb => (cb.value || '').trim()).filter(Boolean);
+      const checkedSet = new Set(checkedVals);
+
+      container._selectedOrder = container._selectedOrder.filter(v => checkedSet.has(v));
+      checkedVals.forEach(v => {
+        if (!container._selectedOrder.includes(v)) {
+          container._selectedOrder.push(v);
+        }
+      });
+
+      updateTargetOrderPreview(containerId);
     }
 
     /**
