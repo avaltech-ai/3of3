@@ -88,6 +88,23 @@
     .animate-pulse-subtle {
       animation: pulse-subtle 2.5s infinite;
     }
+    .aspect-square {
+      aspect-ratio: 1 / 1 !important;
+    }
+    .aspect-video {
+      aspect-ratio: 16 / 9 !important;
+    }
+    .aspect-[4/3] {
+      aspect-ratio: 4 / 3 !important;
+    }
+    .aspect-[16/10] {
+      aspect-ratio: 16 / 10 !important;
+    }
+    .z-60 { z-index: 60 !important; }
+    .z-70 { z-index: 70 !important; }
+    #albumPhotosGrid, #albumThumbnails {
+      grid-auto-rows: max-content !important;
+    }
   </style>
 </head>
 <body class="text-slate-700 min-h-screen flex flex-col antialiased selection:bg-peach-200">
@@ -878,7 +895,7 @@
                 <span id="albumSelectedCountText">已選擇 0 張相片</span>
                 <button onclick="clearSelectedPhotos()" class="text-rose-500 hover:underline">清除重選</button>
               </div>
-              <div id="albumThumbnails" class="grid grid-cols-4 sm:grid-cols-6 gap-2 max-h-48 overflow-y-auto p-1 bg-slate-50 rounded-xl"></div>
+              <div id="albumThumbnails" class="grid grid-cols-4 sm:grid-cols-6 gap-2 max-h-48 overflow-y-auto p-1 bg-slate-50 rounded-xl content-start" style="grid-auto-rows: max-content;"></div>
             </div>
 
             <!-- 即時上傳進度與預估時間卡片 -->
@@ -1325,31 +1342,58 @@
   <div id="albumPhotosModal" class="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-3 sm:p-5 hidden">
     <div class="bg-white rounded-3xl max-w-4xl w-full h-[90vh] flex flex-col p-4 sm:p-6 shadow-2xl relative">
       <div class="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
-        <div class="flex items-center gap-2">
-          <span class="text-xl">📸</span>
-          <h3 id="modalAlbumTitle" class="text-base sm:text-lg font-black text-slate-800 truncate max-w-xs sm:max-w-md">相簿照片</h3>
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="text-xl shrink-0">📸</span>
+          <h3 id="modalAlbumTitle" class="text-base sm:text-lg font-black text-slate-800 truncate">相簿照片</h3>
+          <span id="modalAlbumCount" class="text-xs font-bold text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full shrink-0"></span>
         </div>
-        <button onclick="closeAlbumModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-base tap-bounce">
+        <button onclick="closeAlbumModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-base tap-bounce shrink-0" title="關閉">
           ✕
         </button>
       </div>
 
       <!-- 相片縮圖網格 -->
-      <div id="albumPhotosGrid" class="flex-1 overflow-y-auto py-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+      <div id="albumPhotosGrid" class="flex-1 overflow-y-auto min-h-0 py-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 content-start" style="grid-auto-rows: max-content;">
         <!-- JS 動態插入照片 -->
       </div>
     </div>
   </div>
 
   <!-- ==================== 單張照片大圖檢視 (PHOTO VIEWER) ==================== -->
-  <div id="photoViewerModal" class="fixed inset-0 z-60 bg-black/90 flex flex-col items-center justify-center p-2 hidden">
-    <button onclick="closePhotoViewer()" class="absolute top-4 right-4 text-white text-2xl font-bold w-10 h-10 rounded-full bg-white/20 flex items-center justify-center tap-bounce">
-      ✕
-    </button>
-    <a id="photoDownloadBtn" href="#" target="_blank" class="absolute top-4 left-4 text-white text-xs font-bold px-3 py-1.5 rounded-full bg-white/20 flex items-center gap-1 tap-bounce">
-      ⬇️ 下載原始照片
-    </a>
-    <img id="photoViewerImg" src="" alt="Photo" class="max-w-full max-h-[85vh] object-contain rounded-lg">
+  <div id="photoViewerModal" class="fixed inset-0 z-70 bg-black/95 flex flex-col items-center justify-between p-3 sm:p-5 select-none hidden" onclick="handlePhotoViewerBackdropClick(event)">
+    <!-- 頂部工具列 -->
+    <div class="w-full max-w-5xl flex items-center justify-between z-20 text-white shrink-0">
+      <div class="flex items-center gap-2 sm:gap-3">
+        <a id="photoDownloadBtn" href="#" target="_blank" download class="text-white text-xs font-bold px-3.5 py-1.5 rounded-full bg-white/15 hover:bg-white/25 flex items-center gap-1.5 backdrop-blur-md tap-bounce transition-colors">
+          <span>⬇️</span> <span class="hidden sm:inline">下載原圖</span>
+        </a>
+        <span id="photoViewerCounter" class="text-xs sm:text-sm font-bold text-white/80 bg-white/10 px-3 py-1 rounded-full backdrop-blur-md">1 / 1</span>
+      </div>
+      <button onclick="closePhotoViewer()" class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center justify-center font-bold text-lg backdrop-blur-md tap-bounce transition-colors" title="關閉 (Esc)">
+        ✕
+      </button>
+    </div>
+
+    <!-- 中間大圖與左右導覽 -->
+    <div class="relative w-full flex-1 min-h-0 flex items-center justify-center p-1 sm:p-4 overflow-hidden">
+      <!-- 上一張按鈕 -->
+      <button id="photoViewerPrevBtn" onclick="navigatePhoto(-1)" class="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-white/20 hover:bg-white/35 active:scale-95 text-white flex items-center justify-center font-black text-xl sm:text-2xl backdrop-blur-md transition-all z-20 shadow-lg tap-bounce" title="上一張 (鍵盤 ← 鍵)">
+        ❮
+      </button>
+
+      <!-- 核心大圖 -->
+      <img id="photoViewerImg" src="" alt="相簿照片" class="max-w-full max-h-full object-contain rounded-2xl shadow-2xl transition-opacity duration-200">
+
+      <!-- 下一張按鈕 -->
+      <button id="photoViewerNextBtn" onclick="navigatePhoto(1)" class="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-white/20 hover:bg-white/35 active:scale-95 text-white flex items-center justify-center font-black text-xl sm:text-2xl backdrop-blur-md transition-all z-20 shadow-lg tap-bounce" title="下一張 (鍵盤 → 鍵)">
+        ❯
+      </button>
+    </div>
+
+    <!-- 底部照片標題列 -->
+    <div class="w-full max-w-2xl text-center z-20 shrink-0 pt-2 pb-1">
+      <div id="photoViewerTitle" class="text-xs sm:text-sm font-medium text-white/80 truncate px-4"></div>
+    </div>
   </div>
 
   <!-- ==================== 常用文件編輯/新增彈窗 (DOC MODAL) ==================== -->
@@ -3562,10 +3606,15 @@
       });
     }
 
+    let currentAlbumPhotosList = [];
+    let currentAlbumPhotoIndex = 0;
+
     function openAlbumPhotos(albumId, albumTitle) {
       document.getElementById('modalAlbumTitle').textContent = albumTitle || '相簿照片';
+      const countBadge = document.getElementById('modalAlbumCount');
+      if (countBadge) countBadge.textContent = '';
       const grid = document.getElementById('albumPhotosGrid');
-      grid.innerHTML = '<div class="col-span-full py-12 text-center text-slate-400 font-bold">讀取照片中...</div>';
+      grid.innerHTML = '<div class="col-span-full py-16 text-center text-slate-400 font-bold flex flex-col items-center gap-3"><div class="w-8 h-8 border-3 border-teal-500 border-t-transparent rounded-full animate-spin"></div><span>讀取相簿照片中...</span></div>';
       document.getElementById('albumPhotosModal').classList.remove('hidden');
 
       callBackend('getAlbumPhotos', { albumId: albumId }, res => {
@@ -3589,18 +3638,24 @@
     }
 
     function renderAlbumPhotosGrid(photos) {
+      currentAlbumPhotosList = photos || [];
       const grid = document.getElementById('albumPhotosGrid');
       grid.innerHTML = '';
       if (!photos || photos.length === 0) {
-        grid.innerHTML = '<div class="col-span-full py-12 text-center text-slate-400">此相簿目前無照片檔案。</div>';
+        grid.innerHTML = '<div class="col-span-full py-16 text-center text-slate-400 font-bold">此相簿目前無照片檔案。</div>';
         return;
       }
-      photos.forEach(p => {
+
+      const countBadge = document.getElementById('modalAlbumCount');
+      if (countBadge) countBadge.textContent = `（共 ${photos.length} 張）`;
+
+      photos.forEach((p, idx) => {
         grid.innerHTML += `
-          <div class="aspect-square rounded-2xl overflow-hidden bg-slate-100 group relative cursor-pointer tap-bounce border border-slate-100" onclick="openPhotoViewer('${p.thumbnailUrl || p.viewUrl}', '${p.downloadUrl}')">
-            <img src="${p.thumbnailUrl || p.viewUrl}" alt="${p.name}" class="w-full h-full object-cover transition-transform group-hover:scale-105 duration-200">
-            <div class="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold">
-              🔍 放大
+          <div class="aspect-square rounded-2xl overflow-hidden bg-slate-100 group relative cursor-pointer tap-bounce border border-slate-200/80 shadow-xs" style="aspect-ratio: 1 / 1;" onclick="openPhotoViewerByIndex(${idx})">
+            <img src="${p.thumbnailUrl || p.viewUrl}" alt="${p.name || '照片'}" loading="lazy" class="w-full h-full object-cover transition-transform group-hover:scale-105 duration-200">
+            <div class="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-xs font-bold gap-1 p-2 text-center">
+              <span>🔍 點擊放大</span>
+              <span class="text-[0.625rem] opacity-80 truncate w-full max-w-[90%]">${p.name || ''}</span>
             </div>
           </div>
         `;
@@ -3611,15 +3666,93 @@
       document.getElementById('albumPhotosModal').classList.add('hidden');
     }
 
-    function openPhotoViewer(url, downloadUrl) {
-      document.getElementById('photoViewerImg').src = url;
-      document.getElementById('photoDownloadBtn').href = downloadUrl || url;
+    function openPhotoViewerByIndex(index) {
+      if (!currentAlbumPhotosList || currentAlbumPhotosList.length === 0) return;
+      if (index < 0) index = 0;
+      if (index >= currentAlbumPhotosList.length) index = currentAlbumPhotosList.length - 1;
+      currentAlbumPhotoIndex = index;
+      const p = currentAlbumPhotosList[currentAlbumPhotoIndex];
+
+      const imgEl = document.getElementById('photoViewerImg');
+      if (imgEl) {
+        imgEl.style.opacity = '0.3';
+        imgEl.src = p.viewUrl || p.thumbnailUrl;
+        imgEl.onload = () => { imgEl.style.opacity = '1'; };
+      }
+
+      const dlBtn = document.getElementById('photoDownloadBtn');
+      if (dlBtn) dlBtn.href = p.downloadUrl || p.viewUrl || p.thumbnailUrl || '#';
+
+      const titleEl = document.getElementById('photoViewerTitle');
+      if (titleEl) titleEl.textContent = p.name || '';
+
+      const counterEl = document.getElementById('photoViewerCounter');
+      if (counterEl) counterEl.textContent = `${currentAlbumPhotoIndex + 1} / ${currentAlbumPhotosList.length}`;
+
+      const prevBtn = document.getElementById('photoViewerPrevBtn');
+      const nextBtn = document.getElementById('photoViewerNextBtn');
+      if (prevBtn) prevBtn.style.visibility = (currentAlbumPhotoIndex > 0) ? 'visible' : 'hidden';
+      if (nextBtn) nextBtn.style.visibility = (currentAlbumPhotoIndex < currentAlbumPhotosList.length - 1) ? 'visible' : 'hidden';
+
       document.getElementById('photoViewerModal').classList.remove('hidden');
+    }
+
+    function navigatePhoto(direction) {
+      const newIndex = currentAlbumPhotoIndex + direction;
+      if (newIndex >= 0 && newIndex < currentAlbumPhotosList.length) {
+        openPhotoViewerByIndex(newIndex);
+      }
+    }
+
+    function openPhotoViewer(url, downloadUrl) {
+      const idx = currentAlbumPhotosList.findIndex(p => (p.viewUrl === url || p.thumbnailUrl === url));
+      if (idx !== -1) {
+        openPhotoViewerByIndex(idx);
+      } else {
+        const imgEl = document.getElementById('photoViewerImg');
+        if (imgEl) imgEl.src = url;
+        const dlBtn = document.getElementById('photoDownloadBtn');
+        if (dlBtn) dlBtn.href = downloadUrl || url;
+        const counterEl = document.getElementById('photoViewerCounter');
+        if (counterEl) counterEl.textContent = '';
+        const titleEl = document.getElementById('photoViewerTitle');
+        if (titleEl) titleEl.textContent = '';
+        const prevBtn = document.getElementById('photoViewerPrevBtn');
+        const nextBtn = document.getElementById('photoViewerNextBtn');
+        if (prevBtn) prevBtn.style.visibility = 'hidden';
+        if (nextBtn) nextBtn.style.visibility = 'hidden';
+        document.getElementById('photoViewerModal').classList.remove('hidden');
+      }
     }
 
     function closePhotoViewer() {
       document.getElementById('photoViewerModal').classList.add('hidden');
     }
+
+    function handlePhotoViewerBackdropClick(e) {
+      if (e.target.id === 'photoViewerModal') {
+        closePhotoViewer();
+      }
+    }
+
+    // 鍵盤左右鍵切換相片 & ESC 鍵關閉
+    window.addEventListener('keydown', function(e) {
+      const pvModal = document.getElementById('photoViewerModal');
+      if (pvModal && !pvModal.classList.contains('hidden')) {
+        if (e.key === 'ArrowLeft') {
+          navigatePhoto(-1);
+        } else if (e.key === 'ArrowRight') {
+          navigatePhoto(1);
+        } else if (e.key === 'Escape') {
+          closePhotoViewer();
+        }
+      } else {
+        const apModal = document.getElementById('albumPhotosModal');
+        if (apModal && !apModal.classList.contains('hidden') && e.key === 'Escape') {
+          closeAlbumModal();
+        }
+      }
+    });
 
     // ==================== 常用文件專區 (DOCS) ====================
     let docModalSelectedFile = null;
@@ -4305,14 +4438,14 @@
       Array.from(files).slice(0, maxPreview).forEach(f => {
         const url = URL.createObjectURL(f);
         thumbsContainer.innerHTML += `
-          <div class="aspect-square rounded-lg overflow-hidden bg-slate-200">
+          <div class="aspect-square rounded-lg overflow-hidden bg-slate-200 border border-slate-200/80 shadow-2xs" style="aspect-ratio: 1 / 1;">
             <img src="${url}" class="w-full h-full object-cover">
           </div>
         `;
       });
       if (files.length > maxPreview) {
         thumbsContainer.innerHTML += `
-          <div class="aspect-square rounded-lg bg-teal-100 border border-teal-200 flex flex-col items-center justify-center text-teal-800 text-xs font-bold">
+          <div class="aspect-square rounded-lg bg-teal-100 border border-teal-200 flex flex-col items-center justify-center text-teal-800 text-xs font-bold" style="aspect-ratio: 1 / 1;">
             <span>+${files.length - maxPreview}</span>
             <span class="text-[0.625rem] text-teal-600">更多</span>
           </div>
