@@ -1376,6 +1376,12 @@
 
     <!-- 中間大圖與左右導覽 -->
     <div class="relative w-full flex-1 min-h-0 flex items-center justify-center p-1 sm:p-4 overflow-hidden">
+      <!-- 載入中動畫 -->
+      <div id="photoViewerSpinner" class="absolute inset-0 flex flex-col items-center justify-center gap-2 pointer-events-none z-10 hidden">
+        <div class="w-10 h-10 border-4 border-white/20 border-t-teal-400 rounded-full animate-spin"></div>
+        <span class="text-xs font-bold text-white/80 tracking-wider">載入高畫質相片中...</span>
+      </div>
+
       <!-- 上一張按鈕 -->
       <button id="photoViewerPrevBtn" onclick="navigatePhoto(-1)" class="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-white/20 hover:bg-white/35 active:scale-95 text-white flex items-center justify-center font-black text-xl sm:text-2xl backdrop-blur-md transition-all z-20 shadow-lg tap-bounce" title="上一張 (鍵盤 ← 鍵)">
         ❮
@@ -3637,6 +3643,25 @@
       renderAlbumPhotosGrid(demoPhotos);
     }
 
+    function getPhotoDisplayUrl(p, highRes = true) {
+      if (!p) return '';
+      // 1. If photo object has direct file id
+      if (p.id) {
+        return `https://drive.google.com/thumbnail?id=${p.id}&sz=${highRes ? 'w2048' : 'w800'}`;
+      }
+      // 2. If viewUrl or thumbnailUrl contains /d/{id} or id={id}
+      const rawUrl = p.viewUrl || p.thumbnailUrl || '';
+      const matchId = rawUrl.match(new RegExp('/d/([a-zA-Z0-9_-]+)')) || rawUrl.match(new RegExp('[?&]id=([a-zA-Z0-9_-]+)'));
+      if (matchId && matchId[1]) {
+        return `https://drive.google.com/thumbnail?id=${matchId[1]}&sz=${highRes ? 'w2048' : 'w800'}`;
+      }
+      // 3. Fallback: if viewUrl is a direct image URL (not a Drive view webpage)
+      if (p.viewUrl && !p.viewUrl.includes('/file/d/')) {
+        return p.viewUrl;
+      }
+      return p.thumbnailUrl || p.viewUrl || '';
+    }
+
     function renderAlbumPhotosGrid(photos) {
       currentAlbumPhotosList = photos || [];
       const grid = document.getElementById('albumPhotosGrid');
@@ -3650,9 +3675,10 @@
       if (countBadge) countBadge.textContent = `（共 ${photos.length} 張）`;
 
       photos.forEach((p, idx) => {
+        const thumbUrl = getPhotoDisplayUrl(p, false);
         grid.innerHTML += `
           <div class="aspect-square rounded-2xl overflow-hidden bg-slate-100 group relative cursor-pointer tap-bounce border border-slate-200/80 shadow-xs" style="aspect-ratio: 1 / 1;" onclick="openPhotoViewerByIndex(${idx})">
-            <img src="${p.thumbnailUrl || p.viewUrl}" alt="${p.name || '照片'}" loading="lazy" class="w-full h-full object-cover transition-transform group-hover:scale-105 duration-200">
+            <img src="${thumbUrl}" alt="${p.name || '照片'}" loading="lazy" class="w-full h-full object-cover transition-transform group-hover:scale-105 duration-200">
             <div class="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-xs font-bold gap-1 p-2 text-center">
               <span>🔍 點擊放大</span>
               <span class="text-[0.625rem] opacity-80 truncate w-full max-w-[90%]">${p.name || ''}</span>
@@ -3673,15 +3699,33 @@
       currentAlbumPhotoIndex = index;
       const p = currentAlbumPhotosList[currentAlbumPhotoIndex];
 
+      const highResUrl = getPhotoDisplayUrl(p, true);
+      const fallbackUrl = getPhotoDisplayUrl(p, false);
+
+      const spinnerEl = document.getElementById('photoViewerSpinner');
+      if (spinnerEl) spinnerEl.classList.remove('hidden');
+
       const imgEl = document.getElementById('photoViewerImg');
       if (imgEl) {
-        imgEl.style.opacity = '0.3';
-        imgEl.src = p.viewUrl || p.thumbnailUrl;
-        imgEl.onload = () => { imgEl.style.opacity = '1'; };
+        imgEl.style.opacity = '0';
+        imgEl.onload = () => {
+          if (spinnerEl) spinnerEl.classList.add('hidden');
+          imgEl.style.opacity = '1';
+        };
+        imgEl.onerror = () => {
+          if (imgEl.src !== fallbackUrl && fallbackUrl) {
+            imgEl.src = fallbackUrl;
+          } else {
+            if (spinnerEl) spinnerEl.classList.add('hidden');
+            imgEl.style.opacity = '1';
+          }
+        };
+        imgEl.src = highResUrl;
       }
 
       const dlBtn = document.getElementById('photoDownloadBtn');
-      if (dlBtn) dlBtn.href = p.downloadUrl || p.viewUrl || p.thumbnailUrl || '#';
+      const dlUrl = p.downloadUrl || (p.id ? `https://drive.google.com/uc?export=download&id=${p.id}` : highResUrl);
+      if (dlBtn) dlBtn.href = dlUrl;
 
       const titleEl = document.getElementById('photoViewerTitle');
       if (titleEl) titleEl.textContent = p.name || '';
@@ -3709,10 +3753,25 @@
       if (idx !== -1) {
         openPhotoViewerByIndex(idx);
       } else {
+        const dummy = { viewUrl: url, thumbnailUrl: url, downloadUrl: downloadUrl };
+        const directUrl = getPhotoDisplayUrl(dummy, true);
+        const spinnerEl = document.getElementById('photoViewerSpinner');
+        if (spinnerEl) spinnerEl.classList.remove('hidden');
         const imgEl = document.getElementById('photoViewerImg');
-        if (imgEl) imgEl.src = url;
+        if (imgEl) {
+          imgEl.style.opacity = '0';
+          imgEl.onload = () => {
+            if (spinnerEl) spinnerEl.classList.add('hidden');
+            imgEl.style.opacity = '1';
+          };
+          imgEl.onerror = () => {
+            if (spinnerEl) spinnerEl.classList.add('hidden');
+            imgEl.style.opacity = '1';
+          };
+          imgEl.src = directUrl;
+        }
         const dlBtn = document.getElementById('photoDownloadBtn');
-        if (dlBtn) dlBtn.href = downloadUrl || url;
+        if (dlBtn) dlBtn.href = downloadUrl || directUrl;
         const counterEl = document.getElementById('photoViewerCounter');
         if (counterEl) counterEl.textContent = '';
         const titleEl = document.getElementById('photoViewerTitle');

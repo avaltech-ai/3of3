@@ -767,7 +767,8 @@ function getAlbumPhotos(albumFolderId) {
           name: file.getName(),
           size: file.getSize(),
           thumbnailUrl: 'https://drive.google.com/thumbnail?id=' + file.getId() + '&sz=w800',
-          viewUrl: 'https://drive.google.com/file/d/' + file.getId() + '/view',
+          viewUrl: 'https://drive.google.com/thumbnail?id=' + file.getId() + '&sz=w2048',
+          driveViewUrl: 'https://drive.google.com/file/d/' + file.getId() + '/view',
           downloadUrl: 'https://drive.google.com/uc?export=download&id=' + file.getId()
         });
       }
