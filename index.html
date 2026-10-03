@@ -1515,7 +1515,19 @@
       if (targetSelect && state.eventTargets) {
         targetSelect.innerHTML = '';
         state.eventTargets.forEach((t, i) => {
-          targetSelect.innerHTML += '<label class="flex items-center gap-1 cursor-pointer hover:bg-slate-50 px-1 rounded"><input type="checkbox" value="' + t.targetName + '" class="accent-peach-500 w-3 h-3"><span class="text-[0.6875rem] text-slate-700 font-medium">' + (t.displayName || t.targetName) + '</span></label>';
+          let label = t.displayName || t.targetName;
+          const isNobelA = t.targetName.includes('諾貝爾A') || t.targetName.includes('諾貝爾 A') || t.targetName.includes('諾A');
+          const isAll = t.targetName.includes('全園');
+          const isParent = t.targetName.includes('親職') || t.targetName.includes('親師') || t.targetName.includes('家長');
+          let icon = '';
+          if (isNobelA) icon = '❤️ ';
+          else if (isAll) icon = '🏫 ';
+          else if (isParent) icon = '👨‍👩‍👧 ';
+          else if (!t.targetName.includes('其他')) icon = '💛 ';
+
+          // Clean any duplicate leading emoji if already present in displayName
+          label = label.replace(/^[🌟🌱❤️💛🏫👨‍👩‍👧]s*/, '');
+          targetSelect.innerHTML += '<label class="flex items-center gap-1 cursor-pointer hover:bg-slate-50 px-1 rounded"><input type="checkbox" value="' + t.targetName + '" class="accent-peach-500 w-3 h-3"><span class="text-[0.6875rem] text-slate-700 font-medium">' + icon + label + '</span></label>';
         });
       }
 
@@ -1574,7 +1586,7 @@
 
         if (isNobelA) {
           colorClasses = 'bg-peach-500 text-white shadow-2xs font-extrabold';
-          icon = '<span class="mr-0.5">🌟</span>';
+          icon = '<span class="mr-0.5">❤️</span>';
         } else if (isAll) {
           colorClasses = 'bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold';
           icon = '<span class="mr-0.5">🏫</span>';
@@ -1587,7 +1599,7 @@
         } else {
           // 所有其他幼兒園班級（諾貝爾 B、諾貝爾 C、諾奧、奧斯卡、雨奧、米羅 A、米羅 B、雨果、兩果等）
           colorClasses = 'bg-indigo-50 text-indigo-700 border border-indigo-200 font-bold';
-          icon = '<span class="mr-0.5">🌱</span>';
+          icon = '<span class="mr-0.5">💛</span>';
         }
 
         return `<span class="inline-flex items-center rounded-full font-bold shadow-2xs whitespace-nowrap transition-transform hover:scale-105 ${sizeClasses} ${colorClasses}">${icon}${t}</span>`;
@@ -1674,16 +1686,16 @@
         {targetName: '全園活動', displayName: '🏫 全園活動'},
         {targetName: '親職活動', displayName: '👨‍👩‍👧 親職活動'},
         {targetName: '親師座談', displayName: '👨‍👩‍👧 親師座談'},
-        {targetName: '諾貝爾 A ', displayName: '🌟 諾貝爾 A'},
-        {targetName: '諾貝爾 B', displayName: '🌱 諾貝爾 B'},
-        {targetName: '諾貝爾 C', displayName: '🌱 諾貝爾 C'},
-        {targetName: '諾奧', displayName: '🌱 諾奧'},
-        {targetName: '奧斯卡', displayName: '🌱 奧斯卡'},
-        {targetName: '雨奧', displayName: '🌱 雨奧'},
-        {targetName: '米羅 A', displayName: '🌱 米羅 A'},
-        {targetName: '米羅 B', displayName: '🌱 米羅 B'},
-        {targetName: '兩果', displayName: '🌱 兩果'},
-        {targetName: '雨果', displayName: '🌱 雨果'}
+        {targetName: '諾貝爾 A ', displayName: '❤️ 諾貝爾 A'},
+        {targetName: '諾貝爾 B', displayName: '💛 諾貝爾 B'},
+        {targetName: '諾貝爾 C', displayName: '💛 諾貝爾 C'},
+        {targetName: '諾奧', displayName: '💛 諾奧'},
+        {targetName: '奧斯卡', displayName: '💛 奧斯卡'},
+        {targetName: '雨奧', displayName: '💛 雨奧'},
+        {targetName: '米羅 A', displayName: '💛 米羅 A'},
+        {targetName: '米羅 B', displayName: '💛 米羅 B'},
+        {targetName: '兩果', displayName: '💛 兩果'},
+        {targetName: '雨果', displayName: '💛 雨果'}
       ];
       state.eventCategoriesMajor = data.eventCategoriesMajor || []; state.eventCategoriesMinor = data.eventCategoriesMinor || [];
       renderDocCategoriesUI();

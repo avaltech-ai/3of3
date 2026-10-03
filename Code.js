@@ -351,12 +351,19 @@ function getAppData() {
       evTargetSheet.appendRow(['targetName', 'displayName']);
       evTargetSheet.getRange(1, 1, 1, 2).setFontWeight('bold').setBackground('#E0E7FF');
       const defaultTargets = [
-        ['諾貝爾A班', '🌟 諾貝爾 A 班專屬'],
-        ['全園', '🏫 全園活動'],
-        ['親職活動', '👨‍👩‍👧 親師座談 / 親職活動'],
-        ['米A/米B/兩果', '米A/米B/兩果'],
-        ['雨奧/奧斯卡/諾奧', '雨奧/奧斯卡/諾奧'],
-        ['其他', '其他班級']
+        ['全園活動', '🏫 全園活動'],
+        ['親職活動', '👨‍👩‍👧 親職活動'],
+        ['親師座談', '👨‍👩‍👧 親師座談'],
+        ['諾貝爾 A ', '❤️ 諾貝爾 A'],
+        ['諾貝爾 B', '💛 諾貝爾 B'],
+        ['諾貝爾 C', '💛 諾貝爾 C'],
+        ['諾奧', '💛 諾奧'],
+        ['奧斯卡', '💛 奧斯卡'],
+        ['雨奧', '💛 雨奧'],
+        ['米羅 A', '💛 米羅 A'],
+        ['米羅 B', '💛 米羅 B'],
+        ['兩果', '💛 兩果'],
+        ['雨果', '💛 雨果']
       ];
       evTargetSheet.getRange(2, 1, defaultTargets.length, 2).setValues(defaultTargets);
     }
