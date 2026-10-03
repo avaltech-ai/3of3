@@ -351,7 +351,7 @@ const htmlContent = `<!DOCTYPE html>
             <span>❤️</span> 諾貝爾 A 班
           </span>
           <span class="flex items-center gap-1">
-            <span class="w-2.5 h-2.5 rounded-full bg-purple-500"></span> 全園活動
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> 全園活動
           </span>
           <span class="flex items-center gap-1">
             <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span> 班級主題
@@ -1848,16 +1848,16 @@ const htmlContent = `<!DOCTYPE html>
     // 本地備援示範資料 (保證預覽時完全不空白)
     function renderFallbackLocalData() {
       state.events = [
-        { id: 'EV-01', date: '2026-08-03', title: '新學期開學日', target: '全園', category: '全園活動', timeLocation: '', description: '開學第一天', theme: '快樂上學趣' },
+        { id: 'EV-01', date: '2026-08-03', title: '新學期開學日', target: '全園活動', category: '全園活動', timeLocation: '', description: '開學第一天', theme: '快樂上學趣' },
         { id: 'EV-05', date: '2026-08-27', title: '諾貝爾 A、B、C 親師座談', target: '親職活動, 諾貝爾 A, 諾貝爾 B, 諾貝爾 C', category: '親職活動', timeLocation: '17:00 開始', description: '諾A班親師座談交流', theme: '快樂上學趣' },
         { id: 'EV-08', date: '2026-09-09', title: '幸福廚房（諾C/諾B/諾A）', target: '諾貝爾 A, 諾貝爾 B, 諾貝爾 C', category: '班級主題', timeLocation: '', description: '諾A班小小烘焙師手作體驗', theme: '快樂上學趣' },
         { id: 'EV-12', date: '2026-10-05', title: '幸福廚房（雨奧/奧斯卡/諾奧）', target: '雨奧, 奧斯卡, 諾奧', category: '班級主題', timeLocation: '', description: '雨奧、奧斯卡、諾奧幸福廚房手作體驗', theme: '主題活動：人與自己／人與他人概念' },
         { id: 'EV-13', date: '2026-10-06', title: '幸福廚房（米羅 A, 米羅 B, 雨果）', target: '米羅 A, 米羅 B, 雨果', category: '班級主題', timeLocation: '', description: '米羅 A、米羅 B、雨果幸福廚房手作體驗', theme: '主題活動：人與自己／人與他人概念' },
         { id: 'EV-14', date: '2026-10-07', title: '幸福廚房（諾C/諾B/諾A）', target: '諾貝爾 A, 諾貝爾 B, 諾貝爾 C', category: '班級主題', timeLocation: '', description: '諾A班十月份幸福廚房手作日', theme: '主題活動：人與自己／人與他人概念' },
-        { id: 'EV-15', date: '2026-10-08', title: '十月壽星慶生會', target: '全園', category: '全園活動', timeLocation: '', description: '分享快樂分享愛！', theme: '主題活動：人與自己／人與他人概念' },
-        { id: 'EV-16', date: '2026-10-09', endDate: '2026-10-11', title: '雙十節連假', target: '全園', category: '節慶放假', timeLocation: '連假三日', description: '國慶連續假期放假', theme: '主題活動：人與自己／人與他人概念' },
-        { id: 'EV-17', date: '2026-10-23', title: '牙齒塗氟日 口腔保健檢查', calendarPrompt: '牙齒塗氟', target: '諾貝爾A班', category: '重要活動', timeLocation: '08:30 (五)', description: '🌟 全園定期塗氟檢查，請家長務必攜帶健保卡！未攜帶無法參加喔！', theme: '主題活動：人與自己／人與他人概念' },
-        { id: 'EV-18', date: '2026-10-24', endDate: '2026-10-26', title: '光復節連假', target: '全園', category: '節慶放假', timeLocation: '連假三日', description: '光復節連續假期', theme: '主題活動：人與自己／人與他人概念' }
+        { id: 'EV-15', date: '2026-10-08', title: '十月壽星慶生會', target: '全園活動', category: '全園活動', timeLocation: '', description: '分享快樂分享愛！', theme: '主題活動：人與自己／人與他人概念' },
+        { id: 'EV-16', date: '2026-10-09', endDate: '2026-10-11', title: '雙十節連假', target: '全園適用', category: '節慶放假', timeLocation: '連假三日', description: '國慶連續假期放假', theme: '主題活動：人與自己／人與他人概念' },
+        { id: 'EV-17', date: '2026-10-23', title: '牙齒塗氟日 口腔保健檢查', calendarPrompt: '牙齒塗氟', target: '諾貝爾 A, 全園活動', category: '重要活動', timeLocation: '08:30 (五)', description: '🌟 全園定期塗氟檢查，請家長務必攜帶健保卡！未攜帶無法參加喔！', theme: '主題活動：人與自己／人與他人概念' },
+        { id: 'EV-18', date: '2026-10-24', endDate: '2026-10-26', title: '光復節連假', target: '全園適用', category: '節慶放假', timeLocation: '連假三日', description: '光復節連續假期', theme: '主題活動：人與自己／人與他人概念' }
       ];
 
       state.menus = [
@@ -2571,10 +2571,12 @@ const htmlContent = `<!DOCTYPE html>
 
         const hasNobelA = dayEvents.some(e => (e.target || '').includes('諾貝爾A') || (e.target || '').includes('諾貝爾 A') || (e.target || '').includes('諾A') || (e.title || '').includes('諾A'));
         
-        // 只有全園活動、班級主題以及重要活動，才會以不同顏色的圓點顯示
+        // 只有全園活動、班級主題以及重要活動，才會以不同顏色的圓點顯示（「全園適用」不顯示圓點）
         const isWholeSchool = dayEvents.some(e => {
           const cat = (e.categoryMajor || e.category || '');
-          return cat.includes('全園') || (e.target || '').includes('全園') || cat.includes('慶生') || (e.title || '').includes('壽星');
+          const target = (e.target || '');
+          // 嚴格比對「全園活動」，排除「全園適用」
+          return cat.includes('全園活動') || target.includes('全園活動');
         });
         const isClassTheme = dayEvents.some(e => {
           const cat = (e.categoryMajor || e.category || '');
@@ -2591,9 +2593,9 @@ const htmlContent = `<!DOCTYPE html>
         }
 
         // 2. 三大活動類別專屬圓點
-        // 全園活動：💜 雅緻紫
+        // 全園活動：🟢 活力青綠 (bg-emerald-500)
         if (isWholeSchool) {
-          badgesHtml += '<span class="w-2 h-2 rounded-full bg-purple-500 ring-1 ring-white" title="全園活動"></span>';
+          badgesHtml += '<span class="w-2 h-2 rounded-full bg-emerald-500 ring-1 ring-white" title="全園活動"></span>';
         }
         // 班級主題：💛 金黃暖陽
         if (isClassTheme) {
