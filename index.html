@@ -1551,6 +1551,45 @@
       });
     }
 
+    /**
+     * 將複選的適用對象拆分為獨立的氣泡標籤 / 按鈕
+     */
+    function renderTargetBadges(targetStr, size = 'md') {
+      if (!targetStr || !targetStr.trim()) {
+        targetStr = '全園';
+      }
+      const targets = targetStr.split(/[,，]+/).map(t => t.trim()).filter(Boolean);
+      if (targets.length === 0) targets.push('全園');
+
+      const isSm = size === 'sm';
+      const sizeClasses = isSm ? 'text-[0.625rem] px-2 py-0.5' : 'text-xs px-2.5 py-0.5';
+
+      return targets.map(t => {
+        const isNobelA = t.includes('諾貝爾A') || t.includes('諾貝爾 A') || t.includes('諾A');
+        const isAll = t.includes('全園');
+        const isParent = t.includes('親職') || t.includes('親師') || t.includes('家長');
+
+        let colorClasses = 'bg-slate-100 text-slate-700 border border-slate-200/90';
+        let icon = '';
+
+        if (isNobelA) {
+          colorClasses = 'bg-peach-500 text-white shadow-2xs font-extrabold';
+          icon = '<span class="mr-0.5">🌟</span>';
+        } else if (isAll) {
+          colorClasses = 'bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold';
+          icon = '<span class="mr-0.5">🏫</span>';
+        } else if (isParent) {
+          colorClasses = 'bg-amber-50 text-amber-700 border border-amber-200 font-bold';
+          icon = '<span class="mr-0.5">👨‍👩‍👧</span>';
+        } else if (t.includes('諾貝爾') || t.includes('奧斯卡') || t.includes('雨奧') || t.includes('米A') || t.includes('米B') || t.includes('兩果')) {
+          colorClasses = 'bg-indigo-50 text-indigo-700 border border-indigo-200 font-bold';
+          icon = '<span class="mr-0.5">🌱</span>';
+        }
+
+        return `<span class="inline-flex items-center rounded-full font-bold shadow-2xs whitespace-nowrap transition-transform hover:scale-105 ${sizeClasses} ${colorClasses}">${icon}${t}</span>`;
+      }).join('');
+    }
+
     function renderDocCategoriesUI() {
       const categories = state.docCategories || ['全部文件', '保健用藥', '學期行事曆', '餐飲菜單', '親師手冊'];
       
@@ -1673,9 +1712,9 @@
     function renderFallbackLocalData() {
       state.events = [
         { id: 'EV-01', date: '2026-08-03', title: '新學期開學日', target: '全園', category: '全園活動', timeLocation: '', description: '開學第一天', theme: '快樂上學趣' },
-        { id: 'EV-05', date: '2026-08-27', title: '諾貝爾 A、B、C 親師座談', target: '諾貝爾A班', category: '親職活動', timeLocation: '17:00 開始', description: '諾A班親師座談交流', theme: '快樂上學趣' },
-        { id: 'EV-08', date: '2026-09-09', title: '幸福廚房（諾C/諾B/諾A）', target: '諾貝爾A班', category: '班級主題', timeLocation: '', description: '諾A班小小烘焙師手作體驗', theme: '快樂上學趣' },
-        { id: 'EV-14', date: '2026-10-07', title: '幸福廚房（諾C/諾B/諾A）', target: '諾貝爾A班', category: '班級主題', timeLocation: '', description: '諾A班十月份幸福廚房手作日', theme: '主題活動：人與自己／人與他人概念' },
+        { id: 'EV-05', date: '2026-08-27', title: '諾貝爾 A、B、C 親師座談', target: '親職活動, 諾貝爾 A, 諾貝爾 B, 諾貝爾 C', category: '親職活動', timeLocation: '17:00 開始', description: '諾A班親師座談交流', theme: '快樂上學趣' },
+        { id: 'EV-08', date: '2026-09-09', title: '幸福廚房（諾C/諾B/諾A）', target: '諾貝爾 A, 諾貝爾 B, 諾貝爾 C', category: '班級主題', timeLocation: '', description: '諾A班小小烘焙師手作體驗', theme: '快樂上學趣' },
+        { id: 'EV-14', date: '2026-10-07', title: '幸福廚房（諾C/諾B/諾A）', target: '諾貝爾 A, 諾貝爾 B, 諾貝爾 C', category: '班級主題', timeLocation: '', description: '諾A班十月份幸福廚房手作日', theme: '主題活動：人與自己／人與他人概念' },
         { id: 'EV-15', date: '2026-10-08', title: '十月壽星慶生會', target: '全園', category: '全園活動', timeLocation: '', description: '分享快樂分享愛！', theme: '主題活動：人與自己／人與他人概念' },
         { id: 'EV-16', date: '2026-10-09', endDate: '2026-10-11', title: '雙十節連假', target: '全園', category: '節慶放假', timeLocation: '連假三日', description: '國慶連續假期放假', theme: '主題活動：人與自己／人與他人概念' },
         { id: 'EV-17', date: '2026-10-23', title: '牙齒塗氟日 口腔保健檢查', target: '諾貝爾A班', category: '重要活動', timeLocation: '08:30 (五)', description: '🌟 全園定期塗氟檢查，請家長務必攜帶健保卡！未攜帶無法參加喔！', theme: '主題活動：人與自己／人與他人概念' },
@@ -2390,7 +2429,7 @@
 
         // 標記小圓點或文字
         let badgesHtml = '<div class="flex items-center gap-0.5 flex-wrap justify-end">';
-        let hasNobelA = dayEvents.some(e => (e.target || '').includes('諾貝爾A班') || (e.title || '').includes('諾A'));
+        let hasNobelA = dayEvents.some(e => (e.target || '').includes('諾貝爾A') || (e.target || '').includes('諾貝爾 A') || (e.target || '').includes('諾A') || (e.title || '').includes('諾A'));
         let hasKitchen = dayEvents.some(e => (e.categoryMajor || '').includes('幸福廚房') || (e.categoryMinor || '').includes('幸福廚房') || (e.category || '').includes('幸福廚房') || (e.title || '').includes('幸福廚房'));
         let hasWholeSchool = dayEvents.some(e => (e.categoryMajor || '').includes('全園') || (e.categoryMinor || '').includes('全園') || (e.category || '').includes('全園') || (e.categoryMajor || '').includes('慶生') || (e.categoryMinor || '').includes('慶生') || (e.category || '').includes('慶生') || (e.title || '').includes('壽星'));
 
@@ -2419,7 +2458,7 @@
         let eventBrief = '';
         if (dayEvents.length > 0) {
           const firstEv = dayEvents[0];
-          const isHighlight = (firstEv.target || '').includes('諾貝爾A班');
+          const isHighlight = (firstEv.target || '').includes('諾貝爾A') || (firstEv.target || '').includes('諾貝爾 A') || (firstEv.target || '').includes('諾A');
           const title = firstEv.title.length > 5 ? firstEv.title.slice(0, 4) + '..' : firstEv.title;
           eventBrief = `<div class="truncate text-[0.625rem] leading-tight px-1 py-0.5 rounded ${isHighlight ? 'bg-peach-500 text-white font-black' : 'bg-rose-100/80 text-rose-700 font-medium'}">${title}</div>`;
         } else if (dayMenu && !isWeekend) {
@@ -2513,7 +2552,7 @@
       badgesContainer.innerHTML = '';
       if (dayEvents.length > 0) {
         dayEvents.forEach(ev => {
-          const isNobel = (ev.target || '').includes('諾貝爾A班');
+          const isNobel = (ev.target || '').includes('諾貝爾A') || (ev.target || '').includes('諾貝爾 A') || (ev.target || '').includes('諾A');
           badgesContainer.innerHTML += `<span class="px-2.5 py-0.5 rounded-full text-xs font-bold ${isNobel ? 'bg-peach-500 text-white' : 'bg-berry-100 text-berry-700'}">${ev.title}</span>`;
         });
       }
@@ -2534,16 +2573,16 @@
         `;
       } else {
         dayEvents.forEach(ev => {
-          const isNobelA = (ev.target || '').includes('諾貝爾A班');
-          const isHoliday = (ev.category || '').includes('放假');
+          const isNobelA = (ev.target || '').includes('諾貝爾A班') || (ev.target || '').includes('諾貝爾 A') || (ev.target || '').includes('諾A');
+          const isHoliday = (ev.categoryMajor || ev.category || '').includes('放假');
           const cardBg = isNobelA ? 'bg-peach-50/70 border-peach-200' : isHoliday ? 'bg-amber-50/70 border-amber-200' : 'bg-slate-50 border-slate-200';
           
           eventsListEl.innerHTML += `
             <div class="p-3.5 rounded-2xl border ${cardBg} space-y-1.5 shadow-2xs">
               <div class="flex items-center justify-between gap-2 flex-wrap">
-                <span class="text-xs font-bold px-2 py-0.5 rounded-md ${isNobelA ? 'bg-peach-500 text-white' : 'bg-slate-200 text-slate-700'}">
-                  ${isNobelA ? '🌟 諾貝爾A班焦點' : ev.target || '全園'}
-                </span>
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  ${renderTargetBadges(ev.target)}
+                </div>
                 <span class="text-xs font-bold text-slate-500">${ev.timeLocation || ''}</span>
               </div>
               <h5 class="text-sm font-black text-slate-800 flex items-center gap-1">
@@ -2701,7 +2740,7 @@
       monthEvents.sort((a, b) => normalizeDate(a.date).localeCompare(normalizeDate(b.date)));
 
       monthEvents.forEach(ev => {
-        const isNobelA = (ev.target || '').includes('諾貝爾A班');
+        const isNobelA = (ev.target || '').includes('諾貝爾A班') || (ev.target || '').includes('諾貝爾 A') || (ev.target || '').includes('諾A');
         timeline.innerHTML += `
           <div class="p-3 rounded-2xl bg-slate-50 hover:bg-peach-50 border border-slate-100 transition-colors flex items-center justify-between gap-3 cursor-pointer" onclick="onDateClicked('${normalizeDate(ev.date)}')">
             <div class="flex items-center gap-3">
@@ -2710,9 +2749,11 @@
                 ${ev.endDate ? `<div class="text-[0.5625rem] text-slate-400">至${normalizeDate(ev.endDate).slice(5)}</div>` : ''}
               </div>
               <div>
-                <div class="flex items-center gap-1.5">
+                <div class="flex items-center gap-1.5 flex-wrap">
                   <span class="text-xs font-bold ${isNobelA ? 'text-peach-600' : 'text-slate-800'}">${ev.title}</span>
-                  <span class="text-[0.625rem] px-1.5 py-0.5 rounded font-bold ${isNobelA ? 'bg-peach-500 text-white' : 'bg-slate-200 text-slate-600'}">${ev.target || '全園'}</span>
+                  <div class="inline-flex items-center gap-1 flex-wrap">
+                    ${renderTargetBadges(ev.target, 'sm')}
+                  </div>
                 </div>
                 <div class="text-xs text-slate-400 mt-0.5">${ev.description || ev.timeLocation || '精彩生活體驗'}</div>
               </div>
@@ -3363,7 +3404,7 @@
           <tr class="hover:bg-slate-50">
             <td class="py-2 px-2 font-mono">${normalizeDate(ev.date)}</td>
             <td class="py-2 px-2 font-bold text-slate-800">${ev.title}</td>
-            <td class="py-2 px-2">${(ev.target || '全園').split(',').map(t => '<span class="bg-slate-100 px-1.5 py-0.5 rounded text-[0.625rem] inline-block mr-1 mb-1">' + t.trim() + '</span>').join('')}</td>
+            <td class="py-2 px-2"><div class="flex items-center gap-1 flex-wrap">${renderTargetBadges(ev.target, 'sm')}</div></td>
             <td class="py-2 px-2 text-right space-x-1">
               <button onclick="editEventInAdmin('${ev.id}')" class="text-peach-600 hover:underline font-bold">編輯</button>
               <button onclick="deleteEventInAdmin('${ev.id}')" class="text-rose-500 hover:underline">刪除</button>
