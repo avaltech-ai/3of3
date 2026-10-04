@@ -191,7 +191,7 @@ const htmlContent = `<!DOCTYPE html>
                 </div>
                 <h1 class="text-xl sm:text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2 mt-0.5">
                   <span>諾貝爾 A 班</span>
-                  <span class="text-xs sm:text-sm font-bold text-white bg-rose-500 px-3 py-0.5 rounded-full shadow-xs">Nobel A Family</span>
+                  <span class="text-xs sm:text-sm font-bold text-white bg-rose-500 px-3 py-0.5 rounded-full shadow-xs">Happy Life</span>
                 </h1>
               </div>
             </div>
@@ -1927,11 +1927,7 @@ const htmlContent = `<!DOCTYPE html>
 
   <!-- ==================== 頁尾 FOOTER ==================== -->
   <footer class="bg-white border-t border-rose-100/80 py-6 mt-12 text-center text-xs text-slate-400 space-y-1">
-    <div class="flex items-center justify-center gap-2">
-      <span class="font-bold text-slate-600">桃子腳幼兒園</span>
-      <span>•</span>
-      <span class="font-medium text-slate-600">TEL：02-2668-8249｜FAX：02-2668-8245</span>
-    </div>
+    <p class="font-bold text-sm text-rose-600 tracking-wide">TEL：02-2668-8249｜FAX：02-2668-8245</p>
     <p>用愛陪伴孩子成長的每一步</p>
   </footer>
 
