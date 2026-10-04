@@ -5,9 +5,13 @@
 - **Frontend Framework**: Vanilla HTML/JS styled with TailwindCSS (via CDN). Single-page application logic defined in `build_index.js`, which generates `index.html`.
 - **Backend API**: Google Apps Script deployed as a Web App (access: "Anyone"). Handles GET and POST requests.
 - **Latest Features Implemented**:
-  - Rebranded from "3&3 Foundation" to an informal parent-run site.
-  - Custom UI/UX for Spotlight Carousel (autoplay, muted video support, dynamic status tags, responsive design).
-  - Admin backend login and file upload structure in place.
+  - Header & Branding overhaul: 3&3 logo, official kindergarten badges, "Happy Life" capsule tag, and top-right admin login/logout controls.
+  - Complete Weekly Themes (主題活動) system with dual date pickers, dynamic semester selector, Google Drive thumbnail CDN rendering, and newest-first sorting (`sortThemesDesc`).
+  - Songs & Music Player (唱跳音符) duration fix and YouTube API batch duration sync (`batchUpdateSongDurations`).
+  - Navigation hierarchy realignment placing "主題活動" between "班級日常" and "影像記錄", with pixel-aligned sidebar header.
+  - iPad and tablet viewport optimization with compact 136px pinned sidebar and 48px collapsed rail.
+  - Footer contact information restyling with prominent rose-600 telephone and fax numbers.
+  - Current GAS Backend deployed at version `@106`.
 
 ## Critical Technical Lessons Learned (Do Not Repeat)
 
@@ -102,3 +106,41 @@
 - **Spotlight Carousel Direct Reordering**: Added direct carousel reordering controls directly on the "現有焦點活動列表" (Spotlight list in Admin). Users can now directly click `▲` (move up), `▼` (move down), or change the dropdown to swap/reorder any activity in the carousel instantly. Includes real-time UI/localStorage updates and automated batch sync to Google Sheets (`updateSpotlightsOrder`).
 - **Priority Format Hardening**: Guarded against Google Sheets auto-formatting priority numbers as date serials by enforcing integer format (`0`) and normalizing priority values both on the backend and frontend.
 - **Spotlight Modal Button Stabilization**: Fixed the issue where left/right navigation triangle buttons jumped vertically when switching between images of different aspect ratios. Locked `modalSpotlightMediaWrapper` with a fixed, stable responsive height (`h-[52vh] sm:h-[62vh] min-h-[340px] max-h-[620px]`) and `object-contain`, keeping the `◀` and `▶` button anchors completely stationary in the viewport across all picture switches.
+
+### 13. Songs & Music Player System (唱跳音符)
+- **Duration Parsing Bug & Fix**: Google Sheets automatically converted `mm:ss` (e.g. `03:45`) into date/time serial formats (e.g., `1899-12-30T00:03:45.000Z`), causing frontend song card durations to incorrectly display `00:01` or NaN. Resolved by enforcing explicit text formatting (`@`) on the duration column in Google Sheets, sanitizing ISO string parsing in `Code.js`, and adding duration format validation on the frontend.
+- **YouTube API Batch Duration Sync**: Implemented `batchUpdateSongDurations(adminPassword)` in GAS backend. When invoked, it extracts video IDs from YouTube URLs in the `Songs` sheet, queries YouTube Data API v3 (`videos.list?part=contentDetails`), parses ISO 8601 durations (`PT#M#S`), and batch writes clean `mm:ss` durations back to the spreadsheet.
+- **Player UI Simplification**: Streamlined the floating music player capsule with modern play/pause status toggles, persistent modal playback modes, and fluid responsive layouts.
+
+### 14. Weekly Themes System Architecture (主題活動)
+- **Database Schema**: Established `Themes` and `ThemeSemesters` sheets in the backend. Added CRUD endpoints in `Code.js` (`saveTheme`, `deleteTheme`) and integrated theme data loading into `getAppData`.
+- **Payload Schema Synchronization**: Resolved backend-frontend payload parameter mismatches (standardized parameter name to `data` and aligned field mappings for `semester`, `week`, `title`, `startDate`, `endDate`, `description`, `images`, and `updatedAt`).
+- **Dynamic Semester Dropdown**: Replaced hardcoded/free-text semester input in the theme editing modal with a dynamic `<select>` dropdown automatically populated from the `ThemeSemesters` sheet.
+- **HTML5 Start & End Date Pickers**: Replaced ambiguous single-string date inputs with dual HTML5 date pickers (`startDate` and `endDate`), improving input validation and calendar consistency.
+- **Google Drive Direct Thumbnail Rendering**: Optimized Drive image display by converting Drive sharing links and file IDs directly into Google's high-speed image CDN format (`https://lh3.googleusercontent.com/d/{id}`). Removed distracting hyperlinking on thumbnail images to keep cards focused on visual presentation.
+- **Reverse Chronological Sorting (`sortThemesDesc`)**: Implemented automatic sorting logic across both frontend grid views and backend admin tables. Themes are sorted newest-first by start date and week, ensuring the latest kindergarten activities are immediately visible at the top.
+
+### 15. Menu Navigation Hierarchy & Sidebar Reordering
+- **Menu Sequence Realignment**: Moved the "主題活動" (Weekly Themes) navigation item to sit logically between "班級日常" (Daily) and "影像記錄" (Albums).
+- **Sidebar Header Alignment**: Adjusted the "選單導覽" label font size, weight, and icon dimensions in the left sidebar to achieve 100% pixel-perfect horizontal and vertical alignment with navigation links below it.
+
+### 16. Header, Branding & Admin Status Redesign
+- **Official Branding**: Embedded high-resolution vector 3&3 logo (`logo_b64.txt`) in the top navigation header alongside "三之三生命教育基金會" and "新北市桃子腳非營利幼兒園" badges.
+- **Brand Tagline**: Updated the red header pill to display "Happy Life" with rounded-full pill styling.
+- **Admin Status Realignment**: Relocated the "管理員已登入" indicator badge and "登出" action button back to their intuitive location at the top-right corner of the website navigation bar.
+- **Admin Login Modal Cleanup**: Stripped out verbose helper text and default password reminders (`#adminLoginCard`) to provide a clean, secure, and professional authentication interface.
+
+### 17. Footer Contact Information Restyling
+- **Copy Cleanliness**: Removed redundant "桃子腳幼兒園" text label and bullet separators from the footer.
+- **Prominent Contact Details**: Restyled telephone and fax numbers with high-contrast, prominent rose typography (`text-rose-600 font-bold text-sm tracking-wide`): `TEL：02-2668-8249｜FAX：02-2668-8245`, ensuring parents can quickly spot contact details across all device sizes.
+
+### 18. Sidebar Width & iPad Viewport Optimization
+- **Problem**: On iPad and 768px–1024px tablet viewports, the desktop sidebar left margin occupied excessive whitespace (~192px–256px), severely squeezing right-side activity cards and tables.
+- **Solution**:
+  - Reduced the expanded/pinned sidebar width to `136px` (`w-[136px]`).
+  - Reduced the collapsed icon-only rail width to `48px` (`w-12`).
+  - Reclaimed 60px–120px of active viewport width for the main content area, providing ample breathing room for cards, forms, and photo galleries on iPad in both portrait and landscape modes.
+
+### 19. Current Deployment Version & Environments
+- **Frontend**: Source maintained in `build_index.js`, compiling to `index.html`. Tracked on GitHub (`avaltech-ai/3of3.git` on branch `main`).
+- **Google Apps Script Backend**: Version deployed at `@106` (`AKfycbx5JGeiSH2J1vkOu4rh9NPwFBWNSkn5PkHfY5o25t-K4WcOK8b3VQjXi-TqUOzS8TvdJg`).
