@@ -7853,7 +7853,7 @@ const htmlContent = `<!DOCTYPE html>
         }
         
         let imagesHtml = '';
-        if (theme.results && theme.results.length > 0) {
+        if (theme.photos && theme.photos.length > 0) {
           imagesHtml = \`
             <div class="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-2">
               \${theme.results.map(url => \`
@@ -7983,10 +7983,10 @@ const htmlContent = `<!DOCTYPE html>
       document.getElementById('modalThemeId').value = t.id;
       document.getElementById('modalThemeSemester').value = t.semester || '';
       document.getElementById('modalThemeWeek').value = t.week || '';
-      document.getElementById('modalThemeDateRange').value = t.dateRange || '';
-      document.getElementById('modalThemeName').value = t.name || '';
-      document.getElementById('modalThemeConcept').value = t.concept || '';
-      document.getElementById('modalThemeResults').value = (t.results || []).join('\\n');
+      document.getElementById('modalThemeDateRange').value = t.startDate || '';
+      document.getElementById('modalThemeName').value = t.themeName || '';
+      document.getElementById('modalThemeConcept').value = t.themeConcept || '';
+      document.getElementById('modalThemeResults').value = (t.photos || []).join('\\n');
       
       const container = document.getElementById('modalThemeGoalsContainer');
       container.innerHTML = '';
@@ -8025,7 +8025,7 @@ const htmlContent = `<!DOCTYPE html>
         return;
       }
       
-      const themeData = { id, semester, week, dateRange, name, concept, goals, results };
+      const themeData = { id: id, semester: semester, week: week, startDate: dateRange, endDate: '', themeName: name, themeConcept: concept, goals: goals, photos: results };
       
       showToast('儲存中...', '⏳');
       const btn = document.getElementById('btnSaveTheme');
@@ -8051,7 +8051,7 @@ const htmlContent = `<!DOCTYPE html>
           renderAdminThemesList();
           renderThemes(); // Update frontend
         } else {
-          alert('儲存失敗：' + (res ? res.message : '未知錯誤'));
+          alert('儲存失敗：' + (res ? (res.error || res.message) : '未知錯誤'));
         }
       }, err => {
         btn.disabled = false;
@@ -8070,7 +8070,7 @@ const htmlContent = `<!DOCTYPE html>
           renderAdminThemesList();
           renderThemes();
         } else {
-          alert('刪除失敗：' + (res ? res.message : '未知錯誤'));
+          alert('刪除失敗：' + (res ? (res.error || res.message) : '未知錯誤'));
         }
       }, err => {
         alert('網路錯誤，請稍後再試！');
