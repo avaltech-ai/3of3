@@ -105,6 +105,8 @@
     #albumPhotosGrid, #albumThumbnails {
       grid-auto-rows: max-content !important;
     }
+    #songPlayerHolder { position: relative; }
+    #songPlayerHolder iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
   </style>
 </head>
 <body class="text-slate-700 min-h-screen flex flex-col antialiased selection:bg-peach-200">
@@ -137,6 +139,10 @@
         <button onclick="switchTab('albums')" id="tabBtn-albums" class="tab-btn flex items-center p-2 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
           <span class="text-xl w-8 text-center shrink-0">📸</span>
           <span class="font-bold text-sm whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-2">影像紀錄</span>
+        </button>
+        <button onclick="switchTab('songs')" id="tabBtn-songs" class="tab-btn flex items-center p-2 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
+          <span class="text-xl w-8 text-center shrink-0">🎵</span>
+          <span class="font-bold text-sm whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-2">唱跳音符</span>
         </button>
         <button onclick="switchTab('docs')" id="tabBtn-docs" class="tab-btn flex items-center p-2 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
           <span class="text-xl w-8 text-center shrink-0">📁</span>
@@ -192,6 +198,10 @@
     <button onclick="switchTab('albums')" id="mTabBtn-albums" class="m-tab-btn flex-1 py-1.5 flex flex-col items-center justify-center text-xs font-bold rounded-xl transition-all text-slate-500 hover:text-slate-800">
       <span class="text-lg">📸</span>
       <span>影像紀錄</span>
+    </button>
+    <button onclick="switchTab('songs')" id="mTabBtn-songs" class="m-tab-btn flex-1 py-1.5 flex flex-col items-center justify-center text-xs font-bold rounded-xl transition-all text-slate-500 hover:text-slate-800">
+      <span class="text-lg">🎵</span>
+      <span>唱跳音符</span>
     </button>
     <button onclick="switchTab('docs')" id="mTabBtn-docs" class="m-tab-btn flex-1 py-1.5 flex flex-col items-center justify-center text-xs font-bold rounded-xl transition-all text-slate-500 hover:text-slate-800">
       <span class="text-lg">📁</span>
@@ -587,6 +597,56 @@
       </div>
     </section>
 
+    <!-- ==================== TAB: 唱跳音符 (SONGS) ==================== -->
+    <section id="tabContent-songs" class="space-y-6 hidden">
+      <!-- 唱跳音符抬頭 -->
+      <div class="bg-gradient-to-r from-pink-50 via-fuchsia-50 to-violet-50 p-5 rounded-3xl border border-fuchsia-200/70 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-2xl">🎵</span>
+            <h2 class="text-xl font-black text-slate-800 tracking-tight">唱跳音符</h2>
+          </div>
+          <p class="text-xs sm:text-sm text-slate-600 mt-1">
+            跟著旋律一起唱唱跳跳，在家也能複習幼兒園的歌曲與律動！
+          </p>
+        </div>
+        <div class="flex items-center gap-2">
+          <a id="btnBrowseCloudSongs" href="https://drive.google.com/drive/folders/1vurxReuOW0laMDw1xSSOqeM5zT0TCmBQ" target="_blank" rel="noopener noreferrer" class="px-3.5 py-2 rounded-xl bg-white text-fuchsia-700 border border-fuchsia-300 text-xs font-bold hover:bg-fuchsia-50 flex items-center gap-1.5 shadow-2xs tap-bounce hidden">
+            <span>📂</span> 開啟 Google Drive 音樂資料夾
+          </a>
+          <button onclick="refreshSongs()" class="px-3 py-2 rounded-xl bg-fuchsia-600 text-white text-xs font-bold hover:bg-fuchsia-700 shadow-sm tap-bounce">
+            🔄 重新整理
+          </button>
+        </div>
+      </div>
+
+      <!-- 歌曲快速篩選工具列 -->
+      <div class="bg-white p-4 sm:p-5 rounded-3xl border border-fuchsia-200/70 shadow-xs space-y-3.5">
+        <div class="relative">
+          <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 text-xs">🔍</span>
+          <input type="text" id="songFilter-keyword" placeholder="搜尋歌名或關鍵字..." class="w-full pl-9 pr-9 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-medium focus:bg-white focus:border-fuchsia-500 focus:outline-none transition-all" oninput="applySongFilters()">
+          <button type="button" id="songFilter-clearKeyword" onclick="clearSongFilterKeyword()" class="hidden absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 text-xs font-bold tap-bounce">✕</button>
+        </div>
+
+        <!-- 類別膠囊按鈕（可複選，預設全部） -->
+        <div id="songCategoryPills" class="flex flex-wrap items-center gap-2 pt-0.5">
+          <!-- 由 JS 動態產生 -->
+        </div>
+
+        <div class="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-500">
+          <span id="songFilterCountText" class="font-bold text-slate-700">共 0 首歌曲</span>
+          <button onclick="resetSongFilters()" class="text-fuchsia-600 hover:text-fuchsia-800 font-bold hover:underline flex items-center gap-1 tap-bounce">
+            <span>🔄</span> 重設
+          </button>
+        </div>
+      </div>
+
+      <!-- 歌曲列表 -->
+      <div id="songsListContainer" class="space-y-3">
+        <!-- JS 動態插入歌曲 -->
+      </div>
+    </section>
+
     <!-- ==================== TAB 3: 常用文件下載 (DOCS) ==================== -->
     <section id="tabContent-docs" class="space-y-6 hidden">
       <!-- 文件區抬頭 -->
@@ -685,6 +745,9 @@
           </button>
           <button onclick="switchAdminSubtab('uploadPhoto')" id="adminSubtabBtn-uploadPhoto" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
             📸 相簿批次上傳
+          </button>
+          <button onclick="switchAdminSubtab('songs')" id="adminSubtabBtn-songs" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
+            🎵 唱跳音符管理
           </button>
           <button onclick="switchAdminSubtab('uploadDoc')" id="adminSubtabBtn-uploadDoc" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
             📂 文件檔案上傳
@@ -1012,6 +1075,100 @@
                 </thead>
                 <tbody id="adminAlbumsTableBody" class="divide-y divide-slate-100 font-medium text-slate-700">
                   <!-- 動態渲染相簿資料列 -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- 子分頁: 唱跳音符管理 (Google Drive Songs) -->
+        <div id="adminPanel-songs" class="admin-panel space-y-5 hidden">
+          <div id="songFormCard" class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+            <div>
+              <h4 id="songFormTitle" class="font-black text-slate-800 text-base">新增歌曲</h4>
+              <p class="text-xs text-slate-500 mt-0.5">
+                音樂檔會存入 Google Drive「唱跳音符」資料夾（
+                <a href="https://drive.google.com/drive/folders/1vurxReuOW0laMDw1xSSOqeM5zT0TCmBQ" target="_blank" rel="noopener noreferrer" class="text-fuchsia-700 font-bold hover:underline">開啟資料夾</a>
+                ）。類別請直接在 Google 試算表的 <b>SongCategories</b> 工作表新增，重新整理後即會出現在下方選單。
+              </p>
+            </div>
+
+            <form id="songForm" onsubmit="handleSaveSong(event)" class="space-y-3">
+              <div>
+                <label class="block text-xs font-bold text-slate-600 mb-1">YouTube 連結 *</label>
+                <input type="url" id="songForm-youtube" placeholder="https://www.youtube.com/watch?v=... 或 https://youtu.be/..." oninput="onSongYoutubeInput()" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-fuchsia-500 focus:outline-none">
+                <div id="songForm-youtubeMsg" class="text-[0.6875rem] mt-1"></div>
+                <div id="songForm-thumbPreview" class="hidden mt-2">
+                  <img id="songForm-thumbImg" src="" alt="縮圖預覽" class="w-40 aspect-video object-cover rounded-xl border border-slate-200 shadow-2xs">
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 mb-1">類別 *</label>
+                  <select id="songForm-category" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-fuchsia-500 focus:outline-none"></select>
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 mb-1">歌名 *</label>
+                  <input type="text" id="songForm-title" placeholder="如：小星星" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-fuchsia-500 focus:outline-none">
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-600 mb-1">音樂檔（選填，供前台下載）</label>
+                <div class="border-2 border-dashed border-fuchsia-200 rounded-2xl p-4 text-center hover:bg-fuchsia-50/50 transition-colors cursor-pointer" onclick="document.getElementById('songForm-fileInput').click()">
+                  <input type="file" id="songForm-fileInput" accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.flac" class="hidden" onchange="handleSongFileChosen(event)">
+                  <div class="text-2xl mb-0.5">🎧</div>
+                  <div class="text-xs font-bold text-slate-700">點此選取音樂檔（MP3、M4A、WAV…，上限 25 MB）</div>
+                </div>
+                <div id="songForm-fileStatus" class="text-xs text-slate-400 mt-2">尚未上傳音樂檔（選填，上傳後前台才會出現下載圖示）</div>
+              </div>
+
+              <!-- 上傳 / 儲存進度 -->
+              <div id="songUploadProgressBox" class="hidden bg-fuchsia-50/60 border border-fuchsia-200 rounded-2xl p-3 space-y-2" aria-live="polite">
+                <div class="flex items-center justify-between text-xs font-bold text-slate-700">
+                  <span id="songUploadStatus">準備中…</span>
+                  <span id="songUploadPercent" class="text-fuchsia-700">0%</span>
+                </div>
+                <div class="h-2.5 rounded-full bg-white border border-fuchsia-100 overflow-hidden">
+                  <div id="songUploadBar" class="h-full rounded-full bg-fuchsia-500 transition-all duration-300" style="width:0%"></div>
+                </div>
+                <div id="songUploadEta" class="text-[0.6875rem] text-slate-500"></div>
+              </div>
+
+              <div class="flex justify-end gap-2 pt-1">
+                <button type="button" id="songFormCancelBtn" onclick="clearSongForm()" class="hidden px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs tap-bounce">取消編輯</button>
+                <button type="button" onclick="clearSongForm()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs tap-bounce">清空表單</button>
+                <button type="submit" id="songFormSaveBtn" class="px-6 py-2 rounded-xl bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-bold text-xs shadow-sm tap-bounce disabled:opacity-50">儲存歌曲</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- 既有歌曲一覽 -->
+          <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+              <div>
+                <h4 class="font-black text-slate-800 text-base">既有歌曲清單</h4>
+                <p class="text-xs text-slate-500 mt-0.5">可編輯歌曲資訊或更換音樂檔；刪除只會移除清單項目，不會刪除 Google Drive 內的檔案。</p>
+              </div>
+              <div class="flex items-center gap-2">
+                <span id="adminSongsCountBadge" class="px-2.5 py-1 rounded-full bg-fuchsia-50 text-fuchsia-800 text-xs font-bold border border-fuchsia-200">共 0 首歌曲</span>
+                <button type="button" onclick="refreshSongs()" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold tap-bounce">🔄 重新整理</button>
+              </div>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr class="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
+                    <th class="py-2.5 px-3 rounded-l-xl">縮圖</th>
+                    <th class="py-2.5 px-3">類別</th>
+                    <th class="py-2.5 px-3">歌名</th>
+                    <th class="py-2.5 px-3">音樂檔</th>
+                    <th class="py-2.5 px-3 text-right rounded-r-xl">管理操作</th>
+                  </tr>
+                </thead>
+                <tbody id="adminSongsTableBody" class="divide-y divide-slate-100 font-medium text-slate-700">
+                  <!-- 動態渲染 -->
                 </tbody>
               </table>
             </div>
@@ -1394,6 +1551,40 @@
     </div>
   </div>
 
+  <!-- ==================== 唱跳音符 玻璃播放視窗 ==================== -->
+  <div id="songPlayerModal" class="fixed inset-0 z-60 flex items-center justify-center p-3 sm:p-6 select-none hidden" style="background: rgba(15,23,42,0.55); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);" onclick="handleSongPlayerBackdrop(event)">
+    <div class="w-full max-w-3xl rounded-3xl border border-white/30 shadow-2xl p-3 sm:p-5 text-white flex flex-col gap-3" style="background: linear-gradient(135deg, rgba(255,255,255,0.24), rgba(255,255,255,0.08)); backdrop-filter: blur(24px) saturate(160%); -webkit-backdrop-filter: blur(24px) saturate(160%);" onclick="event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="songPlayerTitle">
+      <div class="flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2 min-w-0">
+          <span id="songPlayerCategory" class="text-[0.6875rem] font-extrabold px-2.5 py-0.5 rounded-full shrink-0"></span>
+          <h3 id="songPlayerTitle" class="text-base sm:text-lg font-black truncate"></h3>
+        </div>
+        <button type="button" onclick="closeSongPlayer()" class="w-9 h-9 rounded-full bg-white/15 hover:bg-white/30 text-white flex items-center justify-center font-bold text-lg tap-bounce shrink-0 cursor-pointer" title="關閉 (Esc)" aria-label="關閉">✕</button>
+      </div>
+
+      <div class="relative">
+        <div id="songPlayerHolder" class="w-full aspect-video rounded-2xl overflow-hidden bg-black shadow-lg"></div>
+        <div id="songPlayerError" class="hidden absolute inset-0 rounded-2xl bg-slate-900/90 flex flex-col items-center justify-center gap-2 text-center p-4">
+          <div class="text-3xl">😢</div>
+          <div class="text-sm font-bold">這支影片無法在這裡播放</div>
+          <a id="songPlayerOpenYoutube" href="#" target="_blank" rel="noopener noreferrer" class="px-4 py-1.5 rounded-full bg-white text-fuchsia-700 text-xs font-black tap-bounce">到 YouTube 觀看 ↗</a>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between gap-3 px-1">
+        <div class="flex items-center gap-2.5">
+          <button type="button" id="songRepeatToggle" role="switch" aria-checked="false" aria-label="重複播放" onclick="toggleSongRepeat()" class="relative w-11 h-6 rounded-full transition-colors shrink-0 cursor-pointer bg-white/30">
+            <span id="songRepeatKnob" class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform"></span>
+          </button>
+          <span class="text-xs sm:text-sm font-bold">🔁 重複播放</span>
+        </div>
+        <a id="songPlayerDownload" href="#" target="_blank" rel="noopener noreferrer" class="hidden w-10 h-10 rounded-full bg-white/15 hover:bg-white/30 text-white flex items-center justify-center tap-bounce transition-colors" title="下載音樂檔" aria-label="下載音樂檔">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M7 11l5 5 5-5"/><path d="M4 19h16"/></svg>
+        </a>
+      </div>
+    </div>
+  </div>
+
   <!-- ==================== 單張照片大圖檢視 (PHOTO VIEWER) ==================== -->
   <div id="photoViewerModal" class="fixed inset-0 z-70 bg-black/95 flex flex-col items-center justify-between p-3 sm:p-5 select-none hidden" onclick="handlePhotoViewerBackdropClick(event)">
     <!-- 頂部工具列 -->
@@ -1573,6 +1764,9 @@
       menus: [],
       spotlights: [],
       docs: [],
+      songs: [],
+      songCategories: [],
+      selectedSongCategories: new Set(),
       settings: {},
       adminPassword: '',
       selectedAlbumFiles: [],
@@ -1686,6 +1880,9 @@
         else if (action === 'deleteDoc') runner.deleteDoc(payload.id, payload.password);
         else if (action === 'updateSettings') runner.updateSettings(payload.settings, payload.password);
         else if (action === 'setupInitialDatabase') runner.setupInitialDatabase();
+        else if (action === 'uploadSong') runner.uploadSong(payload.meta, payload.file, payload.password);
+        else if (action === 'saveSong') runner.saveSong(payload.songData, payload.password);
+        else if (action === 'deleteSong') runner.deleteSong(payload.id, payload.password);
       } else {
         // 外部環境模式 (Netlify / GitHub Pages)
         
@@ -2156,8 +2353,13 @@
       ];
       state.eventCategoriesMajor = data.eventCategoriesMajor || []; state.eventCategoriesMinor = data.eventCategoriesMinor || [];
       state.albumCategories = data.albumCategories || ['班級主題', '全園活動', '親職活動', '節慶活動', '幸福廚房', '健康檢查', '戶外踏訪', '日常生活'];
+      state.songs = data.songs || [];
+      state.songCategories = data.songCategories || [];
       renderDocCategoriesUI();
       renderAlbumCategoriesUI();
+      renderSongCategoriesUI();
+      applySongFilters();
+      renderAdminSongsTable();
       renderEventOptionsUI();
       
       // 渲染 Spotlight
@@ -2180,7 +2382,7 @@
 
       // 嚴格依據目前頁籤 (state.currentTab) 保持顯示狀態，絕不私自開啟或混雜 home 內容
       const current = state.currentTab || 'home';
-      ['home', 'albums', 'docs', 'admin'].forEach(tab => {
+      ['home', 'albums', 'songs', 'docs', 'admin'].forEach(tab => {
         const contentEl = document.getElementById('tabContent-' + tab);
         if (contentEl) {
           if (tab === current) {
@@ -2370,7 +2572,7 @@
     // ==================== 頁籤切換邏輯 ====================
     function switchTab(tabName) {
       state.currentTab = tabName;
-      ['home', 'albums', 'docs', 'admin'].forEach(tab => {
+      ['home', 'albums', 'songs', 'docs', 'admin'].forEach(tab => {
         const contentEl = document.getElementById(`tabContent-${tab}`);
         const btnEl = document.getElementById(`tabBtn-${tab}`);
         const mBtnEl = document.getElementById(`mTabBtn-${tab}`);
@@ -2400,6 +2602,9 @@
       }
       if (tabName === 'docs') {
         renderDocsList();
+      }
+      if (tabName === 'songs') {
+        applySongFilters();
       }
       updateAdminAuthUI();
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -4395,6 +4600,707 @@
       renderDocsList(cat);
     }
 
+    // ==================== 唱跳音符 (SONGS) ====================
+    var SONG_MAX_FILE_BYTES = 25 * 1024 * 1024;
+    var SONG_BADGE_PALETTE = [
+      'bg-pink-100 text-pink-900 border border-pink-300/80',
+      'bg-violet-100 text-violet-900 border border-violet-300/80',
+      'bg-sky-100 text-sky-900 border border-sky-300/80',
+      'bg-amber-100 text-amber-900 border border-amber-300/80',
+      'bg-emerald-100 text-emerald-900 border border-emerald-300/80',
+      'bg-orange-100 text-orange-900 border border-orange-300/80',
+      'bg-teal-100 text-teal-900 border border-teal-300/80'
+    ];
+    var SONG_DOWNLOAD_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M7 11l5 5 5-5"/><path d="M4 19h16"/></svg>';
+
+    var songFormSelectedFile = null;
+    var songFormEditingId = '';
+    var songSaving = false;
+    var songUploadTimer = null;
+    var songPlayer = null;
+    var songPlayerToken = 0;
+    var songPlayerCurrent = null;
+    var songPlayerUsingFallback = false;
+    var ytApiPromise = null;
+    var songRepeat = false;
+    try { songRepeat = localStorage.getItem('nobel_a_song_repeat') === '1'; } catch (e) {}
+
+    function songEsc(s) {
+      return String(s === undefined || s === null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function formatSongBytes(n) {
+      n = Number(n) || 0;
+      if (n >= 1024 * 1024) return (n / (1024 * 1024)).toFixed(1) + ' MB';
+      if (n >= 1024) return Math.round(n / 1024) + ' KB';
+      return n + ' B';
+    }
+
+    function getYouTubeIdFromUrl(url) {
+      const str = String(url || '').trim();
+      if (!str) return '';
+      const isId = function(s) { return /^[A-Za-z0-9_-]{11}$/.test(s || ''); };
+      let u;
+      try { u = new URL(str.indexOf('://') === -1 ? 'https://' + str : str); } catch (e) { return ''; }
+      const host = u.hostname.toLowerCase();
+      if (host === 'youtu.be' || host === 'www.youtu.be') {
+        const id = u.pathname.split('/')[1];
+        return isId(id) ? id : '';
+      }
+      if (host.indexOf('youtube') !== -1) {
+        const v = u.searchParams.get('v');
+        if (isId(v)) return v;
+        const parts = u.pathname.split('/').filter(Boolean);
+        if (['embed', 'shorts', 'live', 'v'].indexOf(parts[0]) !== -1 && isId(parts[1])) return parts[1];
+      }
+      return '';
+    }
+
+    function getSongYoutubeId(song) {
+      return getYouTubeIdFromUrl(song && song.youtubeUrl) || String((song && song.youtubeId) || '');
+    }
+
+    function getSongThumbUrl(song) {
+      const id = getSongYoutubeId(song);
+      return id ? 'https://i.ytimg.com/vi/' + id + '/mqdefault.jpg' : '';
+    }
+
+    function getSongCategoryBadgeClass(cat) {
+      const list = state.songCategories || [];
+      let idx = list.indexOf(cat);
+      if (idx < 0) {
+        idx = 0;
+        const s = String(cat || '');
+        for (let i = 0; i < s.length; i++) idx += s.charCodeAt(i);
+      }
+      return SONG_BADGE_PALETTE[idx % SONG_BADGE_PALETTE.length];
+    }
+
+    // ---------- 前台：類別膠囊、關鍵字與清單 ----------
+    function renderSongCategoriesUI() {
+      renderSongCategoryPills();
+
+      const sel = document.getElementById('songForm-category');
+      if (sel) {
+        const curVal = sel.value;
+        sel.innerHTML = '';
+        (state.songCategories || []).forEach(function(c) {
+          const opt = document.createElement('option');
+          opt.value = c;
+          opt.textContent = c;
+          if (curVal === c) opt.selected = true;
+          sel.appendChild(opt);
+        });
+      }
+    }
+
+    function renderSongCategoryPills() {
+      const container = document.getElementById('songCategoryPills');
+      if (!container) return;
+      container.innerHTML = '';
+      const cats = state.songCategories || [];
+      const isAll = state.selectedSongCategories.size === 0;
+      const on = 'px-3.5 py-1.5 rounded-full text-xs font-black shadow-xs bg-fuchsia-600 text-white ring-2 ring-fuchsia-500/40 cursor-pointer tap-bounce transition-all inline-flex items-center justify-center';
+      const off = 'px-3.5 py-1.5 rounded-full text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/80 cursor-pointer tap-bounce transition-all inline-flex items-center justify-center';
+
+      const allBtn = document.createElement('button');
+      allBtn.type = 'button';
+      allBtn.textContent = '全部';
+      allBtn.className = isAll ? on : off;
+      allBtn.onclick = function() { toggleSongCategoryFilter(''); };
+      container.appendChild(allBtn);
+
+      cats.forEach(function(c) {
+        const pill = document.createElement('button');
+        pill.type = 'button';
+        pill.textContent = c;
+        pill.className = (!isAll && state.selectedSongCategories.has(c)) ? on : off;
+        pill.onclick = function() { toggleSongCategoryFilter(c); };
+        container.appendChild(pill);
+      });
+    }
+
+    function toggleSongCategoryFilter(cat) {
+      if (!cat) {
+        state.selectedSongCategories.clear();
+      } else if (state.selectedSongCategories.has(cat)) {
+        state.selectedSongCategories.delete(cat);
+      } else {
+        state.selectedSongCategories.add(cat);
+      }
+      renderSongCategoryPills();
+      applySongFilters();
+    }
+
+    function clearSongFilterKeyword() {
+      const kw = document.getElementById('songFilter-keyword');
+      if (kw) kw.value = '';
+      applySongFilters();
+    }
+
+    function resetSongFilters() {
+      const kw = document.getElementById('songFilter-keyword');
+      if (kw) kw.value = '';
+      state.selectedSongCategories.clear();
+      renderSongCategoryPills();
+      applySongFilters();
+    }
+
+    function applySongFilters() {
+      const kwInput = document.getElementById('songFilter-keyword');
+      const kw = ((kwInput && kwInput.value) || '').trim().toLowerCase();
+      const clearBtn = document.getElementById('songFilter-clearKeyword');
+      if (clearBtn) clearBtn.classList.toggle('hidden', !kw);
+
+      const selected = state.selectedSongCategories;
+      const all = state.songs || [];
+      const filtered = all.filter(function(s) {
+        if (kw) {
+          const hit = String(s.title || '').toLowerCase().indexOf(kw) !== -1 ||
+                      String(s.category || '').toLowerCase().indexOf(kw) !== -1;
+          if (!hit) return false;
+        }
+        if (selected.size > 0 && !selected.has(String(s.category || '').trim())) return false;
+        return true;
+      });
+
+      const countText = document.getElementById('songFilterCountText');
+      if (countText) {
+        countText.textContent = (kw || selected.size > 0)
+          ? '已篩選 ' + filtered.length + ' 首歌曲'
+          : '共 ' + all.length + ' 首歌曲';
+      }
+      renderSongsList(filtered);
+    }
+
+    function renderSongsList(songs) {
+      const container = document.getElementById('songsListContainer');
+      if (!container) return;
+      container.innerHTML = '';
+
+      // 管理員才顯示「開啟雲端資料夾」捷徑
+      const browseBtn = document.getElementById('btnBrowseCloudSongs');
+      if (browseBtn) {
+        const isAdmin = !!(state.adminPassword || (function() { try { return sessionStorage.getItem('nobel_a_admin_pwd') || localStorage.getItem('nobel_a_admin_pwd'); } catch (e) { return ''; } })());
+        browseBtn.classList.toggle('hidden', !isAdmin);
+      }
+
+      if (!songs || songs.length === 0) {
+        container.innerHTML = '<div class="py-12 text-center text-slate-400 space-y-2">' +
+          '<div class="text-4xl">🎵</div>' +
+          '<div class="text-sm font-bold">' + ((state.songs || []).length === 0 ? '目前還沒有歌曲' : '沒有符合條件的歌曲') + '</div>' +
+          '<div class="text-xs">' + ((state.songs || []).length === 0 ? '請老師於管理後台新增歌曲。' : '請嘗試調整關鍵字或類別標籤，或點擊「重設」。') + '</div>' +
+          '</div>';
+        return;
+      }
+
+      songs.forEach(function(song) {
+        const thumb = getSongThumbUrl(song);
+        const row = document.createElement('div');
+        row.className = 'p-2.5 sm:p-3 rounded-3xl bg-white border border-slate-200/90 shadow-2xs hover:shadow-md transition-all flex items-center gap-3 sm:gap-4 group';
+
+        const thumbBtn = document.createElement('button');
+        thumbBtn.type = 'button';
+        thumbBtn.className = 'relative shrink-0 w-28 sm:w-40 aspect-video rounded-2xl overflow-hidden bg-slate-100 tap-bounce cursor-pointer';
+        thumbBtn.setAttribute('aria-label', '播放 ' + (song.title || ''));
+        thumbBtn.innerHTML = (thumb ? '<img src="' + songEsc(thumb) + '" alt="" loading="lazy" class="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300">' : '') +
+          '<span class="absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-black/25 transition-colors">' +
+          '<span class="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-white/90 text-fuchsia-600 flex items-center justify-center shadow-md text-sm sm:text-base pl-0.5">▶</span></span>';
+        thumbBtn.onclick = function() { openSongPlayer(song.id); };
+
+        const info = document.createElement('div');
+        info.className = 'flex-1 min-w-0 flex flex-col items-start gap-1.5';
+        info.innerHTML = '<span class="' + getSongCategoryBadgeClass(song.category) + ' text-[0.6875rem] font-extrabold px-2.5 py-0.5 rounded-full">' + songEsc(song.category || '未分類') + '</span>';
+        const titleBtn = document.createElement('button');
+        titleBtn.type = 'button';
+        titleBtn.className = 'font-black text-slate-800 hover:text-fuchsia-700 text-sm sm:text-base text-left line-clamp-2 transition-colors cursor-pointer';
+        titleBtn.textContent = song.title || '未命名歌曲';
+        titleBtn.onclick = function() { openSongPlayer(song.id); };
+        info.appendChild(titleBtn);
+
+        row.appendChild(thumbBtn);
+        row.appendChild(info);
+
+        if (song.downloadUrl) {
+          const dl = document.createElement('a');
+          dl.href = song.downloadUrl;
+          dl.target = '_blank';
+          dl.rel = 'noopener noreferrer';
+          dl.title = '下載音樂檔';
+          dl.setAttribute('aria-label', '下載 ' + (song.title || '') + ' 音樂檔');
+          dl.className = 'w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-fuchsia-50 hover:bg-fuchsia-100 text-fuchsia-700 flex items-center justify-center shrink-0 tap-bounce transition-colors';
+          dl.innerHTML = SONG_DOWNLOAD_ICON;
+          row.appendChild(dl);
+        }
+        container.appendChild(row);
+      });
+    }
+
+    function refreshSongs() {
+      showToast('重新讀取歌曲清單中...', '⏳');
+      loadAppData(false);
+    }
+
+    // ---------- 玻璃視窗播放器 ----------
+    function loadYouTubeApi() {
+      if (window.YT && window.YT.Player) return Promise.resolve();
+      if (ytApiPromise) return ytApiPromise;
+      ytApiPromise = new Promise(function(resolve, reject) {
+        const prev = window.onYouTubeIframeAPIReady;
+        window.onYouTubeIframeAPIReady = function() {
+          if (typeof prev === 'function') { try { prev(); } catch (e) {} }
+          resolve();
+        };
+        const s = document.createElement('script');
+        s.src = 'https://www.youtube.com/iframe_api';
+        s.onerror = function() { ytApiPromise = null; reject(new Error('YouTube API 載入失敗')); };
+        document.head.appendChild(s);
+        setTimeout(function() {
+          if (!(window.YT && window.YT.Player)) { ytApiPromise = null; reject(new Error('YouTube API 逾時')); }
+        }, 8000);
+      });
+      return ytApiPromise;
+    }
+
+    function openSongPlayer(songId) {
+      const song = (state.songs || []).find(function(s) { return String(s.id) === String(songId); });
+      if (!song) return;
+      songPlayerCurrent = song;
+
+      document.getElementById('songPlayerTitle').textContent = song.title || '';
+      const badge = document.getElementById('songPlayerCategory');
+      badge.textContent = song.category || '未分類';
+      badge.className = getSongCategoryBadgeClass(song.category) + ' text-[0.6875rem] font-extrabold px-2.5 py-0.5 rounded-full shrink-0';
+
+      const dl = document.getElementById('songPlayerDownload');
+      if (song.downloadUrl) {
+        dl.href = song.downloadUrl;
+        dl.classList.remove('hidden');
+      } else {
+        dl.classList.add('hidden');
+      }
+      const yt = document.getElementById('songPlayerOpenYoutube');
+      if (yt) yt.href = song.youtubeUrl || ('https://www.youtube.com/watch?v=' + getSongYoutubeId(song));
+
+      updateSongRepeatUI();
+      document.getElementById('songPlayerModal').classList.remove('hidden');
+      mountSongPlayer(getSongYoutubeId(song));
+    }
+
+    function destroySongPlayer() {
+      songPlayerToken++;
+      if (songPlayer && typeof songPlayer.destroy === 'function') {
+        try { songPlayer.destroy(); } catch (e) {}
+      }
+      songPlayer = null;
+      const holder = document.getElementById('songPlayerHolder');
+      if (holder) holder.innerHTML = '';
+    }
+
+    function showSongPlayerError(show) {
+      const box = document.getElementById('songPlayerError');
+      if (box) box.classList.toggle('hidden', !show);
+    }
+
+    function mountSongPlayerFallback(vid) {
+      songPlayerUsingFallback = true;
+      const holder = document.getElementById('songPlayerHolder');
+      if (!holder) return;
+      holder.innerHTML = '';
+      const f = document.createElement('iframe');
+      f.src = 'https://www.youtube-nocookie.com/embed/' + vid + '?autoplay=1&rel=0&playsinline=1' + (songRepeat ? '&loop=1&playlist=' + vid : '');
+      f.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+      f.setAttribute('allowfullscreen', '');
+      f.title = 'YouTube 播放器';
+      holder.appendChild(f);
+    }
+
+    function mountSongPlayer(vid) {
+      destroySongPlayer();
+      songPlayerUsingFallback = false;
+      showSongPlayerError(false);
+      if (!vid) { showSongPlayerError(true); return; }
+
+      const holder = document.getElementById('songPlayerHolder');
+      holder.innerHTML = '<div id="songPlayerTarget"></div>';
+      const token = songPlayerToken;
+
+      loadYouTubeApi().then(function() {
+        if (token !== songPlayerToken) return;
+        songPlayer = new YT.Player('songPlayerTarget', {
+          host: 'https://www.youtube-nocookie.com',
+          width: '100%',
+          height: '100%',
+          videoId: vid,
+          playerVars: { autoplay: 1, rel: 0, playsinline: 1, modestbranding: 1 },
+          events: {
+            onReady: function(e) { try { e.target.playVideo(); } catch (err) {} },
+            onStateChange: function(e) {
+              if (e.data === YT.PlayerState.ENDED && songRepeat) {
+                try { e.target.seekTo(0, true); e.target.playVideo(); } catch (err) {}
+              }
+            },
+            onError: function() { showSongPlayerError(true); }
+          }
+        });
+      }).catch(function() {
+        if (token !== songPlayerToken) return;
+        mountSongPlayerFallback(vid);
+      });
+    }
+
+    function updateSongRepeatUI() {
+      const btn = document.getElementById('songRepeatToggle');
+      if (!btn) return;
+      btn.setAttribute('aria-checked', songRepeat ? 'true' : 'false');
+      btn.className = 'relative w-11 h-6 rounded-full transition-colors shrink-0 cursor-pointer ' + (songRepeat ? 'bg-fuchsia-500' : 'bg-white/30');
+      const knob = document.getElementById('songRepeatKnob');
+      if (knob) knob.style.transform = songRepeat ? 'translateX(20px)' : 'translateX(0)';
+    }
+
+    function toggleSongRepeat() {
+      songRepeat = !songRepeat;
+      try { localStorage.setItem('nobel_a_song_repeat', songRepeat ? '1' : '0'); } catch (e) {}
+      updateSongRepeatUI();
+      // 備援 iframe 模式需重新載入才能套用 loop 參數
+      if (songPlayerUsingFallback && songPlayerCurrent) mountSongPlayerFallback(getSongYoutubeId(songPlayerCurrent));
+    }
+
+    function closeSongPlayer() {
+      destroySongPlayer();
+      songPlayerCurrent = null;
+      showSongPlayerError(false);
+      const modal = document.getElementById('songPlayerModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function handleSongPlayerBackdrop(e) {
+      if (e.target && e.target.id === 'songPlayerModal') closeSongPlayer();
+    }
+
+    window.addEventListener('keydown', function(e) {
+      const m = document.getElementById('songPlayerModal');
+      if (m && !m.classList.contains('hidden') && e.key === 'Escape') closeSongPlayer();
+    });
+
+    // ---------- 後台：歌曲管理 ----------
+    function renderAdminSongsTable() {
+      const tbody = document.getElementById('adminSongsTableBody');
+      const countBadge = document.getElementById('adminSongsCountBadge');
+      if (!tbody) return;
+      const songs = state.songs || [];
+      if (countBadge) countBadge.textContent = '共 ' + songs.length + ' 首歌曲';
+      tbody.innerHTML = '';
+
+      if (songs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-400">目前尚無歌曲，請於上方表單新增！</td></tr>';
+        return;
+      }
+
+      songs.forEach(function(song) {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50/80 transition-colors';
+        const thumb = getSongThumbUrl(song);
+        const fileCell = song.downloadUrl
+          ? '<a href="' + songEsc(song.downloadUrl) + '" target="_blank" rel="noopener noreferrer" class="text-emerald-700 font-bold hover:underline">✅ ' + songEsc(song.fileName || '已上傳') + '</a>' + (song.fileSize ? '<div class="text-[10px] text-slate-400">' + formatSongBytes(song.fileSize) + '</div>' : '')
+          : '<span class="text-slate-400">— 未上傳</span>';
+        tr.innerHTML =
+          '<td class="py-2.5 px-3">' + (thumb ? '<img src="' + songEsc(thumb) + '" class="w-16 aspect-video object-cover rounded-lg border border-slate-200">' : '') + '</td>' +
+          '<td class="py-2.5 px-3 whitespace-nowrap"><span class="' + getSongCategoryBadgeClass(song.category) + ' px-2.5 py-0.5 rounded-full text-[10px] font-extrabold inline-block">' + songEsc(song.category || '未分類') + '</span></td>' +
+          '<td class="py-2.5 px-3 font-bold text-slate-800"><div class="line-clamp-2">' + songEsc(song.title) + '</div></td>' +
+          '<td class="py-2.5 px-3">' + fileCell + '</td>' +
+          '<td class="py-2.5 px-3 text-right whitespace-nowrap space-x-1.5"></td>';
+
+        const ops = tr.lastElementChild;
+        const editBtn = document.createElement('button');
+        editBtn.type = 'button';
+        editBtn.className = 'px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold text-xs tap-bounce';
+        editBtn.textContent = '✏️ 編輯';
+        editBtn.onclick = function() { editSongInAdmin(song.id); };
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.className = 'px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs tap-bounce';
+        delBtn.textContent = '🗑️ 刪除';
+        delBtn.onclick = function() { deleteSongInAdmin(song.id, song.title); };
+        ops.appendChild(editBtn);
+        ops.appendChild(delBtn);
+        tbody.appendChild(tr);
+      });
+    }
+
+    function onSongYoutubeInput() {
+      const url = document.getElementById('songForm-youtube').value.trim();
+      const id = getYouTubeIdFromUrl(url);
+      const wrap = document.getElementById('songForm-thumbPreview');
+      const img = document.getElementById('songForm-thumbImg');
+      const msg = document.getElementById('songForm-youtubeMsg');
+      if (!url) {
+        wrap.classList.add('hidden');
+        msg.textContent = '';
+        return;
+      }
+      if (id) {
+        img.src = 'https://i.ytimg.com/vi/' + id + '/mqdefault.jpg';
+        wrap.classList.remove('hidden');
+        msg.textContent = '✅ 已辨識影片 ID：' + id;
+        msg.className = 'text-[0.6875rem] text-emerald-600 font-bold mt-1';
+      } else {
+        wrap.classList.add('hidden');
+        msg.textContent = '⚠️ 無法辨識這個 YouTube 連結';
+        msg.className = 'text-[0.6875rem] text-rose-600 font-bold mt-1';
+      }
+    }
+
+    function setSongFormFileStatus(existing) {
+      const el = document.getElementById('songForm-fileStatus');
+      if (!el) return;
+      if (songFormSelectedFile) {
+        el.innerHTML = '已選取新檔案：<b>' + songEsc(songFormSelectedFile.name) + '</b>（' + formatSongBytes(songFormSelectedFile.size) + '）';
+        el.className = 'text-xs font-bold text-emerald-600 mt-2';
+      } else if (existing && existing.downloadUrl) {
+        el.innerHTML = '目前檔案：<a href="' + songEsc(existing.downloadUrl) + '" target="_blank" rel="noopener noreferrer" class="underline text-fuchsia-700">' + songEsc(existing.fileName || '已上傳的音樂檔') + '</a>' +
+          (existing.fileSize ? '（' + formatSongBytes(existing.fileSize) + '）' : '') + '　未重新選擇檔案時，將保留原本的檔案連結';
+        el.className = 'text-xs font-bold text-slate-600 mt-2';
+      } else {
+        el.textContent = '尚未上傳音樂檔（選填，上傳後前台才會出現下載圖示）';
+        el.className = 'text-xs text-slate-400 mt-2';
+      }
+    }
+
+    function handleSongFileChosen(e) {
+      const f = e.target.files && e.target.files[0];
+      if (!f) return;
+      if (f.size > SONG_MAX_FILE_BYTES) {
+        showToast('檔案超過 ' + formatSongBytes(SONG_MAX_FILE_BYTES) + '，請壓縮後再上傳', '⚠️');
+        e.target.value = '';
+        songFormSelectedFile = null;
+      } else {
+        songFormSelectedFile = f;
+      }
+      const existing = songFormEditingId ? (state.songs || []).find(function(s) { return String(s.id) === String(songFormEditingId); }) : null;
+      setSongFormFileStatus(existing);
+    }
+
+    function clearSongForm() {
+      if (songSaving) return;
+      songFormEditingId = '';
+      songFormSelectedFile = null;
+      ['songForm-youtube', 'songForm-title'].forEach(function(id) { const el = document.getElementById(id); if (el) el.value = ''; });
+      const fi = document.getElementById('songForm-fileInput');
+      if (fi) fi.value = '';
+      const sel = document.getElementById('songForm-category');
+      if (sel && sel.options.length > 0) sel.selectedIndex = 0;
+      document.getElementById('songFormTitle').textContent = '新增歌曲';
+      document.getElementById('songFormCancelBtn').classList.add('hidden');
+      document.getElementById('songFormSaveBtn').textContent = '儲存歌曲';
+      onSongYoutubeInput();
+      setSongFormFileStatus(null);
+      resetSongProgress();
+    }
+
+    function editSongInAdmin(id) {
+      const song = (state.songs || []).find(function(s) { return String(s.id) === String(id); });
+      if (!song || songSaving) return;
+      songFormEditingId = song.id;
+      songFormSelectedFile = null;
+      document.getElementById('songForm-youtube').value = song.youtubeUrl || '';
+      document.getElementById('songForm-title').value = song.title || '';
+      const sel = document.getElementById('songForm-category');
+      if (sel) {
+        if (song.category && Array.prototype.every.call(sel.options, function(o) { return o.value !== song.category; })) {
+          const opt = document.createElement('option');
+          opt.value = song.category;
+          opt.textContent = song.category;
+          sel.appendChild(opt);
+        }
+        sel.value = song.category || (sel.options[0] ? sel.options[0].value : '');
+      }
+      const fi = document.getElementById('songForm-fileInput');
+      if (fi) fi.value = '';
+      document.getElementById('songFormTitle').textContent = '編輯歌曲：' + (song.title || '');
+      document.getElementById('songFormCancelBtn').classList.remove('hidden');
+      document.getElementById('songFormSaveBtn').textContent = '儲存修改';
+      onSongYoutubeInput();
+      setSongFormFileStatus(song);
+      resetSongProgress();
+      const card = document.getElementById('songFormCard');
+      if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function resetSongProgress() {
+      if (songUploadTimer) { clearInterval(songUploadTimer); songUploadTimer = null; }
+      const box = document.getElementById('songUploadProgressBox');
+      if (box) box.classList.add('hidden');
+    }
+
+    function setSongProgress(pct, status, eta, isError) {
+      const box = document.getElementById('songUploadProgressBox');
+      if (box) box.classList.remove('hidden');
+      document.getElementById('songUploadBar').style.width = pct + '%';
+      document.getElementById('songUploadBar').className = 'h-full rounded-full transition-all duration-300 ' + (isError ? 'bg-rose-500' : 'bg-fuchsia-500');
+      document.getElementById('songUploadPercent').textContent = pct + '%';
+      document.getElementById('songUploadStatus').textContent = status;
+      document.getElementById('songUploadEta').textContent = eta || '';
+    }
+
+    function startSongProgressEstimate(sizeBytes) {
+      const startedAt = Date.now();
+      // 預估：實際速度取決於網路與 Google 伺服器，約以每 MB 3.5 秒估算
+      const estMs = Math.max(6000, (sizeBytes / (1024 * 1024)) * 3500);
+      if (songUploadTimer) clearInterval(songUploadTimer);
+      songUploadTimer = setInterval(function() {
+        const elapsed = Date.now() - startedAt;
+        const ratio = 1 - Math.exp(-2.2 * elapsed / estMs);
+        const pct = Math.min(95, Math.round(8 + ratio * 87));
+        const remain = Math.max(1, Math.round((estMs - elapsed) / 1000));
+        setSongProgress(pct, '正在上傳至 Google Drive 並寫入資料庫…（預估進度）',
+          elapsed < estMs ? ('預估剩餘約 ' + remain + ' 秒') : '快完成了，請稍候，請勿關閉網頁…');
+      }, 300);
+    }
+
+    function songBeforeUnload(e) { e.preventDefault(); e.returnValue = ''; }
+
+    function setSongSaving(on) {
+      songSaving = on;
+      const btn = document.getElementById('songFormSaveBtn');
+      if (btn) {
+        btn.disabled = on;
+        btn.classList.toggle('opacity-50', on);
+      }
+      if (on) window.addEventListener('beforeunload', songBeforeUnload);
+      else window.removeEventListener('beforeunload', songBeforeUnload);
+    }
+
+    function upsertLocalSong(song) {
+      const list = state.songs || [];
+      const idx = list.findIndex(function(s) { return String(s.id) === String(song.id); });
+      if (idx > -1) list[idx] = Object.assign({}, list[idx], song);
+      else list.push(song);
+      state.songs = list;
+      applySongFilters();
+      renderAdminSongsTable();
+    }
+
+    function finishSongSave(res, songData, uploaded) {
+      if (songUploadTimer) { clearInterval(songUploadTimer); songUploadTimer = null; }
+      setSongSaving(false);
+      if (res && res.success) {
+        const merged = Object.assign({}, songData, { id: res.songId || songData.id });
+        if (uploaded) {
+          merged.fileName = res.fileName || merged.fileName;
+          merged.fileSize = res.fileSize || merged.fileSize;
+          merged.driveFileId = res.fileId || merged.driveFileId;
+          merged.downloadUrl = res.downloadUrl || merged.downloadUrl;
+        }
+        upsertLocalSong(merged);
+        setSongProgress(100, uploaded ? '✅ 上傳完成，已寫入資料庫！' : '✅ 已儲存！', '');
+        showToast(res.message || '歌曲已儲存！', '🎉');
+        setTimeout(function() { clearSongForm(); }, 1200);
+        loadAppData(true);
+      } else {
+        const err = res ? (res.error || '儲存失敗') : '伺服器沒有回應';
+        setSongProgress(100, '❌ ' + err, '', true);
+        showToast('儲存失敗：' + err, '❌');
+      }
+    }
+
+    function failSongSave(err) {
+      if (songUploadTimer) { clearInterval(songUploadTimer); songUploadTimer = null; }
+      setSongSaving(false);
+      const m = (err && err.message) ? err.message : String(err || '連線逾時');
+      setSongProgress(100, '❌ ' + m + '（資料庫可能未更新，請重新整理確認後再試）', '', true);
+      showToast('連線失敗：' + m, '❌');
+    }
+
+    function handleSaveSong(e) {
+      if (e && typeof e.preventDefault === 'function') e.preventDefault();
+      if (songSaving) return;
+      if (!state.adminPassword) { showToast('請先登入管理後台', '⚠️'); return; }
+
+      const youtubeUrl = document.getElementById('songForm-youtube').value.trim();
+      const title = document.getElementById('songForm-title').value.trim();
+      const category = document.getElementById('songForm-category').value;
+      if (!youtubeUrl || !getYouTubeIdFromUrl(youtubeUrl)) { showToast('請輸入正確的 YouTube 連結', '⚠️'); return; }
+      if (!title) { showToast('請輸入歌名', '⚠️'); return; }
+      if (!category) { showToast('請選擇類別（類別可於試算表 SongCategories 新增）', '⚠️'); return; }
+
+      const existing = songFormEditingId ? (state.songs || []).find(function(s) { return String(s.id) === String(songFormEditingId); }) : null;
+      const songData = {
+        id: songFormEditingId || '',
+        category: category,
+        title: title,
+        youtubeUrl: youtubeUrl,
+        youtubeId: getYouTubeIdFromUrl(youtubeUrl),
+        fileName: existing ? (existing.fileName || '') : '',
+        fileSize: existing ? (existing.fileSize || '') : '',
+        driveFileId: existing ? (existing.driveFileId || '') : '',
+        downloadUrl: existing ? (existing.downloadUrl || '') : ''
+      };
+
+      // 已有相同檔案（檔名與大小一致）就沿用原連結，不重複上傳
+      let needUpload = false;
+      if (songFormSelectedFile) {
+        const same = existing && existing.downloadUrl &&
+          songFormSelectedFile.name === existing.fileName &&
+          Number(songFormSelectedFile.size) === Number(existing.fileSize);
+        needUpload = !same;
+        if (same) showToast('選取的檔案與目前檔案相同，將沿用原連結，不重複上傳', 'ℹ️');
+      }
+
+      setSongSaving(true);
+      if (!needUpload) {
+        setSongProgress(30, '正在寫入資料庫…', '');
+        callBackend('saveSong', { songData: songData, password: state.adminPassword },
+          function(res) { finishSongSave(res, songData, false); }, failSongSave);
+        return;
+      }
+
+      const file = songFormSelectedFile;
+      setSongProgress(1, '正在讀取音樂檔…', '');
+      const reader = new FileReader();
+      reader.onprogress = function(ev) {
+        if (ev.lengthComputable) setSongProgress(Math.max(1, Math.round(ev.loaded / ev.total * 8)), '正在讀取音樂檔…', '');
+      };
+      reader.onerror = function() { failSongSave(new Error('讀取音樂檔失敗')); };
+      reader.onload = function(ev) {
+        const base64 = String(ev.target.result).split(',')[1];
+        startSongProgressEstimate(file.size);
+        callBackend('uploadSong', {
+          meta: { id: songData.id, category: category, title: title, youtubeUrl: youtubeUrl },
+          file: { name: file.name, mimeType: file.type || 'audio/mpeg', base64: base64 },
+          password: state.adminPassword
+        }, function(res) { finishSongSave(res, songData, true); }, failSongSave);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function deleteSongInAdmin(id, title) {
+      if (!confirm('確定要自清單刪除「' + (title || '') + '」嗎？\n（Google Drive 內的音樂檔不會被刪除）')) return;
+      const prev = state.songs;
+      state.songs = (state.songs || []).filter(function(s) { return String(s.id) !== String(id); });
+      applySongFilters();
+      renderAdminSongsTable();
+      if (String(songFormEditingId) === String(id)) clearSongForm();
+      callBackend('deleteSong', { id: id, password: state.adminPassword }, function(res) {
+        if (res && res.success) {
+          showToast(res.message || '已刪除', '🗑️');
+          loadAppData(true);
+        } else {
+          state.songs = prev;
+          applySongFilters();
+          renderAdminSongsTable();
+          showToast('刪除失敗：' + (res ? res.error : '未知錯誤'), '❌');
+        }
+      }, function(err) {
+        state.songs = prev;
+        applySongFilters();
+        renderAdminSongsTable();
+        showToast('刪除失敗：' + ((err && err.message) || '連線逾時'), '❌');
+      });
+    }
+
     // ==================== 管理後台邏輯 (ADMIN) ====================
     function doAdminLogin() {
       const input = document.getElementById('adminPasswordInput');
@@ -4494,6 +5400,10 @@
         else renderAdminAlbumsTable();
       }
       if (subtab === 'settings') loadSettingsToForm();
+      if (subtab === 'songs') {
+        renderSongCategoriesUI();
+        renderAdminSongsTable();
+      }
     }
 
     // 後台行事曆管理

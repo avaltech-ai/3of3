@@ -9,6 +9,8 @@ const SPREADSHEET_ID = '1lFRlvwQgo_B38YmtFD9BHqyGvuGstOK7etu3RO_BqQU';
 const ALBUMS_FOLDER_ID = '1iRFAr3FZMqV-okmktipdwamjAR7WWp6d';
 const DOCS_FOLDER_ID = '1Ie8medB2JPYdUA9LOryVnPAdko1t5rjR';
 const ACTIVITY_FOLDER_ID = '1EKWV3ASXIttVtud1f_pfl672MkEfwa8b2';
+// 唱跳音符：音樂檔預設儲存的 Google Drive 資料夾
+const SONGS_FOLDER_ID = '1vurxReuOW0laMDw1xSSOqeM5zT0TCmBQ';
 
 /**
  * 取得或自動建立 Google Drive 中的 Acticity 資料夾
@@ -258,6 +260,12 @@ function doPost(e) {
       result = ensureAlbumSheetsExist();
     } else if (action === 'setupInitialDatabase') {
       result = setupInitialDatabase();
+    } else if (action === 'uploadSong') {
+      result = uploadSong(postData.meta, postData.file, postData.password);
+    } else if (action === 'saveSong') {
+      result = saveSong(postData.songData || postData.data, postData.password);
+    } else if (action === 'deleteSong') {
+      result = deleteSong(postData.id || postData.songId, postData.password);
     }
 
     if (postData && postData.requestId) {
@@ -589,6 +597,17 @@ function getAppData() {
       console.warn('getAlbums inside getAppData failed: ' + e);
     }
 
+    // 確保 Songs / SongCategories 工作表存在（唱跳音符），並讀出資料
+    let songList = [];
+    let songCategories = [];
+    try {
+      const songData = getSongsData();
+      songList = songData.songs;
+      songCategories = songData.categories;
+    } catch (e) {
+      console.warn('getSongsData inside getAppData failed: ' + e);
+    }
+
     const result = {
       success: true,
       data: {
@@ -599,6 +618,8 @@ function getAppData() {
         docCategories: docCategories || [],
         albumCategories: albumCategories || [],
         albums: albumList || [],
+        songs: songList,
+        songCategories: songCategories,
         eventTargets: eventTargets || [],
         eventCategoriesMajor: eventCategoriesMajor || [],
         eventCategoriesMinor: eventCategoriesMinor || [],
@@ -1935,6 +1956,199 @@ function deleteDoc(docId, password) {
       }
     }
     return { success: false, error: '找不到該文件編號' };
+  } catch (err) {
+    return { success: false, error: err.toString() };
+  }
+}
+
+// -------------------------------------------------------------
+// 唱跳音符 (Songs)
+// -------------------------------------------------------------
+
+const SONG_HEADERS = ['id', 'category', 'title', 'youtubeUrl', 'youtubeId', 'fileName', 'fileSize', 'driveFileId', 'downloadUrl', 'updatedAt'];
+const SONG_DEFAULT_CATEGORIES = ['兒歌', '律動舞蹈', '英文歌曲', '節慶歌曲', '安靜時光'];
+
+/**
+ * 確保 SongCategories（類別）與 Songs（歌曲清單）兩個工作表與欄位存在；缺少的欄位會自動補上
+ */
+function ensureSongSheetsExist() {
+  const ss = getSpreadsheet();
+  if (!ss) throw new Error('無法開啟 Google 試算表');
+
+  let catSheet = ss.getSheetByName('SongCategories');
+  if (!catSheet) {
+    catSheet = ss.insertSheet('SongCategories');
+    catSheet.appendRow(['categoryName']);
+    catSheet.getRange(1, 1, 1, 1).setFontWeight('bold').setBackground('#FCE7F3');
+    catSheet.getRange(2, 1, SONG_DEFAULT_CATEGORIES.length, 1).setValues(SONG_DEFAULT_CATEGORIES.map(function(c) { return [c]; }));
+  }
+
+  let songSheet = ss.getSheetByName('Songs');
+  if (!songSheet) {
+    songSheet = ss.insertSheet('Songs');
+    songSheet.appendRow(SONG_HEADERS);
+    songSheet.getRange(1, 1, 1, SONG_HEADERS.length).setFontWeight('bold').setBackground('#FCE7F3');
+    songSheet.setFrozenRows(1);
+  } else {
+    // 舊表缺欄位時自動補齊
+    const lastCol = Math.max(songSheet.getLastColumn(), 1);
+    const headers = songSheet.getRange(1, 1, 1, lastCol).getValues()[0].map(function(h) { return String(h).trim(); });
+    SONG_HEADERS.forEach(function(h) {
+      if (headers.indexOf(h) === -1) {
+        const col = headers.length + 1;
+        songSheet.getRange(1, col).setValue(h).setFontWeight('bold').setBackground('#FCE7F3');
+        headers.push(h);
+      }
+    });
+  }
+  return { songSheet: songSheet, catSheet: catSheet };
+}
+
+/**
+ * 從 YouTube 連結解析 11 碼影片 ID（支援 watch / youtu.be / shorts / embed / live / music.youtube.com）
+ */
+function extractYouTubeId(url) {
+  const str = String(url || '').trim();
+  if (!str) return '';
+  let m = str.match(/youtu\.be\/([A-Za-z0-9_-]{11})/);
+  if (m) return m[1];
+  m = str.match(/[?&]v=([A-Za-z0-9_-]{11})/);
+  if (m) return m[1];
+  m = str.match(/youtube(?:-nocookie)?\.com\/(?:embed|shorts|live|v)\/([A-Za-z0-9_-]{11})/);
+  if (m) return m[1];
+  return '';
+}
+
+/**
+ * 讀取歌曲清單與類別（依工作表順序）
+ */
+function getSongsData() {
+  const sheets = ensureSongSheetsExist();
+  const categories = getSheetDataAsObjects(sheets.catSheet).map(function(r) { return String(r.categoryName || '').trim(); }).filter(Boolean);
+  const songs = getSheetDataAsObjects(sheets.songSheet).filter(function(s) { return s.id || s.title || s.youtubeUrl; });
+  songs.forEach(function(s) {
+    if (!s.youtubeId) s.youtubeId = extractYouTubeId(s.youtubeUrl);
+  });
+  return { songs: songs, categories: categories };
+}
+
+/**
+ * 新增 / 更新歌曲紀錄（以 id 為鍵）。未附新檔案時，保留原本的檔案連結。
+ */
+function saveSong(songData, password) {
+  if (!checkPassword(password)) return { success: false, error: '管理員密碼錯誤！' };
+  try {
+    songData = songData || {};
+    const title = String(songData.title || '').trim();
+    const youtubeUrl = String(songData.youtubeUrl || '').trim();
+    if (!title) return { success: false, error: '請輸入歌名！' };
+    if (!youtubeUrl) return { success: false, error: '請輸入 YouTube 連結！' };
+    const youtubeId = extractYouTubeId(youtubeUrl);
+    if (!youtubeId) return { success: false, error: '無法辨識 YouTube 連結，請確認網址是否正確！' };
+
+    const sheet = ensureSongSheetsExist().songSheet;
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0].map(function(h) { return String(h).trim(); });
+    const idIndex = headers.indexOf('id');
+    const todayStr = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd');
+    const id = songData.id || ('SONG-' + Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyyMMddHHmmss'));
+
+    let targetRow = -1;
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][idIndex]) === String(id)) { targetRow = i + 1; break; }
+    }
+
+    const fieldMap = {
+      id: id,
+      category: String(songData.category || '').trim(),
+      title: title,
+      youtubeUrl: youtubeUrl,
+      youtubeId: youtubeId,
+      fileName: songData.fileName || '',
+      fileSize: songData.fileSize || '',
+      driveFileId: songData.driveFileId || '',
+      downloadUrl: songData.downloadUrl || '',
+      updatedAt: songData.updatedAt || todayStr
+    };
+
+    if (targetRow > -1) {
+      headers.forEach(function(h, colIdx) {
+        if (fieldMap[h] !== undefined) sheet.getRange(targetRow, colIdx + 1).setValue(fieldMap[h]);
+      });
+      clearAppDataCache();
+      return { success: true, message: '歌曲資訊已成功更新！', songId: id };
+    }
+    sheet.appendRow(headers.map(function(h) { return fieldMap[h] !== undefined ? fieldMap[h] : ''; }));
+    clearAppDataCache();
+    return { success: true, message: '新歌曲已成功加入清單！', songId: id };
+  } catch (err) {
+    return { success: false, error: '儲存歌曲失敗: ' + err.toString() };
+  }
+}
+
+/**
+ * 上傳音樂檔至 Songs 資料夾，並登記 / 更新歌曲紀錄
+ */
+function uploadSong(songMeta, fileObj, password) {
+  if (!checkPassword(password)) return { success: false, error: '管理員密碼錯誤！' };
+  try {
+    if (!fileObj || !fileObj.base64) return { success: false, error: '沒有收到音樂檔內容！' };
+    const rootFolder = DriveApp.getFolderById(SONGS_FOLDER_ID);
+    const decodedBytes = Utilities.base64Decode(fileObj.base64);
+    const blob = Utilities.newBlob(decodedBytes, fileObj.mimeType || 'audio/mpeg', fileObj.name);
+    const newFile = rootFolder.createFile(blob);
+    try {
+      newFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    } catch (e) {}
+
+    const fileId = newFile.getId();
+    const songData = {
+      id: songMeta.id,
+      category: songMeta.category,
+      title: songMeta.title,
+      youtubeUrl: songMeta.youtubeUrl,
+      fileName: fileObj.name,
+      fileSize: decodedBytes.length,
+      driveFileId: fileId,
+      downloadUrl: 'https://drive.google.com/uc?export=download&id=' + fileId
+    };
+    const saveResult = saveSong(songData, password);
+    if (!saveResult.success) {
+      // 紀錄寫入失敗時，移除剛上傳的檔案，避免遺留無人引用的檔案
+      try { newFile.setTrashed(true); } catch (e) {}
+      return saveResult;
+    }
+    return {
+      success: true,
+      message: '歌曲與音樂檔已成功上傳並發佈！',
+      songId: saveResult.songId,
+      fileId: fileId,
+      fileName: songData.fileName,
+      fileSize: songData.fileSize,
+      downloadUrl: songData.downloadUrl
+    };
+  } catch (err) {
+    return { success: false, error: '上傳音樂檔失敗: ' + err.toString() };
+  }
+}
+
+/**
+ * 刪除歌曲紀錄（僅移除清單項目，不刪除 Google Drive 內的音樂檔）
+ */
+function deleteSong(songId, password) {
+  if (!checkPassword(password)) return { success: false, error: '管理員密碼錯誤！' };
+  try {
+    const sheet = ensureSongSheetsExist().songSheet;
+    const data = sheet.getDataRange().getValues();
+    const idIndex = data[0].map(function(h) { return String(h).trim(); }).indexOf('id');
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][idIndex]) === String(songId)) {
+        sheet.deleteRow(i + 1);
+        clearAppDataCache();
+        return { success: true, message: '歌曲已自清單移除！' };
+      }
+    }
+    return { success: false, error: '找不到該歌曲編號' };
   } catch (err) {
     return { success: false, error: err.toString() };
   }
