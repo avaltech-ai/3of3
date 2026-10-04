@@ -869,6 +869,9 @@
           <button onclick="switchAdminSubtab('uploadDoc')" id="adminSubtabBtn-uploadDoc" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
             📂 文件檔案上傳
           </button>
+          <button onclick="switchAdminSubtab('themes')" id="adminSubtabBtn-themes" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
+            📚 主題活動
+          </button>
           <button onclick="switchAdminSubtab('spotlight')" id="adminSubtabBtn-spotlight" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
             🌟 Spotlight 管理
           </button>
@@ -1525,6 +1528,39 @@
               <button type="button" onclick="saveSpotlightSettings()" id="spBtnSave" class="px-5 py-2 rounded-xl bg-peach-500 hover:bg-peach-600 text-white font-bold text-xs shadow-sm tap-bounce flex items-center gap-1.5">
                 <span id="spBtnSaveIcon">💾</span> <span id="spBtnSaveLabel">儲存焦點活動</span>
               </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 子分頁: 主題活動管理 -->
+        <div id="adminPanel-themes" class="admin-panel space-y-4 hidden">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xl font-black text-slate-800 flex items-center gap-2">
+              <span class="text-rose-500">📚</span> 主題活動管理
+            </h3>
+            <button onclick="openThemeModal()" class="px-4 py-2 bg-rose-600 text-white text-sm font-bold rounded-xl shadow-md shadow-rose-200 hover:bg-rose-700 transition-colors tap-bounce">
+              + 新增每週活動
+            </button>
+          </div>
+          
+          <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm text-left text-slate-600 min-w-[600px]">
+                <thead class="text-xs text-slate-700 uppercase bg-slate-50 border-b border-slate-200">
+                  <tr>
+                    <th scope="col" class="px-4 py-3 font-black">學期 / 週別</th>
+                    <th scope="col" class="px-4 py-3 font-black">日期區間</th>
+                    <th scope="col" class="px-4 py-3 font-black">主題名稱</th>
+                    <th scope="col" class="px-4 py-3 font-black text-center w-24">操作</th>
+                  </tr>
+                </thead>
+                <tbody id="adminThemesListBody" class="divide-y divide-slate-100">
+                  <!-- JS 生成 -->
+                </tbody>
+              </table>
+            </div>
+            <div id="adminThemesEmpty" class="hidden py-8 text-center text-slate-500 font-bold text-sm bg-slate-50/50">
+              尚無主題活動資料
             </div>
           </div>
         </div>
@@ -2538,6 +2574,7 @@
       if (state.currentTab === 'admin') {
         const subtab = state.currentAdminSubtab || 'events';
         if (subtab === 'events') renderAdminEventsTable();
+      if (subtab === 'themes') renderAdminThemesList();
         if (subtab === 'spotlight') renderAdminSpotlightsList();
         if (subtab === 'uploadPhoto') renderAdminAlbumsTable();
       }
