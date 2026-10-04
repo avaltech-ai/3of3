@@ -4191,6 +4191,16 @@
 
     function getPhotoDisplayUrl(p, highRes = true) {
       if (!p) return '';
+      // 0. If p is a string URL
+      if (typeof p === 'string') {
+        const raw = p.trim();
+        if (!raw) return '';
+        const matchId = raw.match(new RegExp('/d/([a-zA-Z0-9_-]+)')) || raw.match(new RegExp('[?&]id=([a-zA-Z0-9_-]+)'));
+        if (matchId && matchId[1]) {
+          return `https://drive.google.com/thumbnail?id=${matchId[1]}&sz=${highRes ? 'w2048' : 'w800'}`;
+        }
+        return raw;
+      }
       // 1. If photo object has direct file id
       if (p.id) {
         return `https://drive.google.com/thumbnail?id=${p.id}&sz=${highRes ? 'w2048' : 'w800'}`;
@@ -7865,13 +7875,15 @@
         let imagesHtml = '';
         if (photosList.length > 0) {
           imagesHtml = `
-            <div class="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-2">
-              ${photosList.map(url => `
-                <div class="aspect-square rounded-xl overflow-hidden border border-slate-200/60 shadow-sm bg-slate-100 group relative">
-                  <img src="${getPhotoDisplayUrl(url)}" class="w-full h-full object-cover transition-transform group-hover:scale-105" alt="成果照片" loading="lazy" onclick="window.open('${url}', '_blank')">
-                  <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors pointer-events-none"></div>
-                </div>
-              `).join('')}
+            <div class="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
+              ${photosList.map(url => {
+                const thumb = getPhotoDisplayUrl(url, false);
+                return thumb ? `
+                  <div class="aspect-square rounded-xl overflow-hidden border border-slate-200/80 shadow-xs bg-slate-100 select-none">
+                    <img src="${thumb}" class="w-full h-full object-cover" alt="成果照片" loading="lazy" onerror="if(!this.dataset.fallback){this.dataset.fallback='1'; const m=this.src.match(/id=([a-zA-Z0-9_-]+)/); if(m){this.src='https://lh3.googleusercontent.com/d/'+m[1];}else{this.parentElement.style.display='none';}}else{this.parentElement.style.display='none';}">
+                  </div>
+                ` : '';
+              }).join('')}
             </div>
           `;
         }
