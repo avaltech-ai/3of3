@@ -2052,37 +2052,15 @@ function fetchYouTubeDuration(youtubeId) {
 }
 
 /**
- * 讀取歌曲清單與類別（依工作表順序，若缺少歌曲長度則自動取得並回填儲存）
+ * 讀取歌曲清單與類別（依工作表順序）
  */
 function getSongsData() {
   const sheets = ensureSongSheetsExist();
   const categories = getSheetDataAsObjects(sheets.catSheet).map(function(r) { return String(r.categoryName || '').trim(); }).filter(Boolean);
   const songs = getSheetDataAsObjects(sheets.songSheet).filter(function(s) { return s.id || s.title || s.youtubeUrl; });
-  let hasUpdatedDuration = false;
-
-  const lastCol = Math.max(sheets.songSheet.getLastColumn(), 1);
-  const headers = sheets.songSheet.getRange(1, 1, 1, lastCol).getValues()[0].map(function(h) { return String(h).trim(); });
-  const durColIdx = headers.indexOf('duration');
-
-  songs.forEach(function(s, idx) {
+  songs.forEach(function(s) {
     if (!s.youtubeId) s.youtubeId = extractYouTubeId(s.youtubeUrl);
-    if (!s.duration && s.youtubeId) {
-      const dur = fetchYouTubeDuration(s.youtubeId);
-      if (dur) {
-        s.duration = dur;
-        if (durColIdx > -1) {
-          try {
-            sheets.songSheet.getRange(idx + 2, durColIdx + 1).setValue(dur);
-            hasUpdatedDuration = true;
-          } catch (e) {}
-        }
-      }
-    }
   });
-
-  if (hasUpdatedDuration) {
-    clearAppDataCache();
-  }
   return { songs: songs, categories: categories };
 }
 
