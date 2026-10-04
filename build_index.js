@@ -638,7 +638,12 @@ const htmlContent = `<!DOCTYPE html>
         </div>
 
         <div class="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-500">
-          <span id="songFilterCountText" class="font-bold text-slate-700">共 0 首歌曲</span>
+          <div class="flex items-center gap-2">
+            <span id="songFilterCountText" class="font-bold text-slate-700">共 0 首歌曲</span>
+            <button type="button" id="btnToggleSelectAllFiltered" onclick="toggleSelectAllFilteredSongs()" class="text-xs font-bold text-fuchsia-600 hover:text-fuchsia-800 bg-fuchsia-50 hover:bg-fuchsia-100 px-2.5 py-0.5 rounded-full transition-colors cursor-pointer tap-bounce">
+              全選目前歌曲
+            </button>
+          </div>
           <button onclick="resetSongFilters()" class="text-fuchsia-600 hover:text-fuchsia-800 font-bold hover:underline flex items-center gap-1 tap-bounce">
             <span>🔄</span> 重設
           </button>
@@ -646,8 +651,40 @@ const htmlContent = `<!DOCTYPE html>
       </div>
 
       <!-- 歌曲列表 -->
-      <div id="songsListContainer" class="space-y-3">
+      <div id="songsListContainer" class="space-y-3 pb-24 sm:pb-20">
         <!-- JS 動態插入歌曲 -->
+      </div>
+
+      <!-- 頁面下方固定播放控制列 -->
+      <div id="songsBottomPlayBar" class="fixed bottom-20 sm:bottom-6 left-1/2 -translate-x-1/2 z-40 w-[95%] max-w-xl transition-all duration-300">
+        <div class="bg-white/95 backdrop-blur-md border border-fuchsia-200/90 shadow-xl rounded-2xl sm:rounded-full p-2.5 sm:px-4 sm:py-2.5 flex items-center justify-between gap-2">
+          <!-- 左側：勾選統計與核取方塊 -->
+          <div class="flex items-center gap-2 pl-1 sm:pl-2 shrink-0">
+            <input type="checkbox" id="bottomBarSelectAllCheckbox" onchange="handleBottomBarSelectAllChange(event)" class="w-4 h-4 rounded text-fuchsia-600 accent-fuchsia-500 cursor-pointer" title="全選/取消全選">
+            <span id="bottomBarSelectedCount" class="text-xs sm:text-sm font-bold text-slate-700">已選取 0 首</span>
+          </div>
+
+          <!-- 右側：隨機與循環模式按鈕 + 播放主按鈕 -->
+          <div class="flex items-center gap-1.5 sm:gap-2">
+            <!-- 🔀 隨機播放 (Shuffle) 按鈕 -->
+            <button type="button" id="btnToggleSongShuffle" onclick="toggleSongShuffle()" class="p-2 sm:px-3 sm:py-1.5 rounded-xl sm:rounded-full text-xs font-bold transition-all flex items-center gap-1 cursor-pointer bg-slate-100 text-slate-600 hover:bg-slate-200" title="隨機播放開關（可單獨或合併啟用）">
+              <span class="text-sm">🔀</span>
+              <span class="hidden sm:inline">隨機</span>
+            </button>
+
+            <!-- 🔁 循環播放 (Repeat) 按鈕 -->
+            <button type="button" id="btnToggleSongRepeatList" onclick="toggleSongRepeatList()" class="p-2 sm:px-3 sm:py-1.5 rounded-xl sm:rounded-full text-xs font-bold transition-all flex items-center gap-1 cursor-pointer bg-slate-100 text-slate-600 hover:bg-slate-200" title="循環播放開關（可單獨或合併啟用）">
+              <span class="text-sm">🔁</span>
+              <span class="hidden sm:inline">循環</span>
+            </button>
+
+            <!-- ▶️ 播放選取歌曲按鈕 -->
+            <button type="button" id="btnPlaySelectedSongs" onclick="playSelectedSongs()" class="bg-gradient-to-r from-fuchsia-500 via-pink-500 to-rose-500 hover:from-fuchsia-600 hover:to-rose-600 text-white font-black text-xs sm:text-sm px-3.5 sm:px-5 py-2 rounded-xl sm:rounded-full shadow-md hover:shadow-lg active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer">
+              <span>▶</span>
+              <span id="btnPlaySelectedSongsLabel">播放選取歌曲</span>
+            </button>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -1107,7 +1144,7 @@ const htmlContent = `<!DOCTYPE html>
                 </div>
               </div>
 
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label class="block text-xs font-bold text-slate-600 mb-1">類別 *</label>
                   <select id="songForm-category" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-fuchsia-500 focus:outline-none"></select>
@@ -1115,6 +1152,10 @@ const htmlContent = `<!DOCTYPE html>
                 <div>
                   <label class="block text-xs font-bold text-slate-600 mb-1">歌名 *</label>
                   <input type="text" id="songForm-title" placeholder="如：小星星" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-fuchsia-500 focus:outline-none">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 mb-1">歌曲長度 (分:秒)</label>
+                  <input type="text" id="songForm-duration" placeholder="例如 02:43（選檔或輸入 YouTube 自動帶入）" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-fuchsia-500 focus:outline-none">
                 </div>
               </div>
 
@@ -1559,8 +1600,10 @@ const htmlContent = `<!DOCTYPE html>
   <div id="songPlayerModal" class="fixed inset-0 z-60 flex items-center justify-center p-3 sm:p-6 select-none hidden" style="background: rgba(15,23,42,0.55); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);" onclick="handleSongPlayerBackdrop(event)">
     <div class="w-full max-w-3xl rounded-3xl border border-white/30 shadow-2xl p-3 sm:p-5 text-white flex flex-col gap-3" style="background: linear-gradient(135deg, rgba(255,255,255,0.24), rgba(255,255,255,0.08)); backdrop-filter: blur(24px) saturate(160%); -webkit-backdrop-filter: blur(24px) saturate(160%);" onclick="event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="songPlayerTitle">
       <div class="flex items-center justify-between gap-3">
-        <div class="flex items-center gap-2 min-w-0">
+        <div class="flex items-center gap-2 min-w-0 flex-wrap">
           <span id="songPlayerCategory" class="text-[0.6875rem] font-extrabold px-2.5 py-0.5 rounded-full shrink-0"></span>
+          <span id="songPlayerDuration" class="text-[0.6875rem] font-bold px-2 py-0.5 rounded-full bg-white/20 text-white shrink-0 hidden"></span>
+          <span id="songPlayerQueueBadge" class="text-[0.6875rem] font-bold text-fuchsia-100 bg-fuchsia-900/60 border border-fuchsia-400/40 px-2 py-0.5 rounded-full shrink-0 hidden"></span>
           <h3 id="songPlayerTitle" class="text-base sm:text-lg font-black truncate"></h3>
         </div>
         <button type="button" onclick="closeSongPlayer()" class="w-9 h-9 rounded-full bg-white/15 hover:bg-white/30 text-white flex items-center justify-center font-bold text-lg tap-bounce shrink-0 cursor-pointer" title="關閉 (Esc)" aria-label="關閉">✕</button>
@@ -1575,15 +1618,31 @@ const htmlContent = `<!DOCTYPE html>
         </div>
       </div>
 
-      <div class="flex items-center justify-between gap-3 px-1">
-        <div class="flex items-center gap-2.5">
-          <button type="button" id="songRepeatToggle" role="switch" aria-checked="false" aria-label="重複播放" onclick="toggleSongRepeat()" class="relative w-11 h-6 rounded-full transition-colors shrink-0 cursor-pointer bg-white/30">
-            <span id="songRepeatKnob" class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform"></span>
+      <!-- 播放器底部控制列 (包含隊列上一首/下一首、隨機、循環與下載) -->
+      <div class="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5 px-1 pt-1">
+        <!-- 播放控制：上一首 / 下一首 -->
+        <div id="songPlayerNavControls" class="flex items-center gap-1.5 sm:gap-2">
+          <button type="button" id="btnPlayerPrev" onclick="playPrevSongInQueue()" class="px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold flex items-center gap-1 tap-bounce cursor-pointer" title="上一首">
+            <span>⏮</span> <span class="hidden sm:inline">上一首</span>
           </button>
-          <span class="text-xs sm:text-sm font-bold">🔁 重複播放</span>
+          <button type="button" id="btnPlayerNext" onclick="playNextSongInQueue()" class="px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold flex items-center gap-1 tap-bounce cursor-pointer" title="下一首">
+            <span class="hidden sm:inline">下一首</span> <span>⏭</span>
+          </button>
         </div>
-        <a id="songPlayerDownload" href="#" target="_blank" rel="noopener noreferrer" class="hidden w-10 h-10 rounded-full bg-white/15 hover:bg-white/30 text-white flex items-center justify-center tap-bounce transition-colors" title="下載音樂檔" aria-label="下載音樂檔">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M7 11l5 5 5-5"/><path d="M4 19h16"/></svg>
+
+        <!-- 模式開關：隨機與循環（可單獨或合併啟用） -->
+        <div class="flex items-center gap-2">
+          <button type="button" id="songModalShuffleBtn" onclick="toggleSongShuffle()" class="px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 transition-all cursor-pointer bg-white/15 hover:bg-white/25 text-white" title="隨機播放開關">
+            <span>🔀</span> <span class="hidden sm:inline">隨機</span>
+          </button>
+          <button type="button" id="songModalRepeatBtn" onclick="toggleSongRepeatList()" class="px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 transition-all cursor-pointer bg-white/15 hover:bg-white/25 text-white" title="循環播放開關">
+            <span>🔁</span> <span class="hidden sm:inline">循環</span>
+          </button>
+        </div>
+
+        <!-- 右側：下載音樂檔 -->
+        <a id="songPlayerDownload" href="#" target="_blank" rel="noopener noreferrer" class="hidden w-9 h-9 rounded-full bg-white/15 hover:bg-white/30 text-white flex items-center justify-center tap-bounce transition-colors ml-auto sm:ml-0" title="下載音樂檔" aria-label="下載音樂檔">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M7 11l5 5 5-5"/><path d="M4 19h16"/></svg>
         </a>
       </div>
     </div>
@@ -4629,6 +4688,18 @@ const htmlContent = `<!DOCTYPE html>
     var songRepeat = false;
     try { songRepeat = localStorage.getItem('nobel_a_song_repeat') === '1'; } catch (e) {}
 
+    // 隨機播放與循環播放設定（可單獨選取或合併選取）
+    var songShuffle = false;
+    try { songShuffle = localStorage.getItem('nobel_a_song_shuffle') === '1'; } catch (e) {}
+    var songRepeatList = true;
+    try { songRepeatList = localStorage.getItem('nobel_a_song_repeat_list') !== '0'; } catch (e) {}
+
+    // 選取與連續播放隊列
+    if (!state.selectedSongIds) state.selectedSongIds = new Set();
+    var songPlayerQueue = [];
+    var songPlayerQueueIndex = 0;
+    var songPlayerMode = 'single';
+
     function songEsc(s) {
       return String(s === undefined || s === null ? '' : s)
         .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -4640,6 +4711,31 @@ const htmlContent = `<!DOCTYPE html>
       if (n >= 1024 * 1024) return (n / (1024 * 1024)).toFixed(1) + ' MB';
       if (n >= 1024) return Math.round(n / 1024) + ' KB';
       return n + ' B';
+    }
+
+    function formatSongDuration(dur) {
+      if (!dur) return '';
+      const str = String(dur).trim();
+      if (/^\d{1,2}:\d{2}$/.test(str)) return str;
+      const num = Number(str);
+      if (!isNaN(num) && num > 0) {
+        const sec = Math.round(num);
+        const m = Math.floor(sec / 60);
+        const s = sec % 60;
+        return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+      }
+      return str;
+    }
+
+    function shuffleArray(arr) {
+      const copy = (arr || []).slice();
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const temp = copy[i];
+        copy[i] = copy[j];
+        copy[j] = temp;
+      }
+      return copy;
     }
 
     function getYouTubeIdFromUrl(url) {
@@ -4752,15 +4848,12 @@ const htmlContent = `<!DOCTYPE html>
       applySongFilters();
     }
 
-    function applySongFilters() {
+    function getFilteredSongs() {
       const kwInput = document.getElementById('songFilter-keyword');
       const kw = ((kwInput && kwInput.value) || '').trim().toLowerCase();
-      const clearBtn = document.getElementById('songFilter-clearKeyword');
-      if (clearBtn) clearBtn.classList.toggle('hidden', !kw);
-
-      const selected = state.selectedSongCategories;
+      const selected = state.selectedSongCategories || new Set();
       const all = state.songs || [];
-      const filtered = all.filter(function(s) {
+      return all.filter(function(s) {
         if (kw) {
           const hit = String(s.title || '').toLowerCase().indexOf(kw) !== -1 ||
                       String(s.category || '').toLowerCase().indexOf(kw) !== -1;
@@ -4769,6 +4862,17 @@ const htmlContent = `<!DOCTYPE html>
         if (selected.size > 0 && !selected.has(String(s.category || '').trim())) return false;
         return true;
       });
+    }
+
+    function applySongFilters() {
+      const kwInput = document.getElementById('songFilter-keyword');
+      const kw = ((kwInput && kwInput.value) || '').trim().toLowerCase();
+      const clearBtn = document.getElementById('songFilter-clearKeyword');
+      if (clearBtn) clearBtn.classList.toggle('hidden', !kw);
+
+      const filtered = getFilteredSongs();
+      const all = state.songs || [];
+      const selected = state.selectedSongCategories || new Set();
 
       const countText = document.getElementById('songFilterCountText');
       if (countText) {
@@ -4797,36 +4901,67 @@ const htmlContent = `<!DOCTYPE html>
           '<div class="text-sm font-bold">' + ((state.songs || []).length === 0 ? '目前還沒有歌曲' : '沒有符合條件的歌曲') + '</div>' +
           '<div class="text-xs">' + ((state.songs || []).length === 0 ? '請老師於管理後台新增歌曲。' : '請嘗試調整關鍵字或類別標籤，或點擊「重設」。') + '</div>' +
           '</div>';
+        updateSongsBottomBarUI();
         return;
       }
 
       songs.forEach(function(song) {
         const thumb = getSongThumbUrl(song);
-        const row = document.createElement('div');
-        row.className = 'p-2.5 sm:p-3 rounded-3xl bg-white border border-slate-200/90 shadow-2xs hover:shadow-md transition-all flex items-center gap-3 sm:gap-4 group';
+        const isSelected = state.selectedSongIds.has(String(song.id));
+        const formattedDur = formatSongDuration(song.duration);
 
+        const row = document.createElement('div');
+        row.className = 'p-2.5 sm:p-3 rounded-3xl bg-white border ' +
+          (isSelected ? 'border-fuchsia-400 bg-fuchsia-50/30 ring-2 ring-fuchsia-300/40' : 'border-slate-200/90') +
+          ' shadow-2xs hover:shadow-md transition-all flex items-center gap-2.5 sm:gap-4 group';
+
+        // 勾選核取方塊
+        const checkWrap = document.createElement('label');
+        checkWrap.className = 'shrink-0 p-1 flex items-center justify-center cursor-pointer';
+        checkWrap.title = '勾選此歌曲加入播放清單';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'w-5 h-5 rounded-lg text-fuchsia-600 accent-fuchsia-500 cursor-pointer';
+        checkbox.checked = isSelected;
+        checkbox.onchange = function(e) {
+          e.stopPropagation();
+          toggleSelectSong(song.id);
+        };
+        checkWrap.appendChild(checkbox);
+        row.appendChild(checkWrap);
+
+        // YouTube 縮圖按鈕 (含時長標籤)
         const thumbBtn = document.createElement('button');
         thumbBtn.type = 'button';
         thumbBtn.className = 'relative shrink-0 w-28 sm:w-40 aspect-video rounded-2xl overflow-hidden bg-slate-100 tap-bounce cursor-pointer';
         thumbBtn.setAttribute('aria-label', '播放 ' + (song.title || ''));
         thumbBtn.innerHTML = (thumb ? '<img src="' + songEsc(thumb) + '" alt="" loading="lazy" class="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300">' : '') +
           '<span class="absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-black/25 transition-colors">' +
-          '<span class="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-white/90 text-fuchsia-600 flex items-center justify-center shadow-md text-sm sm:text-base pl-0.5">▶</span></span>';
+          '<span class="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-white/90 text-fuchsia-600 flex items-center justify-center shadow-md text-sm sm:text-base pl-0.5">▶</span></span>' +
+          (formattedDur ? '<span class="absolute bottom-1.5 right-1.5 bg-black/80 backdrop-blur-xs text-white text-[10px] sm:text-xs font-bold px-1.5 py-0.5 rounded-md shadow-xs pointer-events-none">' + songEsc(formattedDur) + '</span>' : '');
         thumbBtn.onclick = function() { openSongPlayer(song.id); };
+        row.appendChild(thumbBtn);
 
+        // 資訊區：類別徽章 + 歌曲時長 + 歌名
         const info = document.createElement('div');
         info.className = 'flex-1 min-w-0 flex flex-col items-start gap-1.5';
-        info.innerHTML = '<span class="' + getSongCategoryBadgeClass(song.category) + ' text-[0.6875rem] font-extrabold px-2.5 py-0.5 rounded-full">' + songEsc(song.category || '未分類') + '</span>';
+        let metaHtml = '<div class="flex items-center gap-1.5 flex-wrap">' +
+          '<span class="' + getSongCategoryBadgeClass(song.category) + ' text-[0.6875rem] font-extrabold px-2.5 py-0.5 rounded-full">' + songEsc(song.category || '未分類') + '</span>';
+        if (formattedDur) {
+          metaHtml += '<span class="inline-flex items-center gap-1 text-[11px] sm:text-xs text-slate-500 font-semibold bg-slate-100/90 px-2 py-0.5 rounded-full">⏱️ ' + songEsc(formattedDur) + '</span>';
+        }
+        metaHtml += '</div>';
+        info.innerHTML = metaHtml;
+
         const titleBtn = document.createElement('button');
         titleBtn.type = 'button';
         titleBtn.className = 'font-black text-slate-800 hover:text-fuchsia-700 text-sm sm:text-base text-left line-clamp-2 transition-colors cursor-pointer';
         titleBtn.textContent = song.title || '未命名歌曲';
         titleBtn.onclick = function() { openSongPlayer(song.id); };
         info.appendChild(titleBtn);
-
-        row.appendChild(thumbBtn);
         row.appendChild(info);
 
+        // 下載按鈕 (純圖示，不要文字)
         if (song.downloadUrl) {
           const dl = document.createElement('a');
           dl.href = song.downloadUrl;
@@ -4840,6 +4975,126 @@ const htmlContent = `<!DOCTYPE html>
         }
         container.appendChild(row);
       });
+
+      updateSongsBottomBarUI();
+    }
+
+    function toggleSelectSong(songId) {
+      const idStr = String(songId);
+      if (state.selectedSongIds.has(idStr)) {
+        state.selectedSongIds.delete(idStr);
+      } else {
+        state.selectedSongIds.add(idStr);
+      }
+      applySongFilters();
+    }
+
+    function toggleSelectAllFilteredSongs() {
+      const filtered = getFilteredSongs();
+      if (filtered.length === 0) return;
+      const allSelected = filtered.every(function(s) { return state.selectedSongIds.has(String(s.id)); });
+      if (allSelected) {
+        filtered.forEach(function(s) { state.selectedSongIds.delete(String(s.id)); });
+      } else {
+        filtered.forEach(function(s) { state.selectedSongIds.add(String(s.id)); });
+      }
+      applySongFilters();
+    }
+
+    function handleBottomBarSelectAllChange(e) {
+      const filtered = getFilteredSongs();
+      if (filtered.length === 0) return;
+      const check = !!(e && e.target && e.target.checked);
+      if (check) {
+        filtered.forEach(function(s) { state.selectedSongIds.add(String(s.id)); });
+      } else {
+        filtered.forEach(function(s) { state.selectedSongIds.delete(String(s.id)); });
+      }
+      applySongFilters();
+    }
+
+    function updateSongsBottomBarUI() {
+      const filtered = getFilteredSongs();
+      const countEl = document.getElementById('bottomBarSelectedCount');
+      const allCb = document.getElementById('bottomBarSelectAllCheckbox');
+      const playBtnLabel = document.getElementById('btnPlaySelectedSongsLabel');
+      const selCount = state.selectedSongIds ? state.selectedSongIds.size : 0;
+
+      if (countEl) countEl.textContent = '已選取 ' + selCount + ' 首';
+
+      if (allCb) {
+        const filteredSelectedCount = filtered.filter(function(s) { return state.selectedSongIds.has(String(s.id)); }).length;
+        if (filtered.length > 0 && filteredSelectedCount === filtered.length) {
+          allCb.checked = true;
+          allCb.indeterminate = false;
+        } else if (filteredSelectedCount > 0) {
+          allCb.checked = false;
+          allCb.indeterminate = true;
+        } else {
+          allCb.checked = false;
+          allCb.indeterminate = false;
+        }
+      }
+
+      if (playBtnLabel) {
+        if (selCount > 0) {
+          playBtnLabel.textContent = '播放勾選歌曲 (' + selCount + '首)';
+        } else {
+          playBtnLabel.textContent = '播放全部歌曲 (' + filtered.length + '首)';
+        }
+      }
+
+      // 隨機播放按鈕樣式
+      const shufBtn = document.getElementById('btnToggleSongShuffle');
+      if (shufBtn) {
+        shufBtn.className = 'p-2 sm:px-3 sm:py-1.5 rounded-xl sm:rounded-full text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ' +
+          (songShuffle ? 'bg-fuchsia-600 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200');
+      }
+
+      // 循環播放按鈕樣式
+      const repBtn = document.getElementById('btnToggleSongRepeatList');
+      if (repBtn) {
+        repBtn.className = 'p-2 sm:px-3 sm:py-1.5 rounded-xl sm:rounded-full text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ' +
+          (songRepeatList ? 'bg-fuchsia-600 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200');
+      }
+
+      updateSongModalModesUI();
+    }
+
+    function toggleSongShuffle() {
+      songShuffle = !songShuffle;
+      try { localStorage.setItem('nobel_a_song_shuffle', songShuffle ? '1' : '0'); } catch (e) {}
+      showToast(songShuffle ? '🔀 已開啟隨機播放模式' : '➡️ 已切換為循序播放模式', '🎵');
+      updateSongsBottomBarUI();
+      if (songPlayerQueue && songPlayerQueue.length > 1) {
+        const curSong = songPlayerQueue[songPlayerQueueIndex];
+        if (songShuffle && curSong) {
+          const others = songPlayerQueue.filter(function(s) { return String(s.id) !== String(curSong.id); });
+          songPlayerQueue = [curSong].concat(shuffleArray(others));
+          songPlayerQueueIndex = 0;
+          updateQueueBadge();
+        }
+      }
+    }
+
+    function toggleSongRepeatList() {
+      songRepeatList = !songRepeatList;
+      try { localStorage.setItem('nobel_a_song_repeat_list', songRepeatList ? '1' : '0'); } catch (e) {}
+      showToast(songRepeatList ? '🔁 已開啟清單循環播放' : '⏹️ 已設定播完全部後停止', '🎵');
+      updateSongsBottomBarUI();
+    }
+
+    function updateSongModalModesUI() {
+      const shufModalBtn = document.getElementById('songModalShuffleBtn');
+      if (shufModalBtn) {
+        shufModalBtn.className = 'px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 transition-all cursor-pointer ' +
+          (songShuffle ? 'bg-fuchsia-500 text-white shadow-xs ring-1 ring-white/40' : 'bg-white/15 hover:bg-white/25 text-white/80');
+      }
+      const repModalBtn = document.getElementById('songModalRepeatBtn');
+      if (repModalBtn) {
+        repModalBtn.className = 'px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 transition-all cursor-pointer ' +
+          (songRepeatList ? 'bg-fuchsia-500 text-white shadow-xs ring-1 ring-white/40' : 'bg-white/15 hover:bg-white/25 text-white/80');
+      }
     }
 
     function refreshSongs() {
@@ -4847,7 +5102,7 @@ const htmlContent = `<!DOCTYPE html>
       loadAppData(false);
     }
 
-    // ---------- 玻璃視窗播放器 ----------
+    // ---------- 玻璃視窗播放器與隊列 ----------
     function loadYouTubeApi() {
       if (window.YT && window.YT.Player) return Promise.resolve();
       if (ytApiPromise) return ytApiPromise;
@@ -4868,15 +5123,103 @@ const htmlContent = `<!DOCTYPE html>
       return ytApiPromise;
     }
 
+    function playSelectedSongs() {
+      const filtered = getFilteredSongs();
+      if (filtered.length === 0) {
+        showToast('目前沒有符合篩選條件的歌曲', '⚠️');
+        return;
+      }
+      let selected = [];
+      if (state.selectedSongIds && state.selectedSongIds.size > 0) {
+        selected = filtered.filter(function(s) { return state.selectedSongIds.has(String(s.id)); });
+        if (selected.length === 0) {
+          selected = (state.songs || []).filter(function(s) { return state.selectedSongIds.has(String(s.id)); });
+        }
+      }
+      if (selected.length === 0) {
+        selected = filtered.slice();
+        selected.forEach(function(s) { state.selectedSongIds.add(String(s.id)); });
+        applySongFilters();
+        showToast('已為您選取目前全部 ' + selected.length + ' 首歌曲！', '🎵');
+      }
+
+      let queue = selected.slice();
+      if (songShuffle && queue.length > 1) {
+        queue = shuffleArray(queue);
+      }
+      songPlayerQueue = queue;
+      songPlayerQueueIndex = 0;
+      songPlayerMode = 'queue';
+      openSongPlayerFromQueue(0);
+    }
+
     function openSongPlayer(songId) {
-      const song = (state.songs || []).find(function(s) { return String(s.id) === String(songId); });
-      if (!song) return;
+      const filtered = getFilteredSongs();
+      let targetSong = (state.songs || []).find(function(s) { return String(s.id) === String(songId); });
+      if (!targetSong) return;
+
+      let queue = [];
+      if (state.selectedSongIds && state.selectedSongIds.has(String(songId))) {
+        queue = filtered.filter(function(s) { return state.selectedSongIds.has(String(s.id)); });
+        if (queue.length === 0) queue = (state.songs || []).filter(function(s) { return state.selectedSongIds.has(String(s.id)); });
+      } else {
+        queue = filtered.length > 0 ? filtered.slice() : [targetSong];
+      }
+
+      let idx = queue.findIndex(function(s) { return String(s.id) === String(targetSong.id); });
+      if (idx === -1) { queue = [targetSong]; idx = 0; }
+
+      if (songShuffle && queue.length > 1) {
+        const others = queue.filter(function(s) { return String(s.id) !== String(targetSong.id); });
+        queue = [targetSong].concat(shuffleArray(others));
+        idx = 0;
+      }
+
+      songPlayerQueue = queue;
+      songPlayerQueueIndex = idx;
+      songPlayerMode = queue.length > 1 ? 'queue' : 'single';
+      openSongPlayerFromQueue(idx);
+    }
+
+    function updateQueueBadge() {
+      const qBadge = document.getElementById('songPlayerQueueBadge');
+      if (qBadge) {
+        if (songPlayerQueue && songPlayerQueue.length > 1) {
+          qBadge.textContent = '第 ' + (songPlayerQueueIndex + 1) + ' / ' + songPlayerQueue.length + ' 首';
+          qBadge.classList.remove('hidden');
+        } else {
+          qBadge.classList.add('hidden');
+        }
+      }
+      const prevBtn = document.getElementById('btnPlayerPrev');
+      const nextBtn = document.getElementById('btnPlayerNext');
+      if (prevBtn) prevBtn.disabled = (songPlayerQueueIndex === 0 && !songRepeatList);
+      if (nextBtn) nextBtn.disabled = (songPlayerQueueIndex === (songPlayerQueue.length - 1) && !songRepeatList);
+    }
+
+    function openSongPlayerFromQueue(idx) {
+      if (!songPlayerQueue || idx < 0 || idx >= songPlayerQueue.length) return;
+      songPlayerQueueIndex = idx;
+      const song = songPlayerQueue[idx];
       songPlayerCurrent = song;
 
       document.getElementById('songPlayerTitle').textContent = song.title || '';
       const badge = document.getElementById('songPlayerCategory');
       badge.textContent = song.category || '未分類';
       badge.className = getSongCategoryBadgeClass(song.category) + ' text-[0.6875rem] font-extrabold px-2.5 py-0.5 rounded-full shrink-0';
+
+      const durEl = document.getElementById('songPlayerDuration');
+      if (durEl) {
+        const formattedDur = formatSongDuration(song.duration);
+        if (formattedDur) {
+          durEl.textContent = '⏱️ ' + formattedDur;
+          durEl.classList.remove('hidden');
+        } else {
+          durEl.classList.add('hidden');
+        }
+      }
+
+      updateQueueBadge();
 
       const dl = document.getElementById('songPlayerDownload');
       if (song.downloadUrl) {
@@ -4888,9 +5231,35 @@ const htmlContent = `<!DOCTYPE html>
       const yt = document.getElementById('songPlayerOpenYoutube');
       if (yt) yt.href = song.youtubeUrl || ('https://www.youtube.com/watch?v=' + getSongYoutubeId(song));
 
-      updateSongRepeatUI();
+      updateSongModalModesUI();
       document.getElementById('songPlayerModal').classList.remove('hidden');
       mountSongPlayer(getSongYoutubeId(song));
+    }
+
+    function playNextSongInQueue() {
+      if (!songPlayerQueue || songPlayerQueue.length === 0) return;
+      if (songPlayerQueueIndex + 1 < songPlayerQueue.length) {
+        openSongPlayerFromQueue(songPlayerQueueIndex + 1);
+      } else if (songRepeatList) {
+        if (songShuffle && songPlayerQueue.length > 1) {
+          songPlayerQueue = shuffleArray(songPlayerQueue.slice());
+        }
+        openSongPlayerFromQueue(0);
+        showToast('🔁 循環播放：重新從第 1 首開始', '🎵');
+      } else {
+        showToast('已是清單中最後一首歌曲', 'ℹ️');
+      }
+    }
+
+    function playPrevSongInQueue() {
+      if (!songPlayerQueue || songPlayerQueue.length === 0) return;
+      if (songPlayerQueueIndex > 0) {
+        openSongPlayerFromQueue(songPlayerQueueIndex - 1);
+      } else if (songRepeatList) {
+        openSongPlayerFromQueue(songPlayerQueue.length - 1);
+      } else {
+        showToast('已是清單中第一首歌曲', 'ℹ️');
+      }
     }
 
     function destroySongPlayer() {
@@ -4914,7 +5283,7 @@ const htmlContent = `<!DOCTYPE html>
       if (!holder) return;
       holder.innerHTML = '';
       const f = document.createElement('iframe');
-      f.src = 'https://www.youtube-nocookie.com/embed/' + vid + '?autoplay=1&rel=0&playsinline=1' + (songRepeat ? '&loop=1&playlist=' + vid : '');
+      f.src = 'https://www.youtube-nocookie.com/embed/' + vid + '?autoplay=1&rel=0&playsinline=1' + (songRepeatList ? '&loop=1&playlist=' + vid : '');
       f.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
       f.setAttribute('allowfullscreen', '');
       f.title = 'YouTube 播放器';
@@ -4940,10 +5309,40 @@ const htmlContent = `<!DOCTYPE html>
           videoId: vid,
           playerVars: { autoplay: 1, rel: 0, playsinline: 1, modestbranding: 1 },
           events: {
-            onReady: function(e) { try { e.target.playVideo(); } catch (err) {} },
+            onReady: function(e) {
+              try {
+                e.target.playVideo();
+                // 若當前歌曲無時長，自動偵測並更新
+                if (songPlayerCurrent && !songPlayerCurrent.duration) {
+                  const d = e.target.getDuration();
+                  if (d && !isNaN(d) && d > 0) {
+                    const sec = Math.round(d);
+                    const m = Math.floor(sec / 60);
+                    const s = sec % 60;
+                    const formatted = (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+                    songPlayerCurrent.duration = formatted;
+                    const durEl = document.getElementById('songPlayerDuration');
+                    if (durEl) {
+                      durEl.textContent = '⏱️ ' + formatted;
+                      durEl.classList.remove('hidden');
+                    }
+                  }
+                }
+              } catch (err) {}
+            },
             onStateChange: function(e) {
-              if (e.data === YT.PlayerState.ENDED && songRepeat) {
-                try { e.target.seekTo(0, true); e.target.playVideo(); } catch (err) {}
+              if (e.data === YT.PlayerState.ENDED) {
+                if (songPlayerQueue.length <= 1) {
+                  if (songRepeatList) {
+                    try { e.target.seekTo(0, true); e.target.playVideo(); } catch (err) {}
+                  }
+                  return;
+                }
+                if (songPlayerQueueIndex + 1 < songPlayerQueue.length || songRepeatList) {
+                  playNextSongInQueue();
+                } else {
+                  showToast('✅ 清單內歌曲已全數播放完畢！', '🎉');
+                }
               }
             },
             onError: function() { showSongPlayerError(true); }
@@ -4953,23 +5352,6 @@ const htmlContent = `<!DOCTYPE html>
         if (token !== songPlayerToken) return;
         mountSongPlayerFallback(vid);
       });
-    }
-
-    function updateSongRepeatUI() {
-      const btn = document.getElementById('songRepeatToggle');
-      if (!btn) return;
-      btn.setAttribute('aria-checked', songRepeat ? 'true' : 'false');
-      btn.className = 'relative w-11 h-6 rounded-full transition-colors shrink-0 cursor-pointer ' + (songRepeat ? 'bg-fuchsia-500' : 'bg-white/30');
-      const knob = document.getElementById('songRepeatKnob');
-      if (knob) knob.style.transform = songRepeat ? 'translateX(20px)' : 'translateX(0)';
-    }
-
-    function toggleSongRepeat() {
-      songRepeat = !songRepeat;
-      try { localStorage.setItem('nobel_a_song_repeat', songRepeat ? '1' : '0'); } catch (e) {}
-      updateSongRepeatUI();
-      // 備援 iframe 模式需重新載入才能套用 loop 參數
-      if (songPlayerUsingFallback && songPlayerCurrent) mountSongPlayerFallback(getSongYoutubeId(songPlayerCurrent));
     }
 
     function closeSongPlayer() {
@@ -5013,7 +5395,7 @@ const htmlContent = `<!DOCTYPE html>
         tr.innerHTML =
           '<td class="py-2.5 px-3">' + (thumb ? '<img src="' + songEsc(thumb) + '" class="w-16 aspect-video object-cover rounded-lg border border-slate-200">' : '') + '</td>' +
           '<td class="py-2.5 px-3 whitespace-nowrap"><span class="' + getSongCategoryBadgeClass(song.category) + ' px-2.5 py-0.5 rounded-full text-[10px] font-extrabold inline-block">' + songEsc(song.category || '未分類') + '</span></td>' +
-          '<td class="py-2.5 px-3 font-bold text-slate-800"><div class="line-clamp-2">' + songEsc(song.title) + '</div></td>' +
+          '<td class="py-2.5 px-3 font-bold text-slate-800"><div class="line-clamp-2">' + songEsc(song.title) + '</div>' + (song.duration ? '<div class="text-[11px] text-slate-400 font-semibold mt-0.5">⏱️ ' + songEsc(formatSongDuration(song.duration)) + '</div>' : '') + '</td>' +
           '<td class="py-2.5 px-3">' + fileCell + '</td>' +
           '<td class="py-2.5 px-3 text-right whitespace-nowrap space-x-1.5"></td>';
 
@@ -5082,6 +5464,19 @@ const htmlContent = `<!DOCTYPE html>
         songFormSelectedFile = null;
       } else {
         songFormSelectedFile = f;
+        try {
+          const tempAudio = new Audio(URL.createObjectURL(f));
+          tempAudio.onloadedmetadata = function() {
+            if (tempAudio.duration && !isNaN(tempAudio.duration) && tempAudio.duration > 0) {
+              const sec = Math.round(tempAudio.duration);
+              const m = Math.floor(sec / 60);
+              const s = sec % 60;
+              const formatted = (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+              const durEl = document.getElementById('songForm-duration');
+              if (durEl && !durEl.value) durEl.value = formatted;
+            }
+          };
+        } catch (err) {}
       }
       const existing = songFormEditingId ? (state.songs || []).find(function(s) { return String(s.id) === String(songFormEditingId); }) : null;
       setSongFormFileStatus(existing);
@@ -5091,7 +5486,7 @@ const htmlContent = `<!DOCTYPE html>
       if (songSaving) return;
       songFormEditingId = '';
       songFormSelectedFile = null;
-      ['songForm-youtube', 'songForm-title'].forEach(function(id) { const el = document.getElementById(id); if (el) el.value = ''; });
+      ['songForm-youtube', 'songForm-title', 'songForm-duration'].forEach(function(id) { const el = document.getElementById(id); if (el) el.value = ''; });
       const fi = document.getElementById('songForm-fileInput');
       if (fi) fi.value = '';
       const sel = document.getElementById('songForm-category');
@@ -5111,6 +5506,8 @@ const htmlContent = `<!DOCTYPE html>
       songFormSelectedFile = null;
       document.getElementById('songForm-youtube').value = song.youtubeUrl || '';
       document.getElementById('songForm-title').value = song.title || '';
+      const durEl = document.getElementById('songForm-duration');
+      if (durEl) durEl.value = song.duration ? formatSongDuration(song.duration) : '';
       const sel = document.getElementById('songForm-category');
       if (sel) {
         if (song.category && Array.prototype.every.call(sel.options, function(o) { return o.value !== song.category; })) {
@@ -5226,6 +5623,8 @@ const htmlContent = `<!DOCTYPE html>
       const youtubeUrl = document.getElementById('songForm-youtube').value.trim();
       const title = document.getElementById('songForm-title').value.trim();
       const category = document.getElementById('songForm-category').value;
+      const durInput = document.getElementById('songForm-duration');
+      const duration = durInput ? formatSongDuration(durInput.value.trim()) : '';
       if (!youtubeUrl || !getYouTubeIdFromUrl(youtubeUrl)) { showToast('請輸入正確的 YouTube 連結', '⚠️'); return; }
       if (!title) { showToast('請輸入歌名', '⚠️'); return; }
       if (!category) { showToast('請選擇類別（類別可於試算表 SongCategories 新增）', '⚠️'); return; }
@@ -5237,6 +5636,7 @@ const htmlContent = `<!DOCTYPE html>
         title: title,
         youtubeUrl: youtubeUrl,
         youtubeId: getYouTubeIdFromUrl(youtubeUrl),
+        duration: duration || (existing ? (existing.duration || '') : ''),
         fileName: existing ? (existing.fileName || '') : '',
         fileSize: existing ? (existing.fileSize || '') : '',
         driveFileId: existing ? (existing.driveFileId || '') : '',
@@ -5272,7 +5672,7 @@ const htmlContent = `<!DOCTYPE html>
         const base64 = String(ev.target.result).split(',')[1];
         startSongProgressEstimate(file.size);
         callBackend('uploadSong', {
-          meta: { id: songData.id, category: category, title: title, youtubeUrl: youtubeUrl },
+          meta: { id: songData.id, category: category, title: title, youtubeUrl: youtubeUrl, duration: songData.duration },
           file: { name: file.name, mimeType: file.type || 'audio/mpeg', base64: base64 },
           password: state.adminPassword
         }, function(res) { finishSongSave(res, songData, true); }, failSongSave);

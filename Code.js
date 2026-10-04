@@ -1965,7 +1965,7 @@ function deleteDoc(docId, password) {
 // 唱跳音符 (Songs)
 // -------------------------------------------------------------
 
-const SONG_HEADERS = ['id', 'category', 'title', 'youtubeUrl', 'youtubeId', 'fileName', 'fileSize', 'driveFileId', 'downloadUrl', 'updatedAt'];
+const SONG_HEADERS = ['id', 'category', 'title', 'youtubeUrl', 'youtubeId', 'duration', 'fileName', 'fileSize', 'driveFileId', 'downloadUrl', 'updatedAt'];
 const SONG_DEFAULT_CATEGORIES = ['兒歌', '律動舞蹈', '英文歌曲', '節慶歌曲', '安靜時光'];
 
 /**
@@ -2020,15 +2020,69 @@ function extractYouTubeId(url) {
 }
 
 /**
- * 讀取歌曲清單與類別（依工作表順序）
+ * 從 YouTube 影片頁面自動擷取影片長度（格式 mm:ss）
+ */
+function fetchYouTubeDuration(youtubeId) {
+  if (!youtubeId) return '';
+  try {
+    const res = UrlFetchApp.fetch('https://www.youtube.com/watch?v=' + youtubeId, {
+      muteHttpExceptions: true,
+      headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)' }
+    });
+    if (res.getResponseCode() === 200) {
+      const content = res.getContentText();
+      const m = content.match(/"approxDurationMs":"(\d+)"/);
+      if (m) {
+        const sec = Math.round(parseInt(m[1], 10) / 1000);
+        const min = Math.floor(sec / 60);
+        const remSec = sec % 60;
+        return (min < 10 ? '0' : '') + min + ':' + (remSec < 10 ? '0' : '') + remSec;
+      }
+      const m2 = content.match(/itemprop="duration"\s+content="PT(?:(\d+)M)?(?:(\d+)S)?"/i);
+      if (m2) {
+        const min = parseInt(m2[1] || '0', 10);
+        const remSec = parseInt(m2[2] || '0', 10);
+        return (min < 10 ? '0' : '') + min + ':' + (remSec < 10 ? '0' : '') + remSec;
+      }
+    }
+  } catch (e) {
+    console.warn('fetchYouTubeDuration failed for ' + youtubeId + ': ' + e);
+  }
+  return '';
+}
+
+/**
+ * 讀取歌曲清單與類別（依工作表順序，若缺少歌曲長度則自動取得並回填儲存）
  */
 function getSongsData() {
   const sheets = ensureSongSheetsExist();
   const categories = getSheetDataAsObjects(sheets.catSheet).map(function(r) { return String(r.categoryName || '').trim(); }).filter(Boolean);
   const songs = getSheetDataAsObjects(sheets.songSheet).filter(function(s) { return s.id || s.title || s.youtubeUrl; });
-  songs.forEach(function(s) {
+  let hasUpdatedDuration = false;
+
+  const lastCol = Math.max(sheets.songSheet.getLastColumn(), 1);
+  const headers = sheets.songSheet.getRange(1, 1, 1, lastCol).getValues()[0].map(function(h) { return String(h).trim(); });
+  const durColIdx = headers.indexOf('duration');
+
+  songs.forEach(function(s, idx) {
     if (!s.youtubeId) s.youtubeId = extractYouTubeId(s.youtubeUrl);
+    if (!s.duration && s.youtubeId) {
+      const dur = fetchYouTubeDuration(s.youtubeId);
+      if (dur) {
+        s.duration = dur;
+        if (durColIdx > -1) {
+          try {
+            sheets.songSheet.getRange(idx + 2, durColIdx + 1).setValue(dur);
+            hasUpdatedDuration = true;
+          } catch (e) {}
+        }
+      }
+    }
   });
+
+  if (hasUpdatedDuration) {
+    clearAppDataCache();
+  }
   return { songs: songs, categories: categories };
 }
 
@@ -2045,6 +2099,8 @@ function saveSong(songData, password) {
     if (!youtubeUrl) return { success: false, error: '請輸入 YouTube 連結！' };
     const youtubeId = extractYouTubeId(youtubeUrl);
     if (!youtubeId) return { success: false, error: '無法辨識 YouTube 連結，請確認網址是否正確！' };
+
+    const duration = String(songData.duration || '').trim() || fetchYouTubeDuration(youtubeId);
 
     const sheet = ensureSongSheetsExist().songSheet;
     const data = sheet.getDataRange().getValues();
@@ -2064,6 +2120,7 @@ function saveSong(songData, password) {
       title: title,
       youtubeUrl: youtubeUrl,
       youtubeId: youtubeId,
+      duration: duration,
       fileName: songData.fileName || '',
       fileSize: songData.fileSize || '',
       driveFileId: songData.driveFileId || '',
@@ -2107,6 +2164,7 @@ function uploadSong(songMeta, fileObj, password) {
       category: songMeta.category,
       title: songMeta.title,
       youtubeUrl: songMeta.youtubeUrl,
+      duration: songMeta.duration,
       fileName: fileObj.name,
       fileSize: decodedBytes.length,
       driveFileId: fileId,
