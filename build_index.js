@@ -742,35 +742,19 @@ const htmlContent = `<!DOCTYPE html>
         <!-- JS 動態插入歌曲 -->
       </div>
 
-      <!-- 頁面下方固定播放控制列 -->
-      <div id="songsBottomPlayBar" class="fixed bottom-20 sm:bottom-6 left-1/2 -translate-x-1/2 z-40 w-[95%] max-w-xl transition-all duration-300">
-        <div class="bg-white/95 backdrop-blur-md border border-fuchsia-200/90 shadow-xl rounded-2xl sm:rounded-full p-2.5 sm:px-4 sm:py-2.5 flex items-center justify-between gap-2">
+      <!-- 頁面下方固定播放控制列 (極簡自適應膠囊：選取統計 + 播放圖示按鈕) -->
+      <div id="songsBottomPlayBar" class="fixed bottom-20 sm:bottom-6 left-1/2 -translate-x-1/2 z-40 transition-all duration-300">
+        <div class="bg-white/95 backdrop-blur-md border border-fuchsia-200/90 shadow-xl rounded-full px-3.5 py-1.5 sm:px-4 sm:py-2 flex items-center gap-3 sm:gap-3.5">
           <!-- 左側：勾選統計與核取方塊 -->
-          <div class="flex items-center gap-2 pl-1 sm:pl-2 shrink-0">
+          <label for="bottomBarSelectAllCheckbox" class="flex items-center gap-2 cursor-pointer select-none">
             <input type="checkbox" id="bottomBarSelectAllCheckbox" onchange="handleBottomBarSelectAllChange(event)" class="w-4 h-4 rounded text-fuchsia-600 accent-fuchsia-500 cursor-pointer" title="全選/取消全選">
-            <span id="bottomBarSelectedCount" class="text-xs sm:text-sm font-bold text-slate-700">已選取 0 首</span>
-          </div>
+            <span id="bottomBarSelectedCount" class="text-xs sm:text-sm font-bold text-slate-700 whitespace-nowrap">已選取 0 首</span>
+          </label>
 
-          <!-- 右側：隨機與循環模式按鈕 + 播放主按鈕 -->
-          <div class="flex items-center gap-1.5 sm:gap-2">
-            <!-- 🔀 隨機播放 (Shuffle) 按鈕 -->
-            <button type="button" id="btnToggleSongShuffle" onclick="toggleSongShuffle()" class="p-2 sm:px-3 sm:py-1.5 rounded-xl sm:rounded-full text-xs font-bold transition-all flex items-center gap-1 cursor-pointer bg-slate-100 text-slate-600 hover:bg-slate-200" title="隨機播放開關（可單獨或合併啟用）">
-              <span class="text-sm">🔀</span>
-              <span class="hidden sm:inline">隨機</span>
-            </button>
-
-            <!-- 🔁 循環播放 (Repeat) 按鈕 -->
-            <button type="button" id="btnToggleSongRepeatList" onclick="toggleSongRepeatList()" class="p-2 sm:px-3 sm:py-1.5 rounded-xl sm:rounded-full text-xs font-bold transition-all flex items-center gap-1 cursor-pointer bg-slate-100 text-slate-600 hover:bg-slate-200" title="循環播放開關（可單獨或合併啟用）">
-              <span class="text-sm">🔁</span>
-              <span class="hidden sm:inline">循環</span>
-            </button>
-
-            <!-- ▶️ 播放選取歌曲按鈕 -->
-            <button type="button" id="btnPlaySelectedSongs" onclick="playSelectedSongs()" class="bg-gradient-to-r from-fuchsia-500 via-pink-500 to-rose-500 hover:from-fuchsia-600 hover:to-rose-600 text-white font-black text-xs sm:text-sm px-3.5 sm:px-5 py-2 rounded-xl sm:rounded-full shadow-md hover:shadow-lg active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer">
-              <span>▶</span>
-              <span id="btnPlaySelectedSongsLabel">播放選取歌曲</span>
-            </button>
-          </div>
+          <!-- 右側：僅保留播放圖示按鈕 (隨機與循環功能保留於毛玻璃播放視窗內部) -->
+          <button type="button" id="btnPlaySelectedSongs" onclick="playSelectedSongs()" class="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-r from-fuchsia-500 via-pink-500 to-rose-500 hover:from-fuchsia-600 hover:to-rose-600 text-white font-black text-xs sm:text-sm flex items-center justify-center shadow-md hover:shadow-lg active:scale-95 transition-all cursor-pointer shrink-0 pl-0.5 tap-bounce" title="播放歌曲">
+            <span>▶</span>
+          </button>
         </div>
       </div>
     </section>
@@ -5229,6 +5213,15 @@ const htmlContent = `<!DOCTYPE html>
           playBtnLabel.textContent = '播放勾選歌曲 (' + selCount + '首)';
         } else {
           playBtnLabel.textContent = '播放全部歌曲 (' + filtered.length + '首)';
+        }
+      }
+
+      const playBtn = document.getElementById('btnPlaySelectedSongs');
+      if (playBtn) {
+        if (selCount > 0) {
+          playBtn.setAttribute('title', '播放勾選歌曲 (' + selCount + ' 首)');
+        } else {
+          playBtn.setAttribute('title', '播放全部歌曲 (' + filtered.length + ' 首)');
         }
       }
 
