@@ -2513,8 +2513,11 @@ const htmlContent = `<!DOCTYPE html>
         return String(b.id).localeCompare(String(a.id)); // Newer first if same priority
       });
       state.docs = data.docs || [];
-      state.themes = data.themes || []; renderThemes();
+      state.themes = data.themes || [];
       state.themeSemesters = data.themeSemesters || [];
+      initThemeFilters();
+      renderThemes();
+      renderAdminThemesList();
       state.settings = data.settings || {};
 
       
@@ -6079,6 +6082,9 @@ const htmlContent = `<!DOCTYPE html>
         renderSongCategoriesUI();
         renderAdminSongsTable();
       }
+      if (subtab === 'themes') {
+        renderAdminThemesList();
+      }
     }
 
     // 後台行事曆管理
@@ -7831,6 +7837,10 @@ const htmlContent = `<!DOCTYPE html>
         // Wait, requirements say "預設為展開的狀態" (default expanded)
         const isExpanded = allThemesExpanded || true; // Let's just make all expanded initially as requested, unless manually collapsed.
         // Actually, user requested "預設為展開的狀態", so we'll just expand all by default upon render if we don't track individual state.
+        const themeName = theme.themeName || theme.name || '未命名主題';
+        const themeConcept = theme.themeConcept || theme.concept || '';
+        const dateRangeStr = (theme.startDate ? (theme.startDate + (theme.endDate ? (' ~ ' + theme.endDate) : '')) : (theme.dateRange || ''));
+        const photosList = theme.photos || theme.results || [];
         
         let goalsHtml = '';
         if (theme.goals && theme.goals.length > 0) {
@@ -7857,10 +7867,10 @@ const htmlContent = `<!DOCTYPE html>
         }
         
         let imagesHtml = '';
-        if (theme.photos && theme.photos.length > 0) {
+        if (photosList.length > 0) {
           imagesHtml = \`
             <div class="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-2">
-              \${theme.results.map(url => \`
+              \${photosList.map(url => \`
                 <div class="aspect-square rounded-xl overflow-hidden border border-slate-200/60 shadow-sm bg-slate-100 group relative">
                   <img src="\${getPhotoDisplayUrl(url)}" class="w-full h-full object-cover transition-transform group-hover:scale-105" alt="成果照片" loading="lazy" onclick="window.open('\${url}', '_blank')">
                   <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors pointer-events-none"></div>
@@ -7876,13 +7886,13 @@ const htmlContent = `<!DOCTYPE html>
             <div class="px-4 py-3 bg-slate-50/50 flex items-center justify-between cursor-pointer select-none hover:bg-slate-100 transition-colors" onclick="toggleThemeCard('\${theme.id}')">
               <div class="flex items-center gap-3 min-w-0">
                 <div class="bg-rose-100 text-rose-600 font-bold px-2.5 py-1 rounded-lg text-xs shrink-0 shadow-sm border border-rose-200/50">
-                  \${theme.week}
+                  \${songEsc(theme.week || '')}
                 </div>
                 <div class="min-w-0">
-                  <h3 class="font-black text-slate-800 text-base sm:text-lg truncate">\${theme.name || '未命名主題'}</h3>
+                  <h3 class="font-black text-slate-800 text-base sm:text-lg truncate">\${songEsc(themeName)}</h3>
                   <div class="text-xs font-semibold text-slate-500 mt-0.5 flex items-center gap-1.5 truncate">
-                    <span>\${theme.dateRange || ''}</span>
-                    \${theme.semester ? \`<span class="text-[10px] bg-slate-200/70 px-1.5 py-0.5 rounded text-slate-600">\${theme.semester}</span>\` : ''}
+                    <span>\${songEsc(dateRangeStr)}</span>
+                    \${theme.semester ? \`<span class="text-[10px] bg-slate-200/70 px-1.5 py-0.5 rounded text-slate-600">\${songEsc(theme.semester)}</span>\` : ''}
                   </div>
                 </div>
               </div>
@@ -7895,7 +7905,7 @@ const htmlContent = `<!DOCTYPE html>
             <div id="theme-content-\${theme.id}" class="theme-card-content p-4 border-t border-slate-100 \${isExpanded ? '' : 'hidden'}">
               <div class="mb-2">
                 <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">主題概念</h4>
-                <div class="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap font-medium">\${theme.concept || '無'}</div>
+                <div class="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap font-medium">\${themeConcept ? songEsc(themeConcept) : '無'}</div>
               </div>
               \${goalsHtml}
               \${imagesHtml}
@@ -7928,14 +7938,17 @@ const htmlContent = `<!DOCTYPE html>
       }
       empty.classList.add('hidden');
       
-      tbody.innerHTML = themes.map(t => \`
+      tbody.innerHTML = themes.map(t => {
+        const dateStr = (t.startDate ? (t.startDate + (t.endDate ? (' ~ ' + t.endDate) : '')) : (t.dateRange || '-'));
+        const nameStr = t.themeName || t.name || '-';
+        return \`
         <tr class="hover:bg-slate-50/80 transition-colors">
           <td class="px-4 py-3 font-bold text-slate-700">
-            <div class="text-xs text-slate-400">\${t.semester || '-'}</div>
-            <div>\${t.week || '-'}</div>
+            <div class="text-xs text-slate-400">\${songEsc(t.semester || '-')}</div>
+            <div>\${songEsc(t.week || '-')}</div>
           </td>
-          <td class="px-4 py-3">\${t.dateRange || '-'}</td>
-          <td class="px-4 py-3 font-medium text-slate-800">\${t.name || '-'}</td>
+          <td class="px-4 py-3 font-medium text-slate-600">\${songEsc(dateStr)}</td>
+          <td class="px-4 py-3 font-medium text-slate-800">\${songEsc(nameStr)}</td>
           <td class="px-4 py-3 text-center">
             <div class="flex items-center justify-center gap-2">
               <button onclick="editTheme('\${t.id}')" class="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-emerald-100 hover:text-emerald-700 flex items-center justify-center transition-colors tap-bounce" title="編輯">✎</button>
@@ -7943,7 +7956,8 @@ const htmlContent = `<!DOCTYPE html>
             </div>
           </td>
         </tr>
-      \`).join('');
+      \`;
+      }).join('');
     }
 
     function openThemeModal() {
@@ -7989,9 +8003,10 @@ const htmlContent = `<!DOCTYPE html>
       document.getElementById('modalThemeWeek').value = t.week || '';
       document.getElementById('modalThemeStartDate').value = t.startDate || '';
       document.getElementById('modalThemeEndDate').value = t.endDate || '';
-      document.getElementById('modalThemeName').value = t.themeName || '';
-      document.getElementById('modalThemeConcept').value = t.themeConcept || '';
-      document.getElementById('modalThemeResults').value = (t.photos || []).join('\\n');
+      document.getElementById('modalThemeName').value = t.themeName || t.name || '';
+      document.getElementById('modalThemeConcept').value = t.themeConcept || t.concept || '';
+      const photos = t.photos || t.results || [];
+      document.getElementById('modalThemeResults').value = photos.join('\\n');
       
       const container = document.getElementById('modalThemeGoalsContainer');
       container.innerHTML = '';
@@ -8031,7 +8046,21 @@ const htmlContent = `<!DOCTYPE html>
         return;
       }
       
-      const themeData = { id: id, semester: semester, week: week, startDate: startDate, endDate: endDate, themeName: name, themeConcept: concept, goals: goals, photos: results };
+      const themeData = { 
+        id: id, 
+        semester: semester, 
+        week: week, 
+        startDate: startDate, 
+        endDate: endDate, 
+        dateRange: (startDate ? (startDate + (endDate ? (' ~ ' + endDate) : '')) : ''),
+        themeName: name, 
+        name: name,
+        themeConcept: concept, 
+        concept: concept, 
+        goals: goals, 
+        photos: results,
+        results: results
+      };
       
       showToast('儲存中...', '⏳');
       const btn = document.getElementById('btnSaveTheme');

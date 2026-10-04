@@ -2431,10 +2431,18 @@ function getThemesData() {
     t.id = String(t.id || '');
     t.semester = String(t.semester || '').trim();
     t.week = String(t.week || '').trim();
+    t.startDate = String(t.startDate || '').trim();
+    t.endDate = String(t.endDate || '').trim();
+    t.themeName = String(t.themeName || '').trim();
+    t.themeConcept = String(t.themeConcept || '').trim();
+    t.name = t.themeName;
+    t.concept = t.themeConcept;
+    t.dateRange = (t.startDate ? (t.startDate + (t.endDate ? (' ~ ' + t.endDate) : '')) : '');
     t.goals = parseThemeJsonArray(t.goals).map(function(g) {
       return { activity: String((g && g.activity) || ''), course: String((g && g.course) || '') };
     });
     t.photos = parseThemeJsonArray(t.photos).map(function(p) { return String(p || '').trim(); }).filter(Boolean);
+    t.results = t.photos;
   });
   return { themes: themes, semesters: semesters };
 }
@@ -2483,8 +2491,8 @@ function saveTheme(themeData, password) {
     const textCols = ['week', 'startDate', 'endDate'];
 
     if (targetRow === -1) {
-      sheet.appendRow(headers.map(function() { return ''; }));
-      targetRow = sheet.getLastRow();
+      targetRow = sheet.getLastRow() + 1;
+      
     }
     headers.forEach(function(h, colIdx) {
       if (fieldMap[h] === undefined) return;
