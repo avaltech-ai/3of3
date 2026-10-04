@@ -8028,7 +8028,7 @@
       btn.disabled = true;
       btn.textContent = '儲存中...';
       
-      callBackend('saveTheme', { theme: themeData, password: state.adminPassword }, res => {
+      callBackend('saveTheme', { data: themeData, password: state.adminPassword }, res => {
         btn.disabled = false;
         btn.textContent = '確認儲存';
         if (res && res.success) {
