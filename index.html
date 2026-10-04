@@ -727,6 +727,43 @@
       </div>
     </section>
 
+    <!-- ==================== TAB 4: 主題活動 (THEMES) ==================== -->
+    <section id="tabContent-themes" class="hidden space-y-6">
+      <!-- 頂部標題區塊 -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight flex items-center gap-2">
+            <span class="text-rose-500">📚</span>
+            <span>主題活動成果</span>
+          </h2>
+          <p class="text-sm text-slate-500 font-medium mt-1">
+            記錄每週主題探索與學習成長的軌跡
+          </p>
+        </div>
+        
+        <div class="flex items-center gap-2 shrink-0">
+          <select id="themeSemesterFilter" onchange="filterThemes()" class="bg-white border border-slate-200 text-slate-700 text-sm font-bold rounded-xl px-3 py-2 outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100 transition-all cursor-pointer shadow-sm">
+            <option value="all">全部學期</option>
+          </select>
+          <button onclick="toggleAllThemeCards()" id="toggleAllThemesBtn" class="bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 text-sm font-bold rounded-xl px-3 py-2 transition-all tap-bounce shadow-sm flex items-center gap-1">
+            <span id="toggleAllThemesIcon">➕</span>
+            <span id="toggleAllThemesText">全部展開</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 列表容器 -->
+      <div id="themesList" class="flex flex-col gap-4">
+        <!-- JS 生成的主題卡片會在這裡 -->
+      </div>
+      
+      <!-- 空狀態 -->
+      <div id="themesEmptyState" class="hidden flex flex-col items-center justify-center py-16 bg-white/50 backdrop-blur rounded-3xl border border-slate-200 border-dashed">
+        <div class="text-5xl mb-3 opacity-50 grayscale">📚</div>
+        <p class="text-slate-500 font-bold">目前還沒有主題活動紀錄喔</p>
+      </div>
+    </section>
+
     <!-- ==================== TAB 3: 常用文件下載 (DOCS) ==================== -->
     <section id="tabContent-docs" class="space-y-6 hidden">
       <!-- 文件區抬頭 -->
@@ -2631,8 +2668,8 @@
       const sb = document.getElementById('desktopSidebar');
       const texts = document.querySelectorAll('.sidebar-text');
       if (sb) {
-        sb.classList.remove('w-16');
-        sb.classList.add('w-40');
+        sb.classList.remove('md:w-16');
+        sb.classList.add('md:w-48');
       }
       texts.forEach(el => {
         el.classList.remove('opacity-0');
@@ -2645,8 +2682,8 @@
       const sb = document.getElementById('desktopSidebar');
       const texts = document.querySelectorAll('.sidebar-text');
       if (sb) {
-        sb.classList.add('w-16');
-        sb.classList.remove('w-40');
+        sb.classList.add('md:w-16');
+        sb.classList.remove('md:w-48');
       }
       texts.forEach(el => {
         el.classList.add('opacity-0');
