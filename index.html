@@ -576,6 +576,15 @@
       <div id="albumsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         <!-- JS 動態產生相簿卡片 -->
       </div>
+
+      <!-- 桃子腳幼兒園 完整 Google Drive 照片連結膠囊按鈕 (居中) -->
+      <div class="flex justify-center items-center pt-8 pb-4">
+        <button type="button" onclick="openFullDriveLinksModal()" class="px-6 py-3.5 rounded-full bg-white hover:bg-teal-50 text-slate-700 hover:text-teal-800 border-2 border-teal-200/90 hover:border-teal-400 shadow-xs hover:shadow-md transition-all font-black text-xs sm:text-sm flex items-center gap-2.5 tap-bounce group cursor-pointer" title="查看桃子腳幼兒園各月份完整 Google Drive 照片">
+          <span class="text-base sm:text-lg">📂</span>
+          <span>桃子腳幼兒園 完整 Google Drive 照片連結</span>
+          <span class="text-teal-600 group-hover:translate-x-0.5 transition-transform text-xs">➔</span>
+        </button>
+      </div>
     </section>
 
     <!-- ==================== TAB 3: 常用文件下載 (DOCS) ==================== -->
@@ -1346,6 +1355,41 @@
       <!-- 相片縮圖網格 -->
       <div id="albumPhotosGrid" class="flex-1 overflow-y-auto min-h-0 py-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 content-start" style="grid-auto-rows: max-content;">
         <!-- JS 動態插入照片 -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 桃子腳幼兒園 完整 Google Drive 照片連結彈窗 ==================== -->
+  <div id="fullDriveLinksModal" class="fixed inset-0 z-60 modal-backdrop flex items-center justify-center p-3 sm:p-5 hidden select-none" onclick="handleFullDriveModalBackdrop(event)">
+    <div class="bg-white rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl relative border border-slate-100 flex flex-col gap-4 max-h-[85vh] overflow-y-auto" onclick="event.stopPropagation()">
+      <!-- 標題與關閉按鈕 -->
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <span class="text-xl sm:text-2xl shrink-0">📂</span>
+          <div>
+            <h3 class="text-base sm:text-lg font-black text-slate-800 tracking-tight">完整 Google Drive 照片連結</h3>
+            <p class="text-[0.6875rem] sm:text-xs text-slate-400 font-bold">點擊月份標籤，即可於新分頁開啟該月照片</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button type="button" id="btnToggleFullDriveSort" onclick="toggleFullDriveSortOrder()" class="text-[0.6875rem] font-bold text-teal-600 hover:text-teal-800 bg-teal-50 hover:bg-teal-100 px-2.5 py-1 rounded-full transition-colors flex items-center gap-1 cursor-pointer tap-bounce" title="切換排序 (由新到舊 / 由舊到新)">
+            <span>⇅</span>
+            <span id="txtFullDriveSortOrder">由新到舊</span>
+          </button>
+          <button type="button" onclick="closeFullDriveLinksModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-base tap-bounce shrink-0 cursor-pointer" title="關閉">
+            ✕
+          </button>
+        </div>
+      </div>
+
+      <!-- 月份連結清單容器 (細實線分隔) -->
+      <div id="fullDriveMonthlyLinksList" class="divide-y divide-slate-200/90 rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-2xs">
+        <!-- JS 動態插入月份連結標籤 -->
+      </div>
+
+      <!-- 底部提示說明 -->
+      <div class="text-[0.6875rem] text-slate-400 text-center font-medium pt-1">
+        ※ 幼兒園每月活動完整原圖，持續更新收錄中
       </div>
     </div>
   </div>
@@ -3863,12 +3907,87 @@
           closePhotoViewer();
         }
       } else {
+        const fdModal = document.getElementById('fullDriveLinksModal');
+        if (fdModal && !fdModal.classList.contains('hidden') && e.key === 'Escape') {
+          closeFullDriveLinksModal();
+          return;
+        }
         const apModal = document.getElementById('albumPhotosModal');
         if (apModal && !apModal.classList.contains('hidden') && e.key === 'Escape') {
           closeAlbumModal();
         }
       }
     });
+
+    // ==================== 桃子腳幼兒園 完整 Google Drive 照片連結 ====================
+    // ※ 之後每月新增時，只需在下方陣列新增當月項目即可（可直接在開頭新增）：
+    let fullDriveMonthlyLinks = [
+      { label: '2026.09', url: 'https://drive.google.com/drive/folders/1Wo6-HKTLyaxFCcvJ5A4SGaffLFLipPvE' },
+      { label: '2026.08', url: 'https://drive.google.com/drive/folders/1sj6-ZfE6GF4Qj0BnyBlcdgFWf9OlW_nR' }
+    ];
+    let fullDriveSortOrder = 'desc'; // 'desc': 由新到舊, 'asc': 由舊到新
+
+    function openFullDriveLinksModal() {
+      renderFullDriveMonthlyLinks();
+      const modal = document.getElementById('fullDriveLinksModal');
+      if (modal) modal.classList.remove('hidden');
+    }
+
+    function closeFullDriveLinksModal() {
+      const modal = document.getElementById('fullDriveLinksModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function handleFullDriveModalBackdrop(e) {
+      if (e.target && e.target.id === 'fullDriveLinksModal') {
+        closeFullDriveLinksModal();
+      }
+    }
+
+    function toggleFullDriveSortOrder() {
+      fullDriveSortOrder = fullDriveSortOrder === 'desc' ? 'asc' : 'desc';
+      const txtEl = document.getElementById('txtFullDriveSortOrder');
+      if (txtEl) txtEl.textContent = fullDriveSortOrder === 'desc' ? '由新到舊' : '由舊到新';
+      renderFullDriveMonthlyLinks();
+    }
+
+    function renderFullDriveMonthlyLinks() {
+      const container = document.getElementById('fullDriveMonthlyLinksList');
+      if (!container) return;
+      container.innerHTML = '';
+
+      let list = [...fullDriveMonthlyLinks];
+      if (fullDriveSortOrder === 'asc') {
+        list.sort((a, b) => a.label.localeCompare(b.label));
+      } else {
+        list.sort((a, b) => b.label.localeCompare(a.label));
+      }
+
+      list.forEach((item, index) => {
+        const isLatest = fullDriveSortOrder === 'desc' && index === 0;
+        const row = document.createElement('a');
+        row.href = item.url;
+        row.target = '_blank';
+        row.rel = 'noopener noreferrer';
+        row.className = 'flex items-center justify-between px-4 sm:px-5 py-3.5 sm:py-4 hover:bg-teal-50/70 transition-colors group cursor-pointer text-decoration-none';
+
+        const leftDiv = document.createElement('div');
+        leftDiv.className = 'flex items-center gap-3 min-w-0';
+        leftDiv.innerHTML = '<span class="w-8 h-8 rounded-full bg-teal-50 text-teal-600 border border-teal-200/70 flex items-center justify-center text-sm font-bold shrink-0 group-hover:bg-teal-100 group-hover:scale-105 transition-all">📅</span>' +
+          '<div class="flex items-center gap-2">' +
+            '<span class="font-black text-slate-800 text-sm sm:text-base group-hover:text-teal-700 transition-colors tracking-wide">' + item.label + '</span>' +
+            (isLatest ? '<span class="text-[0.625rem] font-black bg-teal-100 text-teal-700 px-2 py-0.5 rounded-full shrink-0">最新</span>' : '') +
+          '</div>';
+
+        const rightDiv = document.createElement('div');
+        rightDiv.className = 'flex items-center gap-1 text-xs font-bold text-teal-600 group-hover:text-teal-700 group-hover:translate-x-0.5 transition-all shrink-0';
+        rightDiv.innerHTML = '<span>開啟相簿</span><span class="text-sm">↗</span>';
+
+        row.appendChild(leftDiv);
+        row.appendChild(rightDiv);
+        container.appendChild(row);
+      });
+    }
 
     // ==================== 常用文件專區 (DOCS) ====================
     let docModalSelectedFile = null;
