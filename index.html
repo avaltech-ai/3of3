@@ -240,15 +240,19 @@
             </div>
           </div>
           
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="block text-xs font-bold text-slate-500 mb-1">日期區間</label>
-              <input type="text" id="modalThemeDateRange" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-rose-300 focus:ring-2 focus:ring-rose-100 outline-none transition-all" placeholder="08/30 - 09/03">
+              <label class="block text-xs font-bold text-slate-500 mb-1">起始日</label>
+              <input type="date" id="modalThemeStartDate" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-rose-300 focus:ring-2 focus:ring-rose-100 outline-none transition-all text-slate-700">
             </div>
             <div>
-              <label class="block text-xs font-bold text-slate-500 mb-1">主題名稱</label>
-              <input type="text" id="modalThemeName" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-rose-300 focus:ring-2 focus:ring-rose-100 outline-none transition-all" placeholder="進入幼兒園">
+              <label class="block text-xs font-bold text-slate-500 mb-1">截止日</label>
+              <input type="date" id="modalThemeEndDate" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-rose-300 focus:ring-2 focus:ring-rose-100 outline-none transition-all text-slate-700">
             </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1">主題名稱</label>
+            <input type="text" id="modalThemeName" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-rose-300 focus:ring-2 focus:ring-rose-100 outline-none transition-all" placeholder="進入幼兒園">
           </div>
           
           <div>
@@ -7979,7 +7983,8 @@
       document.getElementById('modalThemeId').value = t.id;
       document.getElementById('modalThemeSemester').value = t.semester || '';
       document.getElementById('modalThemeWeek').value = t.week || '';
-      document.getElementById('modalThemeDateRange').value = t.startDate || '';
+      document.getElementById('modalThemeStartDate').value = t.startDate || '';
+      document.getElementById('modalThemeEndDate').value = t.endDate || '';
       document.getElementById('modalThemeName').value = t.themeName || '';
       document.getElementById('modalThemeConcept').value = t.themeConcept || '';
       document.getElementById('modalThemeResults').value = (t.photos || []).join('\n');
@@ -8000,7 +8005,8 @@
       const id = document.getElementById('modalThemeId').value || new Date().getTime().toString();
       const semester = document.getElementById('modalThemeSemester').value.trim();
       const week = document.getElementById('modalThemeWeek').value.trim();
-      const dateRange = document.getElementById('modalThemeDateRange').value.trim();
+      const startDate = document.getElementById('modalThemeStartDate').value;
+      const endDate = document.getElementById('modalThemeEndDate').value;
       const name = document.getElementById('modalThemeName').value.trim();
       const concept = document.getElementById('modalThemeConcept').value.trim();
       
@@ -8021,7 +8027,7 @@
         return;
       }
       
-      const themeData = { id: id, semester: semester, week: week, startDate: dateRange, endDate: '', themeName: name, themeConcept: concept, goals: goals, photos: results };
+      const themeData = { id: id, semester: semester, week: week, startDate: startDate, endDate: endDate, themeName: name, themeConcept: concept, goals: goals, photos: results };
       
       showToast('儲存中...', '⏳');
       const btn = document.getElementById('btnSaveTheme');
