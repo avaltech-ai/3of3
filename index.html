@@ -126,9 +126,11 @@
 
     <!-- The actual floating/sticky sidebar (Desktop + Mobile) -->
     <aside id="desktopSidebar" class="flex flex-col bg-white border-r border-slate-200/80 shadow-sm fixed top-1.5 bottom-0 left-0 z-50 w-64 md:w-16 transition-all duration-300 overflow-hidden group -translate-x-full md:translate-x-0" onmouseenter="expandSidebar()" onmouseleave="collapseSidebar()">
-      <div class="px-2.5 flex items-center border-b border-slate-100 relative min-h-[58px] whitespace-nowrap overflow-hidden">
-        <span class="text-xl w-7 text-center cursor-pointer transition-transform hover:scale-110 shrink-0 select-none" onclick="switchTab('home')">🍄</span>
-        <span class="font-black text-slate-700 ml-1.5 opacity-0 transition-opacity duration-300 sidebar-text text-base select-none">選單導覽</span>
+      <div class="px-2 flex items-center border-b border-slate-100 relative min-h-[58px] whitespace-nowrap overflow-hidden">
+        <div class="flex items-center px-2 py-2 w-full">
+          <span class="text-lg w-7 text-center shrink-0 select-none cursor-pointer transition-transform hover:scale-110" onclick="switchTab('home')">🍄</span>
+          <span class="font-bold text-sm text-slate-700 whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1.5 select-none">選單導覽</span>
+        </div>
         <button id="pinSidebarBtn" onclick="togglePinSidebar()" class="absolute right-2 p-1.5 text-slate-400 hover:text-slate-700 transition-colors opacity-0 sidebar-pin-btn rounded-lg hover:bg-slate-100 group-hover:opacity-100 focus:opacity-100 tap-bounce" title="釘選選單">
           <span class="text-xs">📌</span>
         </button>
@@ -139,6 +141,10 @@
           <span class="text-lg w-7 text-center shrink-0">🏠</span>
           <span class="font-bold text-sm whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1.5">班級日常</span>
         </button>
+        <button onclick="switchTab('themes')" id="tabBtn-themes" class="tab-btn flex items-center px-2 py-2 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
+          <span class="text-lg w-7 text-center shrink-0">📚</span>
+          <span class="font-bold text-sm whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1.5">主題活動</span>
+        </button>
         <button onclick="switchTab('albums')" id="tabBtn-albums" class="tab-btn flex items-center px-2 py-2 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
           <span class="text-lg w-7 text-center shrink-0">📸</span>
           <span class="font-bold text-sm whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1.5">影像紀錄</span>
@@ -146,10 +152,6 @@
         <button onclick="switchTab('songs')" id="tabBtn-songs" class="tab-btn flex items-center px-2 py-2 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
           <span class="text-lg w-7 text-center shrink-0">🎵</span>
           <span class="font-bold text-sm whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1.5">唱跳音符</span>
-        </button>
-        <button onclick="switchTab('themes')" id="tabBtn-themes" class="tab-btn flex items-center px-2 py-2 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
-          <span class="text-lg w-7 text-center shrink-0">📚</span>
-          <span class="font-bold text-sm whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1.5">主題活動</span>
         </button>
         <button onclick="switchTab('docs')" id="tabBtn-docs" class="tab-btn flex items-center px-2 py-2 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
           <span class="text-lg w-7 text-center shrink-0">📁</span>
@@ -2567,7 +2569,7 @@
 
       // 嚴格依據目前頁籤 (state.currentTab) 保持顯示狀態，絕不私自開啟或混雜 home 內容
       const current = state.currentTab || 'home';
-      ['home', 'albums', 'songs', 'docs', 'admin'].forEach(tab => {
+      ['home', 'themes', 'albums', 'songs', 'docs', 'admin'].forEach(tab => {
         const contentEl = document.getElementById('tabContent-' + tab);
         if (contentEl) {
           if (tab === current) {
