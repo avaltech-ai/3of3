@@ -276,6 +276,10 @@ function doPost(e) {
       result = deleteSong(postData.id || postData.songId, postData.password);
     } else if (action === 'batchUpdateSongDurations') {
       result = batchUpdateSongDurations(postData.durationsMap || postData.data || {});
+    } else if (action === 'saveTheme') {
+      result = saveTheme(postData.themeData || postData.data, postData.password);
+    } else if (action === 'deleteTheme') {
+      result = deleteTheme(postData.id || postData.themeId, postData.password);
     }
 
     if (postData && postData.requestId) {
@@ -638,6 +642,17 @@ function getAppData() {
       console.warn('getSongsData inside getAppData failed: ' + e);
     }
 
+    // 確保 Themes / ThemeSemesters 工作表存在（主題活動），並讀出資料
+    let themeList = [];
+    let themeSemesters = [];
+    try {
+      const themeData = getThemesData();
+      themeList = themeData.themes;
+      themeSemesters = themeData.semesters;
+    } catch (e) {
+      console.warn('getThemesData inside getAppData failed: ' + e);
+    }
+
     const result = {
       success: true,
       data: {
@@ -650,6 +665,8 @@ function getAppData() {
         albums: albumList || [],
         songs: songList,
         songCategories: songCategories,
+        themes: themeList,
+        themeSemesters: themeSemesters,
         eventTargets: eventTargets || [],
         eventCategoriesMajor: eventCategoriesMajor || [],
         eventCategoriesMinor: eventCategoriesMinor || [],
@@ -2342,6 +2359,163 @@ function deleteSong(songId, password) {
       }
     }
     return { success: false, error: '找不到該歌曲編號' };
+  } catch (err) {
+    return { success: false, error: err.toString() };
+  }
+}
+
+// -------------------------------------------------------------
+// 主題活動 (Themes)
+// -------------------------------------------------------------
+
+const THEME_HEADERS = ['id', 'semester', 'week', 'startDate', 'endDate', 'themeName', 'themeConcept', 'goals', 'photos', 'updatedAt'];
+const THEME_DEFAULT_SEMESTERS = ['115 上學期', '115 下學期'];
+
+/**
+ * 確保 ThemeSemesters（學期）與 Themes（每週主題）兩個工作表與欄位存在；缺少的欄位會自動補上
+ */
+function ensureThemeSheetsExist() {
+  const ss = getSpreadsheet();
+  if (!ss) throw new Error('無法開啟 Google 試算表');
+
+  let semSheet = ss.getSheetByName('ThemeSemesters');
+  if (!semSheet) {
+    semSheet = ss.insertSheet('ThemeSemesters');
+    semSheet.appendRow(['semesterName']);
+    semSheet.getRange(1, 1, 1, 1).setFontWeight('bold').setBackground('#FEF3C7');
+    semSheet.getRange(2, 1, THEME_DEFAULT_SEMESTERS.length, 1).setValues(THEME_DEFAULT_SEMESTERS.map(function(c) { return [c]; }));
+  }
+
+  let themeSheet = ss.getSheetByName('Themes');
+  if (!themeSheet) {
+    themeSheet = ss.insertSheet('Themes');
+    themeSheet.appendRow(THEME_HEADERS);
+    themeSheet.getRange(1, 1, 1, THEME_HEADERS.length).setFontWeight('bold').setBackground('#FEF3C7');
+    themeSheet.setFrozenRows(1);
+  } else {
+    const lastCol = Math.max(themeSheet.getLastColumn(), 1);
+    const headers = themeSheet.getRange(1, 1, 1, lastCol).getValues()[0].map(function(h) { return String(h).trim(); });
+    THEME_HEADERS.forEach(function(h) {
+      if (headers.indexOf(h) === -1) {
+        themeSheet.getRange(1, headers.length + 1).setValue(h).setFontWeight('bold').setBackground('#FEF3C7');
+        headers.push(h);
+      }
+    });
+  }
+  return { themeSheet: themeSheet, semSheet: semSheet };
+}
+
+/**
+ * 將儲存格中的 JSON 文字安全轉為陣列
+ */
+function parseThemeJsonArray(raw) {
+  if (Array.isArray(raw)) return raw;
+  const str = String(raw || '').trim();
+  if (!str) return [];
+  try {
+    const parsed = JSON.parse(str);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+/**
+ * 讀取每週主題與學期清單
+ */
+function getThemesData() {
+  const sheets = ensureThemeSheetsExist();
+  const semesters = getSheetDataAsObjects(sheets.semSheet).map(function(r) { return String(r.semesterName || '').trim(); }).filter(Boolean);
+  const themes = getSheetDataAsObjects(sheets.themeSheet).filter(function(t) { return t.id || t.themeName || t.week; });
+  themes.forEach(function(t) {
+    t.id = String(t.id || '');
+    t.semester = String(t.semester || '').trim();
+    t.week = String(t.week || '').trim();
+    t.goals = parseThemeJsonArray(t.goals).map(function(g) {
+      return { activity: String((g && g.activity) || ''), course: String((g && g.course) || '') };
+    });
+    t.photos = parseThemeJsonArray(t.photos).map(function(p) { return String(p || '').trim(); }).filter(Boolean);
+  });
+  return { themes: themes, semesters: semesters };
+}
+
+/**
+ * 新增 / 更新每週主題（以 id 為鍵）
+ */
+function saveTheme(themeData, password) {
+  if (!checkPassword(password)) return { success: false, error: '管理員密碼錯誤！' };
+  try {
+    themeData = themeData || {};
+    const themeName = String(themeData.themeName || '').trim();
+    const week = String(themeData.week || '').trim();
+    if (!week) return { success: false, error: '請輸入週別！' };
+    if (!themeName) return { success: false, error: '請輸入主題名稱！' };
+
+    const goals = (Array.isArray(themeData.goals) ? themeData.goals : []).map(function(g) {
+      return { activity: String((g && g.activity) || '').trim(), course: String((g && g.course) || '').trim() };
+    }).filter(function(g) { return g.activity || g.course; });
+    const photos = (Array.isArray(themeData.photos) ? themeData.photos : []).map(function(p) { return String(p || '').trim(); }).filter(Boolean);
+
+    const sheet = ensureThemeSheetsExist().themeSheet;
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0].map(function(h) { return String(h).trim(); });
+    const idIndex = headers.indexOf('id');
+    const todayStr = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd');
+    const id = themeData.id || ('THEME-' + Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyyMMddHHmmss'));
+
+    let targetRow = -1;
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][idIndex]) === String(id)) { targetRow = i + 1; break; }
+    }
+
+    const fieldMap = {
+      id: id,
+      semester: String(themeData.semester || '').trim(),
+      week: week,
+      startDate: String(themeData.startDate || '').trim(),
+      endDate: String(themeData.endDate || '').trim(),
+      themeName: themeName,
+      themeConcept: String(themeData.themeConcept || ''),
+      goals: JSON.stringify(goals),
+      photos: JSON.stringify(photos),
+      updatedAt: todayStr
+    };
+    const textCols = ['week', 'startDate', 'endDate'];
+
+    if (targetRow === -1) {
+      sheet.appendRow(headers.map(function() { return ''; }));
+      targetRow = sheet.getLastRow();
+    }
+    headers.forEach(function(h, colIdx) {
+      if (fieldMap[h] === undefined) return;
+      const cell = sheet.getRange(targetRow, colIdx + 1);
+      if (textCols.indexOf(h) > -1) cell.setNumberFormat('@');
+      cell.setValue(fieldMap[h]);
+    });
+    clearAppDataCache();
+    return { success: true, message: '每週主題已儲存！', themeId: id };
+  } catch (err) {
+    return { success: false, error: '儲存主題失敗: ' + err.toString() };
+  }
+}
+
+/**
+ * 刪除每週主題
+ */
+function deleteTheme(themeId, password) {
+  if (!checkPassword(password)) return { success: false, error: '管理員密碼錯誤！' };
+  try {
+    const sheet = ensureThemeSheetsExist().themeSheet;
+    const data = sheet.getDataRange().getValues();
+    const idIndex = data[0].map(function(h) { return String(h).trim(); }).indexOf('id');
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][idIndex]) === String(themeId)) {
+        sheet.deleteRow(i + 1);
+        clearAppDataCache();
+        return { success: true, message: '主題已刪除！' };
+      }
+    }
+    return { success: false, error: '找不到該主題編號' };
   } catch (err) {
     return { success: false, error: err.toString() };
   }

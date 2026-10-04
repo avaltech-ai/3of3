@@ -125,8 +125,11 @@ const htmlContent = `<!DOCTYPE html>
     <!-- Desktop Sidebar Wrapper (occupies layout space when pinned) -->
     <div id="sidebarWrapper" class="hidden md:block w-16 shrink-0 transition-all duration-300"></div>
 
-    <!-- The actual floating/sticky sidebar -->
-    <aside id="desktopSidebar" class="hidden md:flex flex-col bg-white border-r border-slate-200/80 shadow-sm fixed top-1.5 bottom-0 left-0 z-40 w-16 transition-all duration-300 overflow-hidden group" onmouseenter="expandSidebar()" onmouseleave="collapseSidebar()">
+    <!-- Mobile Sidebar Backdrop -->
+    <div id="mobileSidebarBackdrop" class="md:hidden fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-xs opacity-0 pointer-events-none transition-opacity duration-300" onclick="toggleMobileSidebar()"></div>
+
+    <!-- The actual floating/sticky sidebar (Desktop + Mobile) -->
+    <aside id="desktopSidebar" class="flex flex-col bg-white border-r border-slate-200/80 shadow-sm fixed top-1.5 bottom-0 left-0 z-50 w-64 md:w-16 transition-all duration-300 overflow-hidden group -translate-x-full md:translate-x-0" onmouseenter="expandSidebar()" onmouseleave="collapseSidebar()">
       <div class="px-2.5 flex items-center border-b border-slate-100 relative min-h-[58px] whitespace-nowrap overflow-hidden">
         <span class="text-xl w-7 text-center cursor-pointer transition-transform hover:scale-110 shrink-0 select-none" onclick="switchTab('home')">🍄</span>
         <span class="font-black text-slate-700 ml-1.5 opacity-0 transition-opacity duration-300 sidebar-text text-base select-none">選單導覽</span>
@@ -148,6 +151,10 @@ const htmlContent = `<!DOCTYPE html>
           <span class="text-lg w-7 text-center shrink-0">🎵</span>
           <span class="font-bold text-sm whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1.5">唱跳音符</span>
         </button>
+        <button onclick="switchTab('themes')" id="tabBtn-themes" class="tab-btn flex items-center px-2 py-2 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
+          <span class="text-lg w-7 text-center shrink-0">📚</span>
+          <span class="font-bold text-sm whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1.5">主題活動</span>
+        </button>
         <button onclick="switchTab('docs')" id="tabBtn-docs" class="tab-btn flex items-center px-2 py-2 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
           <span class="text-lg w-7 text-center shrink-0">📁</span>
           <span class="font-bold text-sm whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1.5">常用文件</span>
@@ -165,8 +172,13 @@ const htmlContent = `<!DOCTYPE html>
       <header class="bg-white/90 backdrop-blur-md border-b border-rose-100 shadow-sm sticky top-1.5 z-30 flex-shrink-0">
     <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
       <!-- 園所與班級 Logo 識別 -->
-      <div class="flex items-center gap-3 cursor-pointer" onclick="switchTab('home')">
-        <div>
+      <div class="flex items-center gap-3">
+        <!-- 漢堡選單 (手機版專用) -->
+        <button class="md:hidden text-2xl text-slate-600 hover:text-slate-800 tap-bounce p-1 focus:outline-none" onclick="toggleMobileSidebar()">
+          ☰
+        </button>
+        <div class="cursor-pointer flex flex-col" onclick="switchTab('home')">
+          <div>
           <div class="flex items-center gap-1.5 flex-wrap">
             
             <span class="text-xs font-medium text-slate-500">桃子腳幼兒園</span>
@@ -193,119 +205,8 @@ const htmlContent = `<!DOCTYPE html>
   </header>
 
 
-  <!-- ==================== 手機版底部浮動導覽列 ==================== -->
-  <div class="md:hidden fixed bottom-3 left-3 right-3 z-40 bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-rose-100 p-1.5 flex items-center justify-around">
-    <button onclick="switchTab('home')" id="mTabBtn-home" class="m-tab-btn flex-1 py-1.5 flex flex-col items-center justify-center text-xs font-bold rounded-xl transition-all text-peach-600 bg-peach-50">
-      <span class="text-lg">🏠</span>
-      <span>今日生活</span>
-    </button>
-    <button onclick="switchTab('albums')" id="mTabBtn-albums" class="m-tab-btn flex-1 py-1.5 flex flex-col items-center justify-center text-xs font-bold rounded-xl transition-all text-slate-500 hover:text-slate-800">
-      <span class="text-lg">📸</span>
-      <span>影像紀錄</span>
-    </button>
-    <button onclick="switchTab('songs')" id="mTabBtn-songs" class="m-tab-btn flex-1 py-1.5 flex flex-col items-center justify-center text-xs font-bold rounded-xl transition-all text-slate-500 hover:text-slate-800">
-      <span class="text-lg">🎵</span>
-      <span>唱跳音符</span>
-    </button>
-    <button onclick="switchTab('docs')" id="mTabBtn-docs" class="m-tab-btn flex-1 py-1.5 flex flex-col items-center justify-center text-xs font-bold rounded-xl transition-all text-slate-500 hover:text-slate-800">
-      <span class="text-lg">📁</span>
-      <span>常用文件</span>
-    </button>
-    <!-- 更多功能入口 (觸發滑出式功能面板，解決手機版未來擴充放不下問題) -->
-    <button onclick="toggleMobileMoreSheet()" id="mTabBtn-more" class="m-tab-btn flex-1 py-1.5 flex flex-col items-center justify-center text-xs font-bold rounded-xl transition-all text-slate-500 hover:text-slate-800" title="更多功能">
-      <span id="mTabBtnMoreIcon" class="text-lg">⋯</span>
-      <span id="mTabBtnMoreText">更多</span>
-    </button>
-  </div>
-
-  <!-- ==================== 手機版「更多功能」滑出面板 (Bottom Sheet) ==================== -->
-  <div id="mobileMoreModal" class="md:hidden fixed inset-0 z-50 pointer-events-none transition-all duration-300">
-    <!-- 背景半透明毛玻璃遮罩 -->
-    <div id="mobileMoreBackdrop" onclick="closeMobileMoreSheet()" class="absolute inset-0 bg-slate-900/40 backdrop-blur-xs opacity-0 transition-opacity duration-300 pointer-events-none"></div>
-
-    <!-- 底部滑出抽屜容器 -->
-    <div id="mobileMoreSheet" class="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl border-t border-rose-100 max-h-[85vh] overflow-y-auto transform translate-y-full transition-transform duration-300 ease-out pointer-events-auto p-5 pb-8 flex flex-col gap-4">
-      <!-- 頂部拖曳指示把手與標題 -->
-      <div class="flex flex-col items-center relative">
-        <div class="w-10 h-1 bg-slate-300 rounded-full mb-3 cursor-pointer" onclick="closeMobileMoreSheet()"></div>
-        <div class="w-full flex items-center justify-between pb-2 border-b border-slate-100">
-          <div class="flex items-center gap-2">
-            <span class="text-xl">✨</span>
-            <div>
-              <h3 class="text-base font-black text-slate-800 tracking-tight">更多班級功能</h3>
-              <p class="text-[0.6875rem] text-slate-400 font-medium">系統管理與未來擴充服務專區</p>
-            </div>
-          </div>
-          <button onclick="closeMobileMoreSheet()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center text-sm font-bold tap-bounce" aria-label="關閉">
-            ✕
-          </button>
-        </div>
-      </div>
-
-      <!-- 功能網格卡片 (2 欄自適應) -->
-      <div class="grid grid-cols-2 gap-3 pt-1">
-        <!-- 1. 管理後台 -->
-        <button onclick="switchTab('admin'); closeMobileMoreSheet();" id="sheetBtn-admin" class="p-3.5 rounded-2xl border border-slate-200/90 bg-slate-50/70 hover:bg-peach-50 hover:border-peach-200 text-left transition-all tap-bounce flex flex-col gap-1.5 group">
-          <div class="w-9 h-9 rounded-xl bg-peach-100 text-peach-600 flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
-            ⚙️
-          </div>
-          <div>
-            <div class="font-black text-slate-800 text-sm">管理後台</div>
-            <div class="text-[0.6875rem] text-slate-500 mt-0.5">最新消息與資料庫維護</div>
-          </div>
-        </button>
-
-        <!-- 2. 完整 Google Drive 相簿連結 -->
-        <button onclick="closeMobileMoreSheet(); openDriveFoldersModal();" class="p-3.5 rounded-2xl border border-slate-200/90 bg-slate-50/70 hover:bg-blue-50 hover:border-blue-200 text-left transition-all tap-bounce flex flex-col gap-1.5 group">
-          <div class="w-9 h-9 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
-            🗂️
-          </div>
-          <div>
-            <div class="font-black text-slate-800 text-sm">雲端相簿總目錄</div>
-            <div class="text-[0.6875rem] text-slate-500 mt-0.5">Google Drive 每月相簿</div>
-          </div>
-        </button>
-
-        <!-- 3. Google Drive 音樂資料夾 -->
-        <a href="https://drive.google.com/drive/folders/1vurxReuOW0laMDw1xSSOqeM5zT0TCmBQ" target="_blank" rel="noopener noreferrer" onclick="closeMobileMoreSheet()" class="p-3.5 rounded-2xl border border-slate-200/90 bg-slate-50/70 hover:bg-emerald-50 hover:border-emerald-200 text-left transition-all tap-bounce flex flex-col gap-1.5 group">
-          <div class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
-            🎶
-          </div>
-          <div>
-            <div class="font-black text-slate-800 text-sm">音樂雲端硬碟</div>
-            <div class="text-[0.6875rem] text-slate-500 mt-0.5">Google Drive 音樂庫 ↗</div>
-          </div>
-        </a>
-
-        <!-- 4. 預備擴充插槽 (展示未來無限擴充架構) -->
-        <div class="p-3.5 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/30 text-left flex flex-col gap-1.5 opacity-80">
-          <div class="w-9 h-9 rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center text-lg">
-            ✨
-          </div>
-          <div>
-            <div class="font-bold text-slate-500 text-sm">擴充功能預備區</div>
-            <div class="text-[0.6875rem] text-slate-400 mt-0.5">聯絡簿、點心菜單等登場</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 底部管理員登入身分與快速操作 -->
-      <div id="mobileSheetAdminBar" class="mt-2 pt-3 border-t border-slate-100 flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <span id="mobileAdminDot" class="w-2.5 h-2.5 rounded-full bg-slate-300"></span>
-          <span id="mobileAdminText" class="text-xs font-bold text-slate-500">一般訪客瀏覽模式</span>
-        </div>
-        <div id="mobileAdminLogoutWrapper" class="hidden">
-          <button onclick="doAdminLogout(); closeMobileMoreSheet();" class="px-3 py-1 rounded-xl bg-rose-50 text-rose-600 border border-rose-200 text-xs font-bold transition-all tap-bounce flex items-center gap-1">
-            <span>🚪 登出管理員</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <!-- ==================== 主要內容區塊 CONTAINER ==================== -->
-  <main class="max-w-5xl mx-auto px-4 py-5 flex-1 w-full mb-16 md:mb-6">
+  <main class="max-w-5xl mx-auto px-4 py-5 flex-1 w-full mb-6">
 
     <!-- 雲端靜默同步提示 Badge (非阻塞式，保證隨時可順暢操作) -->
     <div id="bgSyncBadge" class="fixed top-16 right-4 bg-white/95 backdrop-blur border border-peach-200 text-peach-600 text-[0.6875rem] font-bold px-2.5 py-1 rounded-full shadow-sm flex items-center gap-1.5 hidden z-50 transition-all pointer-events-none">
@@ -313,7 +214,78 @@ const htmlContent = `<!DOCTYPE html>
       <span>雲端資料同步中...</span>
     </div>
 
-    <!-- 全域載入狀態提示（備用） -->
+  
+  <!-- ==================== THEME MODAL (主題活動編輯) ==================== -->
+  <div id="themeModal" class="fixed inset-0 z-50 hidden items-center justify-center">
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeThemeModal()"></div>
+    <div class="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl relative z-10 flex flex-col m-4 border border-rose-100">
+      
+      <!-- Modal Header -->
+      <div class="px-5 py-4 border-b border-rose-100 flex items-center justify-between bg-slate-50/80">
+        <h3 id="modalThemeTitle" class="text-lg font-black text-slate-800 flex items-center gap-2">
+          <span class="text-rose-500">📚</span> 新增主題活動
+        </h3>
+        <button type="button" onclick="closeThemeModal()" class="w-8 h-8 rounded-full bg-slate-200 text-slate-600 hover:bg-slate-300 flex items-center justify-center font-bold transition-colors">✕</button>
+      </div>
+      
+      <!-- Modal Body -->
+      <div class="p-5 overflow-y-auto custom-scrollbar flex-1">
+        <form id="modalThemeForm" class="space-y-4">
+          <input type="hidden" id="modalThemeId">
+          
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-500 mb-1">學期 (例: 115 上學期)</label>
+              <input type="text" id="modalThemeSemester" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-rose-300 focus:ring-2 focus:ring-rose-100 outline-none transition-all" placeholder="115 上學期">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 mb-1">週別 (例: 第 1 週)</label>
+              <input type="text" id="modalThemeWeek" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-rose-300 focus:ring-2 focus:ring-rose-100 outline-none transition-all" placeholder="第 1 週">
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-500 mb-1">日期區間</label>
+              <input type="text" id="modalThemeDateRange" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-rose-300 focus:ring-2 focus:ring-rose-100 outline-none transition-all" placeholder="08/30 - 09/03">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 mb-1">主題名稱</label>
+              <input type="text" id="modalThemeName" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-rose-300 focus:ring-2 focus:ring-rose-100 outline-none transition-all" placeholder="進入幼兒園">
+            </div>
+          </div>
+          
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1">主題概念 (支援換行)</label>
+            <textarea id="modalThemeConcept" rows="3" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-rose-300 focus:ring-2 focus:ring-rose-100 outline-none transition-all" placeholder="請輸入主題概念..."></textarea>
+          </div>
+          
+          <div class="border-t border-slate-100 pt-4">
+            <div class="flex items-center justify-between mb-2">
+              <label class="block text-xs font-bold text-slate-500">活動目標與課程目標</label>
+              <button type="button" onclick="addThemeGoalRow()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold px-2 py-1 rounded-lg tap-bounce">+ 新增列</button>
+            </div>
+            <div id="modalThemeGoalsContainer" class="space-y-2">
+              <!-- JS 會動態加入 row -->
+            </div>
+          </div>
+          
+          <div class="border-t border-slate-100 pt-4">
+            <label class="block text-xs font-bold text-slate-500 mb-1">成果照片 / 雲端連結 (一行一個連結)</label>
+            <textarea id="modalThemeResults" rows="3" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-rose-300 focus:ring-2 focus:ring-rose-100 outline-none transition-all" placeholder="https://drive.google.com/..."></textarea>
+          </div>
+        </form>
+      </div>
+      
+      <!-- Modal Footer -->
+      <div class="p-4 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3">
+        <button type="button" onclick="closeThemeModal()" class="px-4 py-2 rounded-xl text-slate-500 font-bold hover:bg-slate-200 transition-colors">取消</button>
+        <button type="button" id="btnSaveTheme" onclick="saveThemeData()" class="px-5 py-2 rounded-xl bg-rose-500 text-white font-bold hover:bg-rose-600 shadow-md transition-colors tap-bounce">確認儲存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 全域載入狀態提示（備用） -->
     <div id="loadingOverlay" class="py-12 flex flex-col items-center justify-center gap-3 hidden">
       <div class="w-12 h-12 border-4 border-peach-200 border-t-peach-500 rounded-full animate-spin"></div>
       <p class="text-sm font-bold text-slate-500 animate-pulse">正在連線至雲端讀取最新資料庫，請稍候...</p>
@@ -2464,6 +2436,8 @@ const htmlContent = `<!DOCTYPE html>
         return String(b.id).localeCompare(String(a.id)); // Newer first if same priority
       });
       state.docs = data.docs || [];
+      state.themes = data.themes || []; renderThemes();
+      state.themeSemesters = data.themeSemesters || [];
       state.settings = data.settings || {};
 
       
@@ -2777,9 +2751,34 @@ const htmlContent = `<!DOCTYPE html>
     }
 
     // ==================== 頁籤切換邏輯 ====================
+    let mobileSidebarOpen = false;
+    function toggleMobileSidebar() {
+      mobileSidebarOpen = !mobileSidebarOpen;
+      const sidebar = document.getElementById('desktopSidebar');
+      const backdrop = document.getElementById('mobileSidebarBackdrop');
+      if (mobileSidebarOpen) {
+        sidebar.classList.remove('-translate-x-full');
+        backdrop.classList.remove('opacity-0', 'pointer-events-none');
+        backdrop.classList.add('opacity-100', 'pointer-events-auto');
+        sidebar.classList.add('w-64');
+        expandSidebar();
+      } else {
+        sidebar.classList.add('-translate-x-full');
+        backdrop.classList.remove('opacity-100', 'pointer-events-auto');
+        backdrop.classList.add('opacity-0', 'pointer-events-none');
+        sidebar.classList.remove('w-64');
+        if (!window.isSidebarPinned) {
+          collapseSidebar();
+        }
+      }
+    }
+
     function switchTab(tabName) {
+      if (window.innerWidth < 768 && mobileSidebarOpen) {
+        toggleMobileSidebar();
+      }
       state.currentTab = tabName;
-      ['home', 'albums', 'songs', 'docs', 'admin'].forEach(tab => {
+      ['home', 'albums', 'songs', 'themes', 'docs', 'admin'].forEach(tab => {
         const contentEl = document.getElementById(\`tabContent-\${tab}\`);
         const btnEl = document.getElementById(\`tabBtn-\${tab}\`);
         const mBtnEl = document.getElementById(\`mTabBtn-\${tab}\`);
@@ -4889,11 +4888,11 @@ const htmlContent = `<!DOCTYPE html>
       if (!dur) return '';
       const str = String(dur).trim();
       if (str === '1' || str === '00:01' || str === '0:01' || str === '00:00') return '';
-      if (/^\d{1,2}:\d{2}$/.test(str)) {
+      if (/^\\d{1,2}:\\d{2}$/.test(str)) {
         const parts = str.split(':');
         return (parts[0].length === 1 ? '0' + parts[0] : parts[0]) + ':' + parts[1];
       }
-      if (/^\d{1,2}:\d{2}:\d{2}$/.test(str)) {
+      if (/^\\d{1,2}:\\d{2}:\\d{2}$/.test(str)) {
         const parts = str.split(':');
         return (parts[0].length === 1 ? '0' + parts[0] : parts[0]) + ':' + parts[1] + ':' + parts[2];
       }
@@ -7655,7 +7654,355 @@ const htmlContent = `<!DOCTYPE html>
       });
     }
 
+    
+    // ==========================================
+    // THEMES (主題活動) 前台渲染邏輯
+    // ==========================================
+    let currentThemeSemester = 'all';
+    let allThemesExpanded = false;
+
+    function initThemeFilters() {
+      const select = document.getElementById('themeSemesterFilter');
+      if (!select) return;
+      
+      const prevVal = select.value;
+      select.innerHTML = '<option value="all">全部學期</option>';
+      
+      if (state.themeSemesters && state.themeSemesters.length > 0) {
+        state.themeSemesters.forEach(sem => {
+          const opt = document.createElement('option');
+          opt.value = sem;
+          opt.textContent = sem;
+          select.appendChild(opt);
+        });
+      }
+      
+      if ([...select.options].some(o => o.value === prevVal)) {
+        select.value = prevVal;
+      }
+    }
+
+    function filterThemes() {
+      const select = document.getElementById('themeSemesterFilter');
+      currentThemeSemester = select ? select.value : 'all';
+      renderThemes();
+    }
+    
+    function toggleAllThemeCards() {
+      allThemesExpanded = !allThemesExpanded;
+      const icon = document.getElementById('toggleAllThemesIcon');
+      const text = document.getElementById('toggleAllThemesText');
+      if (icon) icon.textContent = allThemesExpanded ? '➖' : '➕';
+      if (text) text.textContent = allThemesExpanded ? '全部折疊' : '全部展開';
+      
+      const cards = document.querySelectorAll('.theme-card-content');
+      cards.forEach(card => {
+        if (allThemesExpanded) {
+          card.classList.remove('hidden');
+        } else {
+          card.classList.add('hidden');
+        }
+      });
+      
+      const arrows = document.querySelectorAll('.theme-card-arrow');
+      arrows.forEach(arrow => {
+        arrow.style.transform = allThemesExpanded ? 'rotate(180deg)' : 'rotate(0deg)';
+      });
+    }
+
+    function toggleThemeCard(id) {
+      const content = document.getElementById('theme-content-' + id);
+      const arrow = document.getElementById('theme-arrow-' + id);
+      if (!content || !arrow) return;
+      
+      if (content.classList.contains('hidden')) {
+        content.classList.remove('hidden');
+        arrow.style.transform = 'rotate(180deg)';
+      } else {
+        content.classList.add('hidden');
+        arrow.style.transform = 'rotate(0deg)';
+      }
+    }
+
+    function renderThemes() {
+      initThemeFilters();
+      
+      const listEl = document.getElementById('themesList');
+      const emptyEl = document.getElementById('themesEmptyState');
+      if (!listEl || !emptyEl) return;
+      
+      let filtered = (state.themes || []).filter(t => currentThemeSemester === 'all' || t.semester === currentThemeSemester);
+      
+      // Sort by newest week on top. Assuming id is timestamp or week is sortable. 
+      // If week is string like "第 3 週", we sort by string in descending order, or just id descending.
+      filtered.sort((a, b) => String(b.id).localeCompare(String(a.id)));
+      
+      if (filtered.length === 0) {
+        listEl.innerHTML = '';
+        listEl.classList.add('hidden');
+        emptyEl.classList.remove('hidden');
+        return;
+      }
+      
+      emptyEl.classList.add('hidden');
+      listEl.classList.remove('hidden');
+      
+      let html = '';
+      filtered.forEach((theme, index) => {
+        // Default first 3 expanded, others collapsed if toggleAllThemes not used yet?
+        // Wait, requirements say "預設為展開的狀態" (default expanded)
+        const isExpanded = allThemesExpanded || true; // Let's just make all expanded initially as requested, unless manually collapsed.
+        // Actually, user requested "預設為展開的狀態", so we'll just expand all by default upon render if we don't track individual state.
+        
+        let goalsHtml = '';
+        if (theme.goals && theme.goals.length > 0) {
+          goalsHtml = \`
+            <div class="mt-4 border border-rose-100 rounded-xl overflow-hidden shadow-sm">
+              <table class="w-full text-sm text-left text-slate-600 bg-white">
+                <thead class="text-xs text-slate-700 bg-rose-50/50">
+                  <tr>
+                    <th scope="col" class="px-4 py-2.5 font-bold w-1/2 border-r border-rose-100">活動目標</th>
+                    <th scope="col" class="px-4 py-2.5 font-bold w-1/2">課程目標</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-rose-100/50">
+                  \${theme.goals.map(g => \`
+                    <tr class="hover:bg-slate-50 transition-colors">
+                      <td class="px-4 py-3 align-top border-r border-rose-100 whitespace-pre-wrap">\${g.activity || ''}</td>
+                      <td class="px-4 py-3 align-top whitespace-pre-wrap">\${g.course || ''}</td>
+                    </tr>
+                  \`).join('')}
+                </tbody>
+              </table>
+            </div>
+          \`;
+        }
+        
+        let imagesHtml = '';
+        if (theme.results && theme.results.length > 0) {
+          imagesHtml = \`
+            <div class="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-2">
+              \${theme.results.map(url => \`
+                <div class="aspect-square rounded-xl overflow-hidden border border-slate-200/60 shadow-sm bg-slate-100 group relative">
+                  <img src="\${getPhotoDisplayUrl(url)}" class="w-full h-full object-cover transition-transform group-hover:scale-105" alt="成果照片" loading="lazy" onclick="window.open('\${url}', '_blank')">
+                  <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors pointer-events-none"></div>
+                </div>
+              \`).join('')}
+            </div>
+          \`;
+        }
+        
+        html += \`
+          <div class="bg-white border border-slate-200/80 rounded-2xl shadow-sm overflow-hidden flex flex-col group">
+            <!-- 卡片標題列 (可點擊折疊) -->
+            <div class="px-4 py-3 bg-slate-50/50 flex items-center justify-between cursor-pointer select-none hover:bg-slate-100 transition-colors" onclick="toggleThemeCard('\${theme.id}')">
+              <div class="flex items-center gap-3 min-w-0">
+                <div class="bg-rose-100 text-rose-600 font-bold px-2.5 py-1 rounded-lg text-xs shrink-0 shadow-sm border border-rose-200/50">
+                  \${theme.week}
+                </div>
+                <div class="min-w-0">
+                  <h3 class="font-black text-slate-800 text-base sm:text-lg truncate">\${theme.name || '未命名主題'}</h3>
+                  <div class="text-xs font-semibold text-slate-500 mt-0.5 flex items-center gap-1.5 truncate">
+                    <span>\${theme.dateRange || ''}</span>
+                    \${theme.semester ? \`<span class="text-[10px] bg-slate-200/70 px-1.5 py-0.5 rounded text-slate-600">\${theme.semester}</span>\` : ''}
+                  </div>
+                </div>
+              </div>
+              <div class="shrink-0 ml-2 w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center text-slate-400 group-hover:text-slate-600 border border-slate-200/80 transition-all">
+                <svg id="theme-arrow-\${theme.id}" class="w-4 h-4 transition-transform duration-300 \${isExpanded ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"></path></svg>
+              </div>
+            </div>
+            
+            <!-- 卡片內容區 -->
+            <div id="theme-content-\${theme.id}" class="theme-card-content p-4 border-t border-slate-100 \${isExpanded ? '' : 'hidden'}">
+              <div class="mb-2">
+                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">主題概念</h4>
+                <div class="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap font-medium">\${theme.concept || '無'}</div>
+              </div>
+              \${goalsHtml}
+              \${imagesHtml}
+            </div>
+          </div>
+        \`;
+      });
+      listEl.innerHTML = html;
+      
+      // Update global expand state tracking to match reality (everything expanded initially)
+      allThemesExpanded = true;
+      document.getElementById('toggleAllThemesIcon').textContent = '➖';
+      document.getElementById('toggleAllThemesText').textContent = '全部折疊';
+    }
+
     // 系統設定管理
+    // ==========================================
+    // THEMES ADMIN (主題活動管理)
+    // ==========================================
+    function renderAdminThemesList() {
+      const tbody = document.getElementById('adminThemesListBody');
+      const empty = document.getElementById('adminThemesEmpty');
+      if (!tbody || !empty) return;
+      
+      const themes = state.themes || [];
+      if (themes.length === 0) {
+        tbody.innerHTML = '';
+        empty.classList.remove('hidden');
+        return;
+      }
+      empty.classList.add('hidden');
+      
+      tbody.innerHTML = themes.map(t => \`
+        <tr class="hover:bg-slate-50/80 transition-colors">
+          <td class="px-4 py-3 font-bold text-slate-700">
+            <div class="text-xs text-slate-400">\${t.semester || '-'}</div>
+            <div>\${t.week || '-'}</div>
+          </td>
+          <td class="px-4 py-3">\${t.dateRange || '-'}</td>
+          <td class="px-4 py-3 font-medium text-slate-800">\${t.name || '-'}</td>
+          <td class="px-4 py-3 text-center">
+            <div class="flex items-center justify-center gap-2">
+              <button onclick="editTheme('\${t.id}')" class="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-emerald-100 hover:text-emerald-700 flex items-center justify-center transition-colors tap-bounce" title="編輯">✎</button>
+              <button onclick="confirmDeleteTheme('\${t.id}')" class="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-rose-100 hover:text-rose-600 flex items-center justify-center transition-colors tap-bounce" title="刪除">🗑️</button>
+            </div>
+          </td>
+        </tr>
+      \`).join('');
+    }
+
+    function openThemeModal() {
+      document.getElementById('modalThemeForm').reset();
+      document.getElementById('modalThemeId').value = '';
+      document.getElementById('modalThemeGoalsContainer').innerHTML = '';
+      addThemeGoalRow(); // Add one default empty row
+      
+      document.getElementById('modalThemeTitle').textContent = '新增主題活動';
+      
+      // Auto-fill semester if available
+      if (state.themeSemesters && state.themeSemesters.length > 0) {
+        document.getElementById('modalThemeSemester').value = state.themeSemesters[state.themeSemesters.length - 1];
+      }
+
+      document.getElementById('themeModal').classList.remove('hidden');
+      document.getElementById('themeModal').classList.add('flex');
+    }
+
+    function closeThemeModal() {
+      document.getElementById('themeModal').classList.add('hidden');
+      document.getElementById('themeModal').classList.remove('flex');
+    }
+
+    function addThemeGoalRow(activity = '', course = '') {
+      const container = document.getElementById('modalThemeGoalsContainer');
+      const row = document.createElement('div');
+      row.className = 'flex gap-2 items-start theme-goal-row';
+      row.innerHTML = \`
+        <textarea class="goal-activity flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:bg-white transition-colors" rows="2" placeholder="活動目標...">\${activity}</textarea>
+        <textarea class="goal-course flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:bg-white transition-colors" rows="2" placeholder="課程目標...">\${course}</textarea>
+        <button type="button" onclick="this.parentElement.remove()" class="mt-1 w-8 h-8 shrink-0 rounded-lg bg-rose-50 text-rose-500 hover:bg-rose-100 flex items-center justify-center tap-bounce font-bold">×</button>
+      \`;
+      container.appendChild(row);
+    }
+
+    function editTheme(id) {
+      const t = state.themes.find(x => String(x.id) === String(id));
+      if (!t) return;
+      document.getElementById('modalThemeTitle').textContent = '編輯主題活動';
+      document.getElementById('modalThemeId').value = t.id;
+      document.getElementById('modalThemeSemester').value = t.semester || '';
+      document.getElementById('modalThemeWeek').value = t.week || '';
+      document.getElementById('modalThemeDateRange').value = t.dateRange || '';
+      document.getElementById('modalThemeName').value = t.name || '';
+      document.getElementById('modalThemeConcept').value = t.concept || '';
+      document.getElementById('modalThemeResults').value = (t.results || []).join('\\n');
+      
+      const container = document.getElementById('modalThemeGoalsContainer');
+      container.innerHTML = '';
+      if (t.goals && t.goals.length > 0) {
+        t.goals.forEach(g => addThemeGoalRow(g.activity, g.course));
+      } else {
+        addThemeGoalRow();
+      }
+      
+      document.getElementById('themeModal').classList.remove('hidden');
+      document.getElementById('themeModal').classList.add('flex');
+    }
+
+    function saveThemeData() {
+      const id = document.getElementById('modalThemeId').value || new Date().getTime().toString();
+      const semester = document.getElementById('modalThemeSemester').value.trim();
+      const week = document.getElementById('modalThemeWeek').value.trim();
+      const dateRange = document.getElementById('modalThemeDateRange').value.trim();
+      const name = document.getElementById('modalThemeName').value.trim();
+      const concept = document.getElementById('modalThemeConcept').value.trim();
+      
+      const resultsText = document.getElementById('modalThemeResults').value.trim();
+      const results = resultsText ? resultsText.split('\\n').map(s => s.trim()).filter(Boolean) : [];
+      
+      const goals = [];
+      document.querySelectorAll('.theme-goal-row').forEach(row => {
+        const act = row.querySelector('.goal-activity').value.trim();
+        const crs = row.querySelector('.goal-course').value.trim();
+        if (act || crs) {
+          goals.push({ activity: act, course: crs });
+        }
+      });
+      
+      if (!semester || !week || !name) {
+        alert('學期、週別與主題名稱為必填項目！');
+        return;
+      }
+      
+      const themeData = { id, semester, week, dateRange, name, concept, goals, results };
+      
+      showToast('儲存中...', '⏳');
+      const btn = document.getElementById('btnSaveTheme');
+      btn.disabled = true;
+      btn.textContent = '儲存中...';
+      
+      callBackend('saveTheme', { theme: themeData, password: state.adminPassword }, res => {
+        btn.disabled = false;
+        btn.textContent = '確認儲存';
+        if (res && res.success) {
+          showToast('主題活動已儲存！', '✅');
+          closeThemeModal();
+          // Update local state optimistically
+          const idx = state.themes.findIndex(x => String(x.id) === String(id));
+          if (idx >= 0) state.themes[idx] = themeData;
+          else state.themes.push(themeData);
+          
+          if (!state.themeSemesters.includes(semester)) {
+            state.themeSemesters.push(semester);
+            state.themeSemesters.sort().reverse(); // Keep newer semesters first if sorted
+          }
+          
+          renderAdminThemesList();
+          renderThemes(); // Update frontend
+        } else {
+          alert('儲存失敗：' + (res ? res.message : '未知錯誤'));
+        }
+      }, err => {
+        btn.disabled = false;
+        btn.textContent = '確認儲存';
+        alert('網路錯誤，請稍後再試！');
+      });
+    }
+
+    function confirmDeleteTheme(id) {
+      if (!confirm('確定要刪除這筆主題活動嗎？')) return;
+      showToast('刪除中...', '⏳');
+      callBackend('deleteTheme', { id, password: state.adminPassword }, res => {
+        if (res && res.success) {
+          showToast('已刪除！', '🗑️');
+          state.themes = state.themes.filter(x => String(x.id) !== String(id));
+          renderAdminThemesList();
+          renderThemes();
+        } else {
+          alert('刪除失敗：' + (res ? res.message : '未知錯誤'));
+        }
+      }, err => {
+        alert('網路錯誤，請稍後再試！');
+      });
+    }
+    
     function loadSettingsToForm() {
       
       const actFolderInput = document.getElementById('setting-activityFolderUrl');
