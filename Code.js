@@ -2444,6 +2444,17 @@ function getThemesData() {
     t.photos = parseThemeJsonArray(t.photos).map(function(p) { return String(p || '').trim(); }).filter(Boolean);
     t.results = t.photos;
   });
+  themes.sort(function(a, b) {
+    if (b.startDate && a.startDate && b.startDate !== a.startDate) {
+      return String(b.startDate).localeCompare(String(a.startDate));
+    }
+    var weekNumA = parseInt((String(a.week || '').match(/\d+/) || [0])[0], 10);
+    var weekNumB = parseInt((String(b.week || '').match(/\d+/) || [0])[0], 10);
+    if (weekNumB !== weekNumA && weekNumA > 0 && weekNumB > 0) {
+      return weekNumB - weekNumA;
+    }
+    return String(b.id || '').localeCompare(String(a.id || ''));
+  });
   return { themes: themes, semesters: semesters };
 }
 

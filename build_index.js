@@ -172,39 +172,44 @@ const htmlContent = `<!DOCTYPE html>
     <!-- Main Content -->
     <div class="flex-1 flex flex-col min-w-0 transition-all duration-300 relative">
       <header class="bg-white/90 backdrop-blur-md border-b border-rose-100 shadow-sm sticky top-1.5 z-30 flex-shrink-0">
-    <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-      <!-- 園所與班級 Logo 識別 -->
-      <div class="flex items-center gap-3">
-        <!-- 漢堡選單 (手機版專用) -->
-        <button class="md:hidden text-2xl text-slate-600 hover:text-slate-800 tap-bounce p-1 focus:outline-none" onclick="toggleMobileSidebar()">
-          ☰
-        </button>
-        <div class="cursor-pointer flex flex-col" onclick="switchTab('home')">
-          <div>
-          <div class="flex items-center gap-1.5 flex-wrap">
-            
-            <span class="text-xs font-medium text-slate-500">桃子腳幼兒園</span>
+        <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+          <!-- 園所與班級 Logo 識別 -->
+          <div class="flex items-center gap-2.5 sm:gap-3">
+            <!-- 漢堡選單 (手機版專用) -->
+            <button class="md:hidden text-2xl text-slate-600 hover:text-slate-800 tap-bounce p-1 focus:outline-none" onclick="toggleMobileSidebar()">
+              ☰
+            </button>
+            <div class="cursor-pointer flex items-center gap-2.5" onclick="switchTab('home')">
+              <!-- 圖三 Logo (參照圖四設計) -->
+              <div class="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-white border-2 border-rose-200 p-1 flex items-center justify-center shrink-0 shadow-xs">
+                <img src="${logoB64}" class="w-full h-full object-contain" alt="三之三生命教育基金會">
+              </div>
+              <div class="flex flex-col justify-center">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="text-[11px] sm:text-xs font-bold text-rose-500 bg-rose-50/80 border border-rose-300 px-2.5 py-0.5 rounded-full">三之三生命教育基金會</span>
+                  <span class="text-xs sm:text-sm font-semibold text-slate-500">新北市桃子腳非營利幼兒園</span>
+                </div>
+                <h1 class="text-xl sm:text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2 mt-0.5">
+                  <span>諾貝爾 A 班</span>
+                  <span class="text-xs sm:text-sm font-bold text-white bg-rose-500 px-3 py-0.5 rounded-full shadow-xs">Nobel A Family</span>
+                </h1>
+              </div>
+            </div>
           </div>
-          <h1 class="text-lg sm:text-xl font-black text-slate-800 tracking-tight flex items-center gap-1.5 mt-0.5">
-            <span>諾貝爾 A 班</span>
-            <span class="text-xs font-semibold text-white bg-gradient-to-r from-peach-500 to-rose-500 px-2 py-0.5 rounded-md shadow-sm">生活與行事曆</span>
-          </h1>
-        </div>
-      </div>
 
-      <!-- 頁面最右上角：系統管理員登入狀態與即時登出按鈕 -->
-      <div id="globalAdminStatus" class="hidden items-center gap-2">
-        <div class="hidden sm:flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200/90 text-xs px-2.5 py-1 rounded-full font-bold shadow-2xs">
-          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span>管理員已登入</span>
+          <!-- 頁面最右上角：系統管理員登入狀態與即時登出按鈕 (圖一) -->
+          <div id="globalAdminStatus" class="hidden items-center gap-2 shrink-0">
+            <div class="hidden sm:flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-300 text-xs px-3 py-1 rounded-full font-bold shadow-xs">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>管理員已登入</span>
+            </div>
+            <button onclick="doAdminLogout()" class="px-3 py-1 rounded-full bg-slate-100 text-slate-700 hover:bg-rose-50 hover:text-rose-600 border border-slate-200 text-xs font-bold transition-all tap-bounce flex items-center gap-1.5 shadow-xs" title="即時登出系統管理員">
+              <span class="text-xs">🚪</span>
+              <span>登出</span>
+            </button>
+          </div>
         </div>
-        <button onclick="doAdminLogout()" class="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-rose-50 hover:text-rose-600 border border-slate-200/90 text-xs font-bold transition-all tap-bounce flex items-center gap-1 shadow-2xs" title="即時登出系統管理員">
-          <span class="text-xs">🚪</span>
-          <span>登出</span>
-        </button>
-      </div>
-    </div>
-  </header>
+      </header>
 
 
   <!-- ==================== 主要內容區塊 CONTAINER ==================== -->
@@ -834,9 +839,6 @@ const htmlContent = `<!DOCTYPE html>
         </div>
         <div>
           <h3 class="text-xl font-black text-slate-800">管理員身分驗證</h3>
-          <p class="text-xs sm:text-sm text-slate-500 mt-1">
-            此後台供桃子腳幼兒園老師與管理者編輯行事曆、菜單與上傳檔案。
-          </p>
         </div>
         <div class="space-y-3">
           <div>
@@ -845,9 +847,6 @@ const htmlContent = `<!DOCTYPE html>
           <button onclick="doAdminLogin()" id="loginSubmitBtn" class="w-full py-3 rounded-2xl bg-gradient-to-r from-peach-500 to-rose-500 text-white font-black text-sm shadow-md hover:from-peach-600 hover:to-rose-600 transition-all tap-bounce">
             確認進入管理後台
           </button>
-          <div class="text-xs text-slate-400 pt-2">
-            預設初設密碼：<code class="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">nobel-a-2026</code>（進入後可自行修改）
-          </div>
         </div>
       </div>
 
@@ -1931,7 +1930,7 @@ const htmlContent = `<!DOCTYPE html>
     <div class="flex items-center justify-center gap-2">
       <span class="font-bold text-slate-600">桃子腳幼兒園</span>
       <span>•</span>
-      <span class="font-bold text-peach-600">諾貝爾 A 班</span>
+      <span class="font-medium text-slate-600">TEL：02-2668-8249｜FAX：02-2668-8245</span>
     </div>
     <p>用愛陪伴孩子成長的每一步</p>
   </footer>
@@ -2516,7 +2515,7 @@ const htmlContent = `<!DOCTYPE html>
         return String(b.id).localeCompare(String(a.id)); // Newer first if same priority
       });
       state.docs = data.docs || [];
-      state.themes = data.themes || [];
+      state.themes = (data.themes || []).sort(sortThemesDesc);
       state.themeSemesters = data.themeSemesters || [];
       initThemeFilters();
       renderThemes();
@@ -7821,6 +7820,18 @@ const htmlContent = `<!DOCTYPE html>
       }
     }
 
+    function sortThemesDesc(a, b) {
+      if (b.startDate && a.startDate && b.startDate !== a.startDate) {
+        return String(b.startDate).localeCompare(String(a.startDate));
+      }
+      const weekNumA = parseInt((String(a.week || '').match(/\\d+/) || [0])[0], 10);
+      const weekNumB = parseInt((String(b.week || '').match(/\\d+/) || [0])[0], 10);
+      if (weekNumB !== weekNumA && weekNumA > 0 && weekNumB > 0) {
+        return weekNumB - weekNumA;
+      }
+      return String(b.id || '').localeCompare(String(a.id || ''));
+    }
+
     function renderThemes() {
       initThemeFilters();
       
@@ -7830,9 +7841,8 @@ const htmlContent = `<!DOCTYPE html>
       
       let filtered = (state.themes || []).filter(t => currentThemeSemester === 'all' || t.semester === currentThemeSemester);
       
-      // Sort by newest week on top. Assuming id is timestamp or week is sortable. 
-      // If week is string like "第 3 週", we sort by string in descending order, or just id descending.
-      filtered.sort((a, b) => String(b.id).localeCompare(String(a.id)));
+      // Sort by newest week on top (圖六: 新建的每週活動清單會列在最上方)
+      filtered.sort(sortThemesDesc);
       
       if (filtered.length === 0) {
         listEl.innerHTML = '';
@@ -7945,7 +7955,8 @@ const htmlContent = `<!DOCTYPE html>
       const empty = document.getElementById('adminThemesEmpty');
       if (!tbody || !empty) return;
       
-      const themes = state.themes || [];
+      const themes = [...(state.themes || [])];
+      themes.sort(sortThemesDesc);
       if (themes.length === 0) {
         tbody.innerHTML = '';
         empty.classList.remove('hidden');
@@ -8117,8 +8128,12 @@ const htmlContent = `<!DOCTYPE html>
           closeThemeModal();
           // Update local state optimistically
           const idx = state.themes.findIndex(x => String(x.id) === String(id));
-          if (idx >= 0) state.themes[idx] = themeData;
-          else state.themes.push(themeData);
+          if (idx >= 0) {
+            state.themes[idx] = themeData;
+          } else {
+            state.themes.unshift(themeData);
+          }
+          state.themes.sort(sortThemesDesc);
           
           if (!state.themeSemesters.includes(semester)) {
             state.themeSemesters.push(semester);
