@@ -11,6 +11,11 @@
   - Navigation hierarchy realignment placing "主題活動" between "班級日常" and "影像記錄", with pixel-aligned sidebar header.
   - iPad and tablet viewport optimization with compact 136px pinned sidebar and 48px collapsed rail.
   - Footer contact information restyling with prominent rose-600 telephone and fax numbers.
+  - Bilingual UI Language Toggle (繁體中文 `zh-TW` & English `en`):
+    - Client-side dictionary system (`I18N`) supporting complete UI bilingual translation for all views: Navigation, Header, Spotlight, Calendar (Day/Week/Month), Themes, Albums, Songs, Docs, Admin, Footer, and Toast notifications.
+    - Sidebar toggle button at bottom of shared sidebar (`#desktopSidebar` / mobile drawer): displays `🌐 English` / `🌐 繁體中文` when expanded, and `🌐` when collapsed.
+    - 0-lag instant in-memory translation via `applyTranslations()` + auto-remember preference in `localStorage.getItem('nobel_a_lang')`.
+    - Dynamic views (calendar week/month views, filter tags, category pills, counts, and empty states) seamlessly update upon language change.
   - Current GAS Backend deployed at version `@106`.
 
 ## Critical Technical Lessons Learned (Do Not Repeat)

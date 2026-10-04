@@ -133,9 +133,9 @@ const htmlContent = `<!DOCTYPE html>
       <div class="px-1.5 flex items-center border-b border-slate-100 relative min-h-[52px] whitespace-nowrap overflow-hidden">
         <div class="flex items-center px-1 py-1.5 w-full">
           <span class="text-base w-6 text-center shrink-0 select-none cursor-pointer transition-transform hover:scale-110" onclick="switchTab('home')">🍄</span>
-          <span class="font-bold text-xs text-slate-700 whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1 select-none">選單導覽</span>
+          <span class="font-bold text-xs text-slate-700 whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1 select-none" data-i18n="nav.menu">選單導覽</span>
         </div>
-        <button id="pinSidebarBtn" onclick="togglePinSidebar()" class="absolute right-1 p-1 text-slate-400 hover:text-slate-700 transition-colors opacity-0 sidebar-pin-btn rounded-md hover:bg-slate-100 group-hover:opacity-100 focus:opacity-100 tap-bounce" title="釘選選單">
+        <button id="pinSidebarBtn" onclick="togglePinSidebar()" class="absolute right-1 p-1 text-slate-400 hover:text-slate-700 transition-colors opacity-0 sidebar-pin-btn rounded-md hover:bg-slate-100 group-hover:opacity-100 focus:opacity-100 tap-bounce" title="釘選選單" data-i18n-title="nav.pin">
           <span class="text-xs">📌</span>
         </button>
       </div>
@@ -143,28 +143,32 @@ const htmlContent = `<!DOCTYPE html>
       <nav class="flex-1 py-2.5 flex flex-col gap-1 px-1.5 overflow-y-auto no-scrollbar overflow-x-hidden">
         <button onclick="switchTab('home')" id="tabBtn-home" class="tab-btn flex items-center px-1.5 py-1.5 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
           <span class="text-base w-6 text-center shrink-0">🏠</span>
-          <span class="font-bold text-xs whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1">班級日常</span>
+          <span class="font-bold text-xs whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1" data-i18n="nav.daily">班級日常</span>
         </button>
         <button onclick="switchTab('themes')" id="tabBtn-themes" class="tab-btn flex items-center px-1.5 py-1.5 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
           <span class="text-base w-6 text-center shrink-0">📚</span>
-          <span class="font-bold text-xs whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1">主題活動</span>
+          <span class="font-bold text-xs whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1" data-i18n="nav.themes">主題活動</span>
         </button>
         <button onclick="switchTab('albums')" id="tabBtn-albums" class="tab-btn flex items-center px-1.5 py-1.5 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
           <span class="text-base w-6 text-center shrink-0">📸</span>
-          <span class="font-bold text-xs whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1">影像紀錄</span>
+          <span class="font-bold text-xs whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1" data-i18n="nav.albums">影像記錄</span>
         </button>
         <button onclick="switchTab('songs')" id="tabBtn-songs" class="tab-btn flex items-center px-1.5 py-1.5 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
           <span class="text-base w-6 text-center shrink-0">🎵</span>
-          <span class="font-bold text-xs whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1">唱跳音符</span>
+          <span class="font-bold text-xs whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1" data-i18n="nav.songs">唱跳音符</span>
         </button>
         <button onclick="switchTab('docs')" id="tabBtn-docs" class="tab-btn flex items-center px-1.5 py-1.5 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
           <span class="text-base w-6 text-center shrink-0">📁</span>
-          <span class="font-bold text-xs whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1">常用文件</span>
+          <span class="font-bold text-xs whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1" data-i18n="nav.docs">常用文件</span>
         </button>
         <div class="flex-1"></div>
         <button onclick="switchTab('admin')" id="tabBtn-admin" class="tab-btn flex items-center px-1.5 py-1.5 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
           <span class="text-base w-6 text-center shrink-0">⚙️</span>
-          <span class="font-bold text-xs whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1">管理後台</span>
+          <span class="font-bold text-xs whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1" data-i18n="nav.admin">管理後台</span>
+        </button>
+        <button type="button" onclick="toggleLanguage()" id="langToggleBtn" class="flex items-center px-1.5 py-1.5 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800 border-t border-slate-100 mt-1 pt-1.5 tap-bounce" title="切換語言 / Switch Language" data-i18n-title="nav.langTitle">
+          <span class="text-base w-6 text-center shrink-0">🌐</span>
+          <span id="langToggleText" class="font-bold text-xs whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1" data-i18n="nav.langToggle">English</span>
         </button>
       </nav>
     </aside>
@@ -186,11 +190,11 @@ const htmlContent = `<!DOCTYPE html>
               </div>
               <div class="flex flex-col justify-center">
                 <div class="flex items-center gap-2 flex-wrap">
-                  <span class="text-[11px] sm:text-xs font-bold text-rose-500 bg-rose-50/80 border border-rose-300 px-2.5 py-0.5 rounded-full">三之三生命教育基金會</span>
-                  <span class="text-xs sm:text-sm font-semibold text-slate-500">新北市桃子腳非營利幼兒園</span>
+                  <span id="headerFoundation" data-i18n="header.foundation" class="text-[11px] sm:text-xs font-bold text-rose-500 bg-rose-50/80 border border-rose-300 px-2.5 py-0.5 rounded-full">三之三生命教育基金會</span>
+                  <span id="headerSchool" data-i18n="header.school" class="text-xs sm:text-sm font-semibold text-slate-500">新北市桃子腳非營利幼兒園</span>
                 </div>
                 <h1 class="text-xl sm:text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2 mt-0.5">
-                  <span>諾貝爾 A 班</span>
+                  <span id="headerClass" data-i18n="header.class">諾貝爾 A 班</span>
                   <span class="text-xs sm:text-sm font-bold text-white bg-rose-500 px-3 py-0.5 rounded-full shadow-xs">Happy Life</span>
                 </h1>
               </div>
@@ -201,11 +205,11 @@ const htmlContent = `<!DOCTYPE html>
           <div id="globalAdminStatus" class="hidden items-center gap-2 shrink-0">
             <div class="hidden sm:flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-300 text-xs px-3 py-1 rounded-full font-bold shadow-xs">
               <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span>管理員已登入</span>
+              <span id="headerAdminStatusText" data-i18n="header.adminActive">管理員已登入</span>
             </div>
-            <button onclick="doAdminLogout()" class="px-3 py-1 rounded-full bg-slate-100 text-slate-700 hover:bg-rose-50 hover:text-rose-600 border border-slate-200 text-xs font-bold transition-all tap-bounce flex items-center gap-1.5 shadow-xs" title="即時登出系統管理員">
+            <button onclick="doAdminLogout()" class="px-3 py-1 rounded-full bg-slate-100 text-slate-700 hover:bg-rose-50 hover:text-rose-600 border border-slate-200 text-xs font-bold transition-all tap-bounce flex items-center gap-1.5 shadow-xs" title="即時登出系統管理員" data-i18n-title="header.logout">
               <span class="text-xs">🚪</span>
-              <span>登出</span>
+              <span id="headerLogoutText" data-i18n="header.logout">登出</span>
             </button>
           </div>
         </div>
@@ -218,7 +222,7 @@ const htmlContent = `<!DOCTYPE html>
     <!-- 雲端靜默同步提示 Badge (非阻塞式，保證隨時可順暢操作) -->
     <div id="bgSyncBadge" class="fixed top-16 right-4 bg-white/95 backdrop-blur border border-peach-200 text-peach-600 text-[0.6875rem] font-bold px-2.5 py-1 rounded-full shadow-sm flex items-center gap-1.5 hidden z-50 transition-all pointer-events-none">
       <span class="inline-block w-2 h-2 rounded-full bg-peach-500 animate-ping"></span>
-      <span>雲端資料同步中...</span>
+      <span id="headerSyncText" data-i18n="header.syncing">雲端資料同步中...</span>
     </div>
 
   
@@ -314,7 +318,7 @@ const htmlContent = `<!DOCTYPE html>
         <div class="flex items-center justify-between mb-3">
           <div class="flex items-center gap-2">
             <span class="bg-peach-500 text-white text-xs font-extrabold px-3 py-1 rounded-full shadow-sm flex items-center gap-1.5">
-              <span>✨</span> SPOTLIGHT 焦點活動
+              <span>✨</span> <span data-i18n="cal.spotlightTag">SPOTLIGHT 焦點活動</span>
             </span>
           </div>
 
@@ -350,9 +354,9 @@ const htmlContent = `<!DOCTYPE html>
             </div>
             <div class="mt-2 text-center w-full flex items-center justify-between px-1">
               <span id="spotlightMediaHint" class="text-xs text-rose-500 font-bold flex items-center gap-1 cursor-pointer" onclick="openSpotlightModal()">
-                🔍 放大查看
+                <span>🔍</span> <span data-i18n="cal.spotlightEnlarge">放大查看</span>
               </span>
-              <span id="spotlightDurationBadge" class="text-[0.625rem] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">
+              <span id="spotlightDurationBadge" class="text-[0.625rem] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md" data-i18n="cal.spotlightSlideInterval">
                 ⏱️ 5s 輪播
               </span>
             </div>
@@ -406,36 +410,36 @@ const htmlContent = `<!DOCTYPE html>
         <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pb-3 border-b border-slate-100">
           <!-- 年月與切換鈕 -->
           <div class="flex items-center gap-2">
-            <button onclick="changeMonth(-1)" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-peach-100 hover:text-peach-600 flex items-center justify-center font-bold text-slate-600 transition-colors tap-bounce" title="上個月">
+            <button onclick="changeMonth(-1)" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-peach-100 hover:text-peach-600 flex items-center justify-center font-bold text-slate-600 transition-colors tap-bounce" title="上個月" data-i18n-title="cal.prevMonth">
               ‹
             </button>
             <h3 id="calendarCurrentMonthText" class="text-base sm:text-lg font-black text-slate-800 min-w-[130px] text-center tracking-tight">
               2026 年 10 月
             </h3>
-            <button onclick="changeMonth(1)" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-peach-100 hover:text-peach-600 flex items-center justify-center font-bold text-slate-600 transition-colors tap-bounce" title="下個月">
+            <button onclick="changeMonth(1)" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-peach-100 hover:text-peach-600 flex items-center justify-center font-bold text-slate-600 transition-colors tap-bounce" title="下個月" data-i18n-title="cal.nextMonth">
               ›
             </button>
-            <button onclick="goToToday()" class="px-3 py-1.5 rounded-xl bg-rose-50 text-peach-600 hover:bg-peach-100 text-xs font-bold border border-rose-200/70 tap-bounce ml-1">
+            <button onclick="goToToday()" data-i18n="cal.todayBtn" class="px-3 py-1.5 rounded-xl bg-rose-50 text-peach-600 hover:bg-peach-100 text-xs font-bold border border-rose-200/70 tap-bounce ml-1">
               今天
             </button>
           </div>
 
           <!-- 檢視模式選擇按鈕 (每日點選 / 本週行程 / 本月活動) -->
           <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-2xl w-full sm:w-auto justify-center">
-            <button onclick="setCalViewMode('day')" id="viewModeBtn-day" class="cal-view-btn flex-1 sm:flex-none px-3 py-1 rounded-xl text-xs font-bold transition-all bg-white text-slate-800 shadow-xs">
+            <button onclick="setCalViewMode('day')" id="viewModeBtn-day" data-i18n="cal.dayView" class="cal-view-btn flex-1 sm:flex-none px-3 py-1 rounded-xl text-xs font-bold transition-all bg-white text-slate-800 shadow-xs">
               📅 單日點選
             </button>
-            <button onclick="setCalViewMode('week')" id="viewModeBtn-week" class="cal-view-btn flex-1 sm:flex-none px-3 py-1 rounded-xl text-xs font-bold transition-all text-slate-600 hover:text-slate-900">
+            <button onclick="setCalViewMode('week')" id="viewModeBtn-week" data-i18n="cal.weekView" class="cal-view-btn flex-1 sm:flex-none px-3 py-1 rounded-xl text-xs font-bold transition-all text-slate-600 hover:text-slate-900">
               📋 查看本週
             </button>
-            <button onclick="setCalViewMode('month')" id="viewModeBtn-month" class="cal-view-btn flex-1 sm:flex-none px-3 py-1 rounded-xl text-xs font-bold transition-all text-slate-600 hover:text-slate-900">
+            <button onclick="setCalViewMode('month')" id="viewModeBtn-month" data-i18n="cal.monthView" class="cal-view-btn flex-1 sm:flex-none px-3 py-1 rounded-xl text-xs font-bold transition-all text-slate-600 hover:text-slate-900">
               🗓️ 本月總覽
             </button>
           </div>
         </div>
 
         <!-- 星期表頭 (週日為每週第一天) -->
-        <div class="grid grid-cols-7 gap-1 text-center font-bold text-xs">
+        <div id="calendarWeekdaysHeader" class="grid grid-cols-7 gap-1 text-center font-bold text-xs">
           <div class="text-rose-500 py-1.5 bg-rose-50/50 rounded-lg">週日</div>
           <div class="text-slate-600 py-1.5">週一</div>
           <div class="text-slate-600 py-1.5">週二</div>
@@ -453,25 +457,25 @@ const htmlContent = `<!DOCTYPE html>
         <!-- 圖例說明 -->
         <div class="flex items-center justify-center gap-3 sm:gap-4 text-xs text-slate-500 pt-2 border-t border-slate-100 flex-wrap">
           <span class="flex items-center gap-1 font-bold text-peach-600">
-            <span>❤️</span> 諾貝爾 A 班
+            <span>❤️</span> <span data-i18n="cal.legendNobel">諾貝爾 A 班</span>
           </span>
           <span class="flex items-center gap-1">
-            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> 全園活動
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> <span data-i18n="cal.legendAllSchool">全園活動</span>
           </span>
           <span class="flex items-center gap-1">
-            <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span> 班級主題
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span> <span data-i18n="cal.legendTheme">班級主題</span>
           </span>
           <span class="flex items-center gap-1">
-            <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> 重要活動
+            <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> <span data-i18n="cal.legendImportant">重要活動</span>
           </span>
           <span class="flex items-center gap-1 text-slate-600">
-            <span>🍱</span> 每日點心／餐點
+            <span>🍱</span> <span data-i18n="cal.legendSnack">每日點心／餐點</span>
           </span>
           <span class="flex items-center gap-1 text-slate-600">
-            <span>🥐</span> 幸福廚房日
+            <span>🥐</span> <span data-i18n="cal.legendKitchen">幸福廚房日</span>
           </span>
           <span class="flex items-center gap-1 text-slate-600">
-            <span>🎂</span> 當月慶生日
+            <span>🎂</span> <span data-i18n="cal.legendBirthday">當月慶生日</span>
           </span>
         </div>
       </div>
@@ -507,8 +511,8 @@ const htmlContent = `<!DOCTYPE html>
                     📅
                   </div>
                   <div>
-                    <h4 class="font-black text-slate-800 text-base">當日活動與行程</h4>
-                    <p class="text-xs text-slate-400">依全園及諾A班行事曆安排</p>
+                    <h4 data-i18n="cal.todayEventsTitle" class="font-black text-slate-800 text-base">當日活動與行程</h4>
+                    <p data-i18n="cal.todayEventsSub" class="text-xs text-slate-400">依全園及諾A班行事曆安排</p>
                   </div>
                 </div>
                 <span id="activeEventCount" class="text-xs font-bold text-peach-600 bg-peach-50 px-2.5 py-1 rounded-full border border-peach-100">
@@ -525,7 +529,7 @@ const htmlContent = `<!DOCTYPE html>
             <!-- 底部主題資訊 -->
             <div id="semesterThemeNotice" class="mt-4 pt-3 border-t border-slate-100 text-xs text-slate-500 flex items-center gap-1.5">
               <span>🌱</span>
-              <span>本期學期主題：<strong id="themeNameText" class="text-slate-700">主題活動：人與自己／人與他人概念</strong></span>
+              <span><span data-i18n="cal.semesterThemePrefix">本期學期主題：</span><strong id="themeNameText" class="text-slate-700">主題活動：人與自己／人與他人概念</strong></span>
             </div>
           </div>
 
@@ -538,11 +542,11 @@ const htmlContent = `<!DOCTYPE html>
                     🍱
                   </div>
                   <div>
-                    <h4 class="font-black text-slate-800 text-base">每日營養美味菜單</h4>
-                    <p class="text-xs text-slate-400">用心烹調・均衡健康守護</p>
+                    <h4 data-i18n="cal.todayMenuTitle" class="font-black text-slate-800 text-base">每日營養美味菜單</h4>
+                    <p data-i18n="cal.todayMenuSub" class="text-xs text-slate-400">用心烹調・均衡健康守護</p>
                   </div>
                 </div>
-                <span class="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                <span data-i18n="cal.foodSafetyPass" class="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
                   食安檢核合格
                 </span>
               </div>
@@ -556,13 +560,13 @@ const htmlContent = `<!DOCTYPE html>
             <!-- 營養檢核與安心說明標籤 -->
             <div class="mt-4 pt-3 border-t border-slate-100 space-y-2">
               <div class="flex items-center gap-1.5 flex-wrap">
-                <span class="text-xs font-bold text-slate-500">營養類別檢核：</span>
-                <span class="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded-md font-bold">🌾 全穀雜糧</span>
-                <span class="bg-rose-100 text-rose-800 text-xs px-2 py-0.5 rounded-md font-bold">🥩 豆魚蛋肉</span>
-                <span class="bg-emerald-100 text-emerald-800 text-xs px-2 py-0.5 rounded-md font-bold">🥦 有機蔬菜</span>
-                <span class="bg-purple-100 text-purple-800 text-xs px-2 py-0.5 rounded-md font-bold">🍎 當季水果</span>
+                <span data-i18n="cal.nutriCheckTitle" class="text-xs font-bold text-slate-500">營養類別檢核：</span>
+                <span data-i18n="cal.nutriGrain" class="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded-md font-bold">🌾 全穀雜糧</span>
+                <span data-i18n="cal.nutriProtein" class="bg-rose-100 text-rose-800 text-xs px-2 py-0.5 rounded-md font-bold">🥩 豆魚蛋肉</span>
+                <span data-i18n="cal.nutriVeg" class="bg-emerald-100 text-emerald-800 text-xs px-2 py-0.5 rounded-md font-bold">🥦 有機蔬菜</span>
+                <span data-i18n="cal.nutriFruit" class="bg-purple-100 text-purple-800 text-xs px-2 py-0.5 rounded-md font-bold">🍎 當季水果</span>
               </div>
-              <p class="text-xs text-slate-400">
+              <p data-i18n="cal.menuNote" class="text-xs text-slate-400">
                 註：本園餐點未使用主管機關公告之不合格油品。配合當令食材適時調整。
               </p>
             </div>
@@ -576,9 +580,9 @@ const htmlContent = `<!DOCTYPE html>
       <div id="weekViewContainer" class="hidden bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm space-y-4">
         <div class="flex items-center justify-between pb-3 border-b border-slate-100">
           <h4 class="text-base font-black text-slate-800 flex items-center gap-2">
-            <span>📋</span> 本週生活與餐點總覽（週日～週六）
+            <span>📋</span> <span data-i18n="cal.weekOverviewTitle">本週生活與餐點總覽（週日～週六）</span>
           </h4>
-          <button onclick="setCalViewMode('day')" class="text-xs text-peach-600 font-bold hover:underline">
+          <button onclick="setCalViewMode('day')" data-i18n="cal.backToDayView" class="text-xs text-peach-600 font-bold hover:underline">
             返回單日點選
           </button>
         </div>
@@ -593,7 +597,7 @@ const htmlContent = `<!DOCTYPE html>
           <h4 class="text-base font-black text-slate-800 flex items-center gap-2">
             <span>🗓️</span> <span id="monthViewTitle">2026年10月份 全月重點活動列表</span>
           </h4>
-          <button onclick="setCalViewMode('day')" class="text-xs text-peach-600 font-bold hover:underline">
+          <button onclick="setCalViewMode('day')" data-i18n="cal.backToDayView" class="text-xs text-peach-600 font-bold hover:underline">
             返回單日點選
           </button>
         </div>
@@ -611,18 +615,18 @@ const htmlContent = `<!DOCTYPE html>
         <div>
           <div class="flex items-center gap-2">
             <span class="text-2xl">📸</span>
-            <h2 class="text-xl font-black text-slate-800 tracking-tight">影像記錄</h2>
+            <h2 data-i18n="albums.title" class="text-xl font-black text-slate-800 tracking-tight">影像記錄</h2>
           </div>
-          <p class="text-xs sm:text-sm text-slate-600 mt-1">
+          <p data-i18n="albums.subtitle" class="text-xs sm:text-sm text-slate-600 mt-1">
             紀錄寶貝在幼兒園成長探索的點滴歡笑！
           </p>
         </div>
         <div class="flex items-center gap-2">
           <a id="btnBrowseCloudAlbums" href="https://drive.google.com/drive/folders/1iRFAr3FZMqV-okmktipdwamjAR7WWp6d" target="_blank" class="px-3.5 py-2 rounded-xl bg-white text-teal-700 border border-teal-300 text-xs font-bold hover:bg-teal-50 flex items-center gap-1.5 shadow-2xs tap-bounce hidden">
-            <span>📂</span> 開啟 Google Drive 相簿
+            <span>📂</span> <span data-i18n="albums.browseDrive">開啟 Google Drive 相簿</span>
           </a>
-          <button onclick="refreshAlbums()" class="px-3 py-2 rounded-xl bg-teal-600 text-white text-xs font-bold hover:bg-teal-700 shadow-sm tap-bounce">
-            🔄 重新整理
+          <button onclick="refreshAlbums()" class="px-3 py-2 rounded-xl bg-teal-600 text-white text-xs font-bold hover:bg-teal-700 shadow-sm tap-bounce flex items-center gap-1">
+            <span>🔄</span> <span data-i18n="albums.refreshBtn">重新整理</span>
           </button>
         </div>
       </div>
@@ -632,7 +636,7 @@ const htmlContent = `<!DOCTYPE html>
         <!-- 關鍵字搜尋欄 -->
         <div class="relative">
           <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 text-xs">🔍</span>
-          <input type="text" id="albumFilter-keyword" placeholder="搜尋相簿主題名稱或關鍵字..." class="w-full pl-9 pr-9 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-medium focus:bg-white focus:border-teal-500 focus:outline-none transition-all" oninput="applyAlbumFilters()">
+          <input type="text" id="albumFilter-keyword" placeholder="搜尋相簿主題名稱或關鍵字..." data-i18n-placeholder="albums.searchPlaceholder" class="w-full pl-9 pr-9 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-medium focus:bg-white focus:border-teal-500 focus:outline-none transition-all" oninput="applyAlbumFilters()">
           <button type="button" id="albumFilter-clearKeyword" onclick="clearAlbumFilterKeyword()" class="hidden absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 text-xs font-bold tap-bounce">✕</button>
         </div>
 
@@ -647,7 +651,7 @@ const htmlContent = `<!DOCTYPE html>
             <span id="albumFilterCountText" class="font-bold text-slate-700">共 0 本相簿</span>
           </div>
           <button id="btnResetAlbumFilters" onclick="resetAlbumFilters()" class="text-teal-600 hover:text-teal-800 font-bold hover:underline flex items-center gap-1 tap-bounce">
-            <span>🔄</span> 重設
+            <span>🔄</span> <span data-i18n="albums.resetBtn">重設</span>
           </button>
         </div>
       </div>
@@ -655,7 +659,7 @@ const htmlContent = `<!DOCTYPE html>
       <!-- 相簿列表格 -->
       <div id="albumsLoading" class="py-12 text-center text-slate-400 font-bold flex flex-col items-center justify-center gap-2">
         <div class="w-8 h-8 border-3 border-teal-200 border-t-teal-600 rounded-full animate-spin"></div>
-        <span>正在讀取雲端相簿資料夾...</span>
+        <span data-i18n="albums.loading">正在讀取雲端相簿資料夾...</span>
       </div>
 
       <div id="albumsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -666,7 +670,7 @@ const htmlContent = `<!DOCTYPE html>
       <div class="flex justify-center items-center pt-8 pb-4">
         <button type="button" onclick="openFullDriveLinksModal()" class="px-6 py-3.5 rounded-full bg-white hover:bg-teal-50 text-slate-700 hover:text-teal-800 border-2 border-teal-200/90 hover:border-teal-400 shadow-xs hover:shadow-md transition-all font-black text-xs sm:text-sm flex items-center gap-2.5 tap-bounce group cursor-pointer" title="查看桃子腳幼兒園各月份完整 Google Drive 照片">
           <span class="text-base sm:text-lg">📂</span>
-          <span>桃子腳幼兒園 完整 Google Drive 照片連結</span>
+          <span data-i18n="albums.driveLinkBtn">桃子腳幼兒園 完整 Google Drive 照片連結</span>
           <span class="text-teal-600 group-hover:translate-x-0.5 transition-transform text-xs">➔</span>
         </button>
       </div>
@@ -679,18 +683,18 @@ const htmlContent = `<!DOCTYPE html>
         <div>
           <div class="flex items-center gap-2">
             <span class="text-2xl">🎵</span>
-            <h2 class="text-xl font-black text-slate-800 tracking-tight">唱跳音符</h2>
+            <h2 data-i18n="songs.title" class="text-xl font-black text-slate-800 tracking-tight">唱跳音符</h2>
           </div>
-          <p class="text-xs sm:text-sm text-slate-600 mt-1">
+          <p data-i18n="songs.subtitle" class="text-xs sm:text-sm text-slate-600 mt-1">
             跟著旋律一起唱唱跳跳，在家也能複習幼兒園的歌曲與律動！
           </p>
         </div>
         <div class="flex items-center gap-2">
           <a id="btnBrowseCloudSongs" href="https://drive.google.com/drive/folders/1vurxReuOW0laMDw1xSSOqeM5zT0TCmBQ" target="_blank" rel="noopener noreferrer" class="px-3.5 py-2 rounded-xl bg-white text-fuchsia-700 border border-fuchsia-300 text-xs font-bold hover:bg-fuchsia-50 flex items-center gap-1.5 shadow-2xs tap-bounce hidden">
-            <span>📂</span> 開啟 Google Drive 音樂資料夾
+            <span>📂</span> <span data-i18n="songs.browseDrive">開啟 Google Drive 音樂資料夾</span>
           </a>
-          <button onclick="refreshSongs()" class="px-3 py-2 rounded-xl bg-fuchsia-600 text-white text-xs font-bold hover:bg-fuchsia-700 shadow-sm tap-bounce">
-            🔄 重新整理
+          <button onclick="refreshSongs()" class="px-3 py-2 rounded-xl bg-fuchsia-600 text-white text-xs font-bold hover:bg-fuchsia-700 shadow-sm tap-bounce flex items-center gap-1">
+            <span>🔄</span> <span data-i18n="songs.refreshBtn">重新整理</span>
           </button>
         </div>
       </div>
@@ -699,7 +703,7 @@ const htmlContent = `<!DOCTYPE html>
       <div class="bg-white p-4 sm:p-5 rounded-3xl border border-fuchsia-200/70 shadow-xs space-y-3.5">
         <div class="relative">
           <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 text-xs">🔍</span>
-          <input type="text" id="songFilter-keyword" placeholder="搜尋歌名或關鍵字..." class="w-full pl-9 pr-9 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-medium focus:bg-white focus:border-fuchsia-500 focus:outline-none transition-all" oninput="applySongFilters()">
+          <input type="text" id="songFilter-keyword" placeholder="搜尋歌名或關鍵字..." data-i18n-placeholder="songs.searchPlaceholder" class="w-full pl-9 pr-9 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-medium focus:bg-white focus:border-fuchsia-500 focus:outline-none transition-all" oninput="applySongFilters()">
           <button type="button" id="songFilter-clearKeyword" onclick="clearSongFilterKeyword()" class="hidden absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 text-xs font-bold tap-bounce">✕</button>
         </div>
 
@@ -712,11 +716,11 @@ const htmlContent = `<!DOCTYPE html>
           <div class="flex items-center gap-2">
             <span id="songFilterCountText" class="font-bold text-slate-700">共 0 首歌曲</span>
             <button type="button" id="btnToggleSelectAllFiltered" onclick="toggleSelectAllFilteredSongs()" class="text-xs font-bold text-fuchsia-600 hover:text-fuchsia-800 bg-fuchsia-50 hover:bg-fuchsia-100 px-2.5 py-0.5 rounded-full transition-colors cursor-pointer tap-bounce">
-              全選目前歌曲
+              <span data-i18n="songs.selectAll">全選目前歌曲</span>
             </button>
           </div>
           <button onclick="resetSongFilters()" class="text-fuchsia-600 hover:text-fuchsia-800 font-bold hover:underline flex items-center gap-1 tap-bounce">
-            <span>🔄</span> 重設
+            <span>🔄</span> <span data-i18n="songs.resetBtn">重設</span>
           </button>
         </div>
       </div>
@@ -731,12 +735,12 @@ const htmlContent = `<!DOCTYPE html>
         <div class="bg-white/95 backdrop-blur-md border border-fuchsia-200/90 shadow-xl rounded-full px-3.5 py-1.5 sm:px-4 sm:py-2 flex items-center gap-3 sm:gap-3.5">
           <!-- 左側：勾選統計與核取方塊 -->
           <label for="bottomBarSelectAllCheckbox" class="flex items-center gap-2 cursor-pointer select-none">
-            <input type="checkbox" id="bottomBarSelectAllCheckbox" onchange="handleBottomBarSelectAllChange(event)" class="w-4 h-4 rounded text-fuchsia-600 accent-fuchsia-500 cursor-pointer" title="全選/取消全選">
+            <input type="checkbox" id="bottomBarSelectAllCheckbox" onchange="handleBottomBarSelectAllChange(event)" class="w-4 h-4 rounded text-fuchsia-600 accent-fuchsia-500 cursor-pointer" title="全選/取消全選" data-i18n-title="songs.selectAllTitle">
             <span id="bottomBarSelectedCount" class="text-xs sm:text-sm font-bold text-slate-700 whitespace-nowrap">已選取 0 首</span>
           </label>
 
           <!-- 右側：僅保留播放圖示按鈕 (隨機與循環功能保留於毛玻璃播放視窗內部) -->
-          <button type="button" id="btnPlaySelectedSongs" onclick="playSelectedSongs()" class="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-r from-fuchsia-500 via-pink-500 to-rose-500 hover:from-fuchsia-600 hover:to-rose-600 text-white font-black text-xs sm:text-sm flex items-center justify-center shadow-md hover:shadow-lg active:scale-95 transition-all cursor-pointer shrink-0 pl-0.5 tap-bounce" title="播放歌曲">
+          <button type="button" id="btnPlaySelectedSongs" onclick="playSelectedSongs()" class="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-r from-fuchsia-500 via-pink-500 to-rose-500 hover:from-fuchsia-600 hover:to-rose-600 text-white font-black text-xs sm:text-sm flex items-center justify-center shadow-md hover:shadow-lg active:scale-95 transition-all cursor-pointer shrink-0 pl-0.5 tap-bounce" title="播放歌曲" data-i18n-title="songs.playBtnTitle">
             <span>▶</span>
           </button>
         </div>
@@ -750,20 +754,20 @@ const htmlContent = `<!DOCTYPE html>
         <div>
           <h2 class="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight flex items-center gap-2">
             <span class="text-rose-500">📚</span>
-            <span>主題活動成果</span>
+            <span data-i18n="themes.title">主題活動成果</span>
           </h2>
-          <p class="text-sm text-slate-500 font-medium mt-1">
+          <p data-i18n="themes.subtitle" class="text-sm text-slate-500 font-medium mt-1">
             記錄每週主題探索與學習成長的軌跡
           </p>
         </div>
         
         <div class="flex items-center gap-2 shrink-0">
           <select id="themeSemesterFilter" onchange="filterThemes()" class="bg-white border border-slate-200 text-slate-700 text-sm font-bold rounded-xl px-3 py-2 outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100 transition-all cursor-pointer shadow-sm">
-            <option value="all">全部學期</option>
+            <option value="all" data-i18n="themes.allSemesters">全部學期</option>
           </select>
           <button onclick="toggleAllThemeCards()" id="toggleAllThemesBtn" class="bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 text-sm font-bold rounded-xl px-3 py-2 transition-all tap-bounce shadow-sm flex items-center gap-1">
             <span id="toggleAllThemesIcon">➕</span>
-            <span id="toggleAllThemesText">全部展開</span>
+            <span id="toggleAllThemesText" data-i18n="themes.expandAll">全部展開</span>
           </button>
         </div>
       </div>
@@ -776,7 +780,7 @@ const htmlContent = `<!DOCTYPE html>
       <!-- 空狀態 -->
       <div id="themesEmptyState" class="hidden flex flex-col items-center justify-center py-16 bg-white/50 backdrop-blur rounded-3xl border border-slate-200 border-dashed">
         <div class="text-5xl mb-3 opacity-50 grayscale">📚</div>
-        <p class="text-slate-500 font-bold">目前還沒有主題活動紀錄喔</p>
+        <p data-i18n="themes.empty" class="text-slate-500 font-bold">目前還沒有主題活動紀錄喔</p>
       </div>
     </section>
 
@@ -787,10 +791,10 @@ const htmlContent = `<!DOCTYPE html>
       <div id="docAdminBar" class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 p-3.5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-amber-900 font-bold hidden" hidden>
         <div class="flex items-center gap-2">
           <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span>管理者權限已啟用：您可直接在下方任一文件卡片點選「✏️ 編輯」或「🗑️ 刪除」，或點擊右側按鈕新增文件。</span>
+          <span data-i18n="docs.adminBarText">管理者權限已啟用：您可直接在下方任一文件卡片點選「✏️ 編輯」或「🗑️ 刪除」，或點擊右側按鈕新增文件。</span>
         </div>
         <button onclick="openDocEditModal()" class="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-black text-xs shrink-0 tap-bounce shadow-xs flex items-center gap-1.5">
-          <span>➕</span> 新增常用文件
+          <span>➕</span> <span data-i18n="docs.addDocBtn">新增常用文件</span>
         </button>
       </div>
 
@@ -798,14 +802,14 @@ const htmlContent = `<!DOCTYPE html>
         <div>
           <div class="flex items-center gap-2">
             <span class="text-2xl">📁</span>
-            <h2 class="text-xl font-black text-slate-800 tracking-tight">常用文件</h2>
+            <h2 data-i18n="docs.title" class="text-xl font-black text-slate-800 tracking-tight">常用文件</h2>
           </div>
-          <p class="text-xs sm:text-sm text-slate-600 mt-1">
+          <p data-i18n="docs.subtitle" class="text-xs sm:text-sm text-slate-600 mt-1">
             提供請假單、用藥委託單、學期行事曆與幼兒園作息手冊，方便家長線上預覽與列印。
           </p>
         </div>
         <a id="btnBrowseCloudDocs" href="https://drive.google.com/drive/folders/1Ie8medB2JPYdUA9LOryVnPAdko1t5rjR" target="_blank" class="px-3.5 py-2 rounded-xl bg-white text-indigo-700 border border-indigo-300 text-xs font-bold hover:bg-indigo-50 flex items-center gap-1.5 shadow-2xs tap-bounce hidden">
-          <span>📂</span> 瀏覽雲端 Docs 資料夾
+          <span>📂</span> <span data-i18n="docs.browseDrive">瀏覽雲端 Docs 資料夾</span>
         </a>
       </div>
 
@@ -818,7 +822,7 @@ const htmlContent = `<!DOCTYPE html>
           <button onclick="filterDocs('餐飲菜單')" class="doc-cat-btn px-3 py-1 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">餐飲菜單</button>
           <button onclick="filterDocs('親師手冊')" class="doc-cat-btn px-3 py-1 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">親師手冊</button>
         </div>
-        <div class="text-xs text-slate-400">
+        <div class="text-xs text-slate-400" data-i18n="docs.clickToPreview">
           點擊可立即下載或直接預覽
         </div>
       </div>
@@ -838,13 +842,13 @@ const htmlContent = `<!DOCTYPE html>
           🔒
         </div>
         <div>
-          <h3 class="text-xl font-black text-slate-800">管理員身分驗證</h3>
+          <h3 data-i18n="admin.loginTitle" class="text-xl font-black text-slate-800">管理員身分驗證</h3>
         </div>
         <div class="space-y-3">
           <div>
-            <input type="password" id="adminPasswordInput" placeholder="請輸入管理員密碼..." class="w-full px-4 py-3 rounded-2xl border-2 border-slate-200 focus:border-peach-500 focus:outline-none text-center font-bold tracking-widest text-base transition-colors" onkeydown="if(event.key==='Enter') doAdminLogin()">
+            <input type="password" id="adminPasswordInput" placeholder="請輸入管理員密碼..." data-i18n-placeholder="admin.pwdPlaceholder" class="w-full px-4 py-3 rounded-2xl border-2 border-slate-200 focus:border-peach-500 focus:outline-none text-center font-bold tracking-widest text-base transition-colors" onkeydown="if(event.key==='Enter') doAdminLogin()">
           </div>
-          <button onclick="doAdminLogin()" id="loginSubmitBtn" class="w-full py-3 rounded-2xl bg-gradient-to-r from-peach-500 to-rose-500 text-white font-black text-sm shadow-md hover:from-peach-600 hover:to-rose-600 transition-all tap-bounce">
+          <button onclick="doAdminLogin()" id="loginSubmitBtn" data-i18n="admin.loginBtn" class="w-full py-3 rounded-2xl bg-gradient-to-r from-peach-500 to-rose-500 text-white font-black text-sm shadow-md hover:from-peach-600 hover:to-rose-600 transition-all tap-bounce">
             確認進入管理後台
           </button>
         </div>
@@ -857,35 +861,35 @@ const htmlContent = `<!DOCTYPE html>
         <div class="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm flex items-center justify-between gap-3">
           <div class="flex items-center gap-2">
             <span class="w-3 h-3 rounded-full bg-emerald-500 animate-ping"></span>
-            <span class="font-black text-slate-800 text-base">諾貝爾 A 班 內容管理中心</span>
-            <span class="bg-emerald-100 text-emerald-800 text-xs px-2 py-0.5 rounded-full font-bold">已認證</span>
+            <span data-i18n="admin.title" class="font-black text-slate-800 text-base">諾貝爾 A 班 內容管理中心</span>
+            <span data-i18n="admin.authenticated" class="bg-emerald-100 text-emerald-800 text-xs px-2 py-0.5 rounded-full font-bold">已認證</span>
           </div>
         </div>
 
         <!-- 後台功能子分頁籤 -->
         <div class="flex items-center gap-1.5 overflow-x-auto pb-1 border-b border-slate-200">
-          <button onclick="switchAdminSubtab('events')" id="adminSubtabBtn-events" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold bg-peach-500 text-white shadow-xs whitespace-nowrap">
+          <button onclick="switchAdminSubtab('events')" id="adminSubtabBtn-events" data-i18n="admin.tabEvents" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold bg-peach-500 text-white shadow-xs whitespace-nowrap">
             📅 行事曆活動管理
           </button>
-          <button onclick="switchAdminSubtab('menu')" id="adminSubtabBtn-menu" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
+          <button onclick="switchAdminSubtab('menu')" id="adminSubtabBtn-menu" data-i18n="admin.tabMenu" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
             🍱 每日菜單管理
           </button>
-          <button onclick="switchAdminSubtab('uploadPhoto')" id="adminSubtabBtn-uploadPhoto" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
+          <button onclick="switchAdminSubtab('uploadPhoto')" id="adminSubtabBtn-uploadPhoto" data-i18n="admin.tabUploadPhoto" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
             📸 相簿批次上傳
           </button>
-          <button onclick="switchAdminSubtab('songs')" id="adminSubtabBtn-songs" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
+          <button onclick="switchAdminSubtab('songs')" id="adminSubtabBtn-songs" data-i18n="admin.tabSongs" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
             🎵 唱跳音符管理
           </button>
-          <button onclick="switchAdminSubtab('uploadDoc')" id="adminSubtabBtn-uploadDoc" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
+          <button onclick="switchAdminSubtab('uploadDoc')" id="adminSubtabBtn-uploadDoc" data-i18n="admin.tabUploadDoc" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
             📂 文件檔案上傳
           </button>
-          <button onclick="switchAdminSubtab('themes')" id="adminSubtabBtn-themes" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
+          <button onclick="switchAdminSubtab('themes')" id="adminSubtabBtn-themes" data-i18n="admin.tabThemes" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
             📚 主題活動
           </button>
-          <button onclick="switchAdminSubtab('spotlight')" id="adminSubtabBtn-spotlight" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
+          <button onclick="switchAdminSubtab('spotlight')" id="adminSubtabBtn-spotlight" data-i18n="admin.tabSpotlight" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
             🌟 Spotlight 管理
           </button>
-          <button onclick="switchAdminSubtab('settings')" id="adminSubtabBtn-settings" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
+          <button onclick="switchAdminSubtab('settings')" id="adminSubtabBtn-settings" data-i18n="admin.tabSettings" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
             ⚙️ 密碼與設定
           </button>
         </div>
@@ -1928,13 +1932,357 @@ const htmlContent = `<!DOCTYPE html>
   <!-- ==================== 頁尾 FOOTER ==================== -->
   <footer class="bg-white border-t border-rose-100/80 py-6 mt-12 text-center text-xs text-slate-400 space-y-1">
     <p class="font-bold text-sm text-rose-600 tracking-wide">TEL：02-2668-8249｜FAX：02-2668-8245</p>
-    <p>用愛陪伴孩子成長的每一步</p>
+    <p id="footerMotto" data-i18n="footer.motto">用愛陪伴孩子成長的每一步</p>
   </footer>
 
   <!-- ==================== 前端邏輯 JS SCRIPT ==================== -->
   <script>
+    // ==================== 多語系 i18n 字典系統 ====================
+    const I18N = {
+      'zh-TW': {
+        nav: {
+          menu: '選單導覽',
+          pin: '釘選選單',
+          daily: '班級日常',
+          themes: '主題活動',
+          albums: '影像記錄',
+          songs: '唱跳音符',
+          docs: '常用文件',
+          admin: '管理後台',
+          langToggle: 'English',
+          langTitle: '切換為英文 / Switch to English'
+        },
+        header: {
+          foundation: '三之三生命教育基金會',
+          school: '新北市桃子腳非營利幼兒園',
+          class: '諾貝爾 A 班',
+          adminActive: '管理員已登入',
+          logout: '登出',
+          syncing: '雲端資料同步中...'
+        },
+        cal: {
+          prevMonth: '上個月',
+          nextMonth: '下個月',
+          todayBtn: '今天',
+          dayView: '📅 單日點選',
+          weekView: '📋 查看本週',
+          monthView: '🗓️ 本月總覽',
+          weekdays: ['週日', '週一', '週二', '週三', '週四', '週五', '週六'],
+          legendNobel: '諾貝爾 A 班',
+          legendAllSchool: '全園活動',
+          legendTheme: '班級主題',
+          legendImportant: '重要活動',
+          legendSnack: '每日點心／餐點',
+          legendKitchen: '幸福廚房日',
+          legendBirthday: '當月慶生日',
+          spotlightTag: 'SPOTLIGHT 焦點活動',
+          spotlightEnlarge: '放大查看',
+          spotlightSlideInterval: '⏱️ 5s 輪播',
+          todayEventsTitle: '當日活動與行程',
+          todayEventsSub: '依全園及諾A班行事曆安排',
+          semesterThemePrefix: '本期學期主題：',
+          todayMenuTitle: '每日營養美味菜單',
+          todayMenuSub: '用心烹調・均衡健康守護',
+          foodSafetyPass: '食安檢核合格',
+          nutriCheckTitle: '營養類別檢核：',
+          nutriGrain: '🌾 全穀雜糧',
+          nutriProtein: '🥩 豆魚蛋肉',
+          nutriVeg: '🥦 有機蔬菜',
+          nutriFruit: '🍎 當季水果',
+          menuNote: '註：本園餐點未使用主管機關公告之不合格油品。配合當令食材適時調整。',
+          weekOverviewTitle: '本週生活與餐點總覽（週日～週六）',
+          backToDayView: '返回單日點選'
+        },
+        themes: {
+          title: '主題活動成果',
+          subtitle: '記錄每週主題探索與學習成長的軌跡',
+          allSemesters: '全部學期',
+          expandAll: '全部展開',
+          collapseAll: '全部折疊',
+          empty: '目前還沒有主題活動紀錄喔',
+          activityGoal: '活動目標',
+          courseGoal: '課程目標'
+        },
+        albums: {
+          title: '影像記錄',
+          subtitle: '紀錄寶貝在幼兒園成長探索的點滴歡笑！',
+          browseDrive: '開啟 Google Drive 相簿',
+          refreshBtn: '重新整理',
+          searchPlaceholder: '搜尋相簿主題名稱或關鍵字...',
+          resetBtn: '重設',
+          loading: '正在讀取雲端相簿資料夾...',
+          driveLinkBtn: '桃子腳幼兒園 完整 Google Drive 照片連結',
+          allCats: '全部'
+        },
+        songs: {
+          title: '唱跳音符',
+          subtitle: '跟著旋律一起唱唱跳跳，在家也能複習幼兒園的歌曲與律動！',
+          browseDrive: '開啟 Google Drive 音樂資料夾',
+          refreshBtn: '重新整理',
+          searchPlaceholder: '搜尋歌名或關鍵字...',
+          selectAll: '全選目前歌曲',
+          resetBtn: '重設',
+          selectAllTitle: '全選/取消全選',
+          playBtnTitle: '播放歌曲'
+        },
+        docs: {
+          title: '常用文件',
+          subtitle: '提供請假單、用藥委託單、學期行事曆與幼兒園作息手冊，方便家長線上預覽與列印。',
+          adminBarText: '管理者權限已啟用：您可直接在下方任一文件卡片點選「✏️ 編輯」或「🗑️ 刪除」，或點擊右側按鈕新增文件。',
+          addDocBtn: '新增常用文件',
+          browseDrive: '瀏覽雲端 Docs 資料夾',
+          clickToPreview: '點擊可立即下載或直接預覽',
+          allDocs: '全部文件',
+          downloadBtn: '下載文件'
+        },
+        admin: {
+          loginTitle: '管理員身分驗證',
+          pwdPlaceholder: '請輸入管理員密碼...',
+          loginBtn: '確認進入管理後台',
+          title: '諾貝爾 A 班 內容管理中心',
+          authenticated: '已認證',
+          tabEvents: '📅 行事曆活動管理',
+          tabMenu: '🍱 每日菜單管理',
+          tabUploadPhoto: '📸 相簿批次上傳',
+          tabSongs: '🎵 唱跳音符管理',
+          tabUploadDoc: '📂 文件檔案上傳',
+          tabThemes: '📚 主題活動',
+          tabSpotlight: '🌟 Spotlight 管理',
+          tabSettings: '⚙️ 密碼與設定'
+        },
+        footer: {
+          motto: '用愛陪伴孩子成長的每一步'
+        },
+        toasts: {
+          langSwitched: '已切換為繁體中文'
+        }
+      },
+      'en': {
+        nav: {
+          menu: 'Menu',
+          pin: 'Pin Menu',
+          daily: 'Daily',
+          themes: 'Themes',
+          albums: 'Albums',
+          songs: 'Songs',
+          docs: 'Docs',
+          admin: 'Admin',
+          langToggle: '繁體中文',
+          langTitle: 'Switch to Traditional Chinese / 切換為繁體中文'
+        },
+        header: {
+          foundation: '3&3 Life Education',
+          school: 'Taozihjiao Kindergarten',
+          class: 'Nobel A Class',
+          adminActive: 'Admin Active',
+          logout: 'Logout',
+          syncing: 'Syncing...'
+        },
+        cal: {
+          prevMonth: 'Previous Month',
+          nextMonth: 'Next Month',
+          todayBtn: 'Today',
+          dayView: '📅 Day',
+          weekView: '📋 Week',
+          monthView: '🗓️ Month',
+          weekdays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+          legendNobel: 'Nobel A',
+          legendAllSchool: 'School Events',
+          legendTheme: 'Themes',
+          legendImportant: 'Important',
+          legendSnack: 'Daily Meals',
+          legendKitchen: 'Happy Kitchen',
+          legendBirthday: 'Birthdays',
+          spotlightTag: 'SPOTLIGHT HIGHLIGHT',
+          spotlightEnlarge: 'Enlarge',
+          spotlightSlideInterval: '⏱️ 5s Auto',
+          todayEventsTitle: 'Daily Schedule & Events',
+          todayEventsSub: 'Kindergarten & Nobel A Calendar',
+          semesterThemePrefix: 'Semester Theme: ',
+          todayMenuTitle: 'Daily Nutritious Menu',
+          todayMenuSub: 'Carefully Prepared & Balanced',
+          foodSafetyPass: 'Safety Verified',
+          nutriCheckTitle: 'Nutritional Categories: ',
+          nutriGrain: '🌾 Whole Grains',
+          nutriProtein: '🥩 Meat / Eggs / Tofu',
+          nutriVeg: '🥦 Organic Veggies',
+          nutriFruit: '🍎 Seasonal Fruits',
+          menuNote: 'Note: Ingredients are prepared strictly following food safety regulations.',
+          weekOverviewTitle: 'Weekly Routine & Meals Overview',
+          backToDayView: 'Back to Day View'
+        },
+        themes: {
+          title: 'Weekly Themes',
+          subtitle: 'Weekly learning milestones and exploration activities',
+          allSemesters: 'All Semesters',
+          expandAll: 'Expand All',
+          collapseAll: 'Collapse All',
+          empty: 'No theme records found yet',
+          activityGoal: 'Activity Goals',
+          courseGoal: 'Curriculum Goals'
+        },
+        albums: {
+          title: 'Albums',
+          subtitle: 'Capturing precious moments and class growth',
+          browseDrive: 'Open Google Drive Albums',
+          refreshBtn: 'Refresh',
+          searchPlaceholder: 'Search albums or keywords...',
+          resetBtn: 'Reset',
+          loading: 'Loading albums from Google Drive...',
+          driveLinkBtn: 'Complete Google Drive Photo Links',
+          allCats: 'All'
+        },
+        songs: {
+          title: 'Music & Songs',
+          subtitle: 'Fun and energetic children songs & dances for school and home!',
+          browseDrive: 'Open Google Drive Songs',
+          refreshBtn: 'Refresh',
+          searchPlaceholder: 'Search song title or keywords...',
+          selectAll: 'Select All Filtered',
+          resetBtn: 'Reset',
+          selectAllTitle: 'Select All / Deselect All',
+          playBtnTitle: 'Play Songs'
+        },
+        docs: {
+          title: 'Documents',
+          subtitle: 'Leave requests, medication forms, calendar, and parent handbooks.',
+          adminBarText: 'Admin mode active: Edit or delete docs directly below, or add new files.',
+          addDocBtn: 'Add New Document',
+          browseDrive: 'Browse Google Drive Docs',
+          clickToPreview: 'Click to download or preview directly',
+          allDocs: 'All Docs',
+          downloadBtn: 'Download'
+        },
+        admin: {
+          loginTitle: 'Admin Authentication',
+          pwdPlaceholder: 'Enter admin password...',
+          loginBtn: 'Enter Admin Dashboard',
+          title: 'Nobel A Content Management',
+          authenticated: 'Verified',
+          tabEvents: '📅 Events',
+          tabMenu: '🍱 Daily Menus',
+          tabUploadPhoto: '📸 Upload Photos',
+          tabSongs: '🎵 Manage Songs',
+          tabUploadDoc: '📂 Upload Docs',
+          tabThemes: '📚 Weekly Themes',
+          tabSpotlight: '🌟 Spotlights',
+          tabSettings: '⚙️ Settings'
+        },
+        footer: {
+          motto: "Accompanying children's growth with love"
+        },
+        toasts: {
+          langSwitched: 'Switched to English'
+        }
+      }
+    };
+
+    function t(path, params) {
+      const lang = (state && state.lang) ? state.lang : 'zh-TW';
+      const dict = I18N[lang] || I18N['zh-TW'];
+      const keys = path.split('.');
+      let val = dict;
+      for (let i = 0; i < keys.length; i++) {
+        const k = keys[i];
+        if (val && typeof val === 'object' && k in val) {
+          val = val[k];
+        } else {
+          let fb = I18N['zh-TW'];
+          for (let j = 0; j < keys.length; j++) {
+            const fk = keys[j];
+            if (fb && typeof fb === 'object' && fk in fb) fb = fb[fk];
+            else { fb = null; break; }
+          }
+          val = fb || path;
+          break;
+        }
+      }
+      if (typeof val === 'string' && params && typeof params === 'object') {
+        Object.keys(params).forEach(function(p) {
+          val = val.replace(new RegExp('\\{' + p + '\\}', 'g'), params[p]);
+        });
+      }
+      return val;
+    }
+
+    function applyTranslations() {
+      // 1. 靜態屬性元素更新
+      document.querySelectorAll('[data-i18n]').forEach(function(el) {
+        const key = el.getAttribute('data-i18n');
+        if (key) {
+          el.textContent = t(key);
+        }
+      });
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(function(el) {
+        const key = el.getAttribute('data-i18n-placeholder');
+        if (key) {
+          el.placeholder = t(key);
+        }
+      });
+      document.querySelectorAll('[data-i18n-title]').forEach(function(el) {
+        const key = el.getAttribute('data-i18n-title');
+        if (key) {
+          el.title = t(key);
+        }
+      });
+
+      // 2. 側邊欄切換鈕文字與提示
+      const langToggleText = document.getElementById('langToggleText');
+      if (langToggleText) {
+        langToggleText.textContent = state.lang === 'en' ? '繁體中文' : 'English';
+      }
+      const langToggleBtn = document.getElementById('langToggleBtn');
+      if (langToggleBtn) {
+        langToggleBtn.title = state.lang === 'en' ? '切換為繁體中文 / Switch to Traditional Chinese' : '切換為英文 / Switch to English';
+      }
+
+      // 3. 星期表頭
+      const weekdaysHeader = document.getElementById('calendarWeekdaysHeader');
+      if (weekdaysHeader && weekdaysHeader.children.length === 7) {
+        const wks = t('cal.weekdays');
+        for (let i = 0; i < 7; i++) {
+          weekdaysHeader.children[i].textContent = wks[i];
+        }
+      }
+
+      // 4. 動態區域即時更新
+      renderCalendar();
+      if (state.currentCalView === 'week') {
+        renderWeekView();
+      } else if (state.currentCalView === 'month') {
+        renderMonthView();
+      }
+      if (state.selectedDateStr) {
+        renderSelectedDayDetails(state.selectedDateStr);
+      }
+      initThemeFilters();
+      renderThemes();
+      renderAlbumCategoriesUI();
+      applyAlbumFilters();
+      renderSongCategoriesUI();
+      applySongFilters();
+      renderDocCategoriesUI();
+      renderDocsList();
+    }
+
+    function toggleLanguage() {
+      state.lang = state.lang === 'en' ? 'zh-TW' : 'en';
+      try {
+        localStorage.setItem('nobel_a_lang', state.lang);
+      } catch (e) {}
+      applyTranslations();
+      showToast(t('toasts.langSwitched'), '🌐');
+    }
+
     // 全域應用狀態
     const state = {
+      lang: (function() {
+        try {
+          return localStorage.getItem('nobel_a_lang') || 'zh-TW';
+        } catch(e) {
+          return 'zh-TW';
+        }
+      })(),
       currentTab: 'home',
       currentAdminSubtab: 'events',
       currentCalView: 'day', // 'day', 'week', 'month'
@@ -1968,6 +2316,7 @@ const htmlContent = `<!DOCTYPE html>
         timerInterval: null
       }
     };
+    window.state = state;
 
     // 初始化程式
     function initApp() {
@@ -2017,6 +2366,9 @@ const htmlContent = `<!DOCTYPE html>
 
       // 確保 loadingOverlay 隱藏，主要畫面立即呈現
       showLoading(false);
+
+      // 套用當前語系文字
+      applyTranslations();
 
       // 2. 靜默在背景連線至雲端讀取最新資料庫並自動無縫更新（Stale-While-Revalidate）
       loadAppData(true);
@@ -2448,7 +2800,7 @@ const htmlContent = `<!DOCTYPE html>
         pillsContainer.innerHTML = '';
         categories.forEach(cat => {
           if (cat === '全部文件' || cat === '全部') {
-            pillsContainer.innerHTML += '<button onclick="filterDocs(\\'全部\\')" class="doc-cat-btn px-3 py-1 rounded-xl text-xs font-bold bg-indigo-600 text-white shadow-xs">全部文件</button>';
+            pillsContainer.innerHTML += '<button onclick="filterDocs(\\'全部\\')" class="doc-cat-btn px-3 py-1 rounded-xl text-xs font-bold bg-indigo-600 text-white shadow-xs">' + (state.lang === 'en' ? 'All Docs' : '全部文件') + '</button>';
           } else {
             pillsContainer.innerHTML += '<button onclick="filterDocs(\\'' + cat + '\\')" class="doc-cat-btn px-3 py-1 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">' + cat + '</button>';
           }
@@ -2853,6 +3205,7 @@ const htmlContent = `<!DOCTYPE html>
     }
 
     function switchTab(tabName) {
+      if (tabName === 'daily') tabName = 'home';
       if (window.innerWidth < 768 && mobileSidebarOpen) {
         toggleMobileSidebar();
       }
@@ -2909,14 +3262,20 @@ const htmlContent = `<!DOCTYPE html>
         }
       }
 
+      if (tabName === 'themes') {
+        renderThemes();
+      }
       if (tabName === 'albums') {
+        renderAlbumCategoriesUI();
         if (state.cachedAlbums.length === 0) refreshAlbums();
         else applyAlbumFilters();
       }
       if (tabName === 'docs') {
+        renderDocCategoriesUI();
         renderDocsList();
       }
       if (tabName === 'songs') {
+        renderSongCategoriesUI();
         applySongFilters();
       }
       updateAdminAuthUI();
@@ -3413,7 +3772,15 @@ const htmlContent = `<!DOCTYPE html>
     function renderCalendar() {
       const year = state.viewYear;
       const month = state.viewMonth;
-      document.getElementById('calendarCurrentMonthText').textContent = \`\${year} 年 \${month} 月\`;
+      const monthTitleEl = document.getElementById('calendarCurrentMonthText');
+      if (monthTitleEl) {
+        if (state.lang === 'en') {
+          const mNames = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+          monthTitleEl.textContent = \`\${mNames[month]} \${year}\`;
+        } else {
+          monthTitleEl.textContent = \`\${year} 年 \${month} 月\`;
+        }
+      }
 
       const grid = document.getElementById('calendarGrid');
       grid.innerHTML = '';
@@ -3627,11 +3994,22 @@ const htmlContent = `<!DOCTYPE html>
       const m = parseInt(dateParts[1], 10);
       const d = parseInt(dateParts[2], 10);
       const dateObj = new Date(y, m - 1, d);
-      const daysArr = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
+      const isEn = state.lang === 'en';
+      const daysArr = isEn
+        ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+        : ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
       const dayName = daysArr[dateObj.getDay()];
 
       // 更新頂部抬頭
-      document.getElementById('selectedDateHeader').textContent = \`\${y} 年 \${m} 月 \${d} 日（\${dayName}）\`;
+      const headerDateEl = document.getElementById('selectedDateHeader');
+      if (headerDateEl) {
+        if (isEn) {
+          const mNamesShort = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+          headerDateEl.textContent = \`\${mNamesShort[m]} \${d}, \${y} (\${dayName})\`;
+        } else {
+          headerDateEl.textContent = \`\${y} 年 \${m} 月 \${d} 日（\${dayName}）\`;
+        }
+      }
 
       const dayEvents = getEventsForDate(dateStr);
       const dayMenu = getMenuForDate(dateStr);
@@ -3647,7 +4025,10 @@ const htmlContent = `<!DOCTYPE html>
       }
 
       // 1. 渲染活動卡片
-      document.getElementById('activeEventCount').textContent = \`\${dayEvents.length} 項活動\`;
+      const eventCountEl = document.getElementById('activeEventCount');
+      if (eventCountEl) {
+        eventCountEl.textContent = isEn ? \`\${dayEvents.length} Event(s)\` : \`\${dayEvents.length} 項活動\`;
+      }
       const eventsListEl = document.getElementById('selectedDayEventsList');
       eventsListEl.innerHTML = '';
 
@@ -3656,8 +4037,8 @@ const htmlContent = `<!DOCTYPE html>
         eventsListEl.innerHTML = \`
           <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100 text-center space-y-1">
             <div class="text-2xl">\${isWeekend ? '🏡' : '🎈'}</div>
-            <div class="text-xs font-bold text-slate-600">\${isWeekend ? '週末溫馨放假日' : '今日常態在園學習作息'}</div>
-            <div class="text-xs text-slate-400">\${isWeekend ? '在家好好休息充電，享受美好的家庭時光！' : '寶貝在班級常規學習、角落探索與同儕互動中快樂成長～'}</div>
+            <div class="text-xs font-bold text-slate-600">\${isWeekend ? (isEn ? 'Weekend Family Time' : '週末溫馨放假日') : (isEn ? 'Regular Class Routine' : '今日常態在園學習作息')}</div>
+            <div class="text-xs text-slate-400">\${isWeekend ? (isEn ? 'Rest well at home and enjoy quality family time!' : '在家好好休息充電，享受美好的家庭時光！') : (isEn ? 'Growing happily through learning routines and group interactions.' : '寶貝在班級常規學習、角落探索與同儕互動中快樂成長～')}</div>
           </div>
         \`;
       } else {
@@ -3698,27 +4079,27 @@ const htmlContent = `<!DOCTYPE html>
         menuListEl.innerHTML = \`
           <div class="p-4 rounded-2xl bg-amber-50/50 border border-amber-100 text-center space-y-1">
             <div class="text-2xl">🍲</div>
-            <div class="text-xs font-bold text-amber-800">週末家庭美味日</div>
-            <div class="text-xs text-amber-600">週末幼兒園不供餐，讓爸爸媽媽陪伴孩子品嚐美味家庭料理！</div>
+            <div class="text-xs font-bold text-amber-800">\${isEn ? 'Weekend Family Meals' : '週末家庭美味日'}</div>
+            <div class="text-xs text-amber-600">\${isEn ? 'No meals served on weekends. Enjoy warm homemade food with parents!' : '週末幼兒園不供餐，讓爸爸媽媽陪伴孩子品嚐美味家庭料理！'}</div>
           </div>
         \`;
       } else if (!dayMenu) {
         menuListEl.innerHTML = \`
           <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100 text-center space-y-1">
             <div class="text-2xl">🥣</div>
-            <div class="text-xs font-bold text-slate-600">尚無當日特定菜單資料</div>
-            <div class="text-xs text-slate-400">廚房將依營養師規律調配三餐點心與當季蔬果。</div>
+            <div class="text-xs font-bold text-slate-600">\${isEn ? 'No Specific Menu Today' : '尚無當日特定菜單資料'}</div>
+            <div class="text-xs text-slate-400">\${isEn ? 'The kitchen prepares balanced seasonal meals and snacks daily.' : '廚房將依營養師規律調配三餐點心與當季蔬果。'}</div>
           </div>
         \`;
       } else {
         // 午餐內容整合
         const lunchItems = [
-          dayMenu.lunchStaple ? \`主食：\${dayMenu.lunchStaple}\` : '',
-          dayMenu.lunchMain ? \`主菜：\${dayMenu.lunchMain}\` : '',
-          dayMenu.lunchSide1 ? \`副菜一：\${dayMenu.lunchSide1}\` : '',
-          dayMenu.lunchSide2 ? \`副菜二：\${dayMenu.lunchSide2}\` : '',
-          dayMenu.lunchSoup ? \`湯品：\${dayMenu.lunchSoup}\` : ''
-        ].filter(Boolean).join('、');
+          dayMenu.lunchStaple ? (isEn ? \`Staple: \${dayMenu.lunchStaple}\` : \`主食：\${dayMenu.lunchStaple}\`) : '',
+          dayMenu.lunchMain ? (isEn ? \`Main: \${dayMenu.lunchMain}\` : \`主菜：\${dayMenu.lunchMain}\`) : '',
+          dayMenu.lunchSide1 ? (isEn ? \`Side: \${dayMenu.lunchSide1}\` : \`副菜一：\${dayMenu.lunchSide1}\`) : '',
+          dayMenu.lunchSide2 ? (isEn ? \`Side: \${dayMenu.lunchSide2}\` : \`副菜二：\${dayMenu.lunchSide2}\`) : '',
+          dayMenu.lunchSoup ? (isEn ? \`Soup: \${dayMenu.lunchSoup}\` : \`湯品：\${dayMenu.lunchSoup}\`) : ''
+        ].filter(Boolean).join(isEn ? ', ' : '、');
 
         menuListEl.innerHTML = \`
           <div class="grid grid-cols-1 gap-2">
@@ -3726,36 +4107,36 @@ const htmlContent = `<!DOCTYPE html>
             <div class="flex items-start gap-2.5 p-2 rounded-xl bg-orange-50/60 border border-orange-100">
               <span class="text-base">🥛</span>
               <div class="flex-1">
-                <span class="font-bold text-orange-900 text-xs">早點（08:30）：</span>
-                <span class="text-slate-700 font-medium">\${dayMenu.morningSnack || '營養早點'}</span>
+                <span class="font-bold text-orange-900 text-xs">\${isEn ? 'Morning Snack (08:30): ' : '早點（08:30）：'}</span>
+                <span class="text-slate-700 font-medium">\${dayMenu.morningSnack || (isEn ? 'Nutritious Snack' : '營養早點')}</span>
               </div>
             </div>
             <!-- 當季水果 -->
             <div class="flex items-start gap-2.5 p-2 rounded-xl bg-rose-50/60 border border-rose-100">
               <span class="text-base">🍎</span>
               <div class="flex-1">
-                <span class="font-bold text-rose-900 text-xs">當季水果：</span>
-                <span class="text-slate-700 font-medium">\${dayMenu.fruit || '新鮮當季水果'}</span>
+                <span class="font-bold text-rose-900 text-xs">\${isEn ? 'Seasonal Fruit: ' : '當季水果：'}</span>
+                <span class="text-slate-700 font-medium">\${dayMenu.fruit || (isEn ? 'Fresh Seasonal Fruit' : '新鮮當季水果')}</span>
               </div>
             </div>
             <!-- 午餐五菜一湯 -->
             <div class="flex items-start gap-2.5 p-2.5 rounded-xl bg-amber-50/80 border border-amber-200">
               <span class="text-base">🍛</span>
               <div class="flex-1">
-                <div class="font-bold text-amber-900 text-xs mb-0.5">營養午餐（11:30）：</div>
-                <div class="text-slate-800 font-bold text-xs sm:text-sm leading-relaxed">\${lunchItems || '當日特製美味午餐'}</div>
+                <div class="font-bold text-amber-900 text-xs mb-0.5">\${isEn ? 'Lunch (11:30): ' : '營養午餐（11:30）：'}</div>
+                <div class="text-slate-800 font-bold text-xs sm:text-sm leading-relaxed">\${lunchItems || (isEn ? 'Delicious Daily Lunch' : '當日特製美味午餐')}</div>
               </div>
             </div>
             <!-- 午點 -->
             <div class="flex items-start gap-2.5 p-2 rounded-xl bg-teal-50/60 border border-teal-100">
               <span class="text-base">🍰</span>
               <div class="flex-1">
-                <span class="font-bold text-teal-900 text-xs">午後點心（14:30）：</span>
-                <span class="text-slate-700 font-medium">\${dayMenu.afternoonSnack || '自製活力點心'}</span>
+                <span class="font-bold text-teal-900 text-xs">\${isEn ? 'Afternoon Snack (14:30): ' : '午後點心（14:30）：'}</span>
+                <span class="text-slate-700 font-medium">\${dayMenu.afternoonSnack || (isEn ? 'Energizing Snack' : '自製活力點心')}</span>
               </div>
             </div>
           </div>
-          \${dayMenu.note ? \`<div class="text-xs font-bold text-amber-700 bg-amber-50 p-2 rounded-xl border border-amber-200 flex items-center gap-1">📌 備註：\${dayMenu.note}</div>\` : ''}
+          \${dayMenu.note ? \`<div class="text-xs font-bold text-amber-700 bg-amber-50 p-2 rounded-xl border border-amber-200 flex items-center gap-1">📌 \${isEn ? 'Note: ' : '備註：'}\${dayMenu.note}</div>\` : ''}
         \`;
       }
     }
@@ -3771,7 +4152,8 @@ const htmlContent = `<!DOCTYPE html>
       const sundayDate = new Date(baseDate);
       sundayDate.setDate(baseDate.getDate() - dayOfWeek);
 
-      const daysArr = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
+      const isEn = (state.lang === 'en');
+      const daysArr = isEn ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] : ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
 
       for (let i = 0; i < 7; i++) {
         const d = new Date(sundayDate);
@@ -3782,8 +4164,8 @@ const htmlContent = `<!DOCTYPE html>
 
         const isToday = (dStr === state.selectedDateStr);
 
-        let eventsSummary = dayEvents.map(e => \`<span class="px-2 py-0.5 rounded text-[0.6875rem] font-bold bg-peach-100 text-peach-700 mr-1">\${e.title}</span>\`).join('') || '<span class="text-slate-400 text-xs">常態作息</span>';
-        let lunchSummary = dayMenu ? \`主食:\${dayMenu.lunchStaple || ''} / 主菜:\${dayMenu.lunchMain || ''} / 午點:\${dayMenu.afternoonSnack || ''}\` : '未供餐/家庭日';
+        let eventsSummary = dayEvents.map(e => \`<span class="px-2 py-0.5 rounded text-[0.6875rem] font-bold bg-peach-100 text-peach-700 mr-1">\${e.title}</span>\`).join('') || ('<span class="text-slate-400 text-xs">' + (isEn ? 'Regular Routine' : '常態作息') + '</span>');
+        let lunchSummary = dayMenu ? (isEn ? \`Staple:\${dayMenu.lunchStaple || ''} / Main:\${dayMenu.lunchMain || ''} / Snack:\${dayMenu.afternoonSnack || ''}\` : \`主食:\${dayMenu.lunchStaple || ''} / 主菜:\${dayMenu.lunchMain || ''} / 午點:\${dayMenu.afternoonSnack || ''}\`) : (isEn ? 'No meals/Family Day' : '未供餐/家庭日');
 
         container.innerHTML += \`
           <div class="p-3.5 rounded-2xl border \${isToday ? 'bg-peach-50/80 border-peach-300' : 'bg-slate-50 border-slate-100'} flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 cursor-pointer hover:bg-peach-50 transition-colors" onclick="onDateClicked('\${dStr}')">
@@ -3809,7 +4191,14 @@ const htmlContent = `<!DOCTYPE html>
     function renderMonthView() {
       const year = state.viewYear;
       const month = state.viewMonth;
-      document.getElementById('monthViewTitle').textContent = \`\${year} 年 \${month} 月份 全月行程總覽\`;
+      const isEn = (state.lang === 'en');
+      const monthNames = [
+        '', 'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+      ];
+      document.getElementById('monthViewTitle').textContent = isEn
+        ? \`\${monthNames[month]} \${year} Schedule Overview\`
+        : \`\${year} 年 \${month} 月份 全月行程總覽\`;
       const timeline = document.getElementById('monthEventsTimeline');
       timeline.innerHTML = '';
 
@@ -3821,7 +4210,7 @@ const htmlContent = `<!DOCTYPE html>
       });
 
       if (monthEvents.length === 0) {
-        timeline.innerHTML = '<div class="py-6 text-center text-xs text-slate-400">本月份暫無特殊大行事曆活動安排。</div>';
+        timeline.innerHTML = '<div class="py-6 text-center text-xs text-slate-400">' + (isEn ? 'No special major events scheduled for this month.' : '本月份暫無特殊大行事曆活動安排。') + '</div>';
         return;
       }
 
@@ -3835,7 +4224,7 @@ const htmlContent = `<!DOCTYPE html>
             <div class="flex items-center gap-3">
               <div class="w-14 text-center shrink-0">
                 <div class="text-xs font-mono font-bold text-peach-600">\${normalizeDate(ev.date).slice(5)}</div>
-                \${ev.endDate ? \`<div class="text-[0.5625rem] text-slate-400">至\${normalizeDate(ev.endDate).slice(5)}</div>\` : ''}
+                \${ev.endDate ? \`<div class="text-[0.5625rem] text-slate-400">\${isEn ? 'To ' : '至'}\${normalizeDate(ev.endDate).slice(5)}</div>\` : ''}
               </div>
               <div>
                 <div class="flex items-center gap-1.5 flex-wrap">
@@ -3844,10 +4233,10 @@ const htmlContent = `<!DOCTYPE html>
                     \${renderTargetBadges(ev.target, 'sm')}
                   </div>
                 </div>
-                <div class="text-xs text-slate-400 mt-0.5">\${ev.description || ev.timeLocation || '精彩生活體驗'}</div>
+                <div class="text-xs text-slate-400 mt-0.5">\${ev.description || ev.timeLocation || (isEn ? 'Wonderful Learning Experience' : '精彩生活體驗')}</div>
               </div>
             </div>
-            <span class="text-xs font-bold text-slate-400">點此查看 ➔</span>
+            <span class="text-xs font-bold text-slate-400">\${isEn ? 'View ➔' : '點此查看 ➔'}</span>
           </div>
         \`;
       });
@@ -3862,7 +4251,7 @@ const htmlContent = `<!DOCTYPE html>
       const filterCat = document.getElementById('albumFilter-category');
       if (filterCat) {
         const curVal = filterCat.value;
-        filterCat.innerHTML = '<option value="">全部類別</option>';
+        filterCat.innerHTML = '<option value="">' + (state.lang === 'en' ? 'All Categories' : '全部類別') + '</option>';
         cats.forEach(c => {
           const opt = document.createElement('option');
           opt.value = c;
@@ -3917,12 +4306,13 @@ const htmlContent = `<!DOCTYPE html>
       const allBtn = document.createElement('button');
       allBtn.type = 'button';
       allBtn.onclick = function() { toggleAlbumCategoryFilter(''); };
+      const allText = (state.lang === 'en' ? 'All' : '全部');
       if (isAll) {
         allBtn.className = 'px-3.5 py-1.5 rounded-full text-xs font-black shadow-xs bg-teal-600 text-white ring-2 ring-teal-500/40 cursor-pointer tap-bounce transition-all inline-flex items-center justify-center';
-        allBtn.textContent = '全部';
+        allBtn.textContent = allText;
       } else {
         allBtn.className = 'px-3.5 py-1.5 rounded-full text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200/80 cursor-pointer tap-bounce transition-all inline-flex items-center justify-center';
-        allBtn.textContent = '全部';
+        allBtn.textContent = allText;
       }
       container.appendChild(allBtn);
 
@@ -4091,9 +4481,9 @@ const htmlContent = `<!DOCTYPE html>
 
       if (countText) {
         if (isFiltering) {
-          countText.textContent = '已篩選 ' + filtered.length + ' 本相簿';
+          countText.textContent = state.lang === 'en' ? (filtered.length + ' Albums Filtered') : ('已篩選 ' + filtered.length + ' 本相簿');
         } else {
-          countText.textContent = '共 ' + allAlbums.length + ' 本相簿';
+          countText.textContent = state.lang === 'en' ? ('Total ' + allAlbums.length + ' Albums') : ('共 ' + allAlbums.length + ' 本相簿');
         }
       }
 
@@ -4649,7 +5039,7 @@ const htmlContent = `<!DOCTYPE html>
         : state.docs.filter(d => (d.category || '') === filterCat);
 
       if (filtered.length === 0) {
-        container.innerHTML = '<div class="py-12 text-center text-xs text-slate-400">目前無符合分類之文件。</div>';
+        container.innerHTML = '<div class="py-12 text-center text-xs text-slate-400">' + (state.lang === 'en' ? 'No documents found in this category.' : '目前無符合分類之文件。') + '</div>';
         return;
       }
 
@@ -4659,11 +5049,11 @@ const htmlContent = `<!DOCTYPE html>
         let adminBtns = '';
         if (isAdmin) {
           const safeName = (doc.fileName || '').replace(/"/g, '&quot;');
-          adminBtns = '<button type="button" onclick="openDocEditModal(&quot;' + (doc.id || '') + '&quot;)" class="px-3 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs font-bold flex items-center gap-1 shadow-2xs tap-bounce" title="編輯文件資訊">' +
-            '<span>✏️</span> 編輯' +
+          adminBtns = '<button type="button" onclick="openDocEditModal(&quot;' + (doc.id || '') + '&quot;)" class="px-3 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs font-bold flex items-center gap-1 shadow-2xs tap-bounce" title="' + (state.lang === 'en' ? 'Edit Document' : '編輯文件資訊') + '">' +
+            '<span>✏️</span> ' + (state.lang === 'en' ? 'Edit' : '編輯') +
             '</button>' +
-            '<button type="button" onclick="handleDeleteDocDirect(&quot;' + (doc.id || '') + '&quot;, &quot;' + safeName + '&quot;)" class="px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold flex items-center gap-1 shadow-2xs tap-bounce" title="刪除文件">' +
-            '<span>🗑️</span> 刪除' +
+            '<button type="button" onclick="handleDeleteDocDirect(&quot;' + (doc.id || '') + '&quot;, &quot;' + safeName + '&quot;)" class="px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold flex items-center gap-1 shadow-2xs tap-bounce" title="' + (state.lang === 'en' ? 'Delete Document' : '刪除文件') + '">' +
+            '<span>🗑️</span> ' + (state.lang === 'en' ? 'Delete' : '刪除') +
             '</button>';
         }
 
@@ -4673,17 +5063,17 @@ const htmlContent = `<!DOCTYPE html>
           getDocFileIconHtml(doc) +
           '<div>' +
           '<div class="flex items-center gap-2 flex-wrap">' +
-          '<h4 class="font-black text-slate-800 text-sm sm:text-base">' + (doc.fileName || '未命名文件') + '</h4>' +
-          '<span class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-indigo-100 text-indigo-800">' + (doc.category || '一般') + '</span>' +
+          '<h4 class="font-black text-slate-800 text-sm sm:text-base">' + (doc.fileName || (state.lang === 'en' ? 'Untitled Document' : '未命名文件')) + '</h4>' +
+          '<span class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-indigo-100 text-indigo-800">' + (doc.category || (state.lang === 'en' ? 'General' : '一般')) + '</span>' +
           '</div>' +
-          '<p class="text-xs text-slate-500 mt-1 leading-relaxed">' + (doc.description || '點擊即可線上下載或預覽文件') + '</p>' +
-          '<div class="text-[0.6875rem] text-slate-400 mt-1">更新日期：' + (doc.updatedAt || '2026-09-01') + '</div>' +
+          '<p class="text-xs text-slate-500 mt-1 leading-relaxed">' + (doc.description || (state.lang === 'en' ? 'Click to preview or download document' : '點擊即可線上下載或預覽文件')) + '</p>' +
+          '<div class="text-[0.6875rem] text-slate-400 mt-1">' + (state.lang === 'en' ? 'Updated: ' : '更新日期：') + (doc.updatedAt || '2026-09-01') + '</div>' +
           '</div>' +
           '</div>' +
           '<div class="flex items-center gap-2 w-full sm:w-auto justify-end shrink-0 pt-2 sm:pt-0">' +
           adminBtns +
           '<a href="' + url + '" target="_blank" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm flex items-center gap-1.5 tap-bounce">' +
-          '<span>⬇️</span> 下載文件' +
+          '<span>⬇️</span> ' + (state.lang === 'en' ? 'Download' : '下載文件') +
           '</a>' +
           '</div>';
 
@@ -5079,7 +5469,7 @@ const htmlContent = `<!DOCTYPE html>
 
       const allBtn = document.createElement('button');
       allBtn.type = 'button';
-      allBtn.textContent = '全部';
+      allBtn.textContent = (state.lang === 'en' ? 'All' : '全部');
       allBtn.className = isAll ? on : off;
       allBtn.onclick = function() { toggleSongCategoryFilter(''); };
       container.appendChild(allBtn);
@@ -5149,8 +5539,8 @@ const htmlContent = `<!DOCTYPE html>
       const countText = document.getElementById('songFilterCountText');
       if (countText) {
         countText.textContent = (kw || selected.size > 0)
-          ? '已篩選 ' + filtered.length + ' 首歌曲'
-          : '共 ' + all.length + ' 首歌曲';
+          ? (state.lang === 'en' ? (filtered.length + ' Songs Filtered') : ('已篩選 ' + filtered.length + ' 首歌曲'))
+          : (state.lang === 'en' ? ('Total ' + all.length + ' Songs') : ('共 ' + all.length + ' 首歌曲'));
       }
       renderSongsList(filtered);
     }
@@ -5168,10 +5558,16 @@ const htmlContent = `<!DOCTYPE html>
       }
 
       if (!songs || songs.length === 0) {
+        const emptyTitle = ((state.songs || []).length === 0)
+          ? (state.lang === 'en' ? 'No songs available yet' : '目前還沒有歌曲')
+          : (state.lang === 'en' ? 'No matching songs found' : '沒有符合條件的歌曲');
+        const emptySub = ((state.songs || []).length === 0)
+          ? (state.lang === 'en' ? 'Teachers can add songs in the admin panel.' : '請老師於管理後台新增歌曲。')
+          : (state.lang === 'en' ? 'Try adjusting keywords or tags, or click Reset.' : '請嘗試調整關鍵字或類別標籤，或點擊「重設」。');
         container.innerHTML = '<div class="py-12 text-center text-slate-400 space-y-2">' +
           '<div class="text-4xl">🎵</div>' +
-          '<div class="text-sm font-bold">' + ((state.songs || []).length === 0 ? '目前還沒有歌曲' : '沒有符合條件的歌曲') + '</div>' +
-          '<div class="text-xs">' + ((state.songs || []).length === 0 ? '請老師於管理後台新增歌曲。' : '請嘗試調整關鍵字或類別標籤，或點擊「重設」。') + '</div>' +
+          '<div class="text-sm font-bold">' + emptyTitle + '</div>' +
+          '<div class="text-xs">' + emptySub + '</div>' +
           '</div>';
         updateSongsBottomBarUI();
         return;
@@ -5292,7 +5688,7 @@ const htmlContent = `<!DOCTYPE html>
       const playBtnLabel = document.getElementById('btnPlaySelectedSongsLabel');
       const selCount = state.selectedSongIds ? state.selectedSongIds.size : 0;
 
-      if (countEl) countEl.textContent = '已選取 ' + selCount + ' 首';
+      if (countEl) countEl.textContent = state.lang === 'en' ? (selCount + ' Selected') : ('已選取 ' + selCount + ' 首');
 
       if (allCb) {
         const filteredSelectedCount = filtered.filter(function(s) { return state.selectedSongIds.has(String(s.id)); }).length;
@@ -5310,18 +5706,18 @@ const htmlContent = `<!DOCTYPE html>
 
       if (playBtnLabel) {
         if (selCount > 0) {
-          playBtnLabel.textContent = '播放勾選歌曲 (' + selCount + '首)';
+          playBtnLabel.textContent = state.lang === 'en' ? ('Play Selected (' + selCount + ')') : ('播放勾選歌曲 (' + selCount + '首)');
         } else {
-          playBtnLabel.textContent = '播放全部歌曲 (' + filtered.length + '首)';
+          playBtnLabel.textContent = state.lang === 'en' ? ('Play All (' + filtered.length + ')') : ('播放全部歌曲 (' + filtered.length + '首)');
         }
       }
 
       const playBtn = document.getElementById('btnPlaySelectedSongs');
       if (playBtn) {
         if (selCount > 0) {
-          playBtn.setAttribute('title', '播放勾選歌曲 (' + selCount + ' 首)');
+          playBtn.setAttribute('title', state.lang === 'en' ? ('Play Selected (' + selCount + ')') : ('播放勾選歌曲 (' + selCount + ' 首)'));
         } else {
-          playBtn.setAttribute('title', '播放全部歌曲 (' + filtered.length + ' 首)');
+          playBtn.setAttribute('title', state.lang === 'en' ? ('Play All (' + filtered.length + ')') : ('播放全部歌曲 (' + filtered.length + ' 首)'));
         }
       }
 
@@ -7758,7 +8154,7 @@ const htmlContent = `<!DOCTYPE html>
       if (!select) return;
       
       const prevVal = select.value;
-      select.innerHTML = '<option value="all">全部學期</option>';
+      select.innerHTML = '<option value="all">' + (state.lang === 'en' ? 'All Semesters' : '全部學期') + '</option>';
       
       if (state.themeSemesters && state.themeSemesters.length > 0) {
         state.themeSemesters.forEach(sem => {
@@ -7785,7 +8181,7 @@ const htmlContent = `<!DOCTYPE html>
       const icon = document.getElementById('toggleAllThemesIcon');
       const text = document.getElementById('toggleAllThemesText');
       if (icon) icon.textContent = allThemesExpanded ? '➖' : '➕';
-      if (text) text.textContent = allThemesExpanded ? '全部折疊' : '全部展開';
+      if (text) text.textContent = allThemesExpanded ? t('themes.collapseAll') : t('themes.expandAll');
       
       const cards = document.querySelectorAll('.theme-card-content');
       cards.forEach(card => {
@@ -7856,7 +8252,7 @@ const htmlContent = `<!DOCTYPE html>
         // Wait, requirements say "預設為展開的狀態" (default expanded)
         const isExpanded = allThemesExpanded || true; // Let's just make all expanded initially as requested, unless manually collapsed.
         // Actually, user requested "預設為展開的狀態", so we'll just expand all by default upon render if we don't track individual state.
-        const themeName = theme.themeName || theme.name || '未命名主題';
+        const themeName = theme.themeName || theme.name || (state.lang === 'en' ? 'Untitled Theme' : '未命名主題');
         const themeConcept = theme.themeConcept || theme.concept || '';
         const dateRangeStr = (theme.startDate ? (theme.startDate + (theme.endDate ? (' ~ ' + theme.endDate) : '')) : (theme.dateRange || ''));
         const photosList = theme.photos || theme.results || [];
@@ -7868,8 +8264,8 @@ const htmlContent = `<!DOCTYPE html>
               <table class="w-full text-sm text-left text-slate-600 bg-white">
                 <thead class="text-xs text-slate-700 bg-rose-50/50">
                   <tr>
-                    <th scope="col" class="px-4 py-2.5 font-bold w-1/2 border-r border-rose-100">活動目標</th>
-                    <th scope="col" class="px-4 py-2.5 font-bold w-1/2">課程目標</th>
+                    <th scope="col" class="px-4 py-2.5 font-bold w-1/2 border-r border-rose-100">\${t('themes.activityGoal')}</th>
+                    <th scope="col" class="px-4 py-2.5 font-bold w-1/2">\${t('themes.courseGoal')}</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-rose-100/50">
@@ -7925,8 +8321,8 @@ const htmlContent = `<!DOCTYPE html>
             <!-- 卡片內容區 -->
             <div id="theme-content-\${theme.id}" class="theme-card-content p-4 border-t border-slate-100 \${isExpanded ? '' : 'hidden'}">
               <div class="mb-2">
-                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">主題概念</h4>
-                <div class="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap font-medium">\${themeConcept ? songEsc(themeConcept) : '無'}</div>
+                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">\${state.lang === 'en' ? 'Theme Concept' : '主題概念'}</h4>
+                <div class="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap font-medium">\${themeConcept ? songEsc(themeConcept) : (state.lang === 'en' ? 'None' : '無')}</div>
               </div>
               \${goalsHtml}
               \${imagesHtml}
@@ -7939,7 +8335,7 @@ const htmlContent = `<!DOCTYPE html>
       // Update global expand state tracking to match reality (everything expanded initially)
       allThemesExpanded = true;
       document.getElementById('toggleAllThemesIcon').textContent = '➖';
-      document.getElementById('toggleAllThemesText').textContent = '全部折疊';
+      document.getElementById('toggleAllThemesText').textContent = t('themes.collapseAll');
     }
 
     // 系統設定管理
