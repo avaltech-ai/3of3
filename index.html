@@ -119,48 +119,48 @@
   <div class="flex flex-row w-full min-h-[calc(100vh-6px)] items-stretch">
     
     <!-- Desktop Sidebar Wrapper (occupies layout space when pinned) -->
-    <div id="sidebarWrapper" class="hidden md:block w-16 shrink-0 transition-all duration-300"></div>
+    <div id="sidebarWrapper" class="hidden md:block w-12 shrink-0 transition-all duration-300"></div>
 
     <!-- Mobile Sidebar Backdrop -->
     <div id="mobileSidebarBackdrop" class="md:hidden fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-xs opacity-0 pointer-events-none transition-opacity duration-300" onclick="toggleMobileSidebar()"></div>
 
     <!-- The actual floating/sticky sidebar (Desktop + Mobile) -->
-    <aside id="desktopSidebar" class="flex flex-col bg-white border-r border-slate-200/80 shadow-sm fixed top-1.5 bottom-0 left-0 z-50 w-64 md:w-16 transition-all duration-300 overflow-hidden group -translate-x-full md:translate-x-0" onmouseenter="expandSidebar()" onmouseleave="collapseSidebar()">
-      <div class="px-2 flex items-center border-b border-slate-100 relative min-h-[58px] whitespace-nowrap overflow-hidden">
-        <div class="flex items-center px-2 py-2 w-full">
-          <span class="text-lg w-7 text-center shrink-0 select-none cursor-pointer transition-transform hover:scale-110" onclick="switchTab('home')">🍄</span>
-          <span class="font-bold text-sm text-slate-700 whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1.5 select-none">選單導覽</span>
+    <aside id="desktopSidebar" class="flex flex-col bg-white border-r border-slate-200/80 shadow-sm fixed top-1.5 bottom-0 left-0 z-50 w-[136px] md:w-12 transition-all duration-300 overflow-hidden group -translate-x-full md:translate-x-0" onmouseenter="expandSidebar()" onmouseleave="collapseSidebar()">
+      <div class="px-1.5 flex items-center border-b border-slate-100 relative min-h-[52px] whitespace-nowrap overflow-hidden">
+        <div class="flex items-center px-1 py-1.5 w-full">
+          <span class="text-base w-6 text-center shrink-0 select-none cursor-pointer transition-transform hover:scale-110" onclick="switchTab('home')">🍄</span>
+          <span class="font-bold text-xs text-slate-700 whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1 select-none">選單導覽</span>
         </div>
-        <button id="pinSidebarBtn" onclick="togglePinSidebar()" class="absolute right-2 p-1.5 text-slate-400 hover:text-slate-700 transition-colors opacity-0 sidebar-pin-btn rounded-lg hover:bg-slate-100 group-hover:opacity-100 focus:opacity-100 tap-bounce" title="釘選選單">
+        <button id="pinSidebarBtn" onclick="togglePinSidebar()" class="absolute right-1 p-1 text-slate-400 hover:text-slate-700 transition-colors opacity-0 sidebar-pin-btn rounded-md hover:bg-slate-100 group-hover:opacity-100 focus:opacity-100 tap-bounce" title="釘選選單">
           <span class="text-xs">📌</span>
         </button>
       </div>
       
-      <nav class="flex-1 py-3 flex flex-col gap-1.5 px-2 overflow-y-auto no-scrollbar overflow-x-hidden">
-        <button onclick="switchTab('home')" id="tabBtn-home" class="tab-btn flex items-center px-2 py-2 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
-          <span class="text-lg w-7 text-center shrink-0">🏠</span>
-          <span class="font-bold text-sm whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1.5">班級日常</span>
+      <nav class="flex-1 py-2.5 flex flex-col gap-1 px-1.5 overflow-y-auto no-scrollbar overflow-x-hidden">
+        <button onclick="switchTab('home')" id="tabBtn-home" class="tab-btn flex items-center px-1.5 py-1.5 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
+          <span class="text-base w-6 text-center shrink-0">🏠</span>
+          <span class="font-bold text-xs whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1">班級日常</span>
         </button>
-        <button onclick="switchTab('themes')" id="tabBtn-themes" class="tab-btn flex items-center px-2 py-2 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
-          <span class="text-lg w-7 text-center shrink-0">📚</span>
-          <span class="font-bold text-sm whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1.5">主題活動</span>
+        <button onclick="switchTab('themes')" id="tabBtn-themes" class="tab-btn flex items-center px-1.5 py-1.5 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
+          <span class="text-base w-6 text-center shrink-0">📚</span>
+          <span class="font-bold text-xs whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1">主題活動</span>
         </button>
-        <button onclick="switchTab('albums')" id="tabBtn-albums" class="tab-btn flex items-center px-2 py-2 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
-          <span class="text-lg w-7 text-center shrink-0">📸</span>
-          <span class="font-bold text-sm whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1.5">影像紀錄</span>
+        <button onclick="switchTab('albums')" id="tabBtn-albums" class="tab-btn flex items-center px-1.5 py-1.5 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
+          <span class="text-base w-6 text-center shrink-0">📸</span>
+          <span class="font-bold text-xs whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1">影像紀錄</span>
         </button>
-        <button onclick="switchTab('songs')" id="tabBtn-songs" class="tab-btn flex items-center px-2 py-2 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
-          <span class="text-lg w-7 text-center shrink-0">🎵</span>
-          <span class="font-bold text-sm whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1.5">唱跳音符</span>
+        <button onclick="switchTab('songs')" id="tabBtn-songs" class="tab-btn flex items-center px-1.5 py-1.5 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
+          <span class="text-base w-6 text-center shrink-0">🎵</span>
+          <span class="font-bold text-xs whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1">唱跳音符</span>
         </button>
-        <button onclick="switchTab('docs')" id="tabBtn-docs" class="tab-btn flex items-center px-2 py-2 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
-          <span class="text-lg w-7 text-center shrink-0">📁</span>
-          <span class="font-bold text-sm whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1.5">常用文件</span>
+        <button onclick="switchTab('docs')" id="tabBtn-docs" class="tab-btn flex items-center px-1.5 py-1.5 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
+          <span class="text-base w-6 text-center shrink-0">📁</span>
+          <span class="font-bold text-xs whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1">常用文件</span>
         </button>
         <div class="flex-1"></div>
-        <button onclick="switchTab('admin')" id="tabBtn-admin" class="tab-btn flex items-center px-2 py-2 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
-          <span class="text-lg w-7 text-center shrink-0">⚙️</span>
-          <span class="font-bold text-sm whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1.5">管理後台</span>
+        <button onclick="switchTab('admin')" id="tabBtn-admin" class="tab-btn flex items-center px-1.5 py-1.5 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
+          <span class="text-base w-6 text-center shrink-0">⚙️</span>
+          <span class="font-bold text-xs whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1">管理後台</span>
         </button>
       </nav>
     </aside>
@@ -2714,8 +2714,8 @@
       const sb = document.getElementById('desktopSidebar');
       const texts = document.querySelectorAll('.sidebar-text');
       if (sb) {
-        sb.classList.remove('md:w-16');
-        sb.classList.add('md:w-48');
+        sb.classList.remove('md:w-12');
+        sb.classList.add('md:w-[136px]');
       }
       texts.forEach(el => {
         el.classList.remove('opacity-0');
@@ -2728,8 +2728,8 @@
       const sb = document.getElementById('desktopSidebar');
       const texts = document.querySelectorAll('.sidebar-text');
       if (sb) {
-        sb.classList.add('md:w-16');
-        sb.classList.remove('md:w-48');
+        sb.classList.add('md:w-12');
+        sb.classList.remove('md:w-[136px]');
       }
       texts.forEach(el => {
         el.classList.add('opacity-0');
@@ -2742,15 +2742,15 @@
       const wrap = document.getElementById('sidebarWrapper');
       const pinBtn = document.getElementById('pinSidebarBtn');
       if (isSidebarPinned) {
-        wrap.classList.remove('w-16');
-        wrap.classList.add('w-40');
-        pinBtn.classList.add('text-peach-500', 'bg-peach-100');
-        pinBtn.classList.remove('text-slate-400');
+        wrap.classList.remove('w-12');
+        wrap.classList.add('w-[136px]');
+        pinBtn.classList.add('text-peach-500', 'bg-peach-100', 'opacity-100');
+        pinBtn.classList.remove('text-slate-400', 'opacity-0');
         expandSidebar(); // Ensure it's expanded
       } else {
-        wrap.classList.add('w-16');
-        wrap.classList.remove('w-40');
-        pinBtn.classList.remove('text-peach-500', 'bg-peach-100');
+        wrap.classList.add('w-12');
+        wrap.classList.remove('w-[136px]');
+        pinBtn.classList.remove('text-peach-500', 'bg-peach-100', 'opacity-100');
         pinBtn.classList.add('text-slate-400');
         collapseSidebar();
       }
@@ -2839,13 +2839,13 @@
         sidebar.classList.remove('-translate-x-full');
         backdrop.classList.remove('opacity-0', 'pointer-events-none');
         backdrop.classList.add('opacity-100', 'pointer-events-auto');
-        sidebar.classList.add('w-64');
+        sidebar.classList.add('w-[136px]');
         expandSidebar();
       } else {
         sidebar.classList.add('-translate-x-full');
         backdrop.classList.remove('opacity-100', 'pointer-events-auto');
         backdrop.classList.add('opacity-0', 'pointer-events-none');
-        sidebar.classList.remove('w-64');
+        sidebar.classList.remove('w-[136px]');
         if (!window.isSidebarPinned) {
           collapseSidebar();
         }
