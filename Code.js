@@ -177,6 +177,14 @@ function doGet(e) {
         result = getActivityImages();
       } else if (action === 'setupInitialDatabase') {
         result = setupInitialDatabase();
+      } else if (action === 'syncSongDurations') {
+        result = syncAllSongDurations(e.parameter.force === 'true');
+      } else if (action === 'batchUpdateSongDurations') {
+        let map = {};
+        try {
+          map = JSON.parse(e.parameter.data || '{}');
+        } catch (e) {}
+        result = batchUpdateSongDurations(map);
       }
     } catch (err) {
       result = { success: false, error: err.toString() };
@@ -266,6 +274,8 @@ function doPost(e) {
       result = saveSong(postData.songData || postData.data, postData.password);
     } else if (action === 'deleteSong') {
       result = deleteSong(postData.id || postData.songId, postData.password);
+    } else if (action === 'batchUpdateSongDurations') {
+      result = batchUpdateSongDurations(postData.durationsMap || postData.data || {});
     }
 
     if (postData && postData.requestId) {
@@ -601,9 +611,29 @@ function getAppData() {
     let songList = [];
     let songCategories = [];
     try {
-      const songData = getSongsData();
+      let songData = getSongsData();
       songList = songData.songs;
       songCategories = songData.categories;
+
+      // 自動檢查修復：若有歌曲時長為空、為 1、為 00:01，自動觸發從 YouTube 抓取真實時長
+      let hasInvalidDuration = false;
+      if (songList && songList.length > 0) {
+        for (let i = 0; i < songList.length; i++) {
+          const d = String(songList[i].duration || '').trim();
+          if (!d || d === '1' || d === '00:01' || d === '0:01' || d === '00:00') {
+            hasInvalidDuration = true;
+            break;
+          }
+        }
+      }
+      if (hasInvalidDuration) {
+        const syncRes = syncAllSongDurations(false);
+        if (syncRes && syncRes.updatedCount > 0) {
+          songData = getSongsData();
+          songList = songData.songs;
+          songCategories = songData.categories;
+        }
+      }
     } catch (e) {
       console.warn('getSongsData inside getAppData failed: ' + e);
     }
@@ -2020,7 +2050,22 @@ function extractYouTubeId(url) {
 }
 
 /**
- * 從 YouTube 影片頁面自動擷取影片長度（格式 mm:ss）
+ * 將總秒數格式化為 mm:ss 或 hh:mm:ss
+ */
+function formatSecondsToMmSs(sec) {
+  sec = Math.round(Number(sec) || 0);
+  if (sec <= 0) return '';
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  if (h > 0) {
+    return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+  }
+  return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+}
+
+/**
+ * 從 YouTube 影片頁面自動擷取影片長度（格式 mm:ss 或 hh:mm:ss）
  */
 function fetchYouTubeDuration(youtubeId) {
   if (!youtubeId) return '';
@@ -2031,24 +2076,122 @@ function fetchYouTubeDuration(youtubeId) {
     });
     if (res.getResponseCode() === 200) {
       const content = res.getContentText();
-      const m = content.match(/"approxDurationMs":"(\d+)"/);
-      if (m) {
-        const sec = Math.round(parseInt(m[1], 10) / 1000);
-        const min = Math.floor(sec / 60);
-        const remSec = sec % 60;
-        return (min < 10 ? '0' : '') + min + ':' + (remSec < 10 ? '0' : '') + remSec;
+      // 1. approxDurationMs: "84884"
+      const m1 = content.match(/"approxDurationMs":"(\d+)"/);
+      if (m1) {
+        const sec = parseInt(m1[1], 10) / 1000;
+        if (sec > 0) return formatSecondsToMmSs(sec);
       }
-      const m2 = content.match(/itemprop="duration"\s+content="PT(?:(\d+)M)?(?:(\d+)S)?"/i);
+      // 2. lengthSeconds: "85"
+      const m2 = content.match(/"lengthSeconds":"(\d+)"/);
       if (m2) {
-        const min = parseInt(m2[1] || '0', 10);
-        const remSec = parseInt(m2[2] || '0', 10);
-        return (min < 10 ? '0' : '') + min + ':' + (remSec < 10 ? '0' : '') + remSec;
+        const sec = parseInt(m2[1], 10);
+        if (sec > 0) return formatSecondsToMmSs(sec);
+      }
+      // 3. itemprop="duration" content="PT1M25S" / PT1H2M30S
+      const m3 = content.match(/itemprop="duration"\s+content="PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?"/i);
+      if (m3) {
+        const h = parseInt(m3[1] || '0', 10);
+        const m = parseInt(m3[2] || '0', 10);
+        const s = parseInt(m3[3] || '0', 10);
+        const sec = h * 3600 + m * 60 + s;
+        if (sec > 0) return formatSecondsToMmSs(sec);
       }
     }
   } catch (e) {
     console.warn('fetchYouTubeDuration failed for ' + youtubeId + ': ' + e);
   }
   return '';
+}
+
+/**
+ * 批次修復與同步 Songs 工作表中所有歌曲的影片長度
+ * 將儲存格格式設為純文字 (@)，並自動從 YouTube 抓取真實時長
+ */
+function syncAllSongDurations(forceAll) {
+  const sheets = ensureSongSheetsExist();
+  const sheet = sheets.songSheet;
+  const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return { success: true, updatedCount: 0 };
+
+  const headers = data[0].map(function(h) { return String(h).trim(); });
+  const idCol = headers.indexOf('id');
+  const urlCol = headers.indexOf('youtubeUrl');
+  const ytIdCol = headers.indexOf('youtubeId');
+  const durCol = headers.indexOf('duration');
+
+  if (durCol === -1) return { success: false, error: '未找到 duration 欄位' };
+
+  // 將整欄 duration 格式先設為純文字
+  try {
+    sheet.getRange(2, durCol + 1, data.length - 1, 1).setNumberFormat('@');
+  } catch (e) {}
+
+  let updatedCount = 0;
+  for (let r = 1; r < data.length; r++) {
+    const row = data[r];
+    const url = row[urlCol];
+    let ytId = row[ytIdCol];
+    if (!ytId && url) ytId = extractYouTubeId(url);
+    if (!ytId) continue;
+
+    let curDur = String(row[durCol] || '').trim();
+    if (row[durCol] instanceof Date) {
+      const h = row[durCol].getHours();
+      const m = row[durCol].getMinutes();
+      const s = row[durCol].getSeconds();
+      curDur = (h > 0 ? (h + ':') : '') + (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+    }
+
+    // 若時長為空、為 1、為 00:01 或強制全部刷新
+    const isInvalid = !curDur || curDur === '1' || curDur === '00:01' || curDur === '0:01' || curDur === '00:00';
+    if (isInvalid || forceAll) {
+      const realDur = fetchYouTubeDuration(ytId);
+      if (realDur) {
+        sheet.getRange(r + 1, durCol + 1).setNumberFormat('@').setValue(realDur);
+        updatedCount++;
+      }
+    }
+  }
+
+  clearAppDataCache();
+  return { success: true, updatedCount: updatedCount };
+}
+
+/**
+ * 批次寫入歌曲時長，確保儲存格設為純文字 (@)
+ * @param {Object} durationsMap - { [songId]: "02:43", ... }
+ */
+function batchUpdateSongDurations(durationsMap) {
+  if (!durationsMap || typeof durationsMap !== 'object') {
+    return { success: false, error: '無效的時長資料' };
+  }
+  const sheets = ensureSongSheetsExist();
+  const sheet = sheets.songSheet;
+  const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return { success: true, updatedCount: 0 };
+
+  const headers = data[0].map(function(h) { return String(h).trim(); });
+  const idCol = headers.indexOf('id');
+  const durCol = headers.indexOf('duration');
+  if (idCol === -1 || durCol === -1) return { success: false, error: '未找到 id 或 duration 欄位' };
+
+  try {
+    sheet.getRange(2, durCol + 1, data.length - 1, 1).setNumberFormat('@');
+  } catch (e) {}
+
+  let updatedCount = 0;
+  for (let r = 1; r < data.length; r++) {
+    const id = String(data[r][idCol] || '').trim();
+    if (id && durationsMap[id] !== undefined) {
+      const val = String(durationsMap[id]).trim();
+      sheet.getRange(r + 1, durCol + 1).setNumberFormat('@').setValue(val);
+      updatedCount++;
+    }
+  }
+
+  clearAppDataCache();
+  return { success: true, updatedCount: updatedCount };
 }
 
 /**
@@ -2078,12 +2221,16 @@ function saveSong(songData, password) {
     const youtubeId = extractYouTubeId(youtubeUrl);
     if (!youtubeId) return { success: false, error: '無法辨識 YouTube 連結，請確認網址是否正確！' };
 
-    const duration = String(songData.duration || '').trim() || fetchYouTubeDuration(youtubeId);
+    let duration = String(songData.duration || '').trim();
+    if (!duration || duration === '1' || duration === '00:01') {
+      duration = fetchYouTubeDuration(youtubeId);
+    }
 
     const sheet = ensureSongSheetsExist().songSheet;
     const data = sheet.getDataRange().getValues();
     const headers = data[0].map(function(h) { return String(h).trim(); });
     const idIndex = headers.indexOf('id');
+    const durIndex = headers.indexOf('duration');
     const todayStr = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd');
     const id = songData.id || ('SONG-' + Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyyMMddHHmmss'));
 
@@ -2108,12 +2255,22 @@ function saveSong(songData, password) {
 
     if (targetRow > -1) {
       headers.forEach(function(h, colIdx) {
-        if (fieldMap[h] !== undefined) sheet.getRange(targetRow, colIdx + 1).setValue(fieldMap[h]);
+        if (fieldMap[h] !== undefined) {
+          const cell = sheet.getRange(targetRow, colIdx + 1);
+          if (h === 'duration') {
+            cell.setNumberFormat('@').setValue(String(fieldMap[h] || ''));
+          } else {
+            cell.setValue(fieldMap[h]);
+          }
+        }
       });
       clearAppDataCache();
       return { success: true, message: '歌曲資訊已成功更新！', songId: id };
     }
     sheet.appendRow(headers.map(function(h) { return fieldMap[h] !== undefined ? fieldMap[h] : ''; }));
+    if (durIndex > -1) {
+      sheet.getRange(sheet.getLastRow(), durIndex + 1).setNumberFormat('@').setValue(String(fieldMap.duration || ''));
+    }
     clearAppDataCache();
     return { success: true, message: '新歌曲已成功加入清單！', songId: id };
   } catch (err) {
@@ -2416,10 +2573,20 @@ function getSheetDataAsObjects(sheet) {
       const header = headers[j];
       let val = row[j];
       if (val instanceof Date) {
-        if (header === 'priority' || header === 'duration') {
+        if (header === 'priority') {
           const epoch = new Date(1899, 11, 30);
           const diffDays = Math.round((val.getTime() - epoch.getTime()) / (24 * 60 * 60 * 1000));
           val = diffDays > 0 ? diffDays : 1;
+        } else if (header === 'duration') {
+          // 若儲存格被 Google Sheets 自動轉為 Date 物件，提取實際時分秒
+          const h = val.getHours();
+          const m = val.getMinutes();
+          const s = val.getSeconds();
+          if (h > 0) {
+            val = (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+          } else {
+            val = (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+          }
         } else {
           val = Utilities.formatDate(val, 'Asia/Taipei', 'yyyy-MM-dd');
         }

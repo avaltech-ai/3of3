@@ -4888,12 +4888,24 @@ const htmlContent = `<!DOCTYPE html>
     function formatSongDuration(dur) {
       if (!dur) return '';
       const str = String(dur).trim();
-      if (/^\d{1,2}:\d{2}$/.test(str)) return str;
+      if (str === '1' || str === '00:01' || str === '0:01' || str === '00:00') return '';
+      if (/^\d{1,2}:\d{2}$/.test(str)) {
+        const parts = str.split(':');
+        return (parts[0].length === 1 ? '0' + parts[0] : parts[0]) + ':' + parts[1];
+      }
+      if (/^\d{1,2}:\d{2}:\d{2}$/.test(str)) {
+        const parts = str.split(':');
+        return (parts[0].length === 1 ? '0' + parts[0] : parts[0]) + ':' + parts[1] + ':' + parts[2];
+      }
       const num = Number(str);
-      if (!isNaN(num) && num > 0) {
+      if (!isNaN(num) && num > 1) {
         const sec = Math.round(num);
-        const m = Math.floor(sec / 60);
+        const h = Math.floor(sec / 3600);
+        const m = Math.floor((sec % 3600) / 60);
         const s = sec % 60;
+        if (h > 0) {
+          return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+        }
         return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
       }
       return str;
