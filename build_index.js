@@ -235,8 +235,9 @@ const htmlContent = `<!DOCTYPE html>
           
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="block text-xs font-bold text-slate-500 mb-1">學期 (例: 115 上學期)</label>
-              <input type="text" id="modalThemeSemester" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-rose-300 focus:ring-2 focus:ring-rose-100 outline-none transition-all" placeholder="115 上學期">
+              <label class="block text-xs font-bold text-slate-500 mb-1">學期</label>
+              <select id="modalThemeSemester" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:border-rose-300 focus:ring-2 focus:ring-rose-100 outline-none transition-all text-slate-700 font-medium">
+              </select>
             </div>
             <div>
               <label class="block text-xs font-bold text-slate-500 mb-1">週別 (例: 第 1 週)</label>
@@ -7972,6 +7973,36 @@ const htmlContent = `<!DOCTYPE html>
       }).join('');
     }
 
+    function populateModalThemeSemesters(selectedVal) {
+      const select = document.getElementById('modalThemeSemester');
+      if (!select) return;
+      select.innerHTML = '';
+      
+      const semesters = (state.themeSemesters && state.themeSemesters.length > 0) 
+        ? state.themeSemesters 
+        : ['115 學年上學期', '115 學年下學期'];
+      
+      semesters.forEach(sem => {
+        const opt = document.createElement('option');
+        opt.value = sem;
+        opt.textContent = sem;
+        select.appendChild(opt);
+      });
+      
+      if (selectedVal && !semesters.includes(selectedVal)) {
+        const opt = document.createElement('option');
+        opt.value = selectedVal;
+        opt.textContent = selectedVal;
+        select.appendChild(opt);
+      }
+      
+      if (selectedVal) {
+        select.value = selectedVal;
+      } else if (select.options.length > 0) {
+        select.selectedIndex = 0;
+      }
+    }
+
     function openThemeModal() {
       document.getElementById('modalThemeForm').reset();
       document.getElementById('modalThemeId').value = '';
@@ -7980,10 +8011,7 @@ const htmlContent = `<!DOCTYPE html>
       
       document.getElementById('modalThemeTitle').textContent = '新增主題活動';
       
-      // Auto-fill semester if available
-      if (state.themeSemesters && state.themeSemesters.length > 0) {
-        document.getElementById('modalThemeSemester').value = state.themeSemesters[state.themeSemesters.length - 1];
-      }
+      populateModalThemeSemesters();
 
       document.getElementById('themeModal').classList.remove('hidden');
       document.getElementById('themeModal').classList.add('flex');
@@ -8011,7 +8039,7 @@ const htmlContent = `<!DOCTYPE html>
       if (!t) return;
       document.getElementById('modalThemeTitle').textContent = '編輯主題活動';
       document.getElementById('modalThemeId').value = t.id;
-      document.getElementById('modalThemeSemester').value = t.semester || '';
+      populateModalThemeSemesters(t.semester || '');
       document.getElementById('modalThemeWeek').value = t.week || '';
       document.getElementById('modalThemeStartDate').value = t.startDate || '';
       document.getElementById('modalThemeEndDate').value = t.endDate || '';
