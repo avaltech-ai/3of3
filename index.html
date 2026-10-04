@@ -123,35 +123,35 @@
 
     <!-- The actual floating/sticky sidebar -->
     <aside id="desktopSidebar" class="hidden md:flex flex-col bg-white border-r border-slate-200/80 shadow-sm fixed top-1.5 bottom-0 left-0 z-40 w-16 transition-all duration-300 overflow-hidden group" onmouseenter="expandSidebar()" onmouseleave="collapseSidebar()">
-      <div class="px-4 flex items-center border-b border-slate-100 relative min-h-[64px] whitespace-nowrap overflow-hidden">
-        <span class="text-2xl w-8 text-center cursor-pointer transition-transform hover:scale-110 shrink-0 select-none" onclick="switchTab('home')">🍄</span>
-        <span class="font-black text-slate-700 ml-2 opacity-0 transition-opacity duration-300 sidebar-text text-lg select-none">選單導覽</span>
-        <button id="pinSidebarBtn" onclick="togglePinSidebar()" class="absolute right-3 p-1.5 text-slate-400 hover:text-slate-700 transition-colors opacity-0 sidebar-pin-btn rounded-lg hover:bg-slate-100 group-hover:opacity-100 focus:opacity-100 tap-bounce" title="釘選選單">
-          <span class="text-sm">📌</span>
+      <div class="px-2.5 flex items-center border-b border-slate-100 relative min-h-[58px] whitespace-nowrap overflow-hidden">
+        <span class="text-xl w-7 text-center cursor-pointer transition-transform hover:scale-110 shrink-0 select-none" onclick="switchTab('home')">🍄</span>
+        <span class="font-black text-slate-700 ml-1.5 opacity-0 transition-opacity duration-300 sidebar-text text-base select-none">選單導覽</span>
+        <button id="pinSidebarBtn" onclick="togglePinSidebar()" class="absolute right-2 p-1.5 text-slate-400 hover:text-slate-700 transition-colors opacity-0 sidebar-pin-btn rounded-lg hover:bg-slate-100 group-hover:opacity-100 focus:opacity-100 tap-bounce" title="釘選選單">
+          <span class="text-xs">📌</span>
         </button>
       </div>
       
-      <nav class="flex-1 py-4 flex flex-col gap-2 px-2 overflow-y-auto no-scrollbar overflow-x-hidden">
-        <button onclick="switchTab('home')" id="tabBtn-home" class="tab-btn flex items-center p-2 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
-          <span class="text-xl w-8 text-center shrink-0">🏠</span>
-          <span class="font-bold text-sm whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-2">班級日常</span>
+      <nav class="flex-1 py-3 flex flex-col gap-1.5 px-2 overflow-y-auto no-scrollbar overflow-x-hidden">
+        <button onclick="switchTab('home')" id="tabBtn-home" class="tab-btn flex items-center px-2 py-2 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
+          <span class="text-lg w-7 text-center shrink-0">🏠</span>
+          <span class="font-bold text-sm whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1.5">班級日常</span>
         </button>
-        <button onclick="switchTab('albums')" id="tabBtn-albums" class="tab-btn flex items-center p-2 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
-          <span class="text-xl w-8 text-center shrink-0">📸</span>
-          <span class="font-bold text-sm whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-2">影像紀錄</span>
+        <button onclick="switchTab('albums')" id="tabBtn-albums" class="tab-btn flex items-center px-2 py-2 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
+          <span class="text-lg w-7 text-center shrink-0">📸</span>
+          <span class="font-bold text-sm whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1.5">影像紀錄</span>
         </button>
-        <button onclick="switchTab('songs')" id="tabBtn-songs" class="tab-btn flex items-center p-2 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
-          <span class="text-xl w-8 text-center shrink-0">🎵</span>
-          <span class="font-bold text-sm whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-2">唱跳音符</span>
+        <button onclick="switchTab('songs')" id="tabBtn-songs" class="tab-btn flex items-center px-2 py-2 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
+          <span class="text-lg w-7 text-center shrink-0">🎵</span>
+          <span class="font-bold text-sm whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1.5">唱跳音符</span>
         </button>
-        <button onclick="switchTab('docs')" id="tabBtn-docs" class="tab-btn flex items-center p-2 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
-          <span class="text-xl w-8 text-center shrink-0">📁</span>
-          <span class="font-bold text-sm whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-2">常用文件</span>
+        <button onclick="switchTab('docs')" id="tabBtn-docs" class="tab-btn flex items-center px-2 py-2 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
+          <span class="text-lg w-7 text-center shrink-0">📁</span>
+          <span class="font-bold text-sm whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1.5">常用文件</span>
         </button>
         <div class="flex-1"></div>
-        <button onclick="switchTab('admin')" id="tabBtn-admin" class="tab-btn flex items-center p-2 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
-          <span class="text-xl w-8 text-center shrink-0">⚙️</span>
-          <span class="font-bold text-sm whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-2">管理後台</span>
+        <button onclick="switchTab('admin')" id="tabBtn-admin" class="tab-btn flex items-center px-2 py-2 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
+          <span class="text-lg w-7 text-center shrink-0">⚙️</span>
+          <span class="font-bold text-sm whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1.5">管理後台</span>
         </button>
       </nav>
     </aside>
@@ -205,12 +205,99 @@
     </button>
     <button onclick="switchTab('docs')" id="mTabBtn-docs" class="m-tab-btn flex-1 py-1.5 flex flex-col items-center justify-center text-xs font-bold rounded-xl transition-all text-slate-500 hover:text-slate-800">
       <span class="text-lg">📁</span>
-      <span>檔案下載</span>
+      <span>常用文件</span>
     </button>
-    <button onclick="switchTab('admin')" id="mTabBtn-admin" class="m-tab-btn flex-1 py-1.5 flex flex-col items-center justify-center text-xs font-bold rounded-xl transition-all text-slate-500 hover:text-slate-800">
-      <span class="text-lg">⚙️</span>
-      <span>管理設定</span>
+    <!-- 更多功能入口 (觸發滑出式功能面板，解決手機版未來擴充放不下問題) -->
+    <button onclick="toggleMobileMoreSheet()" id="mTabBtn-more" class="m-tab-btn flex-1 py-1.5 flex flex-col items-center justify-center text-xs font-bold rounded-xl transition-all text-slate-500 hover:text-slate-800" title="更多功能">
+      <span id="mTabBtnMoreIcon" class="text-lg">⋯</span>
+      <span id="mTabBtnMoreText">更多</span>
     </button>
+  </div>
+
+  <!-- ==================== 手機版「更多功能」滑出面板 (Bottom Sheet) ==================== -->
+  <div id="mobileMoreModal" class="md:hidden fixed inset-0 z-50 pointer-events-none transition-all duration-300">
+    <!-- 背景半透明毛玻璃遮罩 -->
+    <div id="mobileMoreBackdrop" onclick="closeMobileMoreSheet()" class="absolute inset-0 bg-slate-900/40 backdrop-blur-xs opacity-0 transition-opacity duration-300 pointer-events-none"></div>
+
+    <!-- 底部滑出抽屜容器 -->
+    <div id="mobileMoreSheet" class="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl border-t border-rose-100 max-h-[85vh] overflow-y-auto transform translate-y-full transition-transform duration-300 ease-out pointer-events-auto p-5 pb-8 flex flex-col gap-4">
+      <!-- 頂部拖曳指示把手與標題 -->
+      <div class="flex flex-col items-center relative">
+        <div class="w-10 h-1 bg-slate-300 rounded-full mb-3 cursor-pointer" onclick="closeMobileMoreSheet()"></div>
+        <div class="w-full flex items-center justify-between pb-2 border-b border-slate-100">
+          <div class="flex items-center gap-2">
+            <span class="text-xl">✨</span>
+            <div>
+              <h3 class="text-base font-black text-slate-800 tracking-tight">更多班級功能</h3>
+              <p class="text-[0.6875rem] text-slate-400 font-medium">系統管理與未來擴充服務專區</p>
+            </div>
+          </div>
+          <button onclick="closeMobileMoreSheet()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center text-sm font-bold tap-bounce" aria-label="關閉">
+            ✕
+          </button>
+        </div>
+      </div>
+
+      <!-- 功能網格卡片 (2 欄自適應) -->
+      <div class="grid grid-cols-2 gap-3 pt-1">
+        <!-- 1. 管理後台 -->
+        <button onclick="switchTab('admin'); closeMobileMoreSheet();" id="sheetBtn-admin" class="p-3.5 rounded-2xl border border-slate-200/90 bg-slate-50/70 hover:bg-peach-50 hover:border-peach-200 text-left transition-all tap-bounce flex flex-col gap-1.5 group">
+          <div class="w-9 h-9 rounded-xl bg-peach-100 text-peach-600 flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
+            ⚙️
+          </div>
+          <div>
+            <div class="font-black text-slate-800 text-sm">管理後台</div>
+            <div class="text-[0.6875rem] text-slate-500 mt-0.5">最新消息與資料庫維護</div>
+          </div>
+        </button>
+
+        <!-- 2. 完整 Google Drive 相簿連結 -->
+        <button onclick="closeMobileMoreSheet(); openDriveFoldersModal();" class="p-3.5 rounded-2xl border border-slate-200/90 bg-slate-50/70 hover:bg-blue-50 hover:border-blue-200 text-left transition-all tap-bounce flex flex-col gap-1.5 group">
+          <div class="w-9 h-9 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
+            🗂️
+          </div>
+          <div>
+            <div class="font-black text-slate-800 text-sm">雲端相簿總目錄</div>
+            <div class="text-[0.6875rem] text-slate-500 mt-0.5">Google Drive 每月相簿</div>
+          </div>
+        </button>
+
+        <!-- 3. Google Drive 音樂資料夾 -->
+        <a href="https://drive.google.com/drive/folders/1vurxReuOW0laMDw1xSSOqeM5zT0TCmBQ" target="_blank" rel="noopener noreferrer" onclick="closeMobileMoreSheet()" class="p-3.5 rounded-2xl border border-slate-200/90 bg-slate-50/70 hover:bg-emerald-50 hover:border-emerald-200 text-left transition-all tap-bounce flex flex-col gap-1.5 group">
+          <div class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
+            🎶
+          </div>
+          <div>
+            <div class="font-black text-slate-800 text-sm">音樂雲端硬碟</div>
+            <div class="text-[0.6875rem] text-slate-500 mt-0.5">Google Drive 音樂庫 ↗</div>
+          </div>
+        </a>
+
+        <!-- 4. 預備擴充插槽 (展示未來無限擴充架構) -->
+        <div class="p-3.5 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/30 text-left flex flex-col gap-1.5 opacity-80">
+          <div class="w-9 h-9 rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center text-lg">
+            ✨
+          </div>
+          <div>
+            <div class="font-bold text-slate-500 text-sm">擴充功能預備區</div>
+            <div class="text-[0.6875rem] text-slate-400 mt-0.5">聯絡簿、點心菜單等登場</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 底部管理員登入身分與快速操作 -->
+      <div id="mobileSheetAdminBar" class="mt-2 pt-3 border-t border-slate-100 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span id="mobileAdminDot" class="w-2.5 h-2.5 rounded-full bg-slate-300"></span>
+          <span id="mobileAdminText" class="text-xs font-bold text-slate-500">一般訪客瀏覽模式</span>
+        </div>
+        <div id="mobileAdminLogoutWrapper" class="hidden">
+          <button onclick="doAdminLogout(); closeMobileMoreSheet();" class="px-3 py-1 rounded-xl bg-rose-50 text-rose-600 border border-rose-200 text-xs font-bold transition-all tap-bounce flex items-center gap-1">
+            <span>🚪 登出管理員</span>
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- ==================== 主要內容區塊 CONTAINER ==================== -->
@@ -2587,7 +2674,7 @@
       const texts = document.querySelectorAll('.sidebar-text');
       if (sb) {
         sb.classList.remove('w-16');
-        sb.classList.add('w-56');
+        sb.classList.add('w-40');
       }
       texts.forEach(el => {
         el.classList.remove('opacity-0');
@@ -2601,7 +2688,7 @@
       const texts = document.querySelectorAll('.sidebar-text');
       if (sb) {
         sb.classList.add('w-16');
-        sb.classList.remove('w-56');
+        sb.classList.remove('w-40');
       }
       texts.forEach(el => {
         el.classList.add('opacity-0');
@@ -2615,16 +2702,89 @@
       const pinBtn = document.getElementById('pinSidebarBtn');
       if (isSidebarPinned) {
         wrap.classList.remove('w-16');
-        wrap.classList.add('w-56');
+        wrap.classList.add('w-40');
         pinBtn.classList.add('text-peach-500', 'bg-peach-100');
         pinBtn.classList.remove('text-slate-400');
         expandSidebar(); // Ensure it's expanded
       } else {
         wrap.classList.add('w-16');
-        wrap.classList.remove('w-56');
+        wrap.classList.remove('w-40');
         pinBtn.classList.remove('text-peach-500', 'bg-peach-100');
         pinBtn.classList.add('text-slate-400');
         collapseSidebar();
+      }
+    }
+
+    // ==================== 手機版「更多功能」面板互動邏輯 ====================
+    function openMobileMoreSheet() {
+      const modal = document.getElementById('mobileMoreModal');
+      const backdrop = document.getElementById('mobileMoreBackdrop');
+      const sheet = document.getElementById('mobileMoreSheet');
+      if (!modal || !sheet) return;
+
+      modal.classList.remove('pointer-events-none');
+      if (backdrop) {
+        backdrop.classList.remove('pointer-events-none');
+        backdrop.classList.remove('opacity-0');
+        backdrop.classList.add('opacity-100');
+      }
+      sheet.classList.remove('translate-y-full');
+      sheet.classList.add('translate-y-0');
+      updateMobileSheetAuthUI();
+    }
+
+    function closeMobileMoreSheet() {
+      const modal = document.getElementById('mobileMoreModal');
+      const backdrop = document.getElementById('mobileMoreBackdrop');
+      const sheet = document.getElementById('mobileMoreSheet');
+      if (!modal || !sheet) return;
+
+      if (backdrop) {
+        backdrop.classList.remove('opacity-100');
+        backdrop.classList.add('opacity-0');
+        backdrop.classList.add('pointer-events-none');
+      }
+      sheet.classList.remove('translate-y-0');
+      sheet.classList.add('translate-y-full');
+      setTimeout(() => {
+        modal.classList.add('pointer-events-none');
+      }, 300);
+    }
+
+    function toggleMobileMoreSheet() {
+      const sheet = document.getElementById('mobileMoreSheet');
+      if (sheet && sheet.classList.contains('translate-y-0')) {
+        closeMobileMoreSheet();
+      } else {
+        openMobileMoreSheet();
+      }
+    }
+
+    function updateMobileSheetAuthUI() {
+      let pwd = state.adminPassword;
+      if (!pwd) {
+        try {
+          pwd = sessionStorage.getItem('nobel_a_admin_pwd') || localStorage.getItem('nobel_a_admin_pwd') || '';
+          if (pwd) state.adminPassword = pwd;
+        } catch (e) {}
+      }
+      const isAdmin = !!pwd;
+      const dot = document.getElementById('mobileAdminDot');
+      const text = document.getElementById('mobileAdminText');
+      const logoutWrap = document.getElementById('mobileAdminLogoutWrapper');
+
+      if (dot && text && logoutWrap) {
+        if (isAdmin) {
+          dot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse';
+          text.textContent = '系統管理員已登入';
+          text.className = 'text-xs font-bold text-emerald-700';
+          logoutWrap.classList.remove('hidden');
+        } else {
+          dot.className = 'w-2.5 h-2.5 rounded-full bg-slate-300';
+          text.textContent = '一般訪客瀏覽模式';
+          text.className = 'text-xs font-bold text-slate-500';
+          logoutWrap.classList.add('hidden');
+        }
       }
     }
 
@@ -2637,23 +2797,51 @@
         const mBtnEl = document.getElementById(`mTabBtn-${tab}`);
 
         if (tab === tabName) {
-          contentEl.classList.remove('hidden');
+          if (contentEl) contentEl.classList.remove('hidden');
           if (btnEl) {
-            btnEl.className = 'tab-btn flex items-center p-2 rounded-xl transition-all group/btn bg-peach-50 text-peach-600 shadow-sm relative before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:bg-peach-500 before:rounded-r-full';
+            btnEl.className = 'tab-btn flex items-center px-2 py-2 rounded-xl transition-all group/btn bg-peach-50 text-peach-600 shadow-sm relative before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:bg-peach-500 before:rounded-r-full';
           }
           if (mBtnEl) {
             mBtnEl.className = 'm-tab-btn flex-1 py-1.5 flex flex-col items-center justify-center text-xs font-bold rounded-xl transition-all text-peach-600 bg-peach-50';
           }
         } else {
-          contentEl.classList.add('hidden');
+          if (contentEl) contentEl.classList.add('hidden');
           if (btnEl) {
-            btnEl.className = 'tab-btn flex items-center p-2 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800';
+            btnEl.className = 'tab-btn flex items-center px-2 py-2 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800';
           }
           if (mBtnEl) {
             mBtnEl.className = 'm-tab-btn flex-1 py-1.5 flex flex-col items-center justify-center text-xs font-bold rounded-xl transition-all text-slate-500 hover:text-slate-800';
           }
         }
       });
+
+      // 手機底部「更多」按鈕狀態連動
+      const mMoreBtn = document.getElementById('mTabBtn-more');
+      const mMoreIcon = document.getElementById('mTabBtnMoreIcon');
+      const mMoreText = document.getElementById('mTabBtnMoreText');
+      if (mMoreBtn) {
+        if (tabName === 'admin') {
+          mMoreBtn.className = 'm-tab-btn flex-1 py-1.5 flex flex-col items-center justify-center text-xs font-bold rounded-xl transition-all text-peach-600 bg-peach-50';
+          if (mMoreIcon) mMoreIcon.textContent = '⚙️';
+          if (mMoreText) mMoreText.textContent = '管理設定';
+        } else {
+          mMoreBtn.className = 'm-tab-btn flex-1 py-1.5 flex flex-col items-center justify-center text-xs font-bold rounded-xl transition-all text-slate-500 hover:text-slate-800';
+          if (mMoreIcon) mMoreIcon.textContent = '⋯';
+          if (mMoreText) mMoreText.textContent = '更多';
+        }
+      }
+
+      // 更多面板中的管理設定卡片狀態連動
+      const sheetAdminBtn = document.getElementById('sheetBtn-admin');
+      if (sheetAdminBtn) {
+        if (tabName === 'admin') {
+          sheetAdminBtn.classList.add('bg-peach-50', 'border-peach-300', 'ring-2', 'ring-peach-200');
+          sheetAdminBtn.classList.remove('bg-slate-50/70', 'border-slate-200/90');
+        } else {
+          sheetAdminBtn.classList.remove('bg-peach-50', 'border-peach-300', 'ring-2', 'ring-peach-200');
+          sheetAdminBtn.classList.add('bg-slate-50/70', 'border-slate-200/90');
+        }
+      }
 
       if (tabName === 'albums') {
         if (state.cachedAlbums.length === 0) refreshAlbums();
@@ -5779,6 +5967,7 @@
           statusEl.classList.remove('flex');
         }
       }
+      if (typeof updateMobileSheetAuthUI === 'function') updateMobileSheetAuthUI();
     }
 
     function switchAdminSubtab(subtab) {
