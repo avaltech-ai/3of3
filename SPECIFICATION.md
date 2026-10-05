@@ -424,7 +424,7 @@
 
 | 鍵值 (Key) | 預設值 (Value) | 說明 (Description) |
 | :--- | :--- | :--- |
-| `ADMIN_PASSWORD` | `nobel-a-2026` | 系統管理員後台登入密碼，可隨時於後台修改，立即生效。 |
+| `ADMIN_PASSWORD` | （空白，需手動填入） | 系統管理員後台登入密碼。**嚴禁寫入文件或程式碼**（repo 為公開）；留空則無人可登入後台。 |
 | `CLASS_NAME` | `諾貝爾 A 班` | 班級全稱。 |
 | `KINDERGARTEN_NAME` | `桃子腳幼兒園` | 幼兒園正式名稱。 |
 | `ALBUMS_FOLDER_ID` | `1iRFAr3FZMqV-okmktipdwamjAR7WWp6d` | Google Drive 相簿根目錄資料夾 ID。 |
@@ -482,7 +482,7 @@
   使用者輸入任意密碼都能登入管理員後台，但一執行任何寫入、修改或刪除操作，後端卻全部靜默失敗。
 - **根本原因**：
   在過去的本地端離線除錯階段，開發者在 `doAdminLogin` 函式中寫入了寬鬆容錯邏輯：
-  `else if (pwd === 'nobel-a-2026' || pwd.length > 0)`。
+  `else if (pwd === '<寫死的預設密碼>' || pwd.length > 0)`。
   這導致即使使用者輸入了錯誤的密碼，前台依然放行登入並儲存了錯誤的密碼字串。後續所有寫入 API 帶入該錯誤密碼，後端 `checkPassword` 驗證失敗而拒絕寫入。
 - **終極解法**：
   全面移除 `|| pwd.length > 0` 寬鬆檢查，強制要求必須經過後端 `verifyPassword` 成功回傳或完全符合官方預設密碼，並提供統一的 `getAdminPassword()` 輔助函式確保所有 API 呼叫均取得有效憑證。
@@ -599,7 +599,7 @@ git push origin main
 | :--- | :--- | :--- | :--- |
 | **API 連線健康度** | 前台一直轉圈，無法載入資料 | 瀏覽器直接開啟：<br>`https://script.google.com/macros/s/AKfycbx5JGeiSH2J1vkOu4rh9NPwFBWNSkn5PkHfY5o25t-K4WcOK8b3VQjXi-TqUOzS8TvdJg/exec?action=getAppData` | 若出現錯誤訊息，檢查試算表是否被刪除或權限未開；若成功回傳 JSON 表示後端正常。 |
 | **快取未即時清除** | 試算表修改了，前台過 5 分鐘才更新 | 呼叫 GAS 後端之 `clearAppDataCache()` | 於後端管理功能點擊「清除快取」，或等待 5 分鐘快取自動過期。 |
-| **管理員權限遭拒** | 修改活動顯示「管理員密碼錯誤」 | 檢查 `Settings` 表中 `ADMIN_PASSWORD` 欄位值 | 確認輸入的密碼是否與試算表設定一致（預設為 `nobel-a-2026`）。 |
+| **管理員權限遭拒** | 修改活動顯示「管理員密碼錯誤」 | 檢查 `Settings` 表中 `ADMIN_PASSWORD` 欄位值 | 確認輸入的密碼是否與試算表設定一致（密碼不得寫在文件中）。 |
 | **檔案刪除失敗** | 文件前台點刪除但試算表未移除 | 檢查瀏覽器 Console 是否有網路阻擋 | 確認是否已更新至包含 `gasPostViaFetch` 之最新部署版本（@109 以上）。 |
 | **相簿照片無法載入** | 點擊相簿彈窗顯示「目前尚無相片」 | 檢查相簿對應之 Google Drive 資料夾權限 | 資料夾權限必須設為「知道連結的使用者均可檢視」。 |
 

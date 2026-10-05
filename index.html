@@ -2419,7 +2419,6 @@
         else if (action === 'getActivityImages') runner.getActivityImages();
         else if (action === 'deleteDoc') runner.deleteDoc(payload.id, payload.password);
         else if (action === 'updateSettings') runner.updateSettings(payload.settings, payload.password);
-        else if (action === 'setupInitialDatabase') runner.setupInitialDatabase();
         else if (action === 'uploadSong') runner.uploadSong(payload.meta, payload.file, payload.password);
         else if (action === 'saveSong') runner.saveSong(payload.songData, payload.password);
         else if (action === 'deleteSong') runner.deleteSong(payload.id, payload.password);
@@ -5339,9 +5338,7 @@
         return;
       }
 
-      if (!confirm((state.lang === 'en' ? 'Are you sure you want to delete "' : '確定要自常用清單中刪除「') + name + (state.lang === 'en' ? '"?
-(This will remove the record from the database)' : '」嗎？
-（資料庫中的記錄將會被移除）'))) return;
+      if (!confirm((state.lang === 'en' ? 'Are you sure you want to delete "' : '確定要自常用清單中刪除「') + name + (state.lang === 'en' ? '"?\n(This will remove the record from the database)' : '」嗎？\n（資料庫中的記錄將會被移除）'))) return;
 
       showToast(state.lang === 'en' ? 'Deleting document from database...' : '正在同步自資料庫刪除文件...', '⏳');
       const prevDocs = state.docs ? [...state.docs] : [];
@@ -6465,25 +6462,11 @@
           showAdminDashboard();
           renderDocsList();
           showToast('歡迎登入管理後台！', '🎉');
-        } else if (pwd === 'nobel-a-2026') {
-          state.adminPassword = pwd;
-          try { sessionStorage.setItem('nobel_a_admin_pwd', pwd); localStorage.setItem('nobel_a_admin_pwd', pwd); } catch (e) {}
-          showAdminDashboard();
-          renderDocsList();
-          showToast('歡迎登入管理後台！', '🎉');
         } else {
           showToast('密碼不正確，請重新輸入！', '❌');
         }
       }, err => {
-        if (pwd === 'nobel-a-2026') {
-          state.adminPassword = pwd;
-          try { sessionStorage.setItem('nobel_a_admin_pwd', pwd); localStorage.setItem('nobel_a_admin_pwd', pwd); } catch (e) {}
-          showAdminDashboard();
-          renderDocsList();
-          showToast('歡迎登入管理後台！', '🎉');
-        } else {
-          showToast('密碼不正確！', '❌');
-        }
+        showToast('無法連線驗證，請檢查網路後再試！', '❌');
       });
     }
 

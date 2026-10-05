@@ -106,7 +106,7 @@ function onOpen() {
       .createMenu('🌟 諾貝爾A班專屬功能')
       .addItem('📁 立即建立／檢查相簿工作表 (AlbumCategories 與 Albums)', 'menuEnsureAlbumSheets')
       .addItem('🔄 清除快取並強制重新整理', 'menuClearCache')
-      .addItem('🚀 一鍵初始化／重設資料庫 (5大工作表與示範資料)', 'setupInitialDatabase')
+      .addItem('🚀 一鍵初始化／重設資料庫 (5大工作表與示範資料)', 'menuResetDatabase')
       .addItem('🌐 開啟班級網頁應用程式', 'openWebApp')
       .addToUi();
   } catch (e) {
@@ -152,40 +152,16 @@ function doGet(e) {
     const action = e.parameter.action;
     try {
       if (action === 'getAppData') {
-        if (e.parameter.refresh === 'true' || e.parameter.noCache === 'true') {
-          clearAppDataCache();
-        }
         result = getAppData();
-      } else if (action === 'ensureAlbumSheets' || action === 'initAlbumSheets') {
-        result = ensureAlbumSheetsExist();
-      } else if (action === 'listSheetNames') {
-        const ss = getSpreadsheet();
-        result = {
-          success: true,
-          spreadsheetId: ss ? ss.getId() : null,
-          spreadsheetName: ss ? ss.getName() : null,
-          sheets: ss ? ss.getSheets().map(s => s.getName()) : []
-        };
-      } else if (action === 'clearCache') {
-        clearAppDataCache();
-        result = ensureAlbumSheetsExist();
       } else if (action === 'getAlbums') {
         result = getAlbums();
       } else if (action === 'getAlbumPhotos') {
         result = getAlbumPhotos(e.parameter.albumId);
       } else if (action === 'getActivityImages') {
         result = getActivityImages();
-      } else if (action === 'setupInitialDatabase') {
-        result = setupInitialDatabase();
-      } else if (action === 'syncSongDurations') {
-        result = syncAllSongDurations(e.parameter.force === 'true');
-      } else if (action === 'batchUpdateSongDurations') {
-        let map = {};
-        try {
-          map = JSON.parse(e.parameter.data || '{}');
-        } catch (e) {}
-        result = batchUpdateSongDurations(map);
       }
+      // 安全性：doGet 為公開匿名入口，僅允許唯讀動作。
+      // 任何會寫入、清除快取、初始化資料庫的動作一律不得放在這裡（需走 doPost 並驗證密碼）。
     } catch (err) {
       result = { success: false, error: err.toString() };
     }
@@ -266,8 +242,6 @@ function doPost(e) {
       result = updateSettings(postData.settings, postData.password);
     } else if (action === 'ensureAlbumSheets' || action === 'initAlbumSheets') {
       result = ensureAlbumSheetsExist();
-    } else if (action === 'setupInitialDatabase') {
-      result = setupInitialDatabase();
     } else if (action === 'uploadSong') {
       result = uploadSong(postData.meta, postData.file, postData.password);
     } else if (action === 'saveSong') {
@@ -275,7 +249,9 @@ function doPost(e) {
     } else if (action === 'deleteSong') {
       result = deleteSong(postData.id || postData.songId, postData.password);
     } else if (action === 'batchUpdateSongDurations') {
-      result = batchUpdateSongDurations(postData.durationsMap || postData.data || {});
+      result = checkPassword(postData.password)
+        ? batchUpdateSongDurations(postData.durationsMap || postData.data || {})
+        : { success: false, error: '管理員密碼錯誤！' };
     } else if (action === 'saveTheme') {
       result = saveTheme(postData.themeData || postData.data, postData.password);
     } else if (action === 'deleteTheme') {
@@ -1568,10 +1544,13 @@ function checkPassword(password) {
     const ss = getSpreadsheet();
     const sheet = ss.getSheetByName('Settings');
     const settings = getSettingsObject(sheet);
-    const realPassword = settings.ADMIN_PASSWORD || 'nobel-a-2026';
-    return String(password).trim() === String(realPassword).trim();
+    const realPassword = String(settings.ADMIN_PASSWORD || '').trim();
+    // 試算表沒設密碼 → 一律拒絕（不再退回任何內建預設密碼）
+    if (!realPassword) return false;
+    return String(password).trim() === realPassword;
   } catch (e) {
-    return password === 'nobel-a-2026';
+    // 讀取設定失敗時，寧可拒絕也不放行
+    return false;
   }
 }
 
@@ -2742,7 +2721,7 @@ function ensureDatabaseInitialized() {
 
   const eventsSheet = ss.getSheetByName('Events');
   if (!eventsSheet || eventsSheet.getLastRow() <= 1) {
-    setupInitialDatabase();
+    setupInitialDatabase_();
   } else {
     ensureAlbumSheetsExist();
   }
@@ -2831,7 +2810,24 @@ function getSettingsObject(sheet) {
 /**
  * 一鍵初始化試算表資料庫結構與預設示範資料
  */
-function setupInitialDatabase() {
+/**
+ * 試算表選單「重設資料庫」入口：必須在試算表介面內由擁有者按下，並二次確認。
+ * （從網頁／API 呼叫會因為沒有試算表 UI 而失敗，這是刻意的保護。）
+ */
+function menuResetDatabase() {
+  const ui = SpreadsheetApp.getUi();
+  const answer = ui.alert(
+    '⚠️ 危險操作：重設資料庫',
+    '這會「清空」Events 等工作表並寫回示範資料，現有的活動資料將消失！\n\n確定要繼續嗎？',
+    ui.ButtonSet.YES_NO
+  );
+  if (answer !== ui.Button.YES) return;
+  setupInitialDatabase_();
+  ui.alert('✅ 資料庫已重設完成。');
+}
+
+// 結尾底線 = 私有函式，google.script.run 與網頁 API 都呼叫不到
+function setupInitialDatabase_() {
   const ss = getSpreadsheet();
   if (!ss) throw new Error('無法取得 Google 試算表！');
 
@@ -2968,7 +2964,7 @@ function setupInitialDatabase() {
   setSheet.getRange(1, 1, 1, 3).setFontWeight('bold').setBackground('#F3F4F6');
 
   const sampleSettings = [
-    ['ADMIN_PASSWORD', 'nobel-a-2026', '後台管理員登入密碼（可於後台直接更改）'],
+    ['ADMIN_PASSWORD', '', '後台管理員登入密碼（初始化後請立刻手動填入新密碼；留空則任何人都無法登入後台）'],
     ['CLASS_NAME', '諾貝爾 A 班', '班級名稱'],
     ['KINDERGARTEN_NAME', '桃子腳幼兒園', '幼兒園全名'],
     ['ALBUMS_FOLDER_ID', ALBUMS_FOLDER_ID, '相簿根目錄 Google Drive 資料夾 ID'],
