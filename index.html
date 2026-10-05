@@ -2882,10 +2882,15 @@
     }
 
     // 雲端同步失敗時明確告知：目前畫面可能是舊資料（避免老師、家長被過期內容誤導）
-    function notifySyncFailed() {
-      showToast(state.lang === 'en'
+    function notifySyncFailed(err) {
+      // 附上簡短原因（錯誤名稱與訊息），方便在手機上直接回報；只取純文字、限制長度
+      let why = '';
+      try {
+        if (err) why = String((err && (err.name ? err.name + ': ' : '') + (err.message || err)) || '').slice(0, 80);
+      } catch (e) {}
+      showToast((state.lang === 'en'
         ? 'Cloud sync failed. The content shown may be outdated. Please reload.'
-        : '雲端資料同步失敗，目前顯示的可能是舊資料，請重新整理頁面。', '⚠️');
+        : '雲端資料同步失敗，目前顯示的可能是舊資料，請重新整理頁面。') + (why ? ' [' + why + ']' : ''), '⚠️');
     }
 
     function loadAppData(isSilent = true) {
@@ -2905,7 +2910,7 @@
           } catch (e) {}
           handleDataLoaded(res.data);
         } else {
-          notifySyncFailed();
+          notifySyncFailed(new Error('bad response: ' + (res && res.error ? res.error : 'no data')));
           if (!state.events || state.events.length === 0) {
             renderFallbackLocalData();
           }
@@ -2914,7 +2919,7 @@
         if (syncBadge) syncBadge.classList.add('hidden');
         showLoading(false);
         console.warn('GAS 連線失敗或逾時，已保持目前最新資料:', err);
-        notifySyncFailed();
+        notifySyncFailed(err);
         if (!state.events || state.events.length === 0) {
           renderFallbackLocalData();
         }

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>連線診斷</title>
+<style>body{font:16px/1.5 -apple-system,sans-serif;margin:16px;max-width:640px}button{font-size:18px;padding:12px 20px;border-radius:12px;border:0;background:#e11d48;color:#fff}pre{white-space:pre-wrap;word-break:break-all;background:#f1f5f9;padding:12px;border-radius:8px;font-size:13px}</style></head>
+<body>
+<h2>連線診斷（桃子腳）</h2>
+<p>按下按鈕，等到出現「完成」（最久約 1 分鐘），再把下面整段文字截圖貼給我。</p>
+<button id="go">開始診斷</button>
+<pre id="out">尚未開始</pre>
+<script>
+var API='https://script.google.com/macros/s/AKfycbx5JGeiSH2J1vkOu4rh9NPwFBWNSkn5PkHfY5o25t-K4WcOK8b3VQjXi-TqUOzS8TvdJg/exec';
+var out=document.getElementById('out');
+function log(s){out.textContent+='\n'+s;}
+function test(name,url,ms){
+  return new Promise(function(done){
+    var t0=Date.now(),c=new AbortController(),tm=setTimeout(function(){c.abort();},ms);
+    fetch(url,{redirect:'follow',signal:c.signal}).then(function(r){
+      return r.text().then(function(tx){
+        clearTimeout(tm);
+        var ok='';try{var j=JSON.parse(tx);ok=' success='+j.success;}catch(e){ok=' (非JSON，開頭：'+tx.slice(0,40).replace(/\s+/g,' ')+')';}
+        log(name+'：HTTP '+r.status+'，'+tx.length+' 字，'+(Date.now()-t0)+' ms'+ok+(r.redirected?'，有轉址':''));done();});
+    }).catch(function(e){clearTimeout(tm);log(name+'：失敗 '+e.name+' / '+e.message+'，'+(Date.now()-t0)+' ms');done();});
+  });
+}
+document.getElementById('go').onclick=function(){
+  out.textContent='裝置：'+navigator.userAgent+'\n網路：'+(navigator.onLine?'online':'offline')+(navigator.connection?'，'+(navigator.connection.effectiveType||''):'')+'\n時間：'+new Date().toISOString();
+  test('1 getAlbums（小）',API+'?action=getAlbums&t='+Date.now(),40000)
+  .then(function(){return test('2 getAppData（大）',API+'?action=getAppData&t='+Date.now(),40000);})
+  .then(function(){return test('3 getAppData 再一次（應較快）',API+'?action=getAppData&t='+Date.now(),40000);})
+  .then(function(){log('完成');});
+};
+</script></body></html>
