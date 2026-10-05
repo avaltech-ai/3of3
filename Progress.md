@@ -5,7 +5,7 @@
 > **新對話接手時請先讀本節**，再視需要讀 `SPECIFICATION.md`（規格正本）與 `tests/README.md`（測試說明）。下方「Critical Technical Lessons Learned」第 1～21 條是歷史紀錄，**其中第 1、2、19 條已過時**（見各條註記）；第 21 條之後的條列為 2026-10-05 起的新增項目。
 
 ### 一、目前狀態（一句話）
-**線上穩定，沒有待部署或待推送的項目。** `main` = `origin/main`；後端 GAS 現行部署 **@117「名稱對照表」**（另有不可刪的 `@HEAD`，共 2 個部署）；前端 GitHub Pages 為最新 commit。唯一待辦是**使用者自行填寫試算表 `NameMap` 的 13 個英文名稱**（見第七節）。
+**線上穩定，沒有待部署或待推送的項目。** `main` = `origin/main`；後端 GAS 現行部署 **@117「名稱對照表」**（另有不可刪的 `@HEAD`，共 2 個部署）；前端 GitHub Pages 為最新 commit。`NameMap` 的 13 個英文名稱已由使用者填寫完成（2026-10-05）；暫緩項目見 `TODO.md`，Safari 實機驗收見 `tests/safari-checklist.md`。
 
 ### 二、系統概覽
 - **架構**：靜態前端（GitHub Pages，`https://avaltech-ai.github.io/3of3/`）＋ Google Apps Script Web App（唯一 `/exec` 端點）＋ Google Sheets（資料庫）＋ Google Drive（相片、文件、音訊）。**已無 Netlify**。
@@ -57,7 +57,7 @@
 
 ### 七、待辦與待決定（皆不阻塞線上運作）
 **需要使用者處理**
-1. `NameMap` 的 `en` 欄有 13 個空白：`桃子腳`（建議 `Taozihjiao`）、`其他`（`Other`）、班級名稱 `諾貝爾 A／B／C`、`諾奧`、`奧斯卡`、`雨奧`、`米羅 A／B`、`兩果`、`雨果`、`高峰活動`（不確定意思，前台未顯示可不急）。
+1. ~~`NameMap` 的 `en` 欄 13 個空白~~ **已完成**（使用者於 2026-10-05 填寫）。
 2. 確認班名是「雨果」還是「兩果」（活動資料用了「雨果」、字典只有「兩果」）；並到 `EventTargets` 刪掉 `諾貝爾 A ` 後面多的空白（系統已自動忽略，非必須）。
 3. 在實體 iPad／iPhone Safari 上做最後驗收（桌面瀏覽器模擬無法取代，過去重大 bug 多為 Safari 特有）。
 

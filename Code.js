@@ -3188,6 +3188,7 @@ function ensureAlbumSheetsExist() {
   if (!ss) return { success: false, error: '無法開啟試算表' };
 
   let createdSheets = [];
+  let changed = false; // 只有真的建立／補資料／遷移時才清快取（doGet 每次請求都會呼叫本函式，無條件清除會讓 5 分鐘快取永遠失效）
 
   // 1. 確保 AlbumCategories 工作表存在（相簿活動類別，可由使用者於試算表自行編輯）
   let albumCatSheet = ss.getSheetByName('AlbumCategories');
@@ -3208,6 +3209,7 @@ function ensureAlbumSheetsExist() {
     albumCatSheet.getRange(2, 1, defaultAlbumCats.length, 1).setValues(defaultAlbumCats);
     albumCatSheet.autoResizeColumns(1, 1);
     createdSheets.push('AlbumCategories');
+    changed = true;
   } else if (albumCatSheet.getLastRow() <= 1) {
     // 若工作表存在但只有標題列，補入預設類別
     const defaultAlbumCats = [
@@ -3222,6 +3224,7 @@ function ensureAlbumSheetsExist() {
     ];
     albumCatSheet.getRange(2, 1, defaultAlbumCats.length, 1).setValues(defaultAlbumCats);
     albumCatSheet.autoResizeColumns(1, 1);
+    changed = true;
   }
 
   // 2. 確保 Albums 工作表存在（相簿資料庫紀錄）
@@ -3250,6 +3253,7 @@ function ensureAlbumSheetsExist() {
         }
         albumsSheet.autoResizeColumns(1, targetHeaders.length);
         createdSheets.push('Albums(已熱遷移移除活動年月欄位)');
+        changed = true;
       }
     }
   } else {
@@ -3323,9 +3327,10 @@ function ensureAlbumSheetsExist() {
     }
     albumsSheet.autoResizeColumns(1, targetHeaders.length);
     createdSheets.push('Albums');
+    changed = true;
   }
 
-  clearAppDataCache();
+  if (changed) clearAppDataCache();
   return {
     success: true,
     created: createdSheets,

@@ -2739,7 +2739,7 @@ const htmlContent = `<!DOCTYPE html>
               if (controller) controller.abort();
               if (errorCb) errorCb(new Error('伺服器連線逾時'));
             }
-          }, 10000);
+          }, 30000); // 後端快取未命中時讀整份試算表約 7～12 秒，手機網路更慢；10 秒太短會誤判為同步失敗
 
           fetch(url, { redirect: 'follow', signal: controller ? controller.signal : undefined })
             .then(r => {
