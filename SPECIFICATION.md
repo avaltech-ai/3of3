@@ -129,7 +129,7 @@
         |--- 1. POST /exec (Content-Type: text/plain;charset=utf-8) ------>|
         |    (Payload: { action: "deleteDoc", id: "DOC-01", ... })        |
         |                                                                 | 2. LockService 取得互斥鎖
-        |                                                                 | 3. checkPassword(pwd) 驗證
+        |                                                                 | 3. checkPassword(token) 驗證
         |                                                                 | 4. 執行試算表 row 刪除/寫入
         |                                                                 | 5. clearAppDataCache() 清快取
         |<-- 6. HTTP 302 Redirect (Location: .../macros/echo?...) --------|
@@ -240,7 +240,7 @@
 - **YouTube API 自動同步時長**：後端排程或管理後台點選「同步時長」，由 YouTube Data API v3 自動批次解析填回標準 `mm:ss` 時長格式。
 
 #### 6. 系統管理後台 (Admin CMS Dashboard)
-- **密碼鑑權防護**：進入後台需經過安全密碼校驗，密碼集中存放於 Google Sheets `Settings`。
+- **密碼鑑權防護**：登入時才送出一次管理員密碼（存放於 `Settings`），後端驗證通過後發給短效 token，之後所有寫入只帶 token（詳見 5.6）。
 - **子分頁導覽**：
   1. `活動管理 (Events)`：新增/編輯/刪除行事曆活動。
   2. `焦點活動 (Spotlight)`：管理輪播順序（支援 ▲ / ▼ 即時上下移動並同步至試算表）、設定停留秒數與有效期間。
@@ -424,7 +424,7 @@
 
 | 鍵值 (Key) | 預設值 (Value) | 說明 (Description) |
 | :--- | :--- | :--- |
-| `ADMIN_PASSWORD` | （空白，需手動填入） | 系統管理員後台登入密碼。**嚴禁寫入文件或程式碼**（repo 為公開）；留空則無人可登入後台。 |
+| `ADMIN_PASSWORD` | （空白，需手動填入） | 系統管理員後台登入密碼。**嚴禁寫入文件或程式碼**（repo 為公開）；留空則無人可登入後台。經後台變更時至少 10 字元，且變更後所有登入立即失效。 |
 | `CLASS_NAME` | `諾貝爾 A 班` | 班級全稱。 |
 | `KINDERGARTEN_NAME` | `桃子腳幼兒園` | 幼兒園正式名稱。 |
 | `ALBUMS_FOLDER_ID` | `1iRFAr3FZMqV-okmktipdwamjAR7WWp6d` | Google Drive 相簿根目錄資料夾 ID。 |
@@ -601,6 +601,8 @@ git push origin main
 | **快取未即時清除** | 試算表修改了，前台過 5 分鐘才更新 | 呼叫 GAS 後端之 `clearAppDataCache()` | 於後端管理功能點擊「清除快取」，或等待 5 分鐘快取自動過期。 |
 | **管理員權限遭拒** | 修改活動顯示「管理員密碼錯誤」 | 檢查 `Settings` 表中 `ADMIN_PASSWORD` 欄位值 | 確認輸入的密碼是否與試算表設定一致（密碼不得寫在文件中）。 |
 | **檔案刪除失敗** | 文件前台點刪除但試算表未移除 | 檢查瀏覽器 Console 是否有網路阻擋 | 確認是否已更新至包含 `gasPostViaFetch` 之最新部署版本（@109 以上）。 |
+| **後台登入被鎖定** | 顯示「嘗試次數過多…請 15 分鐘後再試」 | 連續輸錯 5 次所致 | 等 15 分鐘，或在試算表選單選「🔓 解除後台登入鎖定」。 |
+| **操作時被登出** | 顯示「登入已逾時或無效，請重新登入」 | token 閒置逾 2 小時、超過 8 小時、已登出，或密碼剛被變更 | 以密碼重新登入即可，不影響資料。 |
 | **相簿照片無法載入** | 點擊相簿彈窗顯示「目前尚無相片」 | 檢查相簿對應之 Google Drive 資料夾權限 | 資料夾權限必須設為「知道連結的使用者均可檢視」。 |
 
 ### 5.5 備份與還原 (Backup & Restore)
@@ -612,6 +614,17 @@ git push origin main
 - **首次設定**：在 GAS 編輯器選擇函式 `setupWeeklyBackupTrigger` 並執行一次（需授權），會建立觸發器並立刻備份一次。
 - **還原**：開啟備份檔 → 複製需要的工作表回正式試算表；或整份取代時，將備份檔的 ID 更新到 `Code.js` 的 `SPREADSHEET_ID` 並重新部署。
 - **寫入互斥**：`doPost` 對所有寫入動作取得 Script Lock（最長等待 20 秒，須小於前端 25 秒逾時），忙碌時回傳「系統目前忙碌」；`verifyPassword` 不佔鎖。
+
+### 5.6 管理員認證機制 (Authentication)
+
+- **登入**：前端送出密碼 → 後端 `verifyPassword` 比對 `Settings.ADMIN_PASSWORD` → 成功回傳隨機 token（存在伺服器端 `CacheService`）。**密碼不會被存在瀏覽器**。
+- **之後所有寫入**：沿用 payload 的 `password` 欄位，但內容是 token；後端 `checkPassword(token)` 只認 token，直接傳密碼一律拒絕（因此無法透過寫入端點或公開函式猜密碼）。
+- **期限**：閒置 2 小時失效（每次使用延長）；不論是否活躍，最長 8 小時必須重新登入。token 只存 `sessionStorage`，關閉分頁即消失；舊版遺留在 `localStorage` 的明文密碼會在載入時自動清除。
+- **鎖定**：連續輸錯 5 次，鎖定登入 15 分鐘（鎖定期間連正確密碼也不接受，且不再累計）。需提前解除時：試算表選單「🌟 諾貝爾A班專屬功能 → 🔓 解除後台登入鎖定」。取捨：任何人都能故意輸錯 5 次造成短暫鎖定，換取無法暴力猜密碼。
+- **逾時處理**：後端回傳 `authExpired: true` 時，前端先讓原本的 callback 還原畫面，再統一回到登入畫面並提示重新登入。
+- **變更密碼**：後台變更成功後，所有裝置的 token 立即失效（`AUTH_EPOCH`），需以新密碼重新登入。
+- **已知限制**：token 存在 `CacheService`，Google 在極少數情況可能提前清除快取，管理員會被要求重新登入（不影響資料）。`Settings` 內的密碼仍為明文（有試算表編輯權限者可見）。
+- **測試**：`node tests/auth.test.js`（模擬環境，44 項），修改認證、鎖定、備份相關程式後須全數通過才可部署。
 
 ---
 

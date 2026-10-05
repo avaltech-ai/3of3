@@ -111,6 +111,7 @@ function onOpen() {
       .addItem('📁 立即建立／檢查相簿工作表 (AlbumCategories 與 Albums)', 'menuEnsureAlbumSheets')
       .addItem('🔄 清除快取並強制重新整理', 'menuClearCache')
       .addItem('💾 立即備份試算表', 'menuBackupNow')
+      .addItem('🔓 解除後台登入鎖定', 'menuResetLoginLock')
       .addItem('🚀 一鍵初始化／重設資料庫 (5大工作表與示範資料)', 'menuResetDatabase')
       .addItem('🌐 開啟班級網頁應用程式', 'openWebApp')
       .addToUi();
@@ -174,9 +175,13 @@ function backupSpreadsheet_() {
  * 有最短間隔保護：距離上次成功備份不足 BACKUP_MIN_INTERVAL_DAYS 天就略過，
  * 避免有人從網頁反覆呼叫此函式、把好的舊備份擠掉。
  */
-function weeklyBackup() {
+function isBackupRecent_() {
   const last = Number(PropertiesService.getScriptProperties().getProperty('LAST_BACKUP_AT') || 0);
-  if (last && (Date.now() - last) < BACKUP_MIN_INTERVAL_DAYS * 86400000) {
+  return !!last && (Date.now() - last) < BACKUP_MIN_INTERVAL_DAYS * 86400000;
+}
+
+function weeklyBackup() {
+  if (isBackupRecent_()) {
     console.log('weeklyBackup 略過：距離上次備份不足 ' + BACKUP_MIN_INTERVAL_DAYS + ' 天');
     return { success: true, skipped: true };
   }
@@ -201,7 +206,8 @@ function menuBackupNow() {
 function setupWeeklyBackupTrigger() {
   // 先立刻備份一次：資料夾 ID、權限、流程任何一環有問題都會在這裡拋錯，
   // 此時尚未建立觸發器，不會留下「每週都失敗」的排程。
-  const res = backupSpreadsheet_();
+  // 距離上次備份不足間隔時不重複備份（setupWeeklyBackupTrigger 也能被網頁呼叫，不得用來連續備份擠掉舊檔）
+  const res = isBackupRecent_() ? { name: '（近期已備份，略過本次）' } : backupSpreadsheet_();
 
   ScriptApp.getProjectTriggers().forEach(function(t) {
     if (t.getHandlerFunction() === 'weeklyBackup') ScriptApp.deleteTrigger(t);
@@ -291,7 +297,7 @@ function doPost(e) {
     // 互斥鎖：所有寫入類動作一次只允許一個執行，避免兩位管理員同時儲存造成資料互蓋、列錯位或重複列。
     // 等待上限 20 秒（需小於前端 25 秒逾時，否則前端會自動重送而重複寫入）。
     let lockBusy = false;
-    if (action !== 'verifyPassword') {
+    if (action !== 'verifyPassword' && action !== 'logout' && action !== 'checkSession') {
       lock = LockService.getScriptLock();
       if (!lock.tryLock(20000)) { lockBusy = true; lock = null; }
     }
@@ -300,6 +306,10 @@ function doPost(e) {
       result = { success: false, error: '系統目前忙碌（可能有其他管理員正在儲存），請稍候 10 秒再試一次。' };
     } else if (action === 'verifyPassword') {
       result = verifyPassword(postData.password);
+    } else if (action === 'logout') {
+      result = adminLogout(postData.password);
+    } else if (action === 'checkSession') {
+      result = adminCheckSession(postData.password);
     } else if (action === 'saveEvent') {
       result = saveEvent(postData.data, postData.password);
     } else if (action === 'deleteEvent') {
@@ -347,7 +357,7 @@ function doPost(e) {
     } else if (action === 'batchUpdateSongDurations') {
       result = checkPassword(postData.password)
         ? batchUpdateSongDurations(postData.durationsMap || postData.data || {})
-        : { success: false, error: '管理員密碼錯誤！' };
+        : authFail_();
     } else if (action === 'saveTheme') {
       result = saveTheme(postData.themeData || postData.data, postData.password);
     } else if (action === 'deleteTheme') {
@@ -975,7 +985,7 @@ function initAlbumUpload(param1, param2, param3) {
   }
 
   if (!checkPassword(password)) {
-    return { success: false, error: '管理員密碼錯誤！' };
+    return authFail_();
   }
 
   try {
@@ -1096,7 +1106,7 @@ function uploadPhotosChunk(param1, param2, param3, param4) {
   }
 
   if (!checkPassword(password)) {
-    return { success: false, error: '管理員密碼錯誤！' };
+    return authFail_();
   }
 
   try {
@@ -1246,7 +1256,7 @@ function uploadPhotosToAlbum(param1, param2, param3, param4, param5, param6) {
   }
 
   if (!checkPassword(password)) {
-    return { success: false, error: '管理員密碼錯誤！' };
+    return authFail_();
   }
 
   try {
@@ -1373,7 +1383,7 @@ function uploadPhotosToAlbum(param1, param2, param3, param4, param5, param6) {
  */
 function saveAlbum(albumData, password) {
   if (!checkPassword(password)) {
-    return { success: false, error: '管理員密碼錯誤！' };
+    return authFail_();
   }
 
   try {
@@ -1454,7 +1464,7 @@ function saveAlbum(albumData, password) {
  */
 function deleteAlbum(albumId, password) {
   if (!checkPassword(password)) {
-    return { success: false, error: '管理員密碼錯誤！' };
+    return authFail_();
   }
 
   try {
@@ -1501,7 +1511,7 @@ function deleteAlbum(albumId, password) {
  */
 function uploadDocument(docMeta, fileObj, password) {
   if (!checkPassword(password)) {
-    return { success: false, error: '管理員密碼錯誤！' };
+    return authFail_();
   }
 
   try {
@@ -1564,7 +1574,7 @@ function uploadDocument(docMeta, fileObj, password) {
  */
 function uploadSpotlightImage(fileObj, password) {
   if (!checkPassword(password)) {
-    return { success: false, error: '管理員密碼錯誤！' };
+    return authFail_();
   }
 
   try {
@@ -1630,35 +1640,131 @@ function getActivityImages() {
   }
 }
 
-/**
- * 驗證管理員密碼
- */
-function verifyPassword(password) {
-  const isValid = checkPassword(password);
-  return { success: isValid, message: isValid ? '驗證成功' : '密碼不正確' };
+// -------------------------------------------------------------
+// 管理員認證：密碼只在登入時比對一次，之後一律使用短效 token
+// -------------------------------------------------------------
+
+const AUTH_TOKEN_TTL_SEC = 7200;            // token 閒置 2 小時失效（每次使用會延長）
+const AUTH_TOKEN_ABS_MAX_MS = 8 * 3600000;  // 不論是否活躍，最長 8 小時必須重新登入
+const AUTH_MAX_FAILS = 5;                   // 連續輸錯幾次後鎖定
+const AUTH_LOCK_SEC = 900;                  // 鎖定時間（秒）= 15 分鐘
+const AUTH_ERROR_MSG = '登入已逾時或無效，請重新登入。';
+const AUTH_MIN_PASSWORD_LENGTH = 10;        // 後台變更密碼時的最短長度
+
+/** 所有寫入端點驗證失敗時的統一回應；前端看到 authExpired 會自動回到登入畫面 */
+function authFail_() {
+  return { success: false, error: AUTH_ERROR_MSG, authExpired: true };
 }
 
-function checkPassword(password) {
+/** 比對試算表 Settings 內的管理員密碼（私有；只供登入與鎖定機制使用，絕不直接對外） */
+function verifyAdminPassword_(password) {
   if (!password) return false;
   try {
     const ss = getSpreadsheet();
     const sheet = ss.getSheetByName('Settings');
     const settings = getSettingsObject(sheet);
-    const realPassword = String(settings.ADMIN_PASSWORD || '').trim();
-    // 試算表沒設密碼 → 一律拒絕（不再退回任何內建預設密碼）
-    if (!realPassword) return false;
-    return String(password).trim() === realPassword;
+    const real = String(settings.ADMIN_PASSWORD || '').trim();
+    // 試算表沒設密碼 → 一律拒絕（不退回任何內建預設密碼）
+    if (!real) return false;
+    const given = String(password).trim();
+    // 逐字元比對、不提早結束，降低以回應時間猜測密碼的可能
+    let diff = given.length ^ real.length;
+    for (let i = 0; i < Math.max(given.length, real.length); i++) {
+      diff |= (given.charCodeAt(i) || 0) ^ (real.charCodeAt(i) || 0);
+    }
+    return diff === 0;
   } catch (e) {
     // 讀取設定失敗時，寧可拒絕也不放行
     return false;
   }
 }
 
+function getAuthEpoch_() {
+  return PropertiesService.getScriptProperties().getProperty('AUTH_EPOCH') || '0';
+}
+
+function issueToken_() {
+  const token = (Utilities.getUuid() + Utilities.getUuid()).replace(/-/g, '');
+  CacheService.getScriptCache().put('tok_' + token, getAuthEpoch_() + '|' + Date.now(), AUTH_TOKEN_TTL_SEC);
+  return token;
+}
+
+/**
+ * 驗證管理員 token（所有寫入端點都呼叫此函式，第二個參數沿用舊名 password，實際傳入的是 token）。
+ * 只認 token：直接傳密碼進來一律回 false，所以即使被當成公開函式呼叫，也無法拿來猜密碼。
+ */
+function checkPassword(token) {
+  if (!token || typeof token !== 'string' || token.length < 32 || token.length > 200) return false;
+  try {
+    const cache = CacheService.getScriptCache();
+    const key = 'tok_' + token;
+    const val = cache.get(key);
+    if (!val) return false;
+    const parts = String(val).split('|');
+    if (parts[0] !== getAuthEpoch_()) return false;                       // 密碼已變更 → 舊 token 全部失效
+    if (Date.now() - Number(parts[1] || 0) > AUTH_TOKEN_ABS_MAX_MS) {     // 超過絕對上限
+      cache.remove(key);
+      return false;
+    }
+    cache.put(key, val, AUTH_TOKEN_TTL_SEC);                              // 滑動延長閒置期限
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * 登入：驗證管理員密碼並發給 token。
+ * 連續輸錯 AUTH_MAX_FAILS 次後鎖定 AUTH_LOCK_SEC 秒，鎖定期間連正確密碼也不接受，且不再累計。
+ */
+function verifyPassword(password) {
+  const cache = CacheService.getScriptCache();
+  const fails = Number(cache.get('login_fails') || 0);
+  if (fails >= AUTH_MAX_FAILS) {
+    return { success: false, locked: true, error: '嘗試次數過多，為保護帳號已暫時鎖定，請 15 分鐘後再試。' };
+  }
+  if (verifyAdminPassword_(password)) {
+    cache.remove('login_fails');
+    return { success: true, token: issueToken_(), expiresInSec: AUTH_TOKEN_TTL_SEC, message: '驗證成功' };
+  }
+  const now = fails + 1;
+  cache.put('login_fails', String(now), AUTH_LOCK_SEC);
+  const left = AUTH_MAX_FAILS - now;
+  return {
+    success: false,
+    error: left > 0 ? ('密碼不正確（再錯 ' + left + ' 次將鎖定 15 分鐘）') : '嘗試次數過多，為保護帳號已暫時鎖定，請 15 分鐘後再試。',
+    locked: left <= 0
+  };
+}
+
+/** 登出：讓 token 立即失效 */
+function adminLogout(token) {
+  try { if (token) CacheService.getScriptCache().remove('tok_' + token); } catch (e) {}
+  return { success: true };
+}
+
+/** 檢查目前 token 是否仍有效（前端開頁時用來確認登入狀態） */
+function adminCheckSession(token) {
+  return checkPassword(token) ? { success: true } : authFail_();
+}
+
+/** 密碼變更後呼叫：讓所有已發出的 token 立即失效 */
+function bumpAuthEpoch_() {
+  PropertiesService.getScriptProperties().setProperty('AUTH_EPOCH', String(Date.now()));
+}
+
+/** 試算表選單：解除登入鎖定（只能在試算表介面由擁有者按下） */
+function menuResetLoginLock() {
+  const ui = SpreadsheetApp.getUi();
+  CacheService.getScriptCache().remove('login_fails');
+  ui.alert('✅ 已解除登入鎖定。');
+}
+
 /**
  * 儲存/編輯 行事曆活動
  */
 function saveEvent(eventData, password) {
-  if (!checkPassword(password)) return { success: false, error: '管理員密碼錯誤！' };
+  if (!checkPassword(password)) return authFail_();
   try {
     const ss = getSpreadsheet();
     const sheet = ss.getSheetByName('Events');
@@ -1741,7 +1847,7 @@ function saveEvent(eventData, password) {
  * 刪除行事曆活動
  */
 function deleteEvent(eventId, password) {
-  if (!checkPassword(password)) return { success: false, error: '管理員密碼錯誤！' };
+  if (!checkPassword(password)) return authFail_();
   try {
     const ss = getSpreadsheet();
     const sheet = ss.getSheetByName('Events');
@@ -1765,7 +1871,7 @@ function deleteEvent(eventId, password) {
  * 儲存/編輯 當日菜單
  */
 function saveMenu(menuData, password) {
-  if (!checkPassword(password)) return { success: false, error: '管理員密碼錯誤！' };
+  if (!checkPassword(password)) return authFail_();
   try {
     const ss = getSpreadsheet();
     const sheet = ss.getSheetByName('Menus');
@@ -1812,7 +1918,7 @@ function saveMenu(menuData, password) {
  * 刪除當日菜單
  */
 function deleteMenu(dateStr, password) {
-  if (!checkPassword(password)) return { success: false, error: '管理員密碼錯誤！' };
+  if (!checkPassword(password)) return authFail_();
   try {
     const ss = getSpreadsheet();
     const sheet = ss.getSheetByName('Menus');
@@ -1866,7 +1972,7 @@ function ensureSpotlightSheetHeaders(sheet) {
  * 儲存/編輯 Spotlight 重點活動（支援排程、秒數、多活動）
  */
 function saveSpotlight(spData, password) {
-  if (!checkPassword(password)) return { success: false, error: '管理員密碼錯誤！' };
+  if (!checkPassword(password)) return authFail_();
   try {
     const ss = getSpreadsheet();
     let sheet = ss.getSheetByName('Spotlight');
@@ -1922,7 +2028,7 @@ function saveSpotlight(spData, password) {
  * 刪除 Spotlight
  */
 function deleteSpotlight(spId, password) {
-  if (!checkPassword(password)) return { success: false, error: '管理員密碼錯誤！' };
+  if (!checkPassword(password)) return authFail_();
   try {
     const ss = getSpreadsheet();
     const sheet = ss.getSheetByName('Spotlight');
@@ -1946,7 +2052,7 @@ function deleteSpotlight(spId, password) {
  * 批次更新 Spotlight 輪播順序
  */
 function updateSpotlightsOrder(orderList, password) {
-  if (!checkPassword(password)) return { success: false, error: '管理員密碼錯誤！' };
+  if (!checkPassword(password)) return authFail_();
   try {
     const ss = getSpreadsheet();
     let sheet = ss.getSheetByName('Spotlight');
@@ -1997,7 +2103,7 @@ function updateSpotlightsOrder(orderList, password) {
  * 儲存/更新常用文件紀錄 (支援前台即時編輯與雲端同步)
  */
 function saveDoc(docData, password) {
-  if (!checkPassword(password)) return { success: false, error: '管理員密碼錯誤！' };
+  if (!checkPassword(password)) return authFail_();
   try {
     const ss = getSpreadsheet();
     let sheet = ss.getSheetByName('Docs');
@@ -2067,7 +2173,7 @@ function saveDoc(docData, password) {
  * 刪除文件紀錄
  */
 function deleteDoc(docId, password) {
-  if (!checkPassword(password)) return { success: false, error: '管理員密碼錯誤！' };
+  if (!checkPassword(password)) return authFail_();
   try {
     const ss = getSpreadsheet();
     const sheet = ss.getSheetByName('Docs');
@@ -2322,7 +2428,7 @@ function getSongsData() {
  * 新增 / 更新歌曲紀錄（以 id 為鍵）。未附新檔案時，保留原本的檔案連結。
  */
 function saveSong(songData, password) {
-  if (!checkPassword(password)) return { success: false, error: '管理員密碼錯誤！' };
+  if (!checkPassword(password)) return authFail_();
   try {
     songData = songData || {};
     const title = String(songData.title || '').trim();
@@ -2393,7 +2499,7 @@ function saveSong(songData, password) {
  * 上傳音樂檔至 Songs 資料夾，並登記 / 更新歌曲紀錄
  */
 function uploadSong(songMeta, fileObj, password) {
-  if (!checkPassword(password)) return { success: false, error: '管理員密碼錯誤！' };
+  if (!checkPassword(password)) return authFail_();
   try {
     if (!fileObj || !fileObj.base64) return { success: false, error: '沒有收到音樂檔內容！' };
     const rootFolder = DriveApp.getFolderById(SONGS_FOLDER_ID);
@@ -2440,7 +2546,7 @@ function uploadSong(songMeta, fileObj, password) {
  * 刪除歌曲紀錄（僅移除清單項目，不刪除 Google Drive 內的音樂檔）
  */
 function deleteSong(songId, password) {
-  if (!checkPassword(password)) return { success: false, error: '管理員密碼錯誤！' };
+  if (!checkPassword(password)) return authFail_();
   try {
     const sheet = ensureSongSheetsExist().songSheet;
     const data = sheet.getDataRange().getValues();
@@ -2556,7 +2662,7 @@ function getThemesData() {
  * 新增 / 更新每週主題（以 id 為鍵）
  */
 function saveTheme(themeData, password) {
-  if (!checkPassword(password)) return { success: false, error: '管理員密碼錯誤！' };
+  if (!checkPassword(password)) return authFail_();
   try {
     themeData = themeData || {};
     const themeName = String(themeData.themeName || '').trim();
@@ -2616,7 +2722,7 @@ function saveTheme(themeData, password) {
  * 刪除每週主題
  */
 function deleteTheme(themeId, password) {
-  if (!checkPassword(password)) return { success: false, error: '管理員密碼錯誤！' };
+  if (!checkPassword(password)) return authFail_();
   try {
     const sheet = ensureThemeSheetsExist().themeSheet;
     const data = sheet.getDataRange().getValues();
@@ -2638,7 +2744,20 @@ function deleteTheme(themeId, password) {
  * 更新系統設定（含管理員密碼、跑馬燈文字）
  */
 function updateSettings(newSettings, password) {
-  if (!checkPassword(password)) return { success: false, error: '目前管理員密碼錯誤！' };
+  if (!checkPassword(password)) return authFail_();
+  newSettings = newSettings || {};
+  let passwordChanged = false;
+  if (newSettings.ADMIN_PASSWORD !== undefined) {
+    const np = String(newSettings.ADMIN_PASSWORD || '').trim();
+    if (!np) {
+      delete newSettings.ADMIN_PASSWORD;   // 空白不得覆蓋密碼（否則所有人都無法登入）
+    } else if (np.length < AUTH_MIN_PASSWORD_LENGTH) {
+      return { success: false, error: '新密碼至少需要 ' + AUTH_MIN_PASSWORD_LENGTH + ' 個字元。' };
+    } else {
+      newSettings.ADMIN_PASSWORD = np;
+      passwordChanged = true;
+    }
+  }
   try {
     const ss = getSpreadsheet();
     const sheet = ss.getSheetByName('Settings');
@@ -2652,7 +2771,8 @@ function updateSettings(newSettings, password) {
     }
 
     clearAppDataCache();
-    return { success: true, message: '系統設定已更新完成！' };
+    if (passwordChanged) bumpAuthEpoch_();   // 所有人（含目前這個登入）須以新密碼重新登入
+    return { success: true, message: passwordChanged ? '密碼已更新，請以新密碼重新登入。' : '系統設定已更新完成！', passwordChanged: passwordChanged };
   } catch (err) {
     return { success: false, error: err.toString() };
   }

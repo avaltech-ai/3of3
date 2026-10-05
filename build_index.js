@@ -2318,11 +2318,20 @@ const htmlContent = `<!DOCTYPE html>
     };
     window.state = state;
 
+    // 管理員憑證：密碼只在登入時送出一次；之後使用後端發的短效 token，僅存在 sessionStorage（關閉分頁即消失）。
+    // 注意：state.adminPassword 欄位沿用舊名，但內容現在是 token，不是密碼。
+    var ADMIN_TOKEN_KEY = 'nobel_a_admin_token';
+    function readStoredToken() {
+      try { return sessionStorage.getItem(ADMIN_TOKEN_KEY) || ''; } catch (e) { return ''; }
+    }
+    // 清除舊版本遺留在瀏覽器裡的明文管理員密碼
+    try { localStorage.removeItem('nobel_a_admin_pwd'); sessionStorage.removeItem('nobel_a_admin_pwd'); } catch (e) {}
+
     function getAdminPassword() {
       let pwd = state.adminPassword;
       if (!pwd) {
         try {
-          pwd = sessionStorage.getItem('nobel_a_admin_pwd') || localStorage.getItem('nobel_a_admin_pwd') || '';
+          pwd = readStoredToken() || '';
           if (pwd) state.adminPassword = pwd;
         } catch (e) {}
       }
@@ -2332,10 +2341,12 @@ const htmlContent = `<!DOCTYPE html>
     // 初始化程式
     function initApp() {
       try {
-        const savedPwd = sessionStorage.getItem('nobel_a_admin_pwd') || localStorage.getItem('nobel_a_admin_pwd');
+        const savedPwd = readStoredToken();
         if (savedPwd) {
           state.adminPassword = savedPwd;
           showAdminDashboard();
+          // 確認 token 是否仍有效；已逾時會由 callBackend 統一處理並回到登入畫面（連線失敗則維持現狀）
+          callBackend('checkSession', { password: savedPwd }, function() {}, function() {});
         }
       } catch (e) {}
       updateAdminAuthUI();
@@ -2399,6 +2410,12 @@ const htmlContent = `<!DOCTYPE html>
 
     // 跨環境後端通訊橋樑 (支援 GAS 內部環境與 GitHub Pages 外部環境)
     function callBackend(action, payload, successCb, errorCb) {
+      // 任何呼叫只要被後端判定登入逾時／無效，先讓原本的 callback 處理（還原畫面等），再統一回到登入畫面
+      const _origSuccessCb = successCb;
+      successCb = function(res) {
+        if (_origSuccessCb) _origSuccessCb(res);
+        if (res && res.authExpired) handleAuthExpired(res.error);
+      };
       if (typeof google !== 'undefined' && google.script && google.script.run) {
         const runner = google.script.run
           .withSuccessHandler(res => { if (successCb) successCb(res); })
@@ -2408,6 +2425,8 @@ const htmlContent = `<!DOCTYPE html>
         else if (action === 'getAlbums') runner.getAlbums();
         else if (action === 'getAlbumPhotos') runner.getAlbumPhotos(payload.albumId);
         else if (action === 'verifyPassword') runner.verifyPassword(payload.password);
+        else if (action === 'logout') runner.adminLogout(payload.password);
+        else if (action === 'checkSession') runner.adminCheckSession(payload.password);
         else if (action === 'initAlbumUpload') runner.initAlbumUpload(payload);
         else if (action === 'uploadPhotosChunk') runner.uploadPhotosChunk(payload);
         else if (action === 'uploadPhotosToAlbum') runner.uploadPhotosToAlbum(payload.year || payload.date, payload.month || payload.title, payload.category, payload.title, payload.files, payload.password);
@@ -3167,7 +3186,7 @@ const htmlContent = `<!DOCTYPE html>
       let pwd = state.adminPassword;
       if (!pwd) {
         try {
-          pwd = sessionStorage.getItem('nobel_a_admin_pwd') || localStorage.getItem('nobel_a_admin_pwd') || '';
+          pwd = readStoredToken() || '';
           if (pwd) state.adminPassword = pwd;
         } catch (e) {}
       }
@@ -4994,7 +5013,7 @@ const htmlContent = `<!DOCTYPE html>
       let pwd = state.adminPassword;
       if (!pwd) {
         try {
-          pwd = sessionStorage.getItem('nobel_a_admin_pwd') || localStorage.getItem('nobel_a_admin_pwd') || '';
+          pwd = readStoredToken() || '';
           if (pwd) state.adminPassword = pwd;
         } catch (e) {}
       }
@@ -5555,7 +5574,7 @@ const htmlContent = `<!DOCTYPE html>
       // 管理員才顯示「開啟雲端資料夾」捷徑
       const browseBtn = document.getElementById('btnBrowseCloudSongs');
       if (browseBtn) {
-        const isAdmin = !!(state.adminPassword || (function() { try { return sessionStorage.getItem('nobel_a_admin_pwd') || localStorage.getItem('nobel_a_admin_pwd'); } catch (e) { return ''; } })());
+        const isAdmin = !!(state.adminPassword || (function() { try { return readStoredToken(); } catch (e) { return ''; } })());
         browseBtn.classList.toggle('hidden', !isAdmin);
       }
 
@@ -6396,14 +6415,15 @@ const htmlContent = `<!DOCTYPE html>
       showToast('驗證中...', '⏳');
 
       callBackend('verifyPassword', { password: pwd }, res => {
-        if (res && res.success) {
-          state.adminPassword = pwd;
-          try { sessionStorage.setItem('nobel_a_admin_pwd', pwd); localStorage.setItem('nobel_a_admin_pwd', pwd); } catch (e) {}
+        if (res && res.success && res.token) {
+          state.adminPassword = res.token;
+          try { sessionStorage.setItem(ADMIN_TOKEN_KEY, res.token); } catch (e) {}
+          input.value = '';
           showAdminDashboard();
           renderDocsList();
           showToast('歡迎登入管理後台！', '🎉');
         } else {
-          showToast('密碼不正確，請重新輸入！', '❌');
+          showToast((res && res.error) || '密碼不正確，請重新輸入！', res && res.locked ? '🔒' : '❌');
         }
       }, err => {
         showToast('無法連線驗證，請檢查網路後再試！', '❌');
@@ -6418,22 +6438,37 @@ const htmlContent = `<!DOCTYPE html>
       updateAdminAuthUI();
     }
 
-    function doAdminLogout() {
+    // 清除本機登入狀態並回到登入畫面（不呼叫後端、不顯示登出訊息）
+    function clearAdminSession() {
       state.adminPassword = '';
-      try { sessionStorage.removeItem('nobel_a_admin_pwd'); localStorage.removeItem('nobel_a_admin_pwd'); } catch (e) {}
-      document.getElementById('adminPasswordInput').value = '';
+      try { sessionStorage.removeItem(ADMIN_TOKEN_KEY); localStorage.removeItem('nobel_a_admin_pwd'); sessionStorage.removeItem('nobel_a_admin_pwd'); } catch (e) {}
+      const pwdInput = document.getElementById('adminPasswordInput');
+      if (pwdInput) pwdInput.value = '';
       document.getElementById('adminLoginCard').classList.remove('hidden');
       document.getElementById('adminDashboard').classList.add('hidden');
       renderDocsList();
       updateAdminAuthUI();
+    }
+
+    function doAdminLogout() {
+      const tok = state.adminPassword;
+      clearAdminSession();
+      if (tok) callBackend('logout', { password: tok }, function() {}, function() {});
       showToast('已安全登出系統管理員', '👋');
+    }
+
+    // 後端回報登入已逾時／無效：回到登入畫面並明確告知
+    function handleAuthExpired(msg) {
+      if (!state.adminPassword && !readStoredToken()) return;
+      clearAdminSession();
+      showToast(msg || '登入已逾時，請重新登入。', '🔒');
     }
 
     function updateAdminAuthUI() {
       let pwd = state.adminPassword;
       if (!pwd) {
         try {
-          pwd = sessionStorage.getItem('nobel_a_admin_pwd') || localStorage.getItem('nobel_a_admin_pwd') || '';
+          pwd = readStoredToken() || '';
           if (pwd) state.adminPassword = pwd;
         } catch (e) {}
       }
@@ -6932,7 +6967,7 @@ const htmlContent = `<!DOCTYPE html>
 
       let pwd = state.adminPassword;
       if (!pwd) {
-        try { pwd = sessionStorage.getItem('nobel_a_admin_pwd') || localStorage.getItem('nobel_a_admin_pwd') || ''; } catch (e) {}
+        try { pwd = readStoredToken() || ''; } catch (e) {}
       }
       if (!pwd) return showToast('請先以系統管理員身分登入！', '⚠️');
       state.adminPassword = pwd;
@@ -8564,8 +8599,8 @@ const htmlContent = `<!DOCTYPE html>
 
       const newSettings = {};
       if (newPwd) {
+        if (newPwd.length < 10) { showToast('新密碼至少需要 10 個字元！', '⚠️'); return; }
         newSettings.ADMIN_PASSWORD = newPwd;
-        state.adminPassword = newPwd;
       }
       
       if (actFolderUrl) {
@@ -8580,13 +8615,21 @@ const htmlContent = `<!DOCTYPE html>
       showToast('儲存系統設定中...', '⏳');
       callBackend('updateSettings', { settings: newSettings, password: state.adminPassword }, res => {
         if (res && res.success) {
+          if (res.passwordChanged) {
+            // 密碼已變更：所有登入（含目前這個）都失效，需以新密碼重新登入
+            const npInput = document.getElementById('setting-newPassword');
+            if (npInput) npInput.value = '';
+            clearAdminSession();
+            showToast(res.message || '密碼已更新，請以新密碼重新登入。', '🔑');
+            return;
+          }
           showToast(res.message || '設定已儲存！', '✅');
           loadAppData();
-        } else {
-          showToast('設定已更新！', '✅');
+        } else if (!(res && res.authExpired)) {
+          showToast('儲存失敗：' + ((res && res.error) || '未知錯誤'), '❌');
         }
       }, err => {
-        showToast('設定已更新！', '✅');
+        showToast('儲存失敗：' + (err && err.message ? err.message : '連線逾時'), '❌');
       });
     }
 
