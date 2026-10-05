@@ -8,7 +8,7 @@ function env(){
   const store={}; let ssCalls=0; const triggers=[]; let created=0;
   const cache={get:k=>k in store?store[k]:null,put:(k,v)=>{store[k]=v},remove:k=>{delete store[k]}};
   const ctx={console:{log(){},warn(){},error(){}},CacheService:{getScriptCache:()=>cache},
-    PropertiesService:{}, Utilities:{}, LockService:{}, SpreadsheetApp:{}, DriveApp:{}, ContentService:{}, HtmlService:{}, UrlFetchApp:{}, Session:{},
+    PropertiesService:{}, Utilities:{}, LockService:{}, SpreadsheetApp:{}, DriveApp:{}, ContentService:{createTextOutput:x=>({text:x,setMimeType(){return this}}),MimeType:{JSON:'J'}}, HtmlService:{}, UrlFetchApp:{}, Session:{},
     ScriptApp:{getProjectTriggers:()=>triggers,
       newTrigger:fn=>({timeBased:()=>({everyMinutes:()=>({create:()=>{created++;triggers.push({getHandlerFunction:()=>fn})}})})})}};
   vm.createContext(ctx); vm.runInContext(src,ctx);
@@ -36,6 +36,14 @@ ok(e.ctx.getAppData().data==='OLD','例外之後旗標已還原，一般請求�
 console.log('C. 觸發器冪等');
 e=env(); e.ctx.setupWarmCacheTrigger(); e.ctx.setupWarmCacheTrigger(); e.ctx.setupWarmCacheTrigger();
 ok(e.created()===1,'連按三次只建立 1 個觸發器（實際：'+e.created()+'）');
+
+console.log('D0. doGet(getAppData) 快取命中時不碰試算表');
+e=env(); e.store['app_data_v4']='{"success":true,"data":"OLD"}';
+let out=e.ctx.doGet({parameter:{action:'getAppData'}});
+ok(JSON.parse(out.text).data==='OLD','doGet 回傳快取內容');
+ok(e.ssCalls()===0,'快取命中：doGet 完全沒開試算表（實際讀取次數：'+e.ssCalls()+'）');
+e=env(); e.ctx.doGet({parameter:{action:'getAlbums'}});
+ok(e.ssCalls()>=1,'其他動作（getAlbums）仍會做工作表檢查');
 
 console.log('D. 快取時間');
 ok(/APP_DATA_CACHE_TTL_SEC\s*=\s*600/.test(src) && /put\('app_data_v4',\s*JSON\.stringify\(result\),\s*APP_DATA_CACHE_TTL_SEC\)/.test(src),'快取存活 10 分鐘（大於預熱間隔 5 分鐘）');

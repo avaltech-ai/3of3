@@ -268,11 +268,16 @@ function openWebApp() {
  * Web App 入口 (支援 HTML 網頁呈現與 REST API JSON 回應)
  */
 function doGet(e) {
-  // 自動檢查相簿與分類工作表是否已建立
-  try {
-    ensureAlbumSheetsExist();
-  } catch (err) {
-    console.error('ensureAlbumSheetsExist in doGet failed: ' + err.toString());
+  // 自動檢查相簿與分類工作表是否已建立。
+  // getAppData 不在這裡檢查：快取命中時完全不碰試算表（開試算表偶爾卡 20 秒以上甚至更久，會拖累每位使用者），
+  // 快取未命中時 getAppData 自己會呼叫 ensureDatabaseInitialized 做同樣的檢查。
+  const skipEnsure = !!(e && e.parameter && e.parameter.action === 'getAppData');
+  if (!skipEnsure) {
+    try {
+      ensureAlbumSheetsExist();
+    } catch (err) {
+      console.error('ensureAlbumSheetsExist in doGet failed: ' + err.toString());
+    }
   }
 
   // 如果帶有 action 參數，則作為 REST API 回傳 JSON（支援 GitHub Pages 跨網域讀取）
