@@ -2095,6 +2095,8 @@ const htmlContent = `<!DOCTYPE html>
           albumNoPhotos: "此相簿目前無照片檔案。",
           albumLoadingPhotos: "讀取相簿照片中...",
           waitElapsed: "已等待 {s} 秒",
+          newBadge: "NEW",
+          newBadgeTitle: "近 7 天內新增或更新",
           waitRetry: "網路較慢，正在重試（{n}/{max}）",
           waitBigAlbum: "大型相簿第一次開啟會比較久，請稍候",
           thumbProgress: "縮圖載入 {i} / {n}",
@@ -2292,6 +2294,8 @@ const htmlContent = `<!DOCTYPE html>
           albumNoPhotos: "This album has no photos yet.",
           albumLoadingPhotos: "Loading album photos...",
           waitElapsed: "Waiting {s}s",
+          newBadge: "NEW",
+          newBadgeTitle: "Added or updated in the last 7 days",
           waitRetry: "Slow connection, retrying ({n}/{max})",
           waitBigAlbum: "Large albums take longer the first time",
           thumbProgress: "Loading thumbnails {i} / {n}",
@@ -4854,6 +4858,41 @@ const htmlContent = `<!DOCTYPE html>
       applyAlbumFilters();
     }
 
+    // ---------- 「NEW」標籤：相簿／文件／主題活動在最近 7 天內新增或更新（依各資料表的 updatedAt）----------
+    // 注意：updatedAt 是「最後修改時間」，不是建立時間；修改舊資料也會重新標示 NEW（使用者已決定接受）。
+    const NEW_BADGE_DAYS = 7;
+
+    function taipeiYmd(d) {
+      return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+    }
+
+    // 轉成台北時區的 YYYY-MM-DD；無法解析回傳 null
+    function parseUpdatedYmd(v) {
+      if (v === null || v === undefined) return null;
+      const str = String(v).trim();
+      if (!str) return null;
+      const m = str.match(/^(\\d{4})[-\\/](\\d{1,2})[-\\/](\\d{1,2})$/);
+      if (m) return m[1] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[3]).slice(-2);
+      const d = new Date(str);
+      if (isNaN(d.getTime())) return null;
+      return taipeiYmd(d);
+    }
+
+    // 今天（含）起往前 NEW_BADGE_DAYS 個日曆日內為「新」；未來日期或無法解析一律不算（避免資料錯誤時全部亂標）
+    function isNewItem(updatedAt, now) {
+      const ymd = parseUpdatedYmd(updatedAt);
+      if (!ymd) return false;
+      const today = taipeiYmd(now || new Date());
+      const a = ymd.split('-'), b = today.split('-');
+      const age = Math.round((Date.UTC(+b[0], +b[1] - 1, +b[2]) - Date.UTC(+a[0], +a[1] - 1, +a[2])) / 86400000);
+      return age >= 0 && age < NEW_BADGE_DAYS;
+    }
+
+    function newBadgeHtml(updatedAt) {
+      if (!isNewItem(updatedAt)) return '';
+      return '<span class="new-badge shrink-0 text-[0.625rem] font-extrabold tracking-wide text-white bg-rose-500 px-1.5 py-0.5 rounded-full leading-none shadow-xs" title="' + esc(t('ui.newBadgeTitle')) + '">' + esc(t('ui.newBadge')) + '</span>';
+    }
+
     function renderAlbumsList(albums) {
       const loading = document.getElementById('albumsLoading');
       if (loading) loading.classList.add('hidden');
@@ -4895,7 +4934,10 @@ const htmlContent = `<!DOCTYPE html>
             </div>
 
             <div class="pt-2.5 pb-0.5 px-1">
-              <h4 class="font-black text-slate-800 text-sm truncate" title="\${esc(alb.title)}">\${esc(alb.title)}</h4>
+              <div class="flex items-center gap-1.5 min-w-0">
+                <h4 class="font-black text-slate-800 text-sm truncate" title="\${esc(alb.title)}">\${esc(alb.title)}</h4>
+                \${newBadgeHtml(alb.updatedAt)}
+              </div>
             </div>
           </div>
         \`;
@@ -5480,6 +5522,7 @@ const htmlContent = `<!DOCTYPE html>
           '<div class="flex items-center gap-2 flex-wrap">' +
           '<h4 class="font-black text-slate-800 text-sm sm:text-base">' + (esc(doc.fileName) || (state.lang === 'en' ? 'Untitled Document' : '未命名文件')) + '</h4>' +
           '<span class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-indigo-100 text-indigo-800">' + (esc(tn(doc.category)) || (state.lang === 'en' ? 'General' : '一般')) + '</span>' +
+          newBadgeHtml(doc.updatedAt) +
           '</div>' +
           '<p class="text-xs text-slate-500 mt-1 leading-relaxed">' + (esc(doc.description) || (state.lang === 'en' ? 'Click to preview or download document' : '點擊即可線上下載或預覽文件')) + '</p>' +
           '<div class="text-[0.6875rem] text-slate-400 mt-1">' + (state.lang === 'en' ? 'Updated: ' : '更新日期：') + esc(doc.updatedAt || '2026-09-01') + '</div>' +
@@ -8817,7 +8860,10 @@ const htmlContent = `<!DOCTYPE html>
                   \${songEsc(theme.week || '')}
                 </div>
                 <div class="min-w-0">
-                  <h3 class="font-black text-slate-800 text-base sm:text-lg truncate">\${songEsc(themeName)}</h3>
+                  <div class="flex items-center gap-1.5 min-w-0">
+                    <h3 class="font-black text-slate-800 text-base sm:text-lg truncate">\${songEsc(themeName)}</h3>
+                    \${newBadgeHtml(theme.updatedAt)}
+                  </div>
                   <div class="text-xs font-semibold text-slate-500 mt-0.5 flex items-center gap-1.5 truncate">
                     <span>\${songEsc(dateRangeStr)}</span>
                     \${theme.semester ? \`<span class="text-[10px] bg-slate-200/70 px-1.5 py-0.5 rounded text-slate-600">\${songEsc(tn(theme.semester))}</span>\` : ''}

@@ -105,3 +105,5 @@ console.log(await window.__nameMapFrontendTest());   // allPass 應為 true
 ## 實機驗收與診斷
 - `tests/safari-checklist.md`：iPad／iPhone Safari 實機驗收清單（18 項）。
 - `diag.html`（網站根目錄，`…/3of3/diag.html`）：手機連線診斷頁，逐一呼叫 `getAlbums`／`getAppData` 並顯示狀態碼、耗時、錯誤名稱；**只按一次按鈕**。
+- `tests/new_badge.js`：NEW 標籤（判斷邏輯含台北時區邊界、三種卡片渲染、惡意日期字串，17 項）。
+
