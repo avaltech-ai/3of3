@@ -3229,6 +3229,14 @@
     /**
      * 將複選的適用對象拆分為獨立的氣泡標籤 / 按鈕
      */
+    // 活動「細項」小標籤（例如：慶生活動、親師座談、幸福廚房）。只顯示細項，不顯示大項
+    // （大項如「全園活動」「班級主題」與適用對象標籤資訊重複）。細項走名稱對照表（英文介面顯示英文；查不到顯示中文原名）。
+    function eventMinorBadgeHtml(ev) {
+      const minor = String((ev && (ev.categoryMinor || ev['活動類別 (細項)'])) || '').trim();
+      if (!minor) return '';
+      return '<span class="event-minor shrink-0 text-[0.625rem] font-bold px-1.5 py-0.5 rounded-full bg-white/80 border border-slate-300/80 text-slate-600 leading-none">' + esc(tn(minor)) + '</span>';
+    }
+
     function renderTargetBadges(targetStr, size = 'md') {
       if (!targetStr || !targetStr.trim()) {
         targetStr = '全園';
@@ -4486,8 +4494,9 @@
                 </div>
                 <span class="text-xs font-bold text-slate-500">${esc(ev.timeLocation || '')}</span>
               </div>
-              <h5 class="text-sm font-black text-slate-800 flex items-center gap-1">
+              <h5 class="text-sm font-black text-slate-800 flex items-center gap-1.5 flex-wrap">
                 ${esc(ev.title)}
+                ${eventMinorBadgeHtml(ev)}
               </h5>
               ${ev.description ? `<p class="text-xs text-slate-600 leading-relaxed font-medium bg-white/70 p-2.5 rounded-xl whitespace-pre-line">${esc(ev.description)}</p>` : ''}
             </div>
@@ -4660,6 +4669,7 @@
               <div>
                 <div class="flex items-center gap-1.5 flex-wrap">
                   <span class="text-xs font-bold ${isNobelA ? 'text-peach-600' : 'text-slate-800'}">${esc(ev.title)}</span>
+                  ${eventMinorBadgeHtml(ev)}
                   <div class="inline-flex items-center gap-1 flex-wrap">
                     ${renderTargetBadges(ev.target, 'sm')}
                   </div>
