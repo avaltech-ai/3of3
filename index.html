@@ -127,15 +127,15 @@
     <div id="mobileSidebarBackdrop" class="md:hidden fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-xs opacity-0 pointer-events-none transition-opacity duration-300" onclick="toggleMobileSidebar()"></div>
 
     <!-- The actual floating/sticky sidebar (Desktop + Mobile) -->
-    <aside id="desktopSidebar" class="flex flex-col bg-white border-r border-slate-200/80 shadow-sm fixed top-1.5 bottom-0 left-0 z-50 w-[136px] md:w-12 transition-all duration-300 overflow-hidden group -translate-x-full md:translate-x-0" onmouseenter="expandSidebar()" onmouseleave="collapseSidebar()">
+    <aside id="desktopSidebar" class="flex flex-col bg-white border-r border-slate-200/80 shadow-sm fixed top-1.5 bottom-0 left-0 z-50 w-[152px] md:w-12 transition-all duration-300 overflow-hidden group -translate-x-full md:translate-x-0" onmouseenter="expandSidebar()" onmouseleave="collapseSidebar()">
       <div class="px-1.5 flex items-center border-b border-slate-100 relative min-h-[52px] whitespace-nowrap overflow-hidden">
-        <div class="flex items-center px-1 py-1.5 w-full">
+        <div class="flex items-center pl-1.5 pr-0 py-1.5 w-full">
           <span class="text-base w-6 text-center shrink-0 select-none cursor-pointer transition-transform hover:scale-110" onclick="switchTab('home')">🍄</span>
-          <span class="font-bold text-xs text-slate-700 whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1 select-none" data-i18n="nav.menu">選單導覽</span>
+          <span class="font-bold text-xs text-slate-700 whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1 select-none flex-1 min-w-0 truncate" data-i18n="nav.menu">選單導覽</span>
+          <button id="pinSidebarBtn" onclick="togglePinSidebar()" class="shrink-0 ml-1 p-1 text-slate-400 hover:text-slate-700 transition-colors opacity-0 sidebar-pin-btn rounded-md hover:bg-slate-100 group-hover:opacity-100 focus:opacity-100 tap-bounce" title="釘選選單" data-i18n-title="nav.pin">
+            <span class="text-xs">📌</span>
+          </button>
         </div>
-        <button id="pinSidebarBtn" onclick="togglePinSidebar()" class="absolute right-1 p-1 text-slate-400 hover:text-slate-700 transition-colors opacity-0 sidebar-pin-btn rounded-md hover:bg-slate-100 group-hover:opacity-100 focus:opacity-100 tap-bounce" title="釘選選單" data-i18n-title="nav.pin">
-          <span class="text-xs">📌</span>
-        </button>
       </div>
       
       <nav class="flex-1 py-2.5 flex flex-col gap-1 px-1.5 overflow-y-auto no-scrollbar overflow-x-hidden">
@@ -316,7 +316,7 @@
         <div class="flex items-center justify-between mb-3">
           <div class="flex items-center gap-2">
             <span class="bg-peach-500 text-white text-xs font-extrabold px-3 py-1 rounded-full shadow-sm flex items-center gap-1.5">
-              <span>✨</span> <span data-i18n="cal.spotlightTag">SPOTLIGHT 焦點活動</span>
+              <span>✨</span> <span data-i18n="cal.spotlightTag">焦點活動</span>
             </span>
           </div>
 
@@ -1973,7 +1973,7 @@
           legendSnack: '每日點心／餐點',
           legendKitchen: '幸福廚房日',
           legendBirthday: '當月慶生日',
-          spotlightTag: 'SPOTLIGHT 焦點活動',
+          spotlightTag: '焦點活動',
           spotlightEnlarge: '放大查看',
           spotlightSlideInterval: '⏱️ 5s 輪播',
           todayEventsTitle: '當日活動與行程',
@@ -3138,7 +3138,7 @@
       const texts = document.querySelectorAll('.sidebar-text');
       if (sb) {
         sb.classList.remove('md:w-12');
-        sb.classList.add('md:w-[136px]');
+        sb.classList.add('md:w-[152px]');
       }
       texts.forEach(el => {
         el.classList.remove('opacity-0');
@@ -3152,7 +3152,7 @@
       const texts = document.querySelectorAll('.sidebar-text');
       if (sb) {
         sb.classList.add('md:w-12');
-        sb.classList.remove('md:w-[136px]');
+        sb.classList.remove('md:w-[152px]');
       }
       texts.forEach(el => {
         el.classList.add('opacity-0');
@@ -3166,13 +3166,13 @@
       const pinBtn = document.getElementById('pinSidebarBtn');
       if (isSidebarPinned) {
         wrap.classList.remove('w-12');
-        wrap.classList.add('w-[136px]');
+        wrap.classList.add('w-[152px]');
         pinBtn.classList.add('text-peach-500', 'bg-peach-100', 'opacity-100');
         pinBtn.classList.remove('text-slate-400', 'opacity-0');
         expandSidebar(); // Ensure it's expanded
       } else {
         wrap.classList.add('w-12');
-        wrap.classList.remove('w-[136px]');
+        wrap.classList.remove('w-[152px]');
         pinBtn.classList.remove('text-peach-500', 'bg-peach-100', 'opacity-100');
         pinBtn.classList.add('text-slate-400');
         collapseSidebar();
@@ -3262,13 +3262,13 @@
         sidebar.classList.remove('-translate-x-full');
         backdrop.classList.remove('opacity-0', 'pointer-events-none');
         backdrop.classList.add('opacity-100', 'pointer-events-auto');
-        sidebar.classList.add('w-[136px]');
+        sidebar.classList.add('w-[152px]');
         expandSidebar();
       } else {
         sidebar.classList.add('-translate-x-full');
         backdrop.classList.remove('opacity-100', 'pointer-events-auto');
         backdrop.classList.add('opacity-0', 'pointer-events-none');
-        sidebar.classList.remove('w-[136px]');
+        sidebar.classList.remove('w-[152px]');
         if (!window.isSidebarPinned) {
           collapseSidebar();
         }
@@ -5644,11 +5644,11 @@
         const row = document.createElement('div');
         row.className = 'p-2.5 sm:p-3 rounded-3xl bg-white border ' +
           (isSelected ? 'border-fuchsia-400 bg-fuchsia-50/30 ring-2 ring-fuchsia-300/40' : 'border-slate-200/90') +
-          ' shadow-2xs hover:shadow-md transition-all flex items-center gap-2.5 sm:gap-4 group';
+          ' shadow-2xs hover:shadow-md transition-all relative flex items-start sm:items-center gap-3 sm:gap-4 group';
 
         // 勾選核取方塊
         const checkWrap = document.createElement('label');
-        checkWrap.className = 'shrink-0 p-1 flex items-center justify-center cursor-pointer';
+        checkWrap.className = 'absolute top-3.5 left-3.5 z-10 w-7 h-7 rounded-full bg-white/90 shadow-sm sm:static sm:w-auto sm:h-auto sm:rounded-none sm:bg-transparent sm:shadow-none shrink-0 p-1 flex items-center justify-center cursor-pointer';
         checkWrap.title = '勾選此歌曲加入播放清單';
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
@@ -5664,7 +5664,7 @@
         // YouTube 縮圖按鈕 (含時長標籤)
         const thumbBtn = document.createElement('button');
         thumbBtn.type = 'button';
-        thumbBtn.className = 'relative shrink-0 w-28 sm:w-40 aspect-video rounded-2xl overflow-hidden bg-slate-100 tap-bounce cursor-pointer';
+        thumbBtn.className = 'relative shrink-0 w-24 sm:w-40 aspect-video rounded-2xl overflow-hidden bg-slate-100 tap-bounce cursor-pointer';
         thumbBtn.setAttribute('aria-label', '播放 ' + (song.title || ''));
         thumbBtn.innerHTML = (thumb ? '<img src="' + escUrl(thumb) + '" alt="" loading="lazy" class="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300">' : '') +
           '<span class="absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-black/25 transition-colors">' +
@@ -5676,17 +5676,21 @@
         // 資訊區：類別徽章 + 歌曲時長 + 歌名
         const info = document.createElement('div');
         info.className = 'flex-1 min-w-0 flex flex-col items-start gap-1.5';
-        let metaHtml = '<div class="flex items-center gap-1.5 flex-wrap">' +
+        let metaHtml = '<div class="flex items-center gap-1.5 flex-wrap w-full">' +
           '<span class="' + getSongCategoryBadgeClass(song.category) + ' text-[0.6875rem] font-extrabold px-2.5 py-0.5 rounded-full">' + songEsc(song.category || '未分類') + '</span>';
         if (formattedDur) {
-          metaHtml += '<span class="inline-flex items-center gap-1 text-[11px] sm:text-xs text-slate-500 font-semibold bg-slate-100/90 px-2 py-0.5 rounded-full">⏱️ ' + songEsc(formattedDur) + '</span>';
+          metaHtml += '<span class="hidden sm:inline-flex items-center gap-1 text-[11px] sm:text-xs text-slate-500 font-semibold bg-slate-100/90 px-2 py-0.5 rounded-full">⏱️ ' + songEsc(formattedDur) + '</span>';
+        }
+        if (song.downloadUrl) {
+          metaHtml += '<a href="' + (escUrl(song.downloadUrl) || '#') + '" target="_blank" rel="noopener noreferrer" title="下載音樂檔" aria-label="下載 ' + esc(song.title || '') + ' 音樂檔" ' +
+            'class="sm:hidden ml-auto w-9 h-9 rounded-full bg-fuchsia-50 hover:bg-fuchsia-100 text-fuchsia-700 flex items-center justify-center shrink-0 tap-bounce transition-colors">' + SONG_DOWNLOAD_ICON + '</a>';
         }
         metaHtml += '</div>';
         info.innerHTML = metaHtml;
 
         const titleBtn = document.createElement('button');
         titleBtn.type = 'button';
-        titleBtn.className = 'font-black text-slate-800 hover:text-fuchsia-700 text-sm sm:text-base text-left line-clamp-2 transition-colors cursor-pointer';
+        titleBtn.className = 'font-black text-slate-800 hover:text-fuchsia-700 text-sm sm:text-base text-left line-clamp-3 sm:line-clamp-2 transition-colors cursor-pointer';
         titleBtn.textContent = song.title || '未命名歌曲';
         titleBtn.onclick = function() { openSongPlayer(song.id); };
         info.appendChild(titleBtn);
@@ -5700,7 +5704,7 @@
           dl.rel = 'noopener noreferrer';
           dl.title = '下載音樂檔';
           dl.setAttribute('aria-label', '下載 ' + (song.title || '') + ' 音樂檔');
-          dl.className = 'w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-fuchsia-50 hover:bg-fuchsia-100 text-fuchsia-700 flex items-center justify-center shrink-0 tap-bounce transition-colors';
+          dl.className = 'hidden sm:flex w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-fuchsia-50 hover:bg-fuchsia-100 text-fuchsia-700 items-center justify-center shrink-0 tap-bounce transition-colors';
           dl.innerHTML = SONG_DOWNLOAD_ICON;
           row.appendChild(dl);
         }
