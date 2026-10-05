@@ -5,7 +5,7 @@
 > **新對話接手時請先讀本節**，再視需要讀 `SPECIFICATION.md`（規格正本）與 `tests/README.md`（測試說明）。下方「Critical Technical Lessons Learned」第 1～21 條是歷史紀錄，**其中第 1、2、19 條已過時**（見各條註記）；第 21 條之後的條列為 2026-10-05 起的新增項目。
 
 ### 一、目前狀態（一句話）
-**線上穩定，沒有待部署項目。** 後端 GAS 現行部署 **@121「修正相簿問題」**（另有不可刪的 `@HEAD`，共 2 個部署）；前端 GitHub Pages 為最新 commit。`NameMap` 的 13 個英文名稱已由使用者填寫完成（2026-10-05）；暫緩項目見 `TODO.md`，Safari 實機驗收見 `tests/safari-checklist.md`。**使用者需在試算表選單按一次「⚡ 啟用網頁快取預熱」**（已按過）。
+**線上穩定，沒有待部署項目。** 後端 GAS 現行部署 **@122「限制資料夾 ID」**（另有不可刪的 `@HEAD`，共 2 個部署）；前端 GitHub Pages 為最新 commit。`NameMap` 的 13 個英文名稱已由使用者填寫完成（2026-10-05）；暫緩項目見 `TODO.md`，Safari 實機驗收見 `tests/safari-checklist.md`。**使用者需在試算表選單按一次「⚡ 啟用網頁快取預熱」**（已按過）。
 
 ### 二、系統概覽
 - **架構**：靜態前端（GitHub Pages，`https://avaltech-ai.github.io/3of3/`）＋ Google Apps Script Web App（唯一 `/exec` 端點）＋ Google Sheets（資料庫）＋ Google Drive（相片、文件、音訊）。**已無 Netlify**。
