@@ -77,6 +77,12 @@ const htmlContent = `<!DOCTYPE html>
     html.big-text {
       font-size: 22px;
     }
+    /* 觸控裝置（沒有 hover，例如 iPad）：側邊欄無法靠滑鼠移入展開，所以顯示明確的展開鈕，並讓圖釘常顯 */
+    #sidebarTouchToggle { display: none; }
+    @media (hover: none) and (min-width: 768px) {
+      #sidebarTouchToggle { display: flex; }
+      #pinSidebarBtn { opacity: 1; }
+    }
     /* 列印本週菜單：螢幕上隱藏列印區；列印時只輸出列印區（#printMenuArea 必須是 body 的直接子元素） */
     #printMenuArea { display: none; }
     @media print {
@@ -172,6 +178,10 @@ const htmlContent = `<!DOCTYPE html>
       </div>
       
       <nav class="flex-1 py-2.5 flex flex-col gap-1 px-1.5 overflow-y-auto no-scrollbar overflow-x-hidden">
+        <button type="button" id="sidebarTouchToggle" onclick="toggleSidebarTouch()" aria-expanded="false" class="items-center px-1.5 py-1.5 rounded-xl transition-all text-slate-600 bg-slate-50 border border-slate-200 hover:bg-slate-100 hover:text-slate-800 tap-bounce mb-1" title="展開／收合選單" aria-label="展開／收合選單" data-i18n-title="nav.toggleTitle" data-i18n-aria="nav.toggleTitle">
+          <span id="sidebarTouchIcon" class="text-base w-6 text-center shrink-0 font-black select-none">»</span>
+          <span class="font-bold text-xs whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1" data-i18n="nav.collapse">收合選單</span>
+        </button>
         <button onclick="switchTab('home')" id="tabBtn-home" class="tab-btn flex items-center px-1.5 py-1.5 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
           <span class="text-base w-6 text-center shrink-0">🏠</span>
           <span class="font-bold text-xs whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1" data-i18n="nav.daily">班級日常</span>
@@ -2002,6 +2012,8 @@ const htmlContent = `<!DOCTYPE html>
           docs: '常用文件',
           admin: '管理後台',
           bigText: '大字',
+          collapse: '收合選單',
+          toggleTitle: '展開／收合選單',
           bigTextTitle: '放大／還原文字大小',
           langToggle: 'English',
           langTitle: '切換為英文 / Switch to English'
@@ -2213,6 +2225,8 @@ const htmlContent = `<!DOCTYPE html>
           docs: 'Docs',
           admin: 'Admin',
           bigText: 'Large text',
+          collapse: 'Collapse menu',
+          toggleTitle: 'Expand / collapse menu',
           bigTextTitle: 'Toggle large text',
           langToggle: '繁體中文',
           langTitle: 'Switch to Traditional Chinese / 切換為繁體中文'
@@ -3655,6 +3669,41 @@ const htmlContent = `<!DOCTYPE html>
       });
     }
 
+    // 觸控裝置（例如 iPad）沒有 hover：用明確的「»」鈕展開、「«」收合；點選單以外的地方或選了頁籤就自動收合。
+    let sidebarTouchExpanded = false;
+
+    function setSidebarTouchUI() {
+      const icon = document.getElementById('sidebarTouchIcon');
+      const btn = document.getElementById('sidebarTouchToggle');
+      if (icon) icon.textContent = sidebarTouchExpanded ? '«' : '»';
+      if (btn) btn.setAttribute('aria-expanded', sidebarTouchExpanded ? 'true' : 'false');
+    }
+
+    function toggleSidebarTouch() {
+      if (window.innerWidth < 768) return; // 手機用漢堡選單
+      if (sidebarTouchExpanded) {
+        sidebarTouchExpanded = false;
+        collapseSidebar();
+      } else {
+        sidebarTouchExpanded = true;
+        expandSidebar();
+      }
+      setSidebarTouchUI();
+    }
+
+    function closeSidebarTouch() {
+      if (!sidebarTouchExpanded) return;
+      sidebarTouchExpanded = false;
+      collapseSidebar();
+      setSidebarTouchUI();
+    }
+
+    document.addEventListener('pointerdown', function(e) {
+      if (!sidebarTouchExpanded) return;
+      const sb = document.getElementById('desktopSidebar');
+      if (sb && !sb.contains(e.target)) closeSidebarTouch();
+    });
+
     function togglePinSidebar() {
       isSidebarPinned = !isSidebarPinned;
       const wrap = document.getElementById('sidebarWrapper');
@@ -3775,6 +3824,7 @@ const htmlContent = `<!DOCTYPE html>
       if (window.innerWidth < 768 && mobileSidebarOpen) {
         toggleMobileSidebar();
       }
+      if (window.innerWidth >= 768) closeSidebarTouch();
       state.currentTab = tabName;
       ['home', 'albums', 'songs', 'themes', 'docs', 'admin'].forEach(tab => {
         const contentEl = document.getElementById(\`tabContent-\${tab}\`);
@@ -3784,7 +3834,7 @@ const htmlContent = `<!DOCTYPE html>
         if (tab === tabName) {
           if (contentEl) contentEl.classList.remove('hidden');
           if (btnEl) {
-            btnEl.className = 'tab-btn flex items-center px-2 py-2 rounded-xl transition-all group/btn bg-peach-50 text-peach-600 shadow-sm relative before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:bg-peach-500 before:rounded-r-full';
+            btnEl.className = 'tab-btn flex items-center px-1.5 py-1.5 rounded-xl transition-all group/btn bg-peach-50 text-peach-600 shadow-sm relative before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:bg-peach-500 before:rounded-r-full';
           }
           if (mBtnEl) {
             mBtnEl.className = 'm-tab-btn flex-1 py-1.5 flex flex-col items-center justify-center text-xs font-bold rounded-xl transition-all text-peach-600 bg-peach-50';
@@ -3792,7 +3842,7 @@ const htmlContent = `<!DOCTYPE html>
         } else {
           if (contentEl) contentEl.classList.add('hidden');
           if (btnEl) {
-            btnEl.className = 'tab-btn flex items-center px-2 py-2 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800';
+            btnEl.className = 'tab-btn flex items-center px-1.5 py-1.5 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800';
           }
           if (mBtnEl) {
             mBtnEl.className = 'm-tab-btn flex-1 py-1.5 flex flex-col items-center justify-center text-xs font-bold rounded-xl transition-all text-slate-500 hover:text-slate-800';

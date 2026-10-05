@@ -118,4 +118,5 @@ console.log(await window.__nameMapFrontendTest());   // allPass 應為 true
 - **更換 logo 時**：把新的透明背景 PNG 放成 `logo-hires.png`，執行 `python3 tools/make_icons.py` 重新產生 `icons/`，再跑 `node tests/pwa.test.js`。
 - `tests/event_minor.js`（瀏覽器）：活動細項小標籤（每日詳情與全月總覽、空值、舊欄位名稱、惡意字串、英文名稱對照，共 11 項）。
 - `tests/small_improvements.js`（瀏覽器）：縮圖 w480、大字開關、列印本週菜單（欄位、週末規則、跳脫、無菜單提示、英文、列印樣式，共 28 項）。
+- `tests/sidebar.js`（瀏覽器，**視窗寬度需 ≥ 768**）：側邊欄對齊（切換頁籤後再量）與觸控裝置的展開／收合邏輯（18 項）。
 
