@@ -48,6 +48,18 @@ console.log(await window.__songSelectionTest());   // allPass 應為 true
 ```
 修改 `renderSongsList`、`updateSongsBottomBarUI`、`playSelectedSongs`、`openSongPlayer`、篩選相關函式後必跑。
 
+## 4. 語系稽核（瀏覽器內執行）
+`tests/i18n_audit.js` 在**英文介面**下驅動所有畫面（含焦點活動三種狀態、各種彈窗、管理後台），掃描所有文字節點與屬性（title／placeholder／alt／aria-label），先剔除「試算表資料」（活動名稱、歌名等使用者輸入的內容本來就不翻譯），剩下含中文的就是**漏翻譯的介面標籤**。
+```js
+// 開啟 http://localhost:8765/index.html，等資料載入完成後：
+window.__raw = JSON.parse(localStorage.getItem('nobel_a_cached_app_data'));
+(0, eval)(await (await fetch('/tests/i18n_audit.js')).text());
+const rep = await window.__i18nAudit(window.__raw);   // rep.items = 仍是中文的介面文字（含出現位置）
+```
+判讀時要排除「刻意保留」的項目：語言切換鈕上的「繁體中文」、切換鈕的中英並列提示、焦點活動的內容文字。管理後台約 220 筆尚未翻譯（刻意：後台使用者為中文教師）。新增畫面或文字後，公開頁面的漏翻譯應維持在 0（刻意保留者除外）。
+
+> 注意：`xss_harness.js` 會把「被下毒的測試資料」載入頁面。**執行完請重新整理頁面，再跑其他測試**（否則歌曲選取測試等會因資料被污染而誤判失敗）。`songs_selection.js` 需從中文介面開始執行。
+
 ## 新增畫面時的跳脫規則（build_index.js）
 - 放進 HTML 文字或屬性值：`esc(值)`
 - 放進 `onclick="fn('…')"` 的 JS 字串：`jsq(值)`

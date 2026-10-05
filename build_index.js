@@ -188,7 +188,7 @@ const htmlContent = `<!DOCTYPE html>
             <div class="cursor-pointer flex items-center gap-2.5" onclick="switchTab('home')">
               <!-- 圖三 Logo (參照圖四設計) -->
               <div class="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-white border-2 border-rose-200 p-1 flex items-center justify-center shrink-0 shadow-xs">
-                <img src="${logoB64}" class="w-full h-full object-contain" alt="三之三生命教育基金會">
+                <img src="${logoB64}" class="w-full h-full object-contain" alt="三之三生命教育基金會" data-i18n-alt="ui.logoAlt">
               </div>
               <div class="flex flex-col justify-center">
                 <div class="flex items-center gap-2 flex-wrap">
@@ -306,7 +306,7 @@ const htmlContent = `<!DOCTYPE html>
   <!-- 全域載入狀態提示（備用） -->
     <div id="loadingOverlay" class="py-12 flex flex-col items-center justify-center gap-3 hidden">
       <div class="w-12 h-12 border-4 border-peach-200 border-t-peach-500 rounded-full animate-spin"></div>
-      <p class="text-sm font-bold text-slate-500 animate-pulse">正在連線至雲端讀取最新資料庫，請稍候...</p>
+      <p class="text-sm font-bold text-slate-500 animate-pulse" data-i18n="ui.loading">正在連線至雲端讀取最新資料庫，請稍候...</p>
     </div>
 
     <!-- ==================== TAB 1: 班級日常 (HOME) ==================== -->
@@ -337,15 +337,15 @@ const htmlContent = `<!DOCTYPE html>
           <!-- 焦點視覺/攻略圖或影片卡 -->
           <div class="md:col-span-5 bg-white p-2.5 rounded-2xl shadow-sm border border-rose-100 flex flex-col items-center justify-center group relative">
             <div class="w-full aspect-[16/10] bg-rose-50 rounded-xl overflow-hidden relative flex items-center justify-center group/nav">
-              <button type="button" onclick="event.stopPropagation(); prevSpotlightSlide(event)" class="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/80 hover:bg-white shadow-md flex items-center justify-center text-slate-800 font-bold text-sm sm:text-lg tap-bounce z-10 transition-opacity opacity-80 hover:opacity-100 hidden" id="spotlightOverlayPrevBtn" title="上一個焦點活動">
+              <button type="button" onclick="event.stopPropagation(); prevSpotlightSlide(event)" class="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/80 hover:bg-white shadow-md flex items-center justify-center text-slate-800 font-bold text-sm sm:text-lg tap-bounce z-10 transition-opacity opacity-80 hover:opacity-100 hidden" id="spotlightOverlayPrevBtn" title="上一個焦點活動" data-i18n-title="ui.spotlightPrev">
                 ◀
               </button>
-              <button type="button" onclick="event.stopPropagation(); nextSpotlightSlide(event)" class="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/80 hover:bg-white shadow-md flex items-center justify-center text-slate-800 font-bold text-sm sm:text-lg tap-bounce z-10 transition-opacity opacity-80 hover:opacity-100 hidden" id="spotlightOverlayNextBtn" title="下一個焦點活動">
+              <button type="button" onclick="event.stopPropagation(); nextSpotlightSlide(event)" class="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/80 hover:bg-white shadow-md flex items-center justify-center text-slate-800 font-bold text-sm sm:text-lg tap-bounce z-10 transition-opacity opacity-80 hover:opacity-100 hidden" id="spotlightOverlayNextBtn" title="下一個焦點活動" data-i18n-title="ui.spotlightNext">
                 ▶
               </button>
               <!-- 圖片模式 -->
-              <img id="spotlightImg" src="./spotlight-fluoride.jpg" alt="焦點活動" class="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300 cursor-pointer tap-bounce" onclick="openSpotlightModal()">
-              <div id="spotlightImgHoverHint" class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              <img id="spotlightImg" src="./spotlight-fluoride.jpg" alt="焦點活動" class="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300 cursor-pointer tap-bounce" onclick="openSpotlightModal()" data-i18n-alt="ui.spotlightImgAlt">
+              <div id="spotlightImgHoverHint" class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" data-i18n="ui.spotlightHoverHint">
                 <span class="bg-white/90 text-slate-800 text-xs font-bold px-3 py-1.5 rounded-full shadow">點擊放大檢視攻略</span>
               </div>
               <!-- 影片播放器 (YouTube / Drive preview / HTML5 video) -->
@@ -490,7 +490,7 @@ const htmlContent = `<!DOCTYPE html>
           <div class="flex items-center gap-2">
             <span class="text-xl">🌟</span>
             <div>
-              <div class="text-xs text-slate-400 font-medium">生活動態與餐點資訊</div>
+              <div class="text-xs text-slate-400 font-medium" data-i18n="ui.linkedSubtitle">生活動態與餐點資訊</div>
               <div id="selectedDateHeader" class="text-base sm:text-lg font-black text-slate-800">
                 2026 年 10 月 23 日（週五）
               </div>
@@ -670,7 +670,7 @@ const htmlContent = `<!DOCTYPE html>
 
       <!-- 桃子腳幼兒園 完整 Google Drive 照片連結膠囊按鈕 (居中) -->
       <div class="flex justify-center items-center pt-8 pb-4">
-        <button type="button" onclick="openFullDriveLinksModal()" class="px-6 py-3.5 rounded-full bg-white hover:bg-teal-50 text-slate-700 hover:text-teal-800 border-2 border-teal-200/90 hover:border-teal-400 shadow-xs hover:shadow-md transition-all font-black text-xs sm:text-sm flex items-center gap-2.5 tap-bounce group cursor-pointer" title="查看桃子腳幼兒園各月份完整 Google Drive 照片">
+        <button type="button" onclick="openFullDriveLinksModal()" class="px-6 py-3.5 rounded-full bg-white hover:bg-teal-50 text-slate-700 hover:text-teal-800 border-2 border-teal-200/90 hover:border-teal-400 shadow-xs hover:shadow-md transition-all font-black text-xs sm:text-sm flex items-center gap-2.5 tap-bounce group cursor-pointer" title="查看桃子腳幼兒園各月份完整 Google Drive 照片" data-i18n-title="ui.drivePhotosTitle">
           <span class="text-base sm:text-lg">📂</span>
           <span data-i18n="albums.driveLinkBtn">桃子腳幼兒園 完整 Google Drive 照片連結</span>
           <span class="text-teal-600 group-hover:translate-x-0.5 transition-transform text-xs">➔</span>
@@ -1642,7 +1642,7 @@ const htmlContent = `<!DOCTYPE html>
   <!-- ==================== SPOTLIGHT 攻略大圖彈窗 (MODAL) ==================== -->
   <div id="spotlightModal" class="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-3 sm:p-5 hidden">
     <div class="bg-white rounded-3xl max-w-2xl md:max-w-4xl lg:max-w-5xl w-full max-h-[92vh] overflow-y-auto p-4 sm:p-6 shadow-2xl space-y-4 relative">
-      <button onclick="closeSpotlightModal()" class="absolute top-4 right-4 w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-base tap-bounce z-30" title="關閉">
+      <button onclick="closeSpotlightModal()" class="absolute top-4 right-4 w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-base tap-bounce z-30" title="關閉" data-i18n-title="ui.close">
         ✕
       </button>
       <div class="flex items-center gap-2 pr-12 min-h-[32px] shrink-0">
@@ -1650,13 +1650,13 @@ const htmlContent = `<!DOCTYPE html>
         <h3 id="modalSpotlightTitle" class="text-base sm:text-lg font-black text-slate-800 truncate">桃子腳幼兒園 牙齒塗氟日 活動攻略圖</h3>
       </div>
       <div id="modalSpotlightMediaWrapper" class="w-full h-[52vh] sm:h-[62vh] min-h-[340px] max-h-[620px] rounded-2xl overflow-hidden border border-rose-100 bg-rose-50/60 flex items-center justify-center relative group shrink-0">
-        <button onclick="prevSpotlightModal()" class="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/90 hover:bg-white shadow-lg border border-slate-200/80 flex items-center justify-center text-slate-800 hover:text-peach-600 font-bold text-lg tap-bounce z-20 transition-transform active:scale-95 hidden" id="modalSpotlightPrevBtn" title="上一張">
+        <button onclick="prevSpotlightModal()" class="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/90 hover:bg-white shadow-lg border border-slate-200/80 flex items-center justify-center text-slate-800 hover:text-peach-600 font-bold text-lg tap-bounce z-20 transition-transform active:scale-95 hidden" id="modalSpotlightPrevBtn" title="上一張" data-i18n-title="ui.slidePrev">
           ◀
         </button>
-        <button onclick="nextSpotlightModal()" class="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/90 hover:bg-white shadow-lg border border-slate-200/80 flex items-center justify-center text-slate-800 hover:text-peach-600 font-bold text-lg tap-bounce z-20 transition-transform active:scale-95 hidden" id="modalSpotlightNextBtn" title="下一張">
+        <button onclick="nextSpotlightModal()" class="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/90 hover:bg-white shadow-lg border border-slate-200/80 flex items-center justify-center text-slate-800 hover:text-peach-600 font-bold text-lg tap-bounce z-20 transition-transform active:scale-95 hidden" id="modalSpotlightNextBtn" title="下一張" data-i18n-title="ui.slideNext">
           ▶
         </button>
-        <img id="modalSpotlightImg" src="./spotlight-fluoride.jpg" alt="活動攻略" class="w-full h-full object-contain select-none">
+        <img id="modalSpotlightImg" src="./spotlight-fluoride.jpg" alt="活動攻略" class="w-full h-full object-contain select-none" data-i18n-alt="ui.guideAlt">
         <div id="modalSpotlightVideoContainer" class="w-full h-full flex items-center justify-center hidden">
           <iframe id="modalSpotlightIframe" class="w-full h-full border-0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
           <video id="modalSpotlightVideo" class="w-full h-full object-contain hidden" controls playsinline autoplay muted loop></video>
@@ -1677,7 +1677,7 @@ const htmlContent = `<!DOCTYPE html>
           <h3 id="modalAlbumTitle" class="text-base sm:text-lg font-black text-slate-800 truncate">相簿照片</h3>
           <span id="modalAlbumCount" class="text-xs font-bold text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full shrink-0"></span>
         </div>
-        <button onclick="closeAlbumModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-base tap-bounce shrink-0" title="關閉">
+        <button onclick="closeAlbumModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-base tap-bounce shrink-0" title="關閉" data-i18n-title="ui.close">
           ✕
         </button>
       </div>
@@ -1702,11 +1702,11 @@ const htmlContent = `<!DOCTYPE html>
           </div>
         </div>
         <div class="flex items-center gap-2">
-          <button type="button" id="btnToggleFullDriveSort" onclick="toggleFullDriveSortOrder()" class="text-[0.6875rem] font-bold text-teal-600 hover:text-teal-800 bg-teal-50 hover:bg-teal-100 px-2.5 py-1 rounded-full transition-colors flex items-center gap-1 cursor-pointer tap-bounce" title="切換排序 (由新到舊 / 由舊到新)">
+          <button type="button" id="btnToggleFullDriveSort" onclick="toggleFullDriveSortOrder()" class="text-[0.6875rem] font-bold text-teal-600 hover:text-teal-800 bg-teal-50 hover:bg-teal-100 px-2.5 py-1 rounded-full transition-colors flex items-center gap-1 cursor-pointer tap-bounce" title="切換排序 (由新到舊 / 由舊到新)" data-i18n-title="ui.fullDriveSortTitle">
             <span>⇅</span>
             <span id="txtFullDriveSortOrder">由新到舊</span>
           </button>
-          <button type="button" onclick="closeFullDriveLinksModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-base tap-bounce shrink-0 cursor-pointer" title="關閉">
+          <button type="button" onclick="closeFullDriveLinksModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-base tap-bounce shrink-0 cursor-pointer" title="關閉" data-i18n-title="ui.close">
             ✕
           </button>
         </div>
@@ -1734,15 +1734,15 @@ const htmlContent = `<!DOCTYPE html>
           <span id="songPlayerQueueBadge" class="text-[0.6875rem] font-bold text-fuchsia-100 bg-fuchsia-900/60 border border-fuchsia-400/40 px-2 py-0.5 rounded-full shrink-0 hidden"></span>
           <h3 id="songPlayerTitle" class="text-base sm:text-lg font-black truncate"></h3>
         </div>
-        <button type="button" onclick="closeSongPlayer()" class="w-9 h-9 rounded-full bg-white/15 hover:bg-white/30 text-white flex items-center justify-center font-bold text-lg tap-bounce shrink-0 cursor-pointer" title="關閉 (Esc)" aria-label="關閉">✕</button>
+        <button type="button" onclick="closeSongPlayer()" class="w-9 h-9 rounded-full bg-white/15 hover:bg-white/30 text-white flex items-center justify-center font-bold text-lg tap-bounce shrink-0 cursor-pointer" title="關閉 (Esc)" data-i18n-title="ui.closeEsc" aria-label="關閉" data-i18n-aria="ui.close">✕</button>
       </div>
 
       <div class="relative">
         <div id="songPlayerHolder" class="w-full aspect-video rounded-2xl overflow-hidden bg-black shadow-lg"></div>
         <div id="songPlayerError" class="hidden absolute inset-0 rounded-2xl bg-slate-900/90 flex flex-col items-center justify-center gap-2 text-center p-4">
           <div class="text-3xl">😢</div>
-          <div class="text-sm font-bold">這支影片無法在這裡播放</div>
-          <a id="songPlayerOpenYoutube" href="#" target="_blank" rel="noopener noreferrer" class="px-4 py-1.5 rounded-full bg-white text-fuchsia-700 text-xs font-black tap-bounce">到 YouTube 觀看 ↗</a>
+          <div class="text-sm font-bold" data-i18n="ui.playerError">這支影片無法在這裡播放</div>
+          <a id="songPlayerOpenYoutube" href="#" target="_blank" rel="noopener noreferrer" class="px-4 py-1.5 rounded-full bg-white text-fuchsia-700 text-xs font-black tap-bounce" data-i18n="ui.playerOpenYoutube">到 YouTube 觀看 ↗</a>
         </div>
       </div>
 
@@ -1750,26 +1750,26 @@ const htmlContent = `<!DOCTYPE html>
       <div class="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5 px-1 pt-1">
         <!-- 播放控制：上一首 / 下一首 -->
         <div id="songPlayerNavControls" class="flex items-center gap-1.5 sm:gap-2">
-          <button type="button" id="btnPlayerPrev" onclick="playPrevSongInQueue()" class="px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold flex items-center gap-1 tap-bounce cursor-pointer" title="上一首">
-            <span>⏮</span> <span class="hidden sm:inline">上一首</span>
+          <button type="button" id="btnPlayerPrev" onclick="playPrevSongInQueue()" class="px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold flex items-center gap-1 tap-bounce cursor-pointer" title="上一首" data-i18n-title="ui.playerPrev">
+            <span>⏮</span> <span class="hidden sm:inline" data-i18n="ui.playerPrev">上一首</span>
           </button>
-          <button type="button" id="btnPlayerNext" onclick="playNextSongInQueue()" class="px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold flex items-center gap-1 tap-bounce cursor-pointer" title="下一首">
-            <span class="hidden sm:inline">下一首</span> <span>⏭</span>
+          <button type="button" id="btnPlayerNext" onclick="playNextSongInQueue()" class="px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold flex items-center gap-1 tap-bounce cursor-pointer" title="下一首" data-i18n-title="ui.playerNext">
+            <span class="hidden sm:inline" data-i18n="ui.playerNext">下一首</span> <span>⏭</span>
           </button>
         </div>
 
         <!-- 模式開關：隨機與循環（可單獨或合併啟用） -->
         <div class="flex items-center gap-2">
-          <button type="button" id="songModalShuffleBtn" onclick="toggleSongShuffle()" class="px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 transition-all cursor-pointer bg-white/15 hover:bg-white/25 text-white" title="隨機播放開關">
-            <span>🔀</span> <span class="hidden sm:inline">隨機</span>
+          <button type="button" id="songModalShuffleBtn" onclick="toggleSongShuffle()" class="px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 transition-all cursor-pointer bg-white/15 hover:bg-white/25 text-white" title="隨機播放開關" data-i18n-title="ui.playerShuffleTitle">
+            <span>🔀</span> <span class="hidden sm:inline" data-i18n="ui.playerShuffle">隨機</span>
           </button>
-          <button type="button" id="songModalRepeatBtn" onclick="toggleSongRepeatList()" class="px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 transition-all cursor-pointer bg-white/15 hover:bg-white/25 text-white" title="循環播放開關">
-            <span>🔁</span> <span class="hidden sm:inline">循環</span>
+          <button type="button" id="songModalRepeatBtn" onclick="toggleSongRepeatList()" class="px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 transition-all cursor-pointer bg-white/15 hover:bg-white/25 text-white" title="循環播放開關" data-i18n-title="ui.playerRepeatTitle">
+            <span>🔁</span> <span class="hidden sm:inline" data-i18n="ui.playerRepeat">循環</span>
           </button>
         </div>
 
         <!-- 右側：下載音樂檔 -->
-        <a id="songPlayerDownload" href="#" target="_blank" rel="noopener noreferrer" class="hidden w-9 h-9 rounded-full bg-white/15 hover:bg-white/30 text-white flex items-center justify-center tap-bounce transition-colors ml-auto sm:ml-0" title="下載音樂檔" aria-label="下載音樂檔">
+        <a id="songPlayerDownload" href="#" target="_blank" rel="noopener noreferrer" class="hidden w-9 h-9 rounded-full bg-white/15 hover:bg-white/30 text-white flex items-center justify-center tap-bounce transition-colors ml-auto sm:ml-0" title="下載音樂檔" aria-label="下載音樂檔" data-i18n-title="ui.songDownloadTitle" data-i18n-aria="ui.songDownloadTitle">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M7 11l5 5 5-5"/><path d="M4 19h16"/></svg>
         </a>
       </div>
@@ -1781,13 +1781,13 @@ const htmlContent = `<!DOCTYPE html>
     <!-- 頂部工具列 -->
     <div class="w-full max-w-5xl flex items-center justify-between z-20 text-white shrink-0">
       <div class="flex items-center gap-2 sm:gap-3">
-        <button id="photoAutoPlayBtn" onclick="togglePhotoAutoPlay()" class="text-white text-xs font-bold px-3.5 py-1.5 rounded-full bg-white/15 hover:bg-white/25 flex items-center gap-1.5 backdrop-blur-md tap-bounce transition-all" title="自動播放幻燈片 (每 3 秒自動換張)">
+        <button id="photoAutoPlayBtn" onclick="togglePhotoAutoPlay()" class="text-white text-xs font-bold px-3.5 py-1.5 rounded-full bg-white/15 hover:bg-white/25 flex items-center gap-1.5 backdrop-blur-md tap-bounce transition-all" title="自動播放幻燈片 (每 3 秒自動換張)" data-i18n-title="ui.viewerAutoPlayTitle">
           <span id="photoAutoPlayIcon">▶</span>
           <span id="photoAutoPlayText">Auto Play</span>
         </button>
         <span id="photoViewerCounter" class="text-xs sm:text-sm font-bold text-white/80 bg-white/10 px-3 py-1 rounded-full backdrop-blur-md">1 / 1</span>
       </div>
-      <button onclick="closePhotoViewer()" class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center justify-center font-bold text-lg backdrop-blur-md tap-bounce transition-colors" title="關閉 (Esc)">
+      <button onclick="closePhotoViewer()" class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center justify-center font-bold text-lg backdrop-blur-md tap-bounce transition-colors" title="關閉 (Esc)" data-i18n-title="ui.closeEsc">
         ✕
       </button>
     </div>
@@ -1797,19 +1797,19 @@ const htmlContent = `<!DOCTYPE html>
       <!-- 載入中動畫 -->
       <div id="photoViewerSpinner" class="absolute inset-0 flex flex-col items-center justify-center gap-2 pointer-events-none z-10 hidden">
         <div class="w-10 h-10 border-4 border-white/20 border-t-teal-400 rounded-full animate-spin"></div>
-        <span class="text-xs font-bold text-white/80 tracking-wider">載入高畫質相片中...</span>
+        <span class="text-xs font-bold text-white/80 tracking-wider" data-i18n="ui.viewerLoading">載入高畫質相片中...</span>
       </div>
 
       <!-- 上一張按鈕 -->
-      <button id="photoViewerPrevBtn" onclick="navigatePhoto(-1)" class="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-white/20 hover:bg-white/35 active:scale-95 text-white flex items-center justify-center font-black text-xl sm:text-2xl backdrop-blur-md transition-all z-20 shadow-lg tap-bounce" title="上一張 (鍵盤 ← 鍵)">
+      <button id="photoViewerPrevBtn" onclick="navigatePhoto(-1)" class="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-white/20 hover:bg-white/35 active:scale-95 text-white flex items-center justify-center font-black text-xl sm:text-2xl backdrop-blur-md transition-all z-20 shadow-lg tap-bounce" title="上一張 (鍵盤 ← 鍵)" data-i18n-title="ui.viewerPrev">
         ❮
       </button>
 
       <!-- 核心大圖 -->
-      <img id="photoViewerImg" src="" alt="相簿照片" class="max-w-full max-h-full object-contain rounded-2xl shadow-2xl transition-opacity duration-200">
+      <img id="photoViewerImg" src="" alt="相簿照片" class="max-w-full max-h-full object-contain rounded-2xl shadow-2xl transition-opacity duration-200" data-i18n-alt="ui.viewerAlt">
 
       <!-- 下一張按鈕 -->
-      <button id="photoViewerNextBtn" onclick="navigatePhoto(1)" class="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-white/20 hover:bg-white/35 active:scale-95 text-white flex items-center justify-center font-black text-xl sm:text-2xl backdrop-blur-md transition-all z-20 shadow-lg tap-bounce" title="下一張 (鍵盤 → 鍵)">
+      <button id="photoViewerNextBtn" onclick="navigatePhoto(1)" class="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-white/20 hover:bg-white/35 active:scale-95 text-white flex items-center justify-center font-black text-xl sm:text-2xl backdrop-blur-md transition-all z-20 shadow-lg tap-bounce" title="下一張 (鍵盤 → 鍵)" data-i18n-title="ui.viewerNext">
         ❯
       </button>
     </div>
@@ -1928,7 +1928,7 @@ const htmlContent = `<!DOCTYPE html>
   <!-- ==================== 全域提示訊息 TOAST ==================== -->
   <div id="toast" class="fixed bottom-16 sm:bottom-6 left-1/2 -translate-x-1/2 z-70 bg-slate-800 text-white text-xs sm:text-sm font-bold px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 transition-all opacity-0 pointer-events-none transform translate-y-3">
     <span id="toastIcon">✨</span>
-    <span id="toastMsg">訊息內容</span>
+    <span id="toastMsg"></span>
   </div>
 
   <!-- ==================== 頁尾 FOOTER ==================== -->
@@ -2055,6 +2055,79 @@ const htmlContent = `<!DOCTYPE html>
         footer: {
           motto: '用愛陪伴孩子成長的每一步'
         },
+        ui: {
+          spotlightDefaultTitle: "桃子腳幼兒園 焦點活動",
+          spotlightToday: "本日焦點",
+          spotlightUpcoming: "即將到來",
+          spotlightEnded: "活動結束",
+          spotlightDuration: "⏱️ {n}s 輪播",
+          spotlightPlayMedia: "🎬 播放影音",
+          spotlightHoverHint: "點擊放大檢視攻略",
+          spotlightModalTitle: "焦點活動攻略圖",
+          spotlightModalDesc: "請務必留意焦點活動提醒與須知！",
+          spotlightDotTitle: "切換至第 {n} 個焦點活動",
+          spotlightPrev: "上一個焦點活動",
+          spotlightNext: "下一個焦點活動",
+          spotlightImgAlt: "焦點活動",
+          slidePrev: "上一張",
+          slideNext: "下一張",
+          guideAlt: "活動攻略",
+          close: "關閉",
+          closeEsc: "關閉 (Esc)",
+          loading: "正在連線至雲端讀取最新資料庫，請稍候...",
+          logoAlt: "三之三生命教育基金會",
+          linkedSubtitle: "生活動態與餐點資訊",
+          calDotNobel: "諾貝爾 A 班活動",
+          calDotSchool: "全園活動",
+          calDotClass: "班級主題",
+          calDotImportant: "重要活動",
+          albumPhotoCount: "{n} 張",
+          albumPhotosTotal: "（共 {n} 張）",
+          albumModalDefault: "相簿照片",
+          albumDefaultTitle: "活動相簿",
+          albumDefaultCategory: "活動記錄",
+          albumNoPhotos: "此相簿目前無照片檔案。",
+          albumLoadingPhotos: "讀取相簿照片中...",
+          photoClickEnlarge: "🔍 點擊放大",
+          photoAlt: "照片",
+          viewerAlt: "相簿照片",
+          viewerLoading: "載入高畫質相片中...",
+          viewerPrev: "上一張 (鍵盤 ← 鍵)",
+          viewerNext: "下一張 (鍵盤 → 鍵)",
+          viewerAutoPlayTitle: "自動播放幻燈片 (每 3 秒自動換張)",
+          autoPlay: "自動播放",
+          autoStop: "停止",
+          drivePhotosTitle: "查看桃子腳幼兒園各月份完整 Google Drive 照片",
+          fullDriveSortTitle: "切換排序 (由新到舊 / 由舊到新)",
+          resultPhotoAlt: "成果照片",
+          songDownloadTitle: "下載音樂檔",
+          songDownloadAria: "下載 {title} 音樂檔",
+          songSelectTitle: "勾選此歌曲加入播放清單",
+          songPlayAria: "播放 {title}",
+          songUncategorized: "未分類",
+          songUntitled: "未命名歌曲",
+          songNoMatch: "目前沒有符合篩選條件的歌曲",
+          songAutoSelected: "已為您選取目前全部 {n} 首歌曲！",
+          songQueueBadge: "第 {i} / {n} 首",
+          playerPrev: "上一首",
+          playerNext: "下一首",
+          playerShuffle: "隨機",
+          playerRepeat: "循環",
+          playerShuffleTitle: "隨機播放開關",
+          playerRepeatTitle: "循環播放開關",
+          playerError: "這支影片無法在這裡播放",
+          playerOpenYoutube: "到 YouTube 觀看 ↗",
+          songShuffleOn: "🔀 已開啟隨機播放模式",
+          songShuffleOff: "➡️ 已切換為循序播放模式",
+          songRepeatOn: "🔁 已開啟清單循環播放",
+          songRepeatOff: "⏹️ 已設定播完全部後停止",
+          songRefreshing: "重新讀取歌曲清單中...",
+          songLoopRestart: "🔁 循環播放：重新從第 1 首開始",
+          songLastInList: "已是清單中最後一首歌曲",
+          songFirstInList: "已是清單中第一首歌曲",
+          songAllPlayed: "✅ 清單內歌曲已全數播放完畢！",
+          opFailed: "執行失敗: ",
+        },
         toasts: {
           langSwitched: '已切換為繁體中文'
         }
@@ -2173,6 +2246,79 @@ const htmlContent = `<!DOCTYPE html>
         footer: {
           motto: "Accompanying children's growth with love"
         },
+        ui: {
+          spotlightDefaultTitle: "Taozihjiao Kindergarten Highlight",
+          spotlightToday: "Today",
+          spotlightUpcoming: "Coming Up",
+          spotlightEnded: "Ended",
+          spotlightDuration: "⏱️ {n}s Auto",
+          spotlightPlayMedia: "🎬 Play Video",
+          spotlightHoverHint: "Click to enlarge",
+          spotlightModalTitle: "Highlight Guide",
+          spotlightModalDesc: "Please read the highlight reminders and notes carefully!",
+          spotlightDotTitle: "Go to highlight {n}",
+          spotlightPrev: "Previous highlight",
+          spotlightNext: "Next highlight",
+          spotlightImgAlt: "Highlight",
+          slidePrev: "Previous",
+          slideNext: "Next",
+          guideAlt: "Highlight guide",
+          close: "Close",
+          closeEsc: "Close (Esc)",
+          loading: "Connecting to the cloud to load the latest data...",
+          logoAlt: "3&3 Life Education Foundation",
+          linkedSubtitle: "Daily activities & meal information",
+          calDotNobel: "Nobel A class event",
+          calDotSchool: "School-wide event",
+          calDotClass: "Class theme",
+          calDotImportant: "Important event",
+          albumPhotoCount: "{n} photos",
+          albumPhotosTotal: "({n} photos)",
+          albumModalDefault: "Album Photos",
+          albumDefaultTitle: "Photo Album",
+          albumDefaultCategory: "Activities",
+          albumNoPhotos: "This album has no photos yet.",
+          albumLoadingPhotos: "Loading album photos...",
+          photoClickEnlarge: "🔍 Click to enlarge",
+          photoAlt: "Photo",
+          viewerAlt: "Album photo",
+          viewerLoading: "Loading high-resolution photo...",
+          viewerPrev: "Previous (← key)",
+          viewerNext: "Next (→ key)",
+          viewerAutoPlayTitle: "Auto-play slideshow (every 3 seconds)",
+          autoPlay: "Auto Play",
+          autoStop: "Stop",
+          drivePhotosTitle: "View full monthly photos on Google Drive",
+          fullDriveSortTitle: "Toggle sort order (newest / oldest first)",
+          resultPhotoAlt: "Result photo",
+          songDownloadTitle: "Download music file",
+          songDownloadAria: "Download {title}",
+          songSelectTitle: "Select this song for the playlist",
+          songPlayAria: "Play {title}",
+          songUncategorized: "Uncategorized",
+          songUntitled: "Untitled song",
+          songNoMatch: "No songs match the current filter",
+          songAutoSelected: "Selected all {n} songs in the current view!",
+          songQueueBadge: "{i} / {n}",
+          playerPrev: "Previous",
+          playerNext: "Next",
+          playerShuffle: "Shuffle",
+          playerRepeat: "Repeat",
+          playerShuffleTitle: "Toggle shuffle",
+          playerRepeatTitle: "Toggle repeat",
+          playerError: "This video can't be played here",
+          playerOpenYoutube: "Watch on YouTube ↗",
+          songShuffleOn: "🔀 Shuffle on",
+          songShuffleOff: "➡️ Playing in order",
+          songRepeatOn: "🔁 Repeat playlist on",
+          songRepeatOff: "⏹️ Stop after the last song",
+          songRefreshing: "Reloading song list...",
+          songLoopRestart: "🔁 Repeat: starting again from song 1",
+          songLastInList: "This is the last song in the list",
+          songFirstInList: "This is the first song in the list",
+          songAllPlayed: "✅ All songs in the list have finished playing!",
+          opFailed: "Operation failed: ",
+        },
         toasts: {
           langSwitched: 'Switched to English'
         }
@@ -2201,7 +2347,7 @@ const htmlContent = `<!DOCTYPE html>
       }
       if (typeof val === 'string' && params && typeof params === 'object') {
         Object.keys(params).forEach(function(p) {
-          val = val.replace(new RegExp('\\{' + p + '\\}', 'g'), params[p]);
+          val = val.replace(new RegExp('\\{' + p + '\\}', 'g'), function() { return String(params[p]); });
         });
       }
       return val;
@@ -2225,6 +2371,18 @@ const htmlContent = `<!DOCTYPE html>
         const key = el.getAttribute('data-i18n-title');
         if (key) {
           el.title = t(key);
+        }
+      });
+      document.querySelectorAll('[data-i18n-alt]').forEach(function(el) {
+        const key = el.getAttribute('data-i18n-alt');
+        if (key) {
+          el.alt = t(key);
+        }
+      });
+      document.querySelectorAll('[data-i18n-aria]').forEach(function(el) {
+        const key = el.getAttribute('data-i18n-aria');
+        if (key) {
+          el.setAttribute('aria-label', t(key));
         }
       });
 
@@ -2265,6 +2423,10 @@ const htmlContent = `<!DOCTYPE html>
       applySongFilters();
       renderDocCategoriesUI();
       renderDocsList();
+      // 焦點活動、播放佇列、相片檢視器按鈕等動態文字也要即時跟著換語言
+      try { if (state.spotlights && state.spotlights.length) renderSpotlightSection(); } catch (e) {}
+      try { updateQueueBadge(); } catch (e) {}
+      try { updateAutoPlayButtonUI(); } catch (e) {}
     }
 
     function toggleLanguage() {
@@ -2461,7 +2623,7 @@ const htmlContent = `<!DOCTYPE html>
       if (typeof google !== 'undefined' && google.script && google.script.run) {
         const runner = google.script.run
           .withSuccessHandler(res => { if (successCb) successCb(res); })
-          .withFailureHandler(err => { if (errorCb) errorCb(err); else showToast('執行失敗: ' + err, '❌'); });
+          .withFailureHandler(err => { if (errorCb) errorCb(err); else showToast(t('ui.opFailed') + err, '❌'); });
 
         if (action === 'getAppData') runner.getAppData();
         else if (action === 'getAlbums') runner.getAlbums();
@@ -3451,7 +3613,7 @@ const htmlContent = `<!DOCTYPE html>
       const sp = activeList[currentSpotlightIndex];
 
       const titleEl = document.getElementById('spotlightTitle');
-      if (titleEl) titleEl.textContent = sp.title || '桃子腳幼兒園 焦點活動';
+      if (titleEl) titleEl.textContent = sp.title || t('ui.spotlightDefaultTitle');
       
       const statusBadge = document.getElementById('spotlightStatusBadge');
       if (statusBadge) {
@@ -3474,13 +3636,13 @@ const htmlContent = `<!DOCTYPE html>
           now.setHours(0,0,0,0);
           
           if (evDate.getTime() === now.getTime()) {
-            statusBadge.textContent = '本日焦點';
+            statusBadge.textContent = t('ui.spotlightToday');
             statusBadge.className = 'text-xs font-bold px-2 py-0.5 rounded-md mt-1 shrink-0 whitespace-nowrap bg-amber-100 text-amber-700 border border-amber-200';
           } else if (evDate > now) {
-            statusBadge.textContent = '即將到來';
+            statusBadge.textContent = t('ui.spotlightUpcoming');
             statusBadge.className = 'text-xs font-bold px-2 py-0.5 rounded-md mt-1 shrink-0 whitespace-nowrap bg-emerald-100 text-emerald-700 border border-emerald-200';
           } else {
-            statusBadge.textContent = '活動結束';
+            statusBadge.textContent = t('ui.spotlightEnded');
             statusBadge.className = 'text-xs font-bold px-2 py-0.5 rounded-md mt-1 shrink-0 whitespace-nowrap bg-slate-100 text-slate-500 border border-slate-200';
           }
         } else {
@@ -3493,7 +3655,7 @@ const htmlContent = `<!DOCTYPE html>
 
       const durBadge = document.getElementById('spotlightDurationBadge');
       if (durBadge) {
-        durBadge.textContent = '⏱️ ' + (sp.duration || 5) + 's 輪播';
+        durBadge.textContent = t('ui.spotlightDuration', { n: (sp.duration || 5) });
       }
 
       const counterEl = document.getElementById('spotlightSlideCounter');
@@ -3562,7 +3724,7 @@ const htmlContent = `<!DOCTYPE html>
             iframeEl.src = '';
           }
         }
-        if (mediaHint) mediaHint.innerHTML = '🎬 播放影音';
+        if (mediaHint) mediaHint.textContent = t('ui.spotlightPlayMedia');
       } else {
         if (videoBox) videoBox.classList.add('hidden');
         if (iframeEl) iframeEl.src = '';
@@ -3575,7 +3737,7 @@ const htmlContent = `<!DOCTYPE html>
           imgEl.src = safeUrl(sp.imageUrl) || './spotlight-fluoride.jpg';
         }
         if (imgHint) imgHint.classList.remove('hidden');
-        if (mediaHint) mediaHint.innerHTML = '🔍 放大查看';
+        if (mediaHint) mediaHint.textContent = '🔍 ' + t('cal.spotlightEnlarge');
       }
     }
 
@@ -3639,7 +3801,7 @@ const htmlContent = `<!DOCTYPE html>
         dot.className = i === activeIdx
           ? 'h-3 w-10 bg-peach-500 rounded-full transition-all duration-300 shadow-2xs'
           : 'h-3 w-3 bg-rose-200 hover:bg-rose-300 rounded-full transition-all duration-200 cursor-pointer';
-        dot.title = '切換至第 ' + (i + 1) + ' 個焦點活動';
+        dot.title = t('ui.spotlightDotTitle', { n: (i + 1) });
         dot.onclick = (function(slideIdx) {
           return function(ev) {
             if (ev && ev.stopPropagation) ev.stopPropagation();
@@ -3714,7 +3876,7 @@ const htmlContent = `<!DOCTYPE html>
     function openSpotlightModal() {
       const activeList = filterActiveSpotlights(state.spotlights);
       const sp = activeList[currentSpotlightIndex] || state.spotlights[0] || {};
-      document.getElementById('modalSpotlightTitle').textContent = sp.title || '焦點活動攻略圖';
+      document.getElementById('modalSpotlightTitle').textContent = sp.title || t('ui.spotlightModalTitle');
 
       const prevBtn = document.getElementById('modalSpotlightPrevBtn');
       const nextBtn = document.getElementById('modalSpotlightNextBtn');
@@ -3773,7 +3935,7 @@ const htmlContent = `<!DOCTYPE html>
         }
       }
 
-      document.getElementById('modalSpotlightDesc').textContent = sp.bulletPoints || '請務必留意焦點活動提醒與須知！';
+      document.getElementById('modalSpotlightDesc').textContent = sp.bulletPoints || t('ui.spotlightModalDesc');
       document.getElementById('spotlightModal').classList.remove('hidden');
     }
 
@@ -3934,21 +4096,21 @@ const htmlContent = `<!DOCTYPE html>
 
         // 1. 諾貝爾 A 班愛心標示
         if (hasNobelA) {
-          badgesHtml += '<span class="text-[0.6875rem] leading-none select-none" title="諾貝爾 A 班活動">❤️</span>';
+          badgesHtml += '<span class="text-[0.6875rem] leading-none select-none" title="' + esc(t('ui.calDotNobel')) + '">❤️</span>';
         }
 
         // 2. 三大活動類別專屬圓點
         // 全園活動：🟢 活力青綠 (bg-emerald-500)
         if (isWholeSchool) {
-          badgesHtml += '<span class="w-2 h-2 rounded-full bg-emerald-500 ring-1 ring-white" title="全園活動"></span>';
+          badgesHtml += '<span class="w-2 h-2 rounded-full bg-emerald-500 ring-1 ring-white" title="' + esc(t('ui.calDotSchool')) + '"></span>';
         }
         // 班級主題：💛 金黃暖陽
         if (isClassTheme) {
-          badgesHtml += '<span class="w-2 h-2 rounded-full bg-amber-400 ring-1 ring-white" title="班級主題"></span>';
+          badgesHtml += '<span class="w-2 h-2 rounded-full bg-amber-400 ring-1 ring-white" title="' + esc(t('ui.calDotClass')) + '"></span>';
         }
         // 重要活動：🔥 珊瑚櫻紅
         if (isImportant) {
-          badgesHtml += '<span class="w-2 h-2 rounded-full bg-rose-500 ring-1 ring-white" title="重要活動"></span>';
+          badgesHtml += '<span class="w-2 h-2 rounded-full bg-rose-500 ring-1 ring-white" title="' + esc(t('ui.calDotImportant')) + '"></span>';
         }
 
         badgesHtml += '</div>';
@@ -4568,7 +4730,7 @@ const htmlContent = `<!DOCTYPE html>
       albums.forEach(alb => {
         const cover = alb.coverUrl || 'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=600&q=80';
         const badgeClass = getAlbumCategoryBadgeClass(alb.category);
-        const safeTitle = jsq(alb.title || '活動相簿');
+        const safeTitle = jsq(alb.title || t('ui.albumDefaultTitle'));
 
         grid.innerHTML += \`
           <div class="bg-white rounded-3xl p-3 border border-slate-200/80 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer tap-bounce" onclick="openAlbumPhotos('\${jsq(alb.id)}', '\${safeTitle}')">
@@ -4577,12 +4739,12 @@ const htmlContent = `<!DOCTYPE html>
               
               <!-- 右上角：照片數量 -->
               <div class="absolute top-2 right-2 bg-black/60 text-white text-[0.6875rem] font-bold px-2 py-0.5 rounded-full backdrop-blur-xs flex items-center gap-1 shadow-xs">
-                <span>📷</span> \${esc(alb.photoCount || 0)} 張
+                <span>📷</span> \${esc(t('ui.albumPhotoCount', { n: (alb.photoCount || 0) }))}
               </div>
 
               <!-- 左上角：活動類別徽章 -->
               <div class="absolute top-2 left-2 \${badgeClass} text-[0.6875rem] font-extrabold px-2.5 py-0.5 rounded-full shadow-xs backdrop-blur-xs">
-                \${esc(alb.category || '活動記錄')}
+                \${esc(alb.category || t('ui.albumDefaultCategory'))}
               </div>
             </div>
 
@@ -4601,11 +4763,11 @@ const htmlContent = `<!DOCTYPE html>
     const PHOTO_AUTO_PLAY_DELAY = 3000;
 
     function openAlbumPhotos(albumId, albumTitle) {
-      document.getElementById('modalAlbumTitle').textContent = albumTitle || '相簿照片';
+      document.getElementById('modalAlbumTitle').textContent = albumTitle || t('ui.albumModalDefault');
       const countBadge = document.getElementById('modalAlbumCount');
       if (countBadge) countBadge.textContent = '';
       const grid = document.getElementById('albumPhotosGrid');
-      grid.innerHTML = '<div class="col-span-full py-16 text-center text-slate-400 font-bold flex flex-col items-center gap-3"><div class="w-8 h-8 border-3 border-teal-500 border-t-transparent rounded-full animate-spin"></div><span>讀取相簿照片中...</span></div>';
+      grid.innerHTML = '<div class="col-span-full py-16 text-center text-slate-400 font-bold flex flex-col items-center gap-3"><div class="w-8 h-8 border-3 border-teal-500 border-t-transparent rounded-full animate-spin"></div><span>' + esc(t('ui.albumLoadingPhotos')) + '</span></div>';
       document.getElementById('albumPhotosModal').classList.remove('hidden');
 
       callBackend('getAlbumPhotos', { albumId: albumId }, res => {
@@ -4662,20 +4824,20 @@ const htmlContent = `<!DOCTYPE html>
       const grid = document.getElementById('albumPhotosGrid');
       grid.innerHTML = '';
       if (!photos || photos.length === 0) {
-        grid.innerHTML = '<div class="col-span-full py-16 text-center text-slate-400 font-bold">此相簿目前無照片檔案。</div>';
+        grid.innerHTML = '<div class="col-span-full py-16 text-center text-slate-400 font-bold">' + esc(t('ui.albumNoPhotos')) + '</div>';
         return;
       }
 
       const countBadge = document.getElementById('modalAlbumCount');
-      if (countBadge) countBadge.textContent = \`（共 \${photos.length} 張）\`;
+      if (countBadge) countBadge.textContent = t('ui.albumPhotosTotal', { n: photos.length });
 
       photos.forEach((p, idx) => {
         const thumbUrl = getPhotoDisplayUrl(p, false);
         grid.innerHTML += \`
           <div class="aspect-square rounded-2xl overflow-hidden bg-slate-100 group relative cursor-pointer tap-bounce border border-slate-200/80 shadow-xs" style="aspect-ratio: 1 / 1;" onclick="openPhotoViewerByIndex(\${idx})">
-            <img src="\${escUrl(thumbUrl)}" alt="\${esc(p.name || '照片')}" loading="lazy" class="w-full h-full object-cover transition-transform group-hover:scale-105 duration-200">
+            <img src="\${escUrl(thumbUrl)}" alt="\${esc(p.name || t('ui.photoAlt'))}" loading="lazy" class="w-full h-full object-cover transition-transform group-hover:scale-105 duration-200">
             <div class="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-xs font-bold gap-1 p-2 text-center">
-              <span>🔍 點擊放大</span>
+              <span>\${esc(t('ui.photoClickEnlarge'))}</span>
               <span class="text-[0.625rem] opacity-80 truncate w-full max-w-[90%]">\${esc(p.name || '')}</span>
             </div>
           </div>
@@ -4791,11 +4953,11 @@ const htmlContent = `<!DOCTYPE html>
 
       if (isPhotoAutoPlaying) {
         icon.textContent = '⏸';
-        text.textContent = 'Stop';
+        text.textContent = t('ui.autoStop');
         btn.className = 'text-white text-xs font-bold px-3.5 py-1.5 rounded-full bg-emerald-500 hover:bg-emerald-600 flex items-center gap-1.5 backdrop-blur-md tap-bounce transition-all shadow-lg shadow-emerald-500/30';
       } else {
         icon.textContent = '▶';
-        text.textContent = 'Auto Play';
+        text.textContent = t('ui.autoPlay');
         btn.className = 'text-white text-xs font-bold px-3.5 py-1.5 rounded-full bg-white/15 hover:bg-white/25 flex items-center gap-1.5 backdrop-blur-md tap-bounce transition-all';
       }
     }
@@ -5653,7 +5815,7 @@ const htmlContent = `<!DOCTYPE html>
         // 勾選核取方塊
         const checkWrap = document.createElement('label');
         checkWrap.className = 'absolute top-3.5 left-3.5 z-10 w-7 h-7 rounded-full bg-white/90 shadow-sm sm:static sm:w-auto sm:h-auto sm:rounded-none sm:bg-transparent sm:shadow-none shrink-0 p-1 flex items-center justify-center cursor-pointer';
-        checkWrap.title = '勾選此歌曲加入播放清單';
+        checkWrap.title = t('ui.songSelectTitle');
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
         checkbox.className = 'w-5 h-5 rounded-lg text-fuchsia-600 accent-fuchsia-500 cursor-pointer';
@@ -5669,7 +5831,7 @@ const htmlContent = `<!DOCTYPE html>
         const thumbBtn = document.createElement('button');
         thumbBtn.type = 'button';
         thumbBtn.className = 'relative shrink-0 w-24 sm:w-40 aspect-video rounded-2xl overflow-hidden bg-slate-100 tap-bounce cursor-pointer';
-        thumbBtn.setAttribute('aria-label', '播放 ' + (song.title || ''));
+        thumbBtn.setAttribute('aria-label', t('ui.songPlayAria', { title: (song.title || '') }));
         thumbBtn.innerHTML = (thumb ? '<img src="' + escUrl(thumb) + '" alt="" loading="lazy" class="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300">' : '') +
           '<span class="absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-black/25 transition-colors">' +
           '<span class="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-white/90 text-fuchsia-600 flex items-center justify-center shadow-md text-sm sm:text-base pl-0.5">▶</span></span>' +
@@ -5681,12 +5843,12 @@ const htmlContent = `<!DOCTYPE html>
         const info = document.createElement('div');
         info.className = 'flex-1 min-w-0 flex flex-col items-start gap-1.5';
         let metaHtml = '<div class="flex items-center gap-1.5 flex-wrap w-full">' +
-          '<span class="' + getSongCategoryBadgeClass(song.category) + ' text-[0.6875rem] font-extrabold px-2.5 py-0.5 rounded-full">' + songEsc(song.category || '未分類') + '</span>';
+          '<span class="' + getSongCategoryBadgeClass(song.category) + ' text-[0.6875rem] font-extrabold px-2.5 py-0.5 rounded-full">' + songEsc(song.category || t('ui.songUncategorized')) + '</span>';
         if (formattedDur) {
           metaHtml += '<span class="hidden sm:inline-flex items-center gap-1 text-[11px] sm:text-xs text-slate-500 font-semibold bg-slate-100/90 px-2 py-0.5 rounded-full">⏱️ ' + songEsc(formattedDur) + '</span>';
         }
         if (song.downloadUrl) {
-          metaHtml += '<a href="' + (escUrl(song.downloadUrl) || '#') + '" target="_blank" rel="noopener noreferrer" title="下載音樂檔" aria-label="下載 ' + esc(song.title || '') + ' 音樂檔" ' +
+          metaHtml += '<a href="' + (escUrl(song.downloadUrl) || '#') + '" target="_blank" rel="noopener noreferrer" title="' + esc(t('ui.songDownloadTitle')) + '" aria-label="' + esc(t('ui.songDownloadAria', { title: (song.title || '') })) + '" ' +
             'class="sm:hidden ml-auto w-9 h-9 rounded-full bg-fuchsia-50 hover:bg-fuchsia-100 text-fuchsia-700 flex items-center justify-center shrink-0 tap-bounce transition-colors">' + SONG_DOWNLOAD_ICON + '</a>';
         }
         metaHtml += '</div>';
@@ -5695,7 +5857,7 @@ const htmlContent = `<!DOCTYPE html>
         const titleBtn = document.createElement('button');
         titleBtn.type = 'button';
         titleBtn.className = 'font-black text-slate-800 hover:text-fuchsia-700 text-sm sm:text-base text-left line-clamp-3 sm:line-clamp-2 transition-colors cursor-pointer';
-        titleBtn.textContent = song.title || '未命名歌曲';
+        titleBtn.textContent = song.title || t('ui.songUntitled');
         titleBtn.onclick = function() { openSongPlayer(song.id); };
         info.appendChild(titleBtn);
         row.appendChild(info);
@@ -5706,8 +5868,8 @@ const htmlContent = `<!DOCTYPE html>
           dl.href = safeUrl(song.downloadUrl) || '#';
           dl.target = '_blank';
           dl.rel = 'noopener noreferrer';
-          dl.title = '下載音樂檔';
-          dl.setAttribute('aria-label', '下載 ' + (song.title || '') + ' 音樂檔');
+          dl.title = t('ui.songDownloadTitle');
+          dl.setAttribute('aria-label', t('ui.songDownloadAria', { title: (song.title || '') }));
           dl.className = 'hidden sm:flex w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-fuchsia-50 hover:bg-fuchsia-100 text-fuchsia-700 items-center justify-center shrink-0 tap-bounce transition-colors';
           dl.innerHTML = SONG_DOWNLOAD_ICON;
           row.appendChild(dl);
@@ -5830,7 +5992,7 @@ const htmlContent = `<!DOCTYPE html>
     function toggleSongShuffle() {
       songShuffle = !songShuffle;
       try { localStorage.setItem('nobel_a_song_shuffle', songShuffle ? '1' : '0'); } catch (e) {}
-      showToast(songShuffle ? '🔀 已開啟隨機播放模式' : '➡️ 已切換為循序播放模式', '🎵');
+      showToast(t(songShuffle ? 'ui.songShuffleOn' : 'ui.songShuffleOff'), '🎵');
       updateSongsBottomBarUI();
       if (songPlayerQueue && songPlayerQueue.length > 1) {
         const curSong = songPlayerQueue[songPlayerQueueIndex];
@@ -5846,7 +6008,7 @@ const htmlContent = `<!DOCTYPE html>
     function toggleSongRepeatList() {
       songRepeatList = !songRepeatList;
       try { localStorage.setItem('nobel_a_song_repeat_list', songRepeatList ? '1' : '0'); } catch (e) {}
-      showToast(songRepeatList ? '🔁 已開啟清單循環播放' : '⏹️ 已設定播完全部後停止', '🎵');
+      showToast(t(songRepeatList ? 'ui.songRepeatOn' : 'ui.songRepeatOff'), '🎵');
       updateSongsBottomBarUI();
     }
 
@@ -5864,7 +6026,7 @@ const htmlContent = `<!DOCTYPE html>
     }
 
     function refreshSongs() {
-      showToast('重新讀取歌曲清單中...', '⏳');
+      showToast(t('ui.songRefreshing'), '⏳');
       loadAppData(false);
     }
 
@@ -5892,7 +6054,7 @@ const htmlContent = `<!DOCTYPE html>
     function playSelectedSongs() {
       const filtered = getFilteredSongs();
       if (filtered.length === 0) {
-        showToast('目前沒有符合篩選條件的歌曲', '⚠️');
+        showToast(t('ui.songNoMatch'), '⚠️');
         return;
       }
       let selected = getVisibleSelectedSongs(filtered);
@@ -5900,7 +6062,7 @@ const htmlContent = `<!DOCTYPE html>
         selected = filtered.slice();
         selected.forEach(function(s) { state.selectedSongIds.add(String(s.id)); });
         applySongFilters();
-        showToast('已為您選取目前全部 ' + selected.length + ' 首歌曲！', '🎵');
+        showToast(t('ui.songAutoSelected', { n: selected.length }), '🎵');
       }
 
       let queue = selected.slice();
@@ -5944,7 +6106,7 @@ const htmlContent = `<!DOCTYPE html>
       const qBadge = document.getElementById('songPlayerQueueBadge');
       if (qBadge) {
         if (songPlayerQueue && songPlayerQueue.length > 1) {
-          qBadge.textContent = '第 ' + (songPlayerQueueIndex + 1) + ' / ' + songPlayerQueue.length + ' 首';
+          qBadge.textContent = t('ui.songQueueBadge', { i: (songPlayerQueueIndex + 1), n: songPlayerQueue.length });
           qBadge.classList.remove('hidden');
         } else {
           qBadge.classList.add('hidden');
@@ -5964,7 +6126,7 @@ const htmlContent = `<!DOCTYPE html>
 
       document.getElementById('songPlayerTitle').textContent = song.title || '';
       const badge = document.getElementById('songPlayerCategory');
-      badge.textContent = song.category || '未分類';
+      badge.textContent = song.category || t('ui.songUncategorized');
       badge.className = getSongCategoryBadgeClass(song.category) + ' text-[0.6875rem] font-extrabold px-2.5 py-0.5 rounded-full shrink-0';
 
       const durEl = document.getElementById('songPlayerDuration');
@@ -6004,9 +6166,9 @@ const htmlContent = `<!DOCTYPE html>
           songPlayerQueue = shuffleArray(songPlayerQueue.slice());
         }
         openSongPlayerFromQueue(0);
-        showToast('🔁 循環播放：重新從第 1 首開始', '🎵');
+        showToast(t('ui.songLoopRestart'), '🎵');
       } else {
-        showToast('已是清單中最後一首歌曲', 'ℹ️');
+        showToast(t('ui.songLastInList'), 'ℹ️');
       }
     }
 
@@ -6017,7 +6179,7 @@ const htmlContent = `<!DOCTYPE html>
       } else if (songRepeatList) {
         openSongPlayerFromQueue(songPlayerQueue.length - 1);
       } else {
-        showToast('已是清單中第一首歌曲', 'ℹ️');
+        showToast(t('ui.songFirstInList'), 'ℹ️');
       }
     }
 
@@ -6100,7 +6262,7 @@ const htmlContent = `<!DOCTYPE html>
                 if (songPlayerQueueIndex + 1 < songPlayerQueue.length || songRepeatList) {
                   playNextSongInQueue();
                 } else {
-                  showToast('✅ 清單內歌曲已全數播放完畢！', '🎉');
+                  showToast(t('ui.songAllPlayed'), '🎉');
                 }
               }
             },
@@ -8380,7 +8542,7 @@ const htmlContent = `<!DOCTYPE html>
                 const thumb = getPhotoDisplayUrl(url, false);
                 return thumb ? \`
                   <div class="aspect-square rounded-xl overflow-hidden border border-slate-200/80 shadow-xs bg-slate-100 select-none">
-                    <img src="\${escUrl(thumb)}" class="w-full h-full object-cover" alt="成果照片" loading="lazy" onerror="if(!this.dataset.fallback){this.dataset.fallback='1'; const m=this.src.match(/id=([a-zA-Z0-9_-]+)/); if(m){this.src='https://lh3.googleusercontent.com/d/'+m[1];}else{this.parentElement.style.display='none';}}else{this.parentElement.style.display='none';}">
+                    <img src="\${escUrl(thumb)}" class="w-full h-full object-cover" alt="\${esc(t('ui.resultPhotoAlt'))}" loading="lazy" onerror="if(!this.dataset.fallback){this.dataset.fallback='1'; const m=this.src.match(/id=([a-zA-Z0-9_-]+)/); if(m){this.src='https://lh3.googleusercontent.com/d/'+m[1];}else{this.parentElement.style.display='none';}}else{this.parentElement.style.display='none';}">
                   </div>
                 \` : '';
               }).join('')}
