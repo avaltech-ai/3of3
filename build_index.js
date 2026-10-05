@@ -8,6 +8,7 @@ const htmlContent = `<!DOCTYPE html>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>桃子腳幼兒園 - 諾貝爾 A 班</title>
+  <script>try { if (localStorage.getItem('nobel_a_big_text') === '1') document.documentElement.classList.add('big-text'); } catch (e) {}</script>
   <!-- 加到手機主畫面（PWA）：名稱「諾貝爾A」、圖示由 tools/make_icons.py 從 logo-hires.png 產生（白底，iPhone 會把透明區域顯示成黑色）。
        不做 service worker／離線快取（容易讓使用者卡在舊版）。以 App 模式開啟時沒有網址列與重新整理鈕，所以另有標頭的重新整理鈕與回到前景自動同步。 -->
   <link rel="manifest" href="manifest.webmanifest">
@@ -71,6 +72,24 @@ const htmlContent = `<!DOCTYPE html>
     
     html {
       font-size: 19px; /* Base font size increased from 16px for larger text globally */
+    }
+    /* 「大字」模式：根字級放大約 16%（文字用 rem 會一起放大；元件寬度用 px 不變） */
+    html.big-text {
+      font-size: 22px;
+    }
+    /* 列印本週菜單：螢幕上隱藏列印區；列印時只輸出列印區（#printMenuArea 必須是 body 的直接子元素） */
+    #printMenuArea { display: none; }
+    @media print {
+      @page { size: A4 landscape; margin: 12mm; }
+      body > *:not(#printMenuArea) { display: none !important; }
+      #printMenuArea { display: block !important; color: #000; background: #fff; font-family: 'Noto Sans TC', sans-serif; }
+      #printMenuArea h1 { font-size: 20pt; font-weight: 900; margin: 0 0 2mm; }
+      #printMenuArea .print-sub { font-size: 11pt; color: #444; margin-bottom: 4mm; }
+      #printMenuArea table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+      #printMenuArea th, #printMenuArea td { border: 1px solid #333; padding: 2.5mm; font-size: 11pt; vertical-align: top; word-break: break-word; }
+      #printMenuArea th { background: #eee; font-weight: 800; }
+      #printMenuArea tr { page-break-inside: avoid; }
+      #printMenuArea .print-note { margin-top: 4mm; font-size: 9.5pt; color: #444; }
     }
     body {
       background-color: #FDFBF7;
@@ -177,6 +196,10 @@ const htmlContent = `<!DOCTYPE html>
         <button onclick="switchTab('admin')" id="tabBtn-admin" class="tab-btn flex items-center px-1.5 py-1.5 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
           <span class="text-base w-6 text-center shrink-0">⚙️</span>
           <span class="font-bold text-xs whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1" data-i18n="nav.admin">管理後台</span>
+        </button>
+        <button type="button" onclick="toggleBigText()" id="bigTextToggleBtn" aria-pressed="false" class="flex items-center px-1.5 py-1.5 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800 tap-bounce" title="放大文字" data-i18n-title="nav.bigTextTitle">
+          <span class="text-base w-6 text-center shrink-0">🔠</span>
+          <span id="bigTextToggleText" class="font-bold text-xs whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1" data-i18n="nav.bigText">大字</span>
         </button>
         <button type="button" onclick="toggleLanguage()" id="langToggleBtn" class="flex items-center px-1.5 py-1.5 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800 border-t border-slate-100 mt-1 pt-1.5 tap-bounce" title="切換語言 / Switch Language" data-i18n-title="nav.langTitle">
           <span class="text-base w-6 text-center shrink-0">🌐</span>
@@ -593,13 +616,18 @@ const htmlContent = `<!DOCTYPE html>
 
       <!-- 4. 【本週行程總覽容器】(切換至查看本週時呈現) -->
       <div id="weekViewContainer" class="hidden bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm space-y-4">
-        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div class="flex items-center justify-between flex-wrap gap-x-3 gap-y-2 pb-3 border-b border-slate-100">
           <h4 class="text-base font-black text-slate-800 flex items-center gap-2">
             <span>📋</span> <span data-i18n="cal.weekOverviewTitle">本週生活與餐點總覽（週日～週六）</span>
           </h4>
-          <button onclick="setCalViewMode('day')" data-i18n="cal.backToDayView" class="text-xs text-peach-600 font-bold hover:underline">
-            返回單日點選
-          </button>
+          <div class="flex items-center gap-3 shrink-0 whitespace-nowrap">
+            <button type="button" onclick="printWeekMenu()" id="btnPrintWeekMenu" class="text-xs text-slate-600 font-bold px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-200 tap-bounce flex items-center gap-1 cursor-pointer">
+              <span>🖨️</span> <span data-i18n="cal.printWeekMenu">列印本週菜單</span>
+            </button>
+            <button onclick="setCalViewMode('day')" data-i18n="cal.backToDayView" class="text-xs text-peach-600 font-bold hover:underline">
+              返回單日點選
+            </button>
+          </div>
         </div>
         <div id="weekDaysList" class="space-y-3">
           <!-- JS 動態產生本週 7 天 -->
@@ -1956,6 +1984,9 @@ const htmlContent = `<!DOCTYPE html>
     <p id="footerMotto" data-i18n="footer.motto">用愛陪伴孩子成長的每一步</p>
   </footer>
 
+  <!-- 列印本週菜單用的容器（螢幕隱藏；列印時只輸出這一塊） -->
+  <div id="printMenuArea" aria-hidden="true"></div>
+
   <!-- ==================== 前端邏輯 JS SCRIPT ==================== -->
   <script>
     // ==================== 多語系 i18n 字典系統 ====================
@@ -1970,6 +2001,8 @@ const htmlContent = `<!DOCTYPE html>
           songs: '唱跳音符',
           docs: '常用文件',
           admin: '管理後台',
+          bigText: '大字',
+          bigTextTitle: '放大／還原文字大小',
           langToggle: 'English',
           langTitle: '切換為英文 / Switch to English'
         },
@@ -2012,7 +2045,16 @@ const htmlContent = `<!DOCTYPE html>
           nutriFruit: '🍎 當季水果',
           menuNote: '註：本園餐點未使用主管機關公告之不合格油品。配合當令食材適時調整。',
           weekOverviewTitle: '本週生活與餐點總覽（週日～週六）',
-          backToDayView: '返回單日點選'
+          backToDayView: '返回單日點選',
+          printWeekMenu: '列印本週菜單',
+          printNoMenu: '本週尚無菜單資料可列印',
+          printTitle: '本週菜單',
+          printColDate: '日期',
+          printColMorning: '早點',
+          printColFruit: '水果',
+          printColLunch: '午餐',
+          printColAfternoon: '午點',
+          printColNote: '備註'
         },
         themes: {
           title: '主題活動成果',
@@ -2170,6 +2212,8 @@ const htmlContent = `<!DOCTYPE html>
           songs: 'Songs',
           docs: 'Docs',
           admin: 'Admin',
+          bigText: 'Large text',
+          bigTextTitle: 'Toggle large text',
           langToggle: '繁體中文',
           langTitle: 'Switch to Traditional Chinese / 切換為繁體中文'
         },
@@ -2212,7 +2256,16 @@ const htmlContent = `<!DOCTYPE html>
           nutriFruit: '🍎 Seasonal Fruits',
           menuNote: 'Note: Ingredients are prepared strictly following food safety regulations.',
           weekOverviewTitle: 'Weekly Routine & Meals Overview',
-          backToDayView: 'Back to Day View'
+          backToDayView: 'Back to Day View',
+          printWeekMenu: 'Print weekly menu',
+          printNoMenu: 'No menu data to print for this week',
+          printTitle: 'Weekly Menu',
+          printColDate: 'Date',
+          printColMorning: 'Morning snack',
+          printColFruit: 'Fruit',
+          printColLunch: 'Lunch',
+          printColAfternoon: 'Afternoon snack',
+          printColNote: 'Note'
         },
         themes: {
           title: 'Weekly Themes',
@@ -2691,6 +2744,7 @@ const htmlContent = `<!DOCTYPE html>
 
       // 套用當前語系文字
       applyTranslations();
+      syncBigTextButton();
       initStandaloneSupport();
 
       // 2. 靜默在背景連線至雲端讀取最新資料庫並自動無縫更新（Stale-While-Revalidate）
@@ -2930,6 +2984,75 @@ const htmlContent = `<!DOCTYPE html>
 
       // 提交後立即清除 form DOM
       setTimeout(() => { form.remove(); }, 100);
+    }
+
+    // ---------- 列印本週菜單 ----------
+    // 以目前選定日期所在的那一週（週日起）為準，輸出一頁 A4 橫式表格：日期、早點、水果、午餐、午點、備註。
+    // 週一～週五一定列出（沒有資料顯示「—」）；週末只在有菜單資料時才列出；整週都沒有菜單就提示、不列印。
+    function getWeekDateStrs() {
+      const baseDate = new Date(state.selectedDateStr);
+      const sundayDate = new Date(baseDate);
+      sundayDate.setDate(baseDate.getDate() - baseDate.getDay());
+      const out = [];
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(sundayDate);
+        d.setDate(sundayDate.getDate() + i);
+        out.push(d.toISOString().split('T')[0]);
+      }
+      return out;
+    }
+
+    function buildWeekMenuPrintHtml() {
+      const isEn = state.lang === 'en';
+      const dayNames = isEn ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] : ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
+      const dates = getWeekDateStrs();
+      const rows = [];
+      dates.forEach(function(dStr, i) {
+        const menu = getMenuForDate(dStr);
+        const weekday = i >= 1 && i <= 5;
+        if (!menu && !weekday) return;
+        const dash = '—';
+        const lunch = menu ? [menu.lunchStaple, menu.lunchMain, menu.lunchSide1, menu.lunchSide2, menu.lunchSoup].map(function(x) { return String(x || '').trim(); }).filter(Boolean).join(isEn ? ', ' : '、') : '';
+        rows.push('<tr><td>' + esc(dStr.slice(5).replace('-', '/')) + ' (' + dayNames[i] + ')</td>' +
+          '<td>' + (esc(menu && menu.morningSnack) || dash) + '</td>' +
+          '<td>' + (esc(menu && menu.fruit) || dash) + '</td>' +
+          '<td>' + (esc(lunch) || dash) + '</td>' +
+          '<td>' + (esc(menu && menu.afternoonSnack) || dash) + '</td>' +
+          '<td>' + (esc(menu && menu.note) || dash) + '</td></tr>');
+      });
+      const title = esc((isEn ? 'Taozihjiao Kindergarten · Nobel A · ' : '桃子腳幼兒園 諾貝爾 A 班　') + t('cal.printTitle'));
+      const range = esc(dates[0].replace(/-/g, '/') + ' – ' + dates[6].replace(/-/g, '/'));
+      return '<h1>' + title + '</h1><div class="print-sub">' + range + '</div>' +
+        '<table><thead><tr><th style="width:13%">' + esc(t('cal.printColDate')) + '</th><th style="width:17%">' + esc(t('cal.printColMorning')) + '</th><th style="width:13%">' + esc(t('cal.printColFruit')) + '</th><th style="width:30%">' + esc(t('cal.printColLunch')) + '</th><th style="width:15%">' + esc(t('cal.printColAfternoon')) + '</th><th style="width:12%">' + esc(t('cal.printColNote')) + '</th></tr></thead><tbody>' + rows.join('') + '</tbody></table>' +
+        '<div class="print-note">' + esc(t('cal.menuNote')) + '</div>';
+    }
+
+    function printWeekMenu() {
+      const hasMenu = getWeekDateStrs().some(function(d) { return !!getMenuForDate(d); });
+      if (!hasMenu) { showToast(t('cal.printNoMenu'), 'ℹ️'); return; }
+      const area = document.getElementById('printMenuArea');
+      if (!area) return;
+      area.innerHTML = buildWeekMenuPrintHtml();
+      window.print();
+    }
+
+    // ---------- 「大字」開關：根字級 19px ↔ 22px，偏好存在 localStorage ----------
+    function isBigText() { return document.documentElement.classList.contains('big-text'); }
+
+    function syncBigTextButton() {
+      const btn = document.getElementById('bigTextToggleBtn');
+      if (!btn) return;
+      const on = isBigText();
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      btn.classList.toggle('bg-amber-100', on);
+      btn.classList.toggle('text-amber-800', on);
+    }
+
+    function toggleBigText() {
+      const on = !isBigText();
+      document.documentElement.classList.toggle('big-text', on);
+      try { localStorage.setItem('nobel_a_big_text', on ? '1' : '0'); } catch (e) {}
+      syncBigTextButton();
     }
 
     // ---------- 以「加到主畫面」App 模式開啟時的支援 ----------
@@ -4997,7 +5120,7 @@ const htmlContent = `<!DOCTYPE html>
 
             <div class="pt-2.5 pb-0.5 px-1">
               <div class="flex items-center gap-1.5 min-w-0">
-                <h4 class="font-black text-slate-800 text-sm truncate" title="\${esc(alb.title)}">\${esc(alb.title)}</h4>
+                <h4 class="font-black text-slate-800 text-sm line-clamp-2 break-words" title="\${esc(alb.title)}">\${esc(alb.title)}</h4>
                 \${newBadgeHtml(alb.updatedAt)}
               </div>
             </div>
@@ -5043,7 +5166,7 @@ const htmlContent = `<!DOCTYPE html>
       }).map(function(p) {
         const id = p.id;
         return Object.assign({}, p, {
-          thumbnailUrl: p.thumbnailUrl || ('https://drive.google.com/thumbnail?id=' + id + '&sz=w800'),
+          thumbnailUrl: p.thumbnailUrl || ('https://drive.google.com/thumbnail?id=' + id + '&sz=' + THUMB_WIDTH),
           viewUrl: p.viewUrl || ('https://drive.google.com/thumbnail?id=' + id + '&sz=w2048'),
           driveViewUrl: p.driveViewUrl || ('https://drive.google.com/file/d/' + id + '/view'),
           downloadUrl: p.downloadUrl || ('https://drive.google.com/uc?export=download&id=' + id)
@@ -5060,6 +5183,10 @@ const htmlContent = `<!DOCTYPE html>
       if (grid) grid.innerHTML = '<div class="col-span-full py-16 text-center text-slate-400 font-bold">' + esc(t('ui.albumLoadFailed')) + '</div>';
     }
 
+    // 相簿／主題的格狀縮圖寬度。實測 8 張代表性相片平均每張：w800=181KB、w600=116KB、w480≈80KB、w400=60KB；
+    // 手機每格約 160 CSS 像素、iPhone 為 3 倍螢幕，約需 480 像素才清楚。大圖檢視（w2048）不受影響。
+    const THUMB_WIDTH = 'w480';
+
     function getPhotoDisplayUrl(p, highRes = true) {
       if (!p) return '';
       // 0. If p is a string URL
@@ -5068,19 +5195,19 @@ const htmlContent = `<!DOCTYPE html>
         if (!raw) return '';
         const matchId = raw.match(new RegExp('/d/([a-zA-Z0-9_-]+)')) || raw.match(new RegExp('[?&]id=([a-zA-Z0-9_-]+)'));
         if (matchId && matchId[1]) {
-          return \`https://drive.google.com/thumbnail?id=\${matchId[1]}&sz=\${highRes ? 'w2048' : 'w800'}\`;
+          return \`https://drive.google.com/thumbnail?id=\${matchId[1]}&sz=\${highRes ? 'w2048' : THUMB_WIDTH}\`;
         }
         return raw;
       }
       // 1. If photo object has direct file id
       if (p.id) {
-        return \`https://drive.google.com/thumbnail?id=\${p.id}&sz=\${highRes ? 'w2048' : 'w800'}\`;
+        return \`https://drive.google.com/thumbnail?id=\${p.id}&sz=\${highRes ? 'w2048' : THUMB_WIDTH}\`;
       }
       // 2. If viewUrl or thumbnailUrl contains /d/{id} or id={id}
       const rawUrl = p.viewUrl || p.thumbnailUrl || '';
       const matchId = rawUrl.match(new RegExp('/d/([a-zA-Z0-9_-]+)')) || rawUrl.match(new RegExp('[?&]id=([a-zA-Z0-9_-]+)'));
       if (matchId && matchId[1]) {
-        return \`https://drive.google.com/thumbnail?id=\${matchId[1]}&sz=\${highRes ? 'w2048' : 'w800'}\`;
+        return \`https://drive.google.com/thumbnail?id=\${matchId[1]}&sz=\${highRes ? 'w2048' : THUMB_WIDTH}\`;
       }
       // 3. Fallback: if viewUrl is a direct image URL (not a Drive view webpage)
       if (p.viewUrl && !p.viewUrl.includes('/file/d/')) {
@@ -8922,11 +9049,11 @@ const htmlContent = `<!DOCTYPE html>
                   \${songEsc(theme.week || '')}
                 </div>
                 <div class="min-w-0">
-                  <div class="flex items-center gap-1.5 min-w-0">
-                    <h3 class="font-black text-slate-800 text-base sm:text-lg truncate">\${songEsc(themeName)}</h3>
+                  <div class="flex items-center gap-1.5 min-w-0 flex-wrap">
+                    <h3 class="font-black text-slate-800 text-base sm:text-lg min-w-0 break-words">\${songEsc(themeName)}</h3>
                     \${newBadgeHtml(theme.updatedAt)}
                   </div>
-                  <div class="text-xs font-semibold text-slate-500 mt-0.5 flex items-center gap-1.5 truncate">
+                  <div class="text-xs font-semibold text-slate-500 mt-0.5 flex items-center gap-x-1.5 gap-y-0.5 flex-wrap">
                     <span>\${songEsc(dateRangeStr)}</span>
                     \${theme.semester ? \`<span class="text-[10px] bg-slate-200/70 px-1.5 py-0.5 rounded text-slate-600">\${songEsc(tn(theme.semester))}</span>\` : ''}
                   </div>

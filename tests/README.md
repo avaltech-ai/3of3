@@ -117,4 +117,5 @@ console.log(await window.__nameMapFrontendTest());   // allPass 應為 true
 - **提醒**：瀏覽器可能快取 `tests/*.js`；改了測試檔後，載入時請用 `fetch('/tests/xxx.js?v='+Date.now(), {cache:'no-store'})`。XSS 偵測器會執行每個 `on*` 處理器，新增會導向或重新載入頁面的按鈕時，要在 `xss_harness.js` 的「安全閥」區塊把對應函式換成假函式。
 - **更換 logo 時**：把新的透明背景 PNG 放成 `logo-hires.png`，執行 `python3 tools/make_icons.py` 重新產生 `icons/`，再跑 `node tests/pwa.test.js`。
 - `tests/event_minor.js`（瀏覽器）：活動細項小標籤（每日詳情與全月總覽、空值、舊欄位名稱、惡意字串、英文名稱對照，共 11 項）。
+- `tests/small_improvements.js`（瀏覽器）：縮圖 w480、大字開關、列印本週菜單（欄位、週末規則、跳脫、無菜單提示、英文、列印樣式，共 28 項）。
 
