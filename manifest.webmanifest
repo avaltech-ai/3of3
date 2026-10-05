@@ -1,0 +1,17 @@
+{
+  "name": "桃子腳幼兒園 諾貝爾 A 班",
+  "short_name": "諾貝爾A",
+  "description": "新北市桃子腳非營利幼兒園 諾貝爾 A 班 班級生活網：行事曆、菜單、影像紀錄與常用文件。",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "lang": "zh-Hant",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

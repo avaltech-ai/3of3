@@ -8,6 +8,16 @@ const htmlContent = `<!DOCTYPE html>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>桃子腳幼兒園 - 諾貝爾 A 班</title>
+  <!-- 加到手機主畫面（PWA）：名稱「諾貝爾A」、圖示由 tools/make_icons.py 從 logo-hires.png 產生（白底，iPhone 會把透明區域顯示成黑色）。
+       不做 service worker／離線快取（容易讓使用者卡在舊版）。以 App 模式開啟時沒有網址列與重新整理鈕，所以另有標頭的重新整理鈕與回到前景自動同步。 -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="諾貝爾A">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <!-- Tailwind CSS CDN -->
   <!-- 固定 Tailwind 版本網址：未固定的 cdn.tailwindcss.com 會先 302 轉址到 /3.4.17（轉址只快取 4 小時，之後每次回訪多一次網路來回），
        且會在不知情下隨官方升級而改變樣式行為。此 CDN 不回 CORS 標頭，因此無法加 SRI（加了會被瀏覽器擋掉）。 -->
@@ -203,7 +213,9 @@ const htmlContent = `<!DOCTYPE html>
             </div>
           </div>
 
-          <!-- 頁面最右上角：系統管理員登入狀態與即時登出按鈕 (圖一) -->
+          <!-- 頁面最右上角：重新整理鈕（只在以 App 模式開啟時顯示；手機用絕對定位貼在標頭右上角，不佔版面，否則標題會被擠成兩行；md 以上才排進版面）、系統管理員登入狀態與即時登出按鈕 (圖一) -->
+          <div class="flex items-center gap-2 shrink-0">
+          <button type="button" id="appRefreshBtn" onclick="appRefresh()" class="hidden absolute top-0.5 right-2 md:static w-7 h-7 md:w-9 md:h-9 rounded-full bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 border border-slate-200 items-center justify-center text-sm md:text-lg font-bold tap-bounce cursor-pointer" title="重新整理" aria-label="重新整理" data-i18n-title="ui.appRefresh" data-i18n-aria="ui.appRefresh">↻</button>
           <div id="globalAdminStatus" class="hidden items-center gap-2 shrink-0">
             <div class="hidden sm:flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-300 text-xs px-3 py-1 rounded-full font-bold shadow-xs">
               <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -213,6 +225,7 @@ const htmlContent = `<!DOCTYPE html>
               <span class="text-xs">🚪</span>
               <span id="headerLogoutText" data-i18n="header.logout">登出</span>
             </button>
+          </div>
           </div>
         </div>
       </header>
@@ -2097,6 +2110,7 @@ const htmlContent = `<!DOCTYPE html>
           waitElapsed: "已等待 {s} 秒",
           newBadge: "NEW",
           newBadgeTitle: "近 7 天內新增或更新",
+          appRefresh: "重新整理",
           waitRetry: "網路較慢，正在重試（{n}/{max}）",
           waitBigAlbum: "大型相簿第一次開啟會比較久，請稍候",
           thumbProgress: "縮圖載入 {i} / {n}",
@@ -2296,6 +2310,7 @@ const htmlContent = `<!DOCTYPE html>
           waitElapsed: "Waiting {s}s",
           newBadge: "NEW",
           newBadgeTitle: "Added or updated in the last 7 days",
+          appRefresh: "Refresh",
           waitRetry: "Slow connection, retrying ({n}/{max})",
           waitBigAlbum: "Large albums take longer the first time",
           thumbProgress: "Loading thumbnails {i} / {n}",
@@ -2676,6 +2691,7 @@ const htmlContent = `<!DOCTYPE html>
 
       // 套用當前語系文字
       applyTranslations();
+      initStandaloneSupport();
 
       // 2. 靜默在背景連線至雲端讀取最新資料庫並自動無縫更新（Stale-While-Revalidate）
       loadAppData(true);
@@ -2916,6 +2932,41 @@ const htmlContent = `<!DOCTYPE html>
       setTimeout(() => { form.remove(); }, 100);
     }
 
+    // ---------- 以「加到主畫面」App 模式開啟時的支援 ----------
+    // App 模式（standalone）沒有網址列與重新整理鈕：顯示標頭的 ↻，並在回到前景超過 5 分鐘時自動同步資料。
+    const FOREGROUND_SYNC_MS = 5 * 60 * 1000;
+    let lastHiddenAt = 0;
+
+    function isStandaloneApp() {
+      try {
+        return !!((window.navigator && window.navigator.standalone) || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches));
+      } catch (e) { return false; }
+    }
+
+    function appRefresh() { location.reload(); } // 整頁重新載入：資料與新版程式都會更新
+
+    // 有彈窗開著（播放器、相簿、後台編輯…）或管理員已登入時不自動同步，避免打斷操作
+    function isUserBusy() {
+      try {
+        if (state.adminPassword || readStoredToken()) return true;
+      } catch (e) {}
+      return !!document.querySelector('[id$="Modal"]:not(.hidden)');
+    }
+
+    function onVisibilityChange() {
+      if (document.visibilityState === 'hidden') { lastHiddenAt = Date.now(); return; }
+      if (!lastHiddenAt) return;
+      const away = Date.now() - lastHiddenAt;
+      lastHiddenAt = 0;
+      if (away >= FOREGROUND_SYNC_MS && isStandaloneApp() && !isUserBusy()) loadAppData(true);
+    }
+
+    function initStandaloneSupport() {
+      const btn = document.getElementById('appRefreshBtn');
+      if (btn && isStandaloneApp()) { btn.classList.remove('hidden'); btn.classList.add('flex'); }
+      document.addEventListener('visibilitychange', onVisibilityChange);
+    }
+
     // 等待提示：讀取超過 3 秒才出現「已等待 N 秒」，重試時再附上重試次數。
     // 誠實原則：伺服器處理期間沒有進度資訊可用，所以只顯示「已等多久、第幾次嘗試」，不假裝知道還要等多久。
     // container：提示會附加在這個元素裡（元件自己建立一個 .wait-hint 子元素）；回傳 { attempt(n,max), stop() }。
@@ -2956,9 +3007,10 @@ const htmlContent = `<!DOCTYPE html>
       try {
         if (err) why = String((err && (err.name ? err.name + ': ' : '') + (err.message || err)) || '').slice(0, 80);
       } catch (e) {}
+      const app = isStandaloneApp(); // App 模式沒有瀏覽器的重新整理鈕，改指向標頭的 ↻
       showToast((state.lang === 'en'
-        ? 'Cloud sync failed. The content shown may be outdated. Please reload.'
-        : '雲端資料同步失敗，目前顯示的可能是舊資料，請重新整理頁面。') + (why ? ' [' + why + ']' : ''), '⚠️');
+        ? (app ? 'Cloud sync failed. The content shown may be outdated. Tap ↻ at the top right to reload.' : 'Cloud sync failed. The content shown may be outdated. Please reload.')
+        : (app ? '雲端資料同步失敗，目前顯示的可能是舊資料，請點右上角「↻」重新整理。' : '雲端資料同步失敗，目前顯示的可能是舊資料，請重新整理頁面。')) + (why ? ' [' + why + ']' : ''), '⚠️');
     }
 
     function loadAppData(isSilent = true) {

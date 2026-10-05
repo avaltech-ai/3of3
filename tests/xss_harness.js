@@ -41,6 +41,7 @@
     window.alert = function () {};
     window.prompt = function () { return ''; };
     window.open = function () { return null; };
+    window.appRefresh = function () {}; // 標頭的重新整理鈕會 location.reload()；偵測器會執行每個 on* 處理器，不能真的重新載入頁面
 
     // 確保相簿資料帶有 coverCandidates 欄位，這樣候選照片的路徑也會被下毒測試（即使後端尚未提供該欄位）
     var rawClone = JSON.parse(JSON.stringify(raw));
