@@ -2095,7 +2095,7 @@ const htmlContent = `<!DOCTYPE html>
           legendSnack: 'Daily Meals',
           legendKitchen: 'Happy Kitchen',
           legendBirthday: 'Birthdays',
-          spotlightTag: 'SPOTLIGHT HIGHLIGHT',
+          spotlightTag: 'HIGHLIGHT',
           spotlightEnlarge: 'Enlarge',
           spotlightSlideInterval: '⏱️ 5s Auto',
           todayEventsTitle: 'Daily Schedule & Events',
