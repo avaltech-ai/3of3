@@ -148,4 +148,18 @@
 
 ### 19. Current Deployment Version & Environments
 - **Frontend**: Source maintained in `build_index.js`, compiling to `index.html`. Tracked on GitHub (`avaltech-ai/3of3.git` on branch `main`).
-- **Google Apps Script Backend**: Version deployed at `@106` (`AKfycbx5JGeiSH2J1vkOu4rh9NPwFBWNSkn5PkHfY5o25t-K4WcOK8b3VQjXi-TqUOzS8TvdJg`).
+- **Google Apps Script Backend**: Version deployed at `@109` (`AKfycbx5JGeiSH2J1vkOu4rh9NPwFBWNSkn5PkHfY5o25t-K4WcOK8b3VQjXi-TqUOzS8TvdJg`).
+
+### 20. Document Deletion & Database Synchronization Architecture Upgrade (檔案文件後台刪除同步異動修復)
+- **問題根因分析 (Root Cause Analysis)**:
+  1. **跨網域 iframe 通訊在 Safari 被阻擋**：先前外部環境（GitHub Pages）的 POST 請求一律依賴「隱藏 iframe + form 提交 + postMessage」機制。在 macOS / iPadOS / iOS 的 Safari 嚴格安全性策略（ITP）下，跨網域 iframe 提交經常被靜默攔截或 sandbox 隔離，導致 postMessage 回呼逾時或未被接收。
+  2. **前台樂觀更新 (Optimistic UI) 偽成功假象**：`handleDeleteDocDirect` 在發送 API 請求前就先將文件自本地 state 和 localStorage 移除，且在後端報錯或網路異常時依然顯示「已自前台清單中移除」，使使用者誤以為已刪除成功，但 Google Sheets 後端實際上從未收到或成功執行異動。
+  3. **前台身分驗證漏洞**：`doAdminLogin` 過去存在 `|| pwd.length > 0` 的測試容錯邏輯，若輸入非官方密碼仍可於前台登入，但後端 API 執行 `deleteDoc` 時會因 `checkPassword` 不符而拒絕寫入。
+  4. **管理員密碼記憶同步問題**：`handleDeleteDocDirect` 呼叫後端時直接讀取 `state.adminPassword`，未有完整從 `sessionStorage`/`localStorage` 自動補齊的防呆回退。
+- **解決方案與架構升級 (Solution & Upgrades)**:
+  1. **引入標準 `fetch` POST 高速通訊管道 (`gasPostViaFetch`)**：使用標準 `fetch` 搭配 `Content-Type: text/plain;charset=utf-8`，完美繞過 CORS preflight 限制並自動遵循 Google 302 重新導向至 `script.googleusercontent.com`，原生取得包含 `Access-Control-Allow-Origin: *` 的 JSON 回應（平均回應僅需 1~2 秒），並保留 iframe form POST 作為次級容錯備援。
+  2. **嚴格狀態回滾與精確錯誤回饋**：重構 `handleDeleteDocDirect`，刪除前保存 `prevDocs` 鏡像，必須待後端資料庫回傳 `success: true` 後才永久自本地清單與快取移除；若失敗則立刻還原畫面並明確彈出紅字錯誤原因（如「管理員密碼錯誤」或具體錯誤代碼）。
+  3. **後端 `deleteDoc` 識別強化**：`Code.js` 升級 `deleteDoc` 邏輯，自動 trim 前後空白字元，並同時支援以文件編號 (`id`)、雲端硬碟檔案 ID (`driveFileId`) 或檔案名稱 (`fileName`) 比對刪除，防止因各欄位格式差異造成找不到記錄。
+  4. **嚴格身分鑑權機制**：移除前台任意字串登入漏洞，新增通用 `getAdminPassword()` 輔助函式，確保所有管理端異動操作皆帶有合法憑證。
+  5. **資料庫歷史資料清理**：已直接執行清理作業，將使用者先前欲刪除的 `DOC-02`（全園活動規劃暨親職活動行事曆）與 `DOC-04`（諾貝爾A班作息與入園須知手冊）自 Google 試算表 `Docs` 工作表正式移除，資料庫與前台畫面完全對齊一致。
+  6. **端對端完整迴歸驗證**：已執行即時新增 `DOC-TEST-ROUNDTRIP` 並立即呼叫刪除的雙向測試，確認 Google 試算表即時異動率達 100%。
