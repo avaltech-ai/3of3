@@ -5,7 +5,7 @@
 > **新對話接手時請先讀本節**，再視需要讀 `SPECIFICATION.md`（規格正本）與 `tests/README.md`（測試說明）。下方「Critical Technical Lessons Learned」第 1～21 條是歷史紀錄，**其中第 1、2、19 條已過時**（見各條註記）；第 21 條之後的條列為 2026-10-05 起的新增項目。
 
 ### 一、目前狀態（一句話）
-**線上穩定，沒有待部署項目。** 後端 GAS 現行部署 **@123「行事曆訂閱」**（另有不可刪的 `@HEAD`，共 2 個部署）；前端 GitHub Pages 為最新 commit。`NameMap` 的 13 個英文名稱已由使用者填寫完成（2026-10-05）；暫緩項目見 `TODO.md`，Safari 實機驗收見 `tests/safari-checklist.md`。**使用者需在試算表選單按一次「⚡ 啟用網頁快取預熱」**（已按過）。
+**線上穩定，沒有待部署項目。** 後端 GAS 現行部署 **@125「中翻英後台」**（另有不可刪的 `@HEAD`，共 2 個部署）；前端 GitHub Pages 為最新 commit。`NameMap` 的 13 個英文名稱已由使用者填寫完成（2026-10-05）；暫緩項目見 `TODO.md`，Safari 實機驗收見 `tests/safari-checklist.md`。**使用者需在試算表選單按一次「⚡ 啟用網頁快取預熱」**（已按過）。
 
 ### 二、系統概覽
 - **架構**：靜態前端（GitHub Pages，`https://avaltech-ai.github.io/3of3/`）＋ Google Apps Script Web App（唯一 `/exec` 端點）＋ Google Sheets（資料庫）＋ Google Drive（相片、文件、音訊）。**已無 Netlify**。
@@ -301,4 +301,4 @@
   - **測試**：`tests/mapadmin.test.js`（Node，60 項，12 種破壞皆被抓到，已納入 CI）、`tests/mapadmin_frontend.js`（瀏覽器，61 項，9 種破壞皆被抓到）。XSS 偵測 A～E 全 0。在 390px 寬檢查無橫向捲動。
   - **部署**：後端 @125 先發布，再推前端（前端在後端未發布前進入該頁籤只會顯示「載入失敗」）。
   - **未驗證**：實際在後台操作（登入後開啟頁籤、儲存、產生草稿、採用）、`LanguageApp` 實際翻譯品質與額度。
-
+- **後端 @125 部署驗證（2026-10-06）**：部署數量仍為 2；7 個後台英文對照動作（`mapList`／`mapSave`／`mapDelete`／`mapSync`／`textDraft`／`textAdopt`／`mapStatus`）以錯誤 token 連測 3 輪共 21 次，全部回「登入已逾時或無效」（皆被拒絕）；`getTextMap`、`getAppData`、`getCalendarIcs`（`text/calendar`）正常，`listSheetNames` 與以 GET 呼叫管理員動作皆回「未知動作」。發布後前幾分鐘 Google 讓部分請求仍由 @124 處理（`mapStatus` 曾回「未知 POST 動作」），等約 1 分鐘後全部一致。
