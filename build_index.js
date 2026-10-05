@@ -9,7 +9,9 @@ const htmlContent = `<!DOCTYPE html>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>桃子腳幼兒園 - 諾貝爾 A 班</title>
   <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- 固定 Tailwind 版本網址：未固定的 cdn.tailwindcss.com 會先 302 轉址到 /3.4.17（轉址只快取 4 小時，之後每次回訪多一次網路來回），
+       且會在不知情下隨官方升級而改變樣式行為。此 CDN 不回 CORS 標頭，因此無法加 SRI（加了會被瀏覽器擋掉）。 -->
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700;900&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
