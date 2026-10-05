@@ -306,7 +306,7 @@ const htmlContent = `<!DOCTYPE html>
   <!-- 全域載入狀態提示（備用） -->
     <div id="loadingOverlay" class="py-12 flex flex-col items-center justify-center gap-3 hidden">
       <div class="w-12 h-12 border-4 border-peach-200 border-t-peach-500 rounded-full animate-spin"></div>
-      <p class="text-sm font-bold text-slate-500 animate-pulse" data-i18n="ui.loading">正在連線至雲端讀取最新資料庫，請稍候...</p>
+      <p id="loadingOverlayText" class="text-sm font-bold text-slate-500 text-center"><span class="animate-pulse" data-i18n="ui.loading">正在連線至雲端讀取最新資料庫，請稍候...</span></p>
     </div>
 
     <!-- ==================== TAB 1: 班級日常 (HOME) ==================== -->
@@ -1682,6 +1682,12 @@ const htmlContent = `<!DOCTYPE html>
         </button>
       </div>
 
+      <!-- 縮圖載入進度（只追蹤第一批縮圖；其餘縮圖隨捲動才載入，沒有固定總數所以不計入） -->
+      <div id="albumThumbProgress" class="hidden pt-2 shrink-0">
+        <div id="albumThumbProgressText" class="text-[0.6875rem] font-bold text-teal-700"></div>
+        <div class="h-1.5 rounded-full bg-teal-100 overflow-hidden mt-1"><div id="albumThumbProgressBar" class="h-full bg-teal-500 transition-all duration-200" style="width:0%"></div></div>
+      </div>
+
       <!-- 相片縮圖網格 -->
       <div id="albumPhotosGrid" class="flex-1 overflow-y-auto min-h-0 py-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 content-start" style="grid-auto-rows: max-content;">
         <!-- JS 動態插入照片 -->
@@ -2088,6 +2094,10 @@ const htmlContent = `<!DOCTYPE html>
           albumDefaultCategory: "活動記錄",
           albumNoPhotos: "此相簿目前無照片檔案。",
           albumLoadingPhotos: "讀取相簿照片中...",
+          waitElapsed: "已等待 {s} 秒",
+          waitRetry: "網路較慢，正在重試（{n}/{max}）",
+          waitBigAlbum: "大型相簿第一次開啟會比較久，請稍候",
+          thumbProgress: "縮圖載入 {i} / {n}",
           photoClickEnlarge: "🔍 點擊放大",
           photoAlt: "照片",
           viewerAlt: "相簿照片",
@@ -2281,6 +2291,10 @@ const htmlContent = `<!DOCTYPE html>
           albumDefaultCategory: "Activities",
           albumNoPhotos: "This album has no photos yet.",
           albumLoadingPhotos: "Loading album photos...",
+          waitElapsed: "Waiting {s}s",
+          waitRetry: "Slow connection, retrying ({n}/{max})",
+          waitBigAlbum: "Large albums take longer the first time",
+          thumbProgress: "Loading thumbnails {i} / {n}",
           photoClickEnlarge: "🔍 Click to enlarge",
           photoAlt: "Photo",
           viewerAlt: "Album photo",
@@ -2690,7 +2704,7 @@ const htmlContent = `<!DOCTYPE html>
       return 'k' + Date.now().toString(36) + rnd;
     }
 
-    function callBackend(action, payload, successCb, errorCb) {
+    function callBackend(action, payload, successCb, errorCb, hooks) {
       // 任何呼叫只要被後端判定登入逾時／無效，先讓原本的 callback 處理（還原畫面等），再統一回到登入畫面
       const _origSuccessCb = successCb;
       successCb = function(res) {
@@ -2737,6 +2751,7 @@ const htmlContent = `<!DOCTYPE html>
           // 重試通常就命中快取。getAppData 最多 3 次、其他讀取 2 次，全部失敗才通知呼叫端。
           const maxAttempts = (action === 'getAppData') ? 3 : 2;
           const attemptOnce = (n) => {
+            if (hooks && typeof hooks.onAttempt === 'function') { try { hooks.onAttempt(n, maxAttempts); } catch (e) {} }
             let isDone = false;
             const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
             let timeoutTimer = null;
@@ -2897,6 +2912,39 @@ const htmlContent = `<!DOCTYPE html>
       setTimeout(() => { form.remove(); }, 100);
     }
 
+    // 等待提示：讀取超過 3 秒才出現「已等待 N 秒」，重試時再附上重試次數。
+    // 誠實原則：伺服器處理期間沒有進度資訊可用，所以只顯示「已等多久、第幾次嘗試」，不假裝知道還要等多久。
+    // container：提示會附加在這個元素裡（元件自己建立一個 .wait-hint 子元素）；回傳 { attempt(n,max), stop() }。
+    function startWaitHint(container, opts) {
+      opts = opts || {};
+      if (!container) return { attempt: function() {}, stop: function() {} };
+      let el = container.querySelector(':scope > .wait-hint');
+      if (!el) {
+        el = document.createElement(opts.inline ? 'span' : 'div');
+        el.className = 'wait-hint ' + (opts.inline ? 'ml-1' : 'block text-xs font-semibold mt-1');
+        container.appendChild(el);
+      }
+      el.textContent = '';
+      el.style.display = 'none';
+      const t0 = Date.now();
+      let n = 1, max = 1, stopped = false;
+      function paint() {
+        if (stopped) return;
+        const sec = Math.floor((Date.now() - t0) / 1000);
+        if (sec < 3 && n <= 1) { el.style.display = 'none'; return; }
+        let txt = (opts.inline ? '· ' : '') + t('ui.waitElapsed', { s: sec });
+        if (n > 1) txt += ' · ' + t('ui.waitRetry', { n: n, max: max });
+        if (opts.slowNoteKey && sec >= 8) txt += ' · ' + t(opts.slowNoteKey);
+        el.textContent = txt;
+        el.style.display = '';
+      }
+      const timer = setInterval(paint, 1000);
+      return {
+        attempt: function(i, m) { n = i; max = m; paint(); },
+        stop: function() { stopped = true; clearInterval(timer); el.style.display = 'none'; el.textContent = ''; }
+      };
+    }
+
     // 雲端同步失敗時明確告知：目前畫面可能是舊資料（避免老師、家長被過期內容誤導）
     function notifySyncFailed(err) {
       // 附上簡短原因（錯誤名稱與訊息），方便在手機上直接回報；只取純文字、限制長度
@@ -2916,8 +2964,10 @@ const htmlContent = `<!DOCTYPE html>
       } else {
         showLoading(true);
       }
+      const wait = startWaitHint(isSilent ? document.getElementById('headerSyncText') : document.getElementById('loadingOverlayText'), { inline: isSilent });
 
       callBackend('getAppData', {}, res => {
+        wait.stop();
         if (syncBadge) syncBadge.classList.add('hidden');
         showLoading(false);
         if (res && res.success && res.data) {
@@ -2932,6 +2982,7 @@ const htmlContent = `<!DOCTYPE html>
           }
         }
       }, err => {
+        wait.stop();
         if (syncBadge) syncBadge.classList.add('hidden');
         showLoading(false);
         console.warn('GAS 連線失敗或逾時，已保持目前最新資料:', err);
@@ -2939,7 +2990,7 @@ const htmlContent = `<!DOCTYPE html>
         if (!state.events || state.events.length === 0) {
           renderFallbackLocalData();
         }
-      });
+      }, { onAttempt: wait.attempt });
     }
 
     
@@ -4724,8 +4775,10 @@ const htmlContent = `<!DOCTYPE html>
       const grid = document.getElementById('albumsGrid');
       if (loading) loading.classList.remove('hidden');
       if (grid) grid.innerHTML = '';
+      const wait = startWaitHint(loading);
 
       callBackend('getAlbums', {}, res => {
+        wait.stop();
         if (loading) loading.classList.add('hidden');
         if (res && res.success && res.albums && res.albums.length > 0) {
           state.cachedAlbums = res.albums;
@@ -4735,9 +4788,10 @@ const htmlContent = `<!DOCTYPE html>
           renderFallbackAlbums();
         }
       }, err => {
+        wait.stop();
         if (loading) loading.classList.add('hidden');
         renderFallbackAlbums();
-      });
+      }, { onAttempt: wait.attempt });
     }
 
     function renderFallbackAlbums() {
@@ -4861,18 +4915,22 @@ const htmlContent = `<!DOCTYPE html>
       const countBadge = document.getElementById('modalAlbumCount');
       if (countBadge) countBadge.textContent = '';
       const grid = document.getElementById('albumPhotosGrid');
-      grid.innerHTML = '<div class="col-span-full py-16 text-center text-slate-400 font-bold flex flex-col items-center gap-3"><div class="w-8 h-8 border-3 border-teal-500 border-t-transparent rounded-full animate-spin"></div><span>' + esc(t('ui.albumLoadingPhotos')) + '</span></div>';
+      grid.innerHTML = '<div class="col-span-full py-16 text-center text-slate-400 font-bold flex flex-col items-center gap-3"><div class="w-8 h-8 border-3 border-teal-500 border-t-transparent rounded-full animate-spin"></div><span id="albumLoadingText">' + esc(t('ui.albumLoadingPhotos')) + '</span></div>';
       document.getElementById('albumPhotosModal').classList.remove('hidden');
+      hideAlbumThumbProgress();
+      const wait = startWaitHint(document.getElementById('albumLoadingText'), { slowNoteKey: 'ui.waitBigAlbum' });
 
       callBackend('getAlbumPhotos', { albumId: albumId }, res => {
+        wait.stop();
         if (res && res.success) {
           renderAlbumPhotosGrid(expandAlbumPhotos(res.photos));   // 空相簿會顯示「此相簿目前無照片檔案」
         } else {
           showAlbumPhotosError();
         }
       }, err => {
+        wait.stop();
         showAlbumPhotosError();
-      });
+      }, { onAttempt: wait.attempt });
     }
 
     // 後端只回傳 {id, name, size}（縮小回應、才能快取）；網址在前端由 id 組出。
@@ -4941,21 +4999,61 @@ const htmlContent = `<!DOCTYPE html>
       const countBadge = document.getElementById('modalAlbumCount');
       if (countBadge) countBadge.textContent = t('ui.albumPhotosTotal', { n: photos.length });
 
+      const ALBUM_FIRST_BATCH = 18; // 第一批縮圖（約第一個畫面）立即載入並顯示真實進度，其餘隨捲動才載入
+      const cells = [];
       photos.forEach((p, idx) => {
         const thumbUrl = getPhotoDisplayUrl(p, false);
-        grid.innerHTML += \`
+        cells.push(\`
           <div class="aspect-square rounded-2xl overflow-hidden bg-slate-100 group relative cursor-pointer tap-bounce border border-slate-200/80 shadow-xs" style="aspect-ratio: 1 / 1;" onclick="openPhotoViewerByIndex(\${idx})">
-            <img src="\${escUrl(thumbUrl)}" alt="\${esc(p.name || t('ui.photoAlt'))}" loading="lazy" class="w-full h-full object-cover transition-transform group-hover:scale-105 duration-200">
+            <img src="\${escUrl(thumbUrl)}" alt="\${esc(p.name || t('ui.photoAlt'))}" loading="\${idx < ALBUM_FIRST_BATCH ? 'eager' : 'lazy'}" class="w-full h-full object-cover transition-transform group-hover:scale-105 duration-200">
             <div class="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-xs font-bold gap-1 p-2 text-center">
               <span>\${esc(t('ui.photoClickEnlarge'))}</span>
               <span class="text-[0.625rem] opacity-80 truncate w-full max-w-[90%]">\${esc(p.name || '')}</span>
             </div>
           </div>
-        \`;
+        \`);
       });
+      grid.innerHTML = cells.join('');
+      trackAlbumThumbProgress(Array.prototype.slice.call(grid.querySelectorAll('img')).slice(0, ALBUM_FIRST_BATCH));
+    }
+
+    let albumThumbTimer = null;
+    function hideAlbumThumbProgress() {
+      clearTimeout(albumThumbTimer);
+      const box = document.getElementById('albumThumbProgress');
+      if (box) box.classList.add('hidden');
+    }
+
+    // 追蹤一批縮圖的真實載入進度（load／error 都算「處理完」，避免壞圖讓進度永遠卡住）；25 秒後無論如何收起
+    function trackAlbumThumbProgress(imgs) {
+      hideAlbumThumbProgress();
+      const total = imgs.length;
+      const box = document.getElementById('albumThumbProgress');
+      const txt = document.getElementById('albumThumbProgressText');
+      const bar = document.getElementById('albumThumbProgressBar');
+      if (!box || !txt || !bar || total === 0) return;
+      let done = 0;
+      function paint() {
+        txt.textContent = t('ui.thumbProgress', { i: done, n: total });
+        bar.style.width = Math.round(done * 100 / total) + '%';
+        box.classList.remove('hidden');
+      }
+      function finishOne() {
+        done++;
+        paint();
+        if (done >= total) { clearTimeout(albumThumbTimer); albumThumbTimer = setTimeout(function() { box.classList.add('hidden'); }, 600); }
+      }
+      paint();
+      imgs.forEach(function(img) {
+        if (img.complete && img.naturalWidth > 0) { finishOne(); return; }
+        img.addEventListener('load', finishOne, { once: true });
+        img.addEventListener('error', finishOne, { once: true });
+      });
+      albumThumbTimer = setTimeout(function() { box.classList.add('hidden'); }, 25000);
     }
 
     function closeAlbumModal() {
+      hideAlbumThumbProgress();
       stopPhotoAutoPlay();
       document.getElementById('albumPhotosModal').classList.add('hidden');
     }
@@ -8204,8 +8302,10 @@ const htmlContent = `<!DOCTYPE html>
       modal.classList.remove('hidden');
       loading.classList.remove('hidden');
       grid.innerHTML = '';
+      const wait = startWaitHint(loading);
 
       callBackend('getActivityImages', {}, res => {
+        wait.stop();
         loading.classList.add('hidden');
         if (res && res.success && res.files && res.files.length > 0) {
           if (res.folderUrl && state.settings) {
@@ -8216,9 +8316,10 @@ const htmlContent = `<!DOCTYPE html>
           renderFallbackActivityPicker();
         }
       }, () => {
+        wait.stop();
         loading.classList.add('hidden');
         renderFallbackActivityPicker();
-      });
+      }, { onAttempt: wait.attempt });
     }
 
     function renderFallbackActivityPicker() {

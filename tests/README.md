@@ -100,3 +100,4 @@ console.log(await window.__nameMapFrontendTest());   // allPass 應為 true
 - `tests/albumphotos_frontend.js`：相簿照片瘦身回應（由 id 組網址、不合法 id 被略過）。
 - `tests/songs_player.js`：連續播放用同一個播放器 `loadVideoById` 換歌（不銷毀重建）。
 - 另有 Node：`node tests/warmcache.test.js`（快取預熱，10 項）、`node tests/albumphotos.test.js`（相簿照片快取，12 項）。
+- `tests/wait_hint.js`：載入等待提示與縮圖進度（約 20 秒，15 項）。
