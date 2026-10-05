@@ -2318,6 +2318,32 @@ const htmlContent = `<!DOCTYPE html>
     };
     window.state = state;
 
+    // ==================== 輸出跳脫（XSS 防護） ====================
+    // 凡是「來自試算表／使用者輸入」的字串，放進 HTML 之前一律經過下列函式：
+    //   esc(s)     → 放進 HTML 文字內容或屬性值（&、<、>、雙引號、單引號都會被轉義）
+    //   jsq(s)     → 放進 onclick="fn('...')" 這類「事件屬性內的 JS 字串」（先做 JS 跳脫，再做 HTML 跳脫）
+    //   escUrl(u)  → 放進 href／src／action；只允許 http(s)、相對路徑、blob:、data:image/，其餘（如 javascript:）一律清空
+    // 注意：本區程式刻意不使用反斜線，避免被 build 的模板字串吃掉（見 Progress 教訓 3）。
+    function esc(s) {
+      return String(s === undefined || s === null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+    function jsq(s) {
+      const BS = String.fromCharCode(92);
+      const j = JSON.stringify(String(s === undefined || s === null ? '' : s)).slice(1, -1);  // 已跳脫 反斜線、雙引號、換行
+      return esc(j.split("'").join(BS + 'x27').split('<').join(BS + 'x3c'));
+    }
+    function safeUrl(u) {
+      const v = String(u === undefined || u === null ? '' : u).trim();
+      if (!v) return '';
+      if (/^[a-z][a-z0-9+.-]*:/i.test(v)) {
+        return (/^https?:/i.test(v) || /^blob:/i.test(v) || /^data:image[/]/i.test(v)) ? v : '';
+      }
+      return v;   // 沒有 scheme 的相對路徑
+    }
+    function escUrl(u) { return esc(safeUrl(u)); }
+
     // 管理員憑證：密碼只在登入時送出一次；之後使用後端發的短效 token，僅存在 sessionStorage（關閉分頁即消失）。
     // 注意：state.adminPassword 欄位沿用舊名，但內容現在是 token，不是密碼。
     var ADMIN_TOKEN_KEY = 'nobel_a_admin_token';
@@ -2685,7 +2711,7 @@ const htmlContent = `<!DOCTYPE html>
 
           // Clean any duplicate leading emoji if already present in displayName
           label = label.replace(/^[🌟🌱❤️💛🏫👨‍👩‍👧]\s*/, '');
-          targetSelect.innerHTML += '<label class="flex items-center gap-1 cursor-pointer hover:bg-slate-50 px-1 rounded"><input type="checkbox" value="' + t.targetName.trim() + '" class="accent-peach-500 w-3 h-3"><span class="text-[0.6875rem] text-slate-700 font-medium">' + icon + label + '</span></label>';
+          targetSelect.innerHTML += '<label class="flex items-center gap-1 cursor-pointer hover:bg-slate-50 px-1 rounded"><input type="checkbox" value="' + esc(t.targetName.trim()) + '" class="accent-peach-500 w-3 h-3"><span class="text-[0.6875rem] text-slate-700 font-medium">' + icon + esc(label) + '</span></label>';
         });
         initOrderedCheckboxes('eventForm-target');
         if (prevOrder) {
@@ -2708,7 +2734,7 @@ const htmlContent = `<!DOCTYPE html>
 
         catMajorSelect.innerHTML = '<option value="">請選擇大項...</option>';
         majorSet.forEach(cat => {
-          catMajorSelect.innerHTML += '<option value="' + cat + '">' + cat + '</option>';
+          catMajorSelect.innerHTML += '<option value="' + esc(cat) + '">' + esc(cat) + '</option>';
         });
         if (currentSelectedMajor) {
           setSelectValueSafely(catMajorSelect, currentSelectedMajor);
@@ -2728,7 +2754,7 @@ const htmlContent = `<!DOCTYPE html>
 
         catMinorSelect.innerHTML = '<option value="">無 / 請選擇細項...</option>';
         minorSet.forEach(cat => {
-          catMinorSelect.innerHTML += '<option value="' + cat + '">' + cat + '</option>';
+          catMinorSelect.innerHTML += '<option value="' + esc(cat) + '">' + esc(cat) + '</option>';
         });
         if (currentSelectedMinor) {
           setSelectValueSafely(catMinorSelect, currentSelectedMinor);
@@ -2869,7 +2895,7 @@ const htmlContent = `<!DOCTYPE html>
           icon = '<span class="mr-0.5">💛</span>';
         }
 
-        return \`<span class="inline-flex items-center rounded-full font-bold shadow-2xs whitespace-nowrap transition-transform hover:scale-105 \${sizeClasses} \${colorClasses}">\${icon}\${t}</span>\`;
+        return \`<span class="inline-flex items-center rounded-full font-bold shadow-2xs whitespace-nowrap transition-transform hover:scale-105 \${sizeClasses} \${colorClasses}">\${icon}\${esc(t)}</span>\`;
       }).join('');
     }
 
@@ -2883,7 +2909,7 @@ const htmlContent = `<!DOCTYPE html>
           if (cat === '全部文件' || cat === '全部') {
             pillsContainer.innerHTML += '<button onclick="filterDocs(\\'全部\\')" class="doc-cat-btn px-3 py-1 rounded-xl text-xs font-bold bg-indigo-600 text-white shadow-xs">' + (state.lang === 'en' ? 'All Docs' : '全部文件') + '</button>';
           } else {
-            pillsContainer.innerHTML += '<button onclick="filterDocs(\\'' + cat + '\\')" class="doc-cat-btn px-3 py-1 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">' + cat + '</button>';
+            pillsContainer.innerHTML += '<button onclick="filterDocs(\\'' + jsq(cat) + '\\')" class="doc-cat-btn px-3 py-1 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">' + esc(cat) + '</button>';
           }
         });
       }
@@ -2893,7 +2919,7 @@ const htmlContent = `<!DOCTYPE html>
         uploadCat.innerHTML = '';
         categories.forEach(cat => {
           if (cat !== '全部文件' && cat !== '全部') {
-            uploadCat.innerHTML += '<option value="' + cat + '">' + cat + '</option>';
+            uploadCat.innerHTML += '<option value="' + esc(cat) + '">' + esc(cat) + '</option>';
           }
         });
       }
@@ -2903,7 +2929,7 @@ const htmlContent = `<!DOCTYPE html>
         editCat.innerHTML = '';
         categories.forEach(cat => {
           if (cat !== '全部文件' && cat !== '全部') {
-            editCat.innerHTML += '<option value="' + cat + '">' + cat + '</option>';
+            editCat.innerHTML += '<option value="' + esc(cat) + '">' + esc(cat) + '</option>';
           }
         });
       }
@@ -3526,7 +3552,7 @@ const htmlContent = `<!DOCTYPE html>
         }
         if (imgEl) {
           imgEl.classList.remove('hidden');
-          imgEl.src = sp.imageUrl || './spotlight-fluoride.jpg';
+          imgEl.src = safeUrl(sp.imageUrl) || './spotlight-fluoride.jpg';
         }
         if (imgHint) imgHint.classList.remove('hidden');
         if (mediaHint) mediaHint.innerHTML = '🔍 放大查看';
@@ -3564,13 +3590,13 @@ const htmlContent = `<!DOCTYPE html>
 
           item.className = 'p-2.5 rounded-xl border ' + borderClass + ' shadow-2xs';
           item.innerHTML = '<div class="' + textClass + ' flex items-center gap-1 mb-0.5 text-xs">' +
-            '<span>' + icon + '</span> 【' + tag + '】' +
+            '<span>' + icon + '</span> 【' + esc(tag) + '】' +
             '</div>' +
-            '<div class="text-slate-700 text-xs leading-relaxed font-medium">' + content + '</div>';
+            '<div class="text-slate-700 text-xs leading-relaxed font-medium">' + esc(content) + '</div>';
         } else {
           item.className = 'p-2.5 rounded-xl border border-rose-100 bg-white/80 shadow-2xs flex items-start gap-1.5 text-xs text-slate-700 font-medium';
           item.innerHTML = '<span class="text-peach-500 font-bold shrink-0">✨</span>' +
-            '<span class="leading-relaxed">' + line + '</span>';
+            '<span class="leading-relaxed">' + esc(line) + '</span>';
         }
         ptsContainer.appendChild(item);
       });
@@ -3723,7 +3749,7 @@ const htmlContent = `<!DOCTYPE html>
         }
         if (modalImg) {
           modalImg.classList.remove('hidden');
-          modalImg.src = sp.imageUrl || './spotlight-fluoride.jpg';
+          modalImg.src = safeUrl(sp.imageUrl) || './spotlight-fluoride.jpg';
         }
       }
 
@@ -3931,7 +3957,7 @@ const htmlContent = `<!DOCTYPE html>
           const banners = promptEvents.map(pe => {
             const promptText = (pe.calendarPrompt || pe['行事曆提示']).trim();
             const isHighlight = (pe.target || '').includes('諾貝爾A') || (pe.target || '').includes('諾貝爾 A') || (pe.target || '').includes('諾A');
-            return \`<div class="text-[0.625rem] tracking-tight leading-tight px-1.5 py-0.5 rounded break-words \${isHighlight ? 'bg-peach-500 text-white font-black' : 'bg-rose-100/80 text-rose-700 font-medium'}" title="\${promptText}">\${promptText}</div>\`;
+            return \`<div class="text-[0.625rem] tracking-tight leading-tight px-1.5 py-0.5 rounded break-words \${isHighlight ? 'bg-peach-500 text-white font-black' : 'bg-rose-100/80 text-rose-700 font-medium'}" title="\${esc(promptText)}">\${esc(promptText)}</div>\`;
           });
           bannerHtml = banners.slice(0, 2).join('');
         }
@@ -4049,7 +4075,7 @@ const htmlContent = `<!DOCTYPE html>
       if (dayEvents.length > 0) {
         dayEvents.forEach(ev => {
           const isNobel = (ev.target || '').includes('諾貝爾A') || (ev.target || '').includes('諾貝爾 A') || (ev.target || '').includes('諾A');
-          badgesContainer.innerHTML += \`<span class="px-2.5 py-0.5 rounded-full text-xs font-bold \${isNobel ? 'bg-peach-500 text-white' : 'bg-berry-100 text-berry-700'}">\${ev.title}</span>\`;
+          badgesContainer.innerHTML += \`<span class="px-2.5 py-0.5 rounded-full text-xs font-bold \${isNobel ? 'bg-peach-500 text-white' : 'bg-berry-100 text-berry-700'}">\${esc(ev.title)}</span>\`;
         });
       }
 
@@ -4082,12 +4108,12 @@ const htmlContent = `<!DOCTYPE html>
                 <div class="flex items-center gap-1.5 flex-wrap">
                   \${renderTargetBadges(ev.target)}
                 </div>
-                <span class="text-xs font-bold text-slate-500">\${ev.timeLocation || ''}</span>
+                <span class="text-xs font-bold text-slate-500">\${esc(ev.timeLocation || '')}</span>
               </div>
               <h5 class="text-sm font-black text-slate-800 flex items-center gap-1">
-                \${ev.title}
+                \${esc(ev.title)}
               </h5>
-              \${ev.description ? \`<p class="text-xs text-slate-600 leading-relaxed font-medium bg-white/70 p-2.5 rounded-xl whitespace-pre-line">\${ev.description}</p>\` : ''}
+              \${ev.description ? \`<p class="text-xs text-slate-600 leading-relaxed font-medium bg-white/70 p-2.5 rounded-xl whitespace-pre-line">\${esc(ev.description)}</p>\` : ''}
             </div>
           \`;
         });
@@ -4123,11 +4149,11 @@ const htmlContent = `<!DOCTYPE html>
       } else {
         // 午餐內容整合
         const lunchItems = [
-          dayMenu.lunchStaple ? (isEn ? \`Staple: \${dayMenu.lunchStaple}\` : \`主食：\${dayMenu.lunchStaple}\`) : '',
-          dayMenu.lunchMain ? (isEn ? \`Main: \${dayMenu.lunchMain}\` : \`主菜：\${dayMenu.lunchMain}\`) : '',
-          dayMenu.lunchSide1 ? (isEn ? \`Side: \${dayMenu.lunchSide1}\` : \`副菜一：\${dayMenu.lunchSide1}\`) : '',
-          dayMenu.lunchSide2 ? (isEn ? \`Side: \${dayMenu.lunchSide2}\` : \`副菜二：\${dayMenu.lunchSide2}\`) : '',
-          dayMenu.lunchSoup ? (isEn ? \`Soup: \${dayMenu.lunchSoup}\` : \`湯品：\${dayMenu.lunchSoup}\`) : ''
+          dayMenu.lunchStaple ? (isEn ? \`Staple: \${esc(dayMenu.lunchStaple)}\` : \`主食：\${esc(dayMenu.lunchStaple)}\`) : '',
+          dayMenu.lunchMain ? (isEn ? \`Main: \${esc(dayMenu.lunchMain)}\` : \`主菜：\${esc(dayMenu.lunchMain)}\`) : '',
+          dayMenu.lunchSide1 ? (isEn ? \`Side: \${esc(dayMenu.lunchSide1)}\` : \`副菜一：\${esc(dayMenu.lunchSide1)}\`) : '',
+          dayMenu.lunchSide2 ? (isEn ? \`Side: \${esc(dayMenu.lunchSide2)}\` : \`副菜二：\${esc(dayMenu.lunchSide2)}\`) : '',
+          dayMenu.lunchSoup ? (isEn ? \`Soup: \${esc(dayMenu.lunchSoup)}\` : \`湯品：\${esc(dayMenu.lunchSoup)}\`) : ''
         ].filter(Boolean).join(isEn ? ', ' : '、');
 
         menuListEl.innerHTML = \`
@@ -4137,7 +4163,7 @@ const htmlContent = `<!DOCTYPE html>
               <span class="text-base">🥛</span>
               <div class="flex-1">
                 <span class="font-bold text-orange-900 text-xs">\${isEn ? 'Morning Snack (08:30): ' : '早點（08:30）：'}</span>
-                <span class="text-slate-700 font-medium">\${dayMenu.morningSnack || (isEn ? 'Nutritious Snack' : '營養早點')}</span>
+                <span class="text-slate-700 font-medium">\${esc(dayMenu.morningSnack) || (isEn ? 'Nutritious Snack' : '營養早點')}</span>
               </div>
             </div>
             <!-- 當季水果 -->
@@ -4145,7 +4171,7 @@ const htmlContent = `<!DOCTYPE html>
               <span class="text-base">🍎</span>
               <div class="flex-1">
                 <span class="font-bold text-rose-900 text-xs">\${isEn ? 'Seasonal Fruit: ' : '當季水果：'}</span>
-                <span class="text-slate-700 font-medium">\${dayMenu.fruit || (isEn ? 'Fresh Seasonal Fruit' : '新鮮當季水果')}</span>
+                <span class="text-slate-700 font-medium">\${esc(dayMenu.fruit) || (isEn ? 'Fresh Seasonal Fruit' : '新鮮當季水果')}</span>
               </div>
             </div>
             <!-- 午餐五菜一湯 -->
@@ -4161,11 +4187,11 @@ const htmlContent = `<!DOCTYPE html>
               <span class="text-base">🍰</span>
               <div class="flex-1">
                 <span class="font-bold text-teal-900 text-xs">\${isEn ? 'Afternoon Snack (14:30): ' : '午後點心（14:30）：'}</span>
-                <span class="text-slate-700 font-medium">\${dayMenu.afternoonSnack || (isEn ? 'Energizing Snack' : '自製活力點心')}</span>
+                <span class="text-slate-700 font-medium">\${esc(dayMenu.afternoonSnack) || (isEn ? 'Energizing Snack' : '自製活力點心')}</span>
               </div>
             </div>
           </div>
-          \${dayMenu.note ? \`<div class="text-xs font-bold text-amber-700 bg-amber-50 p-2 rounded-xl border border-amber-200 flex items-center gap-1">📌 \${isEn ? 'Note: ' : '備註：'}\${dayMenu.note}</div>\` : ''}
+          \${dayMenu.note ? \`<div class="text-xs font-bold text-amber-700 bg-amber-50 p-2 rounded-xl border border-amber-200 flex items-center gap-1">📌 \${isEn ? 'Note: ' : '備註：'}\${esc(dayMenu.note)}</div>\` : ''}
         \`;
       }
     }
@@ -4193,8 +4219,8 @@ const htmlContent = `<!DOCTYPE html>
 
         const isToday = (dStr === state.selectedDateStr);
 
-        let eventsSummary = dayEvents.map(e => \`<span class="px-2 py-0.5 rounded text-[0.6875rem] font-bold bg-peach-100 text-peach-700 mr-1">\${e.title}</span>\`).join('') || ('<span class="text-slate-400 text-xs">' + (isEn ? 'Regular Routine' : '常態作息') + '</span>');
-        let lunchSummary = dayMenu ? (isEn ? \`Staple:\${dayMenu.lunchStaple || ''} / Main:\${dayMenu.lunchMain || ''} / Snack:\${dayMenu.afternoonSnack || ''}\` : \`主食:\${dayMenu.lunchStaple || ''} / 主菜:\${dayMenu.lunchMain || ''} / 午點:\${dayMenu.afternoonSnack || ''}\`) : (isEn ? 'No meals/Family Day' : '未供餐/家庭日');
+        let eventsSummary = dayEvents.map(e => \`<span class="px-2 py-0.5 rounded text-[0.6875rem] font-bold bg-peach-100 text-peach-700 mr-1">\${esc(e.title)}</span>\`).join('') || ('<span class="text-slate-400 text-xs">' + (isEn ? 'Regular Routine' : '常態作息') + '</span>');
+        let lunchSummary = dayMenu ? (isEn ? \`Staple:\${esc(dayMenu.lunchStaple)} / Main:\${esc(dayMenu.lunchMain)} / Snack:\${esc(dayMenu.afternoonSnack)}\` : \`主食:\${esc(dayMenu.lunchStaple)} / 主菜:\${esc(dayMenu.lunchMain)} / 午點:\${esc(dayMenu.afternoonSnack)}\`) : (isEn ? 'No meals/Family Day' : '未供餐/家庭日');
 
         container.innerHTML += \`
           <div class="p-3.5 rounded-2xl border \${isToday ? 'bg-peach-50/80 border-peach-300' : 'bg-slate-50 border-slate-100'} flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 cursor-pointer hover:bg-peach-50 transition-colors" onclick="onDateClicked('\${dStr}')">
@@ -4249,20 +4275,20 @@ const htmlContent = `<!DOCTYPE html>
       monthEvents.forEach(ev => {
         const isNobelA = (ev.target || '').includes('諾貝爾A班') || (ev.target || '').includes('諾貝爾 A') || (ev.target || '').includes('諾A');
         timeline.innerHTML += \`
-          <div class="p-3 rounded-2xl bg-slate-50 hover:bg-peach-50 border border-slate-100 transition-colors flex items-center justify-between gap-3 cursor-pointer" onclick="onDateClicked('\${normalizeDate(ev.date)}')">
+          <div class="p-3 rounded-2xl bg-slate-50 hover:bg-peach-50 border border-slate-100 transition-colors flex items-center justify-between gap-3 cursor-pointer" onclick="onDateClicked('\${jsq(normalizeDate(ev.date))}')">
             <div class="flex items-center gap-3">
               <div class="w-14 text-center shrink-0">
-                <div class="text-xs font-mono font-bold text-peach-600">\${normalizeDate(ev.date).slice(5)}</div>
-                \${ev.endDate ? \`<div class="text-[0.5625rem] text-slate-400">\${isEn ? 'To ' : '至'}\${normalizeDate(ev.endDate).slice(5)}</div>\` : ''}
+                <div class="text-xs font-mono font-bold text-peach-600">\${esc(normalizeDate(ev.date).slice(5))}</div>
+                \${ev.endDate ? \`<div class="text-[0.5625rem] text-slate-400">\${isEn ? 'To ' : '至'}\${esc(normalizeDate(ev.endDate).slice(5))}</div>\` : ''}
               </div>
               <div>
                 <div class="flex items-center gap-1.5 flex-wrap">
-                  <span class="text-xs font-bold \${isNobelA ? 'text-peach-600' : 'text-slate-800'}">\${ev.title}</span>
+                  <span class="text-xs font-bold \${isNobelA ? 'text-peach-600' : 'text-slate-800'}">\${esc(ev.title)}</span>
                   <div class="inline-flex items-center gap-1 flex-wrap">
                     \${renderTargetBadges(ev.target, 'sm')}
                   </div>
                 </div>
-                <div class="text-xs text-slate-400 mt-0.5">\${ev.description || ev.timeLocation || (isEn ? 'Wonderful Learning Experience' : '精彩生活體驗')}</div>
+                <div class="text-xs text-slate-400 mt-0.5">\${esc(ev.description || ev.timeLocation) || (isEn ? 'Wonderful Learning Experience' : '精彩生活體驗')}</div>
               </div>
             </div>
             <span class="text-xs font-bold text-slate-400">\${isEn ? 'View ➔' : '點此查看 ➔'}</span>
@@ -4522,26 +4548,26 @@ const htmlContent = `<!DOCTYPE html>
       albums.forEach(alb => {
         const cover = alb.coverUrl || 'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=600&q=80';
         const badgeClass = getAlbumCategoryBadgeClass(alb.category);
-        const safeTitle = (alb.title || '活動相簿').replace(/'/g, "\\'");
+        const safeTitle = jsq(alb.title || '活動相簿');
 
         grid.innerHTML += \`
-          <div class="bg-white rounded-3xl p-3 border border-slate-200/80 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer tap-bounce" onclick="openAlbumPhotos('\${alb.id}', '\${safeTitle}')">
+          <div class="bg-white rounded-3xl p-3 border border-slate-200/80 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer tap-bounce" onclick="openAlbumPhotos('\${jsq(alb.id)}', '\${safeTitle}')">
             <div class="aspect-[4/3] rounded-2xl overflow-hidden bg-slate-100 relative">
-              <img src="\${cover}" alt="\${alb.title}" class="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300">
+              <img src="\${escUrl(cover)}" alt="\${esc(alb.title)}" class="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300">
               
               <!-- 右上角：照片數量 -->
               <div class="absolute top-2 right-2 bg-black/60 text-white text-[0.6875rem] font-bold px-2 py-0.5 rounded-full backdrop-blur-xs flex items-center gap-1 shadow-xs">
-                <span>📷</span> \${alb.photoCount || 0} 張
+                <span>📷</span> \${esc(alb.photoCount || 0)} 張
               </div>
 
               <!-- 左上角：活動類別徽章 -->
               <div class="absolute top-2 left-2 \${badgeClass} text-[0.6875rem] font-extrabold px-2.5 py-0.5 rounded-full shadow-xs backdrop-blur-xs">
-                \${alb.category || '活動記錄'}
+                \${esc(alb.category || '活動記錄')}
               </div>
             </div>
 
             <div class="pt-2.5 pb-0.5 px-1">
-              <h4 class="font-black text-slate-800 text-sm truncate" title="\${alb.title}">\${alb.title}</h4>
+              <h4 class="font-black text-slate-800 text-sm truncate" title="\${esc(alb.title)}">\${esc(alb.title)}</h4>
             </div>
           </div>
         \`;
@@ -4627,10 +4653,10 @@ const htmlContent = `<!DOCTYPE html>
         const thumbUrl = getPhotoDisplayUrl(p, false);
         grid.innerHTML += \`
           <div class="aspect-square rounded-2xl overflow-hidden bg-slate-100 group relative cursor-pointer tap-bounce border border-slate-200/80 shadow-xs" style="aspect-ratio: 1 / 1;" onclick="openPhotoViewerByIndex(\${idx})">
-            <img src="\${thumbUrl}" alt="\${p.name || '照片'}" loading="lazy" class="w-full h-full object-cover transition-transform group-hover:scale-105 duration-200">
+            <img src="\${escUrl(thumbUrl)}" alt="\${esc(p.name || '照片')}" loading="lazy" class="w-full h-full object-cover transition-transform group-hover:scale-105 duration-200">
             <div class="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-xs font-bold gap-1 p-2 text-center">
               <span>🔍 點擊放大</span>
-              <span class="text-[0.625rem] opacity-80 truncate w-full max-w-[90%]">\${p.name || ''}</span>
+              <span class="text-[0.625rem] opacity-80 truncate w-full max-w-[90%]">\${esc(p.name || '')}</span>
             </div>
           </div>
         \`;
@@ -4885,7 +4911,7 @@ const htmlContent = `<!DOCTYPE html>
       list.forEach((item, index) => {
         const isLatest = fullDriveSortOrder === 'desc' && index === 0;
         const row = document.createElement('a');
-        row.href = item.url;
+        row.href = safeUrl(item.url) || '#';
         row.target = '_blank';
         row.rel = 'noopener noreferrer';
         row.className = 'flex items-center justify-between px-4 sm:px-5 py-3.5 sm:py-4 hover:bg-teal-50/70 transition-colors group cursor-pointer text-decoration-none';
@@ -4894,7 +4920,7 @@ const htmlContent = `<!DOCTYPE html>
         leftDiv.className = 'flex items-center gap-3 min-w-0';
         leftDiv.innerHTML = '<span class="w-8 h-8 rounded-full bg-teal-50 text-teal-600 border border-teal-200/70 flex items-center justify-center text-sm font-bold shrink-0 group-hover:bg-teal-100 group-hover:scale-105 transition-all">📅</span>' +
           '<div class="flex items-center gap-2">' +
-            '<span class="font-black text-slate-800 text-sm sm:text-base group-hover:text-teal-700 transition-colors tracking-wide">' + item.label + '</span>' +
+            '<span class="font-black text-slate-800 text-sm sm:text-base group-hover:text-teal-700 transition-colors tracking-wide">' + esc(item.label) + '</span>' +
             (isLatest ? '<span class="text-[0.625rem] font-black bg-teal-100 text-teal-700 px-2 py-0.5 rounded-full shrink-0">最新</span>' : '') +
           '</div>';
 
@@ -5000,7 +5026,7 @@ const htmlContent = `<!DOCTYPE html>
         '<rect x="7.5" y="7" width="8" height="1.8" rx="0.9" fill="#FFFFFF" fill-opacity="0.85"/>' +
         '<rect x="7.5" y="10.5" width="10" height="1.8" rx="0.9" fill="#FFFFFF" fill-opacity="0.85"/>' +
         '<rect x="5.5" y="16.5" width="21" height="9.5" rx="2" fill="#FFFFFF" />' +
-        '<text x="16" y="23.8" font-size="' + fontSize + '" font-weight="900" font-family="system-ui, sans-serif" text-anchor="middle" fill="' + badgeTextColor + '" letter-spacing="-0.2">' + displayExt + '</text>' +
+        '<text x="16" y="23.8" font-size="' + fontSize + '" font-weight="900" font-family="system-ui, sans-serif" text-anchor="middle" fill="' + badgeTextColor + '" letter-spacing="-0.2">' + esc(displayExt) + '</text>' +
         '</svg>' +
         '</div>';
     }
@@ -5049,11 +5075,11 @@ const htmlContent = `<!DOCTYPE html>
         
         let adminBtns = '';
         if (isAdmin) {
-          const safeName = (doc.fileName || '').replace(/"/g, '&quot;');
-          adminBtns = '<button type="button" onclick="openDocEditModal(&quot;' + (doc.id || '') + '&quot;)" class="px-3 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs font-bold flex items-center gap-1 shadow-2xs tap-bounce" title="' + (state.lang === 'en' ? 'Edit Document' : '編輯文件資訊') + '">' +
+          const safeName = jsq(doc.fileName || '');
+          adminBtns = '<button type="button" onclick="openDocEditModal(&quot;' + jsq(doc.id || '') + '&quot;)" class="px-3 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs font-bold flex items-center gap-1 shadow-2xs tap-bounce" title="' + (state.lang === 'en' ? 'Edit Document' : '編輯文件資訊') + '">' +
             '<span>✏️</span> ' + (state.lang === 'en' ? 'Edit' : '編輯') +
             '</button>' +
-            '<button type="button" onclick="handleDeleteDocDirect(&quot;' + (doc.id || '') + '&quot;, &quot;' + safeName + '&quot;)" class="px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold flex items-center gap-1 shadow-2xs tap-bounce" title="' + (state.lang === 'en' ? 'Delete Document' : '刪除文件') + '">' +
+            '<button type="button" onclick="handleDeleteDocDirect(&quot;' + jsq(doc.id || '') + '&quot;, &quot;' + safeName + '&quot;)" class="px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold flex items-center gap-1 shadow-2xs tap-bounce" title="' + (state.lang === 'en' ? 'Delete Document' : '刪除文件') + '">' +
             '<span>🗑️</span> ' + (state.lang === 'en' ? 'Delete' : '刪除') +
             '</button>';
         }
@@ -5064,16 +5090,16 @@ const htmlContent = `<!DOCTYPE html>
           getDocFileIconHtml(doc) +
           '<div>' +
           '<div class="flex items-center gap-2 flex-wrap">' +
-          '<h4 class="font-black text-slate-800 text-sm sm:text-base">' + (doc.fileName || (state.lang === 'en' ? 'Untitled Document' : '未命名文件')) + '</h4>' +
-          '<span class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-indigo-100 text-indigo-800">' + (doc.category || (state.lang === 'en' ? 'General' : '一般')) + '</span>' +
+          '<h4 class="font-black text-slate-800 text-sm sm:text-base">' + (esc(doc.fileName) || (state.lang === 'en' ? 'Untitled Document' : '未命名文件')) + '</h4>' +
+          '<span class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-indigo-100 text-indigo-800">' + (esc(doc.category) || (state.lang === 'en' ? 'General' : '一般')) + '</span>' +
           '</div>' +
-          '<p class="text-xs text-slate-500 mt-1 leading-relaxed">' + (doc.description || (state.lang === 'en' ? 'Click to preview or download document' : '點擊即可線上下載或預覽文件')) + '</p>' +
-          '<div class="text-[0.6875rem] text-slate-400 mt-1">' + (state.lang === 'en' ? 'Updated: ' : '更新日期：') + (doc.updatedAt || '2026-09-01') + '</div>' +
+          '<p class="text-xs text-slate-500 mt-1 leading-relaxed">' + (esc(doc.description) || (state.lang === 'en' ? 'Click to preview or download document' : '點擊即可線上下載或預覽文件')) + '</p>' +
+          '<div class="text-[0.6875rem] text-slate-400 mt-1">' + (state.lang === 'en' ? 'Updated: ' : '更新日期：') + esc(doc.updatedAt || '2026-09-01') + '</div>' +
           '</div>' +
           '</div>' +
           '<div class="flex items-center gap-2 w-full sm:w-auto justify-end shrink-0 pt-2 sm:pt-0">' +
           adminBtns +
-          '<a href="' + url + '" target="_blank" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm flex items-center gap-1.5 tap-bounce">' +
+          '<a href="' + (escUrl(url) || '#') + '" target="_blank" rel="noopener noreferrer" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm flex items-center gap-1.5 tap-bounce">' +
           '<span>⬇️</span> ' + (state.lang === 'en' ? 'Download' : '下載文件') +
           '</a>' +
           '</div>';
@@ -5097,7 +5123,7 @@ const htmlContent = `<!DOCTYPE html>
         const doc = state.docs.find(d => String(d.id) === String(id));
         if (doc) {
           docModalOriginalFileName = doc.fileName || '';
-          document.getElementById('docModalTitle').innerHTML = '<span>✏️</span> 編輯文件：' + (doc.fileName || '');
+          document.getElementById('docModalTitle').innerHTML = '<span>✏️</span> 編輯文件：' + esc(doc.fileName || '');
           document.getElementById('docModal-id').value = doc.id || '';
           document.getElementById('docModal-driveFileId').value = doc.driveFileId || '';
           document.getElementById('docModal-fileName').value = doc.fileName || '';
@@ -5624,7 +5650,7 @@ const htmlContent = `<!DOCTYPE html>
         thumbBtn.type = 'button';
         thumbBtn.className = 'relative shrink-0 w-28 sm:w-40 aspect-video rounded-2xl overflow-hidden bg-slate-100 tap-bounce cursor-pointer';
         thumbBtn.setAttribute('aria-label', '播放 ' + (song.title || ''));
-        thumbBtn.innerHTML = (thumb ? '<img src="' + songEsc(thumb) + '" alt="" loading="lazy" class="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300">' : '') +
+        thumbBtn.innerHTML = (thumb ? '<img src="' + escUrl(thumb) + '" alt="" loading="lazy" class="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300">' : '') +
           '<span class="absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-black/25 transition-colors">' +
           '<span class="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-white/90 text-fuchsia-600 flex items-center justify-center shadow-md text-sm sm:text-base pl-0.5">▶</span></span>' +
           (formattedDur ? '<span class="absolute bottom-1.5 right-1.5 bg-black/80 backdrop-blur-xs text-white text-[10px] sm:text-xs font-bold px-1.5 py-0.5 rounded-md shadow-xs pointer-events-none">' + songEsc(formattedDur) + '</span>' : '');
@@ -5653,7 +5679,7 @@ const htmlContent = `<!DOCTYPE html>
         // 下載按鈕 (純圖示，不要文字)
         if (song.downloadUrl) {
           const dl = document.createElement('a');
-          dl.href = song.downloadUrl;
+          dl.href = safeUrl(song.downloadUrl) || '#';
           dl.target = '_blank';
           dl.rel = 'noopener noreferrer';
           dl.title = '下載音樂檔';
@@ -5921,13 +5947,13 @@ const htmlContent = `<!DOCTYPE html>
 
       const dl = document.getElementById('songPlayerDownload');
       if (song.downloadUrl) {
-        dl.href = song.downloadUrl;
+        dl.href = safeUrl(song.downloadUrl) || '#';
         dl.classList.remove('hidden');
       } else {
         dl.classList.add('hidden');
       }
       const yt = document.getElementById('songPlayerOpenYoutube');
-      if (yt) yt.href = song.youtubeUrl || ('https://www.youtube.com/watch?v=' + getSongYoutubeId(song));
+      if (yt) yt.href = safeUrl(song.youtubeUrl) || ('https://www.youtube.com/watch?v=' + getSongYoutubeId(song));
 
       updateSongModalModesUI();
       document.getElementById('songPlayerModal').classList.remove('hidden');
@@ -6088,10 +6114,10 @@ const htmlContent = `<!DOCTYPE html>
         tr.className = 'hover:bg-slate-50/80 transition-colors';
         const thumb = getSongThumbUrl(song);
         const fileCell = song.downloadUrl
-          ? '<a href="' + songEsc(song.downloadUrl) + '" target="_blank" rel="noopener noreferrer" class="text-emerald-700 font-bold hover:underline">✅ ' + songEsc(song.fileName || '已上傳') + '</a>' + (song.fileSize ? '<div class="text-[10px] text-slate-400">' + formatSongBytes(song.fileSize) + '</div>' : '')
+          ? '<a href="' + (escUrl(song.downloadUrl) || '#') + '" target="_blank" rel="noopener noreferrer" class="text-emerald-700 font-bold hover:underline">✅ ' + songEsc(song.fileName || '已上傳') + '</a>' + (song.fileSize ? '<div class="text-[10px] text-slate-400">' + formatSongBytes(song.fileSize) + '</div>' : '')
           : '<span class="text-slate-400">— 未上傳</span>';
         tr.innerHTML =
-          '<td class="py-2.5 px-3">' + (thumb ? '<img src="' + songEsc(thumb) + '" class="w-16 aspect-video object-cover rounded-lg border border-slate-200">' : '') + '</td>' +
+          '<td class="py-2.5 px-3">' + (thumb ? '<img src="' + escUrl(thumb) + '" class="w-16 aspect-video object-cover rounded-lg border border-slate-200">' : '') + '</td>' +
           '<td class="py-2.5 px-3 whitespace-nowrap"><span class="' + getSongCategoryBadgeClass(song.category) + ' px-2.5 py-0.5 rounded-full text-[10px] font-extrabold inline-block">' + songEsc(song.category || '未分類') + '</span></td>' +
           '<td class="py-2.5 px-3 font-bold text-slate-800"><div class="line-clamp-2">' + songEsc(song.title) + '</div>' + (song.duration ? '<div class="text-[11px] text-slate-400 font-semibold mt-0.5">⏱️ ' + songEsc(formatSongDuration(song.duration)) + '</div>' : '') + '</td>' +
           '<td class="py-2.5 px-3">' + fileCell + '</td>' +
@@ -6144,7 +6170,7 @@ const htmlContent = `<!DOCTYPE html>
         el.innerHTML = '已選取新檔案：<b>' + songEsc(songFormSelectedFile.name) + '</b>（' + formatSongBytes(songFormSelectedFile.size) + '）';
         el.className = 'text-xs font-bold text-emerald-600 mt-2';
       } else if (existing && existing.downloadUrl) {
-        el.innerHTML = '目前檔案：<a href="' + songEsc(existing.downloadUrl) + '" target="_blank" rel="noopener noreferrer" class="underline text-fuchsia-700">' + songEsc(existing.fileName || '已上傳的音樂檔') + '</a>' +
+        el.innerHTML = '目前檔案：<a href="' + (escUrl(existing.downloadUrl) || '#') + '" target="_blank" rel="noopener noreferrer" class="underline text-fuchsia-700">' + songEsc(existing.fileName || '已上傳的音樂檔') + '</a>' +
           (existing.fileSize ? '（' + formatSongBytes(existing.fileSize) + '）' : '') + '　未重新選擇檔案時，將保留原本的檔案連結';
         el.className = 'text-xs font-bold text-slate-600 mt-2';
       } else {
@@ -6666,18 +6692,18 @@ const htmlContent = `<!DOCTYPE html>
         const catMinorStr = ev.categoryMinor || ev['活動類別 (細項)'] || '';
         html += \`
           <tr class="hover:bg-slate-50">
-            <td class="py-2 px-2 font-mono">\${normalizeDate(ev.date)}</td>
+            <td class="py-2 px-2 font-mono">\${esc(normalizeDate(ev.date))}</td>
             <td class="py-2 px-2 font-bold text-slate-800">
               <div class="flex items-center gap-1.5 flex-wrap">
-                <span>\${ev.title}</span>
-                \${catMajorStr ? \`<span class="inline-block text-[0.625rem] px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold border border-slate-200">\${catMajorStr}\${catMinorStr ? ' · ' + catMinorStr : ''}</span>\` : ''}
-                \${(ev.calendarPrompt || ev['行事曆提示']) ? \`<span class="inline-block text-[0.625rem] px-1.5 py-0.5 rounded bg-peach-50 text-peach-700 font-bold border border-peach-200">提示: \${ev.calendarPrompt || ev['行事曆提示']}</span>\` : ''}
+                <span>\${esc(ev.title)}</span>
+                \${catMajorStr ? \`<span class="inline-block text-[0.625rem] px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold border border-slate-200">\${esc(catMajorStr)}\${catMinorStr ? ' · ' + esc(catMinorStr) : ''}</span>\` : ''}
+                \${(ev.calendarPrompt || ev['行事曆提示']) ? \`<span class="inline-block text-[0.625rem] px-1.5 py-0.5 rounded bg-peach-50 text-peach-700 font-bold border border-peach-200">提示: \${esc(ev.calendarPrompt || ev['行事曆提示'])}</span>\` : ''}
               </div>
             </td>
             <td class="py-2 px-2"><div class="flex items-center gap-1 flex-wrap">\${renderTargetBadges(ev.target, 'sm')}</div></td>
             <td class="py-2 px-2 text-right space-x-1">
-              <button onclick="editEventInAdmin('\${ev.id}')" class="text-peach-600 hover:underline font-bold">編輯</button>
-              <button onclick="deleteEventInAdmin('\${ev.id}')" class="text-rose-500 hover:underline">刪除</button>
+              <button onclick="editEventInAdmin('\${jsq(ev.id)}')" class="text-peach-600 hover:underline font-bold">編輯</button>
+              <button onclick="deleteEventInAdmin('\${jsq(ev.id)}')" class="text-rose-500 hover:underline">刪除</button>
             </td>
           </tr>
         \`;
@@ -6808,7 +6834,7 @@ const htmlContent = `<!DOCTYPE html>
         const url = URL.createObjectURL(f);
         thumbsContainer.innerHTML += \`
           <div class="aspect-square rounded-lg overflow-hidden bg-slate-200 border border-slate-200/80 shadow-2xs" style="aspect-ratio: 1 / 1;">
-            <img src="\${url}" class="w-full h-full object-cover">
+            <img src="\${escUrl(url)}" class="w-full h-full object-cover">
           </div>
         \`;
       });
@@ -7126,7 +7152,7 @@ const htmlContent = `<!DOCTYPE html>
       const successBox = document.getElementById('albumUploadSuccessBox');
       successBox.classList.remove('hidden');
       const folderLink = document.getElementById('albumUploadDriveFolderLink');
-      if (folderLink) folderLink.href = folderUrl;
+      if (folderLink) folderLink.href = safeUrl(folderUrl) || '#';
 
       // 清除選取相片與重設表單輸入
       state.selectedAlbumFiles = [];
@@ -7244,34 +7270,34 @@ const htmlContent = `<!DOCTYPE html>
         tr.className = 'hover:bg-slate-50/80 transition-colors';
         const cover = alb.coverUrl || 'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=120&q=80';
         const badgeClass = getAlbumCategoryBadgeClass(alb.category);
-        const safeTitle = (alb.title || '相簿').replace(/'/g, "\\'");
+        const safeTitle = jsq(alb.title || '相簿');
 
         tr.innerHTML = \`
           <td class="py-2.5 px-3">
-            <img src="\${cover}" class="w-10 h-10 object-cover rounded-xl border border-slate-200 shadow-2xs">
+            <img src="\${escUrl(cover)}" class="w-10 h-10 object-cover rounded-xl border border-slate-200 shadow-2xs">
           </td>
           <td class="py-2.5 px-3 whitespace-nowrap">
             <span class="\${badgeClass} px-2.5 py-0.5 rounded-full text-[10px] font-extrabold inline-block">
-              \${alb.category || '未分類'}
+              \${esc(alb.category || '未分類')}
             </span>
           </td>
           <td class="py-2.5 px-3 font-bold text-slate-800">
-            <div class="line-clamp-1" title="\${alb.title}">\${alb.title}</div>
-            <div class="text-[10px] text-slate-400 font-mono font-normal">\${alb.folderName || ''}</div>
+            <div class="line-clamp-1" title="\${esc(alb.title)}">\${esc(alb.title)}</div>
+            <div class="text-[10px] text-slate-400 font-mono font-normal">\${esc(alb.folderName)}</div>
           </td>
           <td class="py-2.5 px-3 text-center whitespace-nowrap">
             <span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-bold text-[10px]">
-              📷 \${alb.photoCount || 0} 張
+              📷 \${esc(alb.photoCount || 0)} 張
             </span>
           </td>
           <td class="py-2.5 px-3 text-right whitespace-nowrap space-x-1.5">
-            <button type="button" onclick="openAlbumPhotos('\${alb.id}', '\${safeTitle}')" class="px-2.5 py-1 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-700 font-bold text-xs tap-bounce">
+            <button type="button" onclick="openAlbumPhotos('\${jsq(alb.id)}', '\${safeTitle}')" class="px-2.5 py-1 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-700 font-bold text-xs tap-bounce">
               👁️ 預覽
             </button>
-            <button type="button" onclick="openEditAlbumModal('\${alb.id}')" class="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold text-xs tap-bounce">
+            <button type="button" onclick="openEditAlbumModal('\${jsq(alb.id)}')" class="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold text-xs tap-bounce">
               ✏️ 編輯
             </button>
-            <button type="button" onclick="deleteAlbumInAdmin('\${alb.id}', '\${safeTitle}')" class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs tap-bounce">
+            <button type="button" onclick="deleteAlbumInAdmin('\${jsq(alb.id)}', '\${safeTitle}')" class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs tap-bounce">
               🗑️ 刪除
             </button>
           </td>
@@ -7470,15 +7496,15 @@ const htmlContent = `<!DOCTYPE html>
         if (sp.status === '停用') {
           statusBadge = '<span class="text-[0.625rem] font-bold text-rose-700 bg-rose-100 px-2 py-0.5 rounded-full">🔴 已停用</span>';
         } else if (sp.startDate && sp.startDate > todayStr) {
-          statusBadge = '<span class="text-[0.625rem] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">🟡 尚未上架 (' + sp.startDate + ')</span>';
+          statusBadge = '<span class="text-[0.625rem] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">🟡 尚未上架 (' + esc(sp.startDate) + ')</span>';
         } else if (sp.endDate && sp.endDate < todayStr) {
           statusBadge = '<span class="text-[0.625rem] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">⚪ 已過期下架</span>';
         } else {
           statusBadge = '<span class="text-[0.625rem] font-bold text-teal-700 bg-teal-100 px-2 py-0.5 rounded-full">🟢 播映中</span>';
         }
 
-        var scheduleText = '起：' + (sp.startDate || '立即') + ' ～ 訖：' + (sp.endDate || '永久有效');
-        var durationText = '⏱️ ' + (sp.duration || 5) + ' 秒';
+        var scheduleText = '起：' + esc(sp.startDate || '立即') + ' ～ 訖：' + esc(sp.endDate || '永久有效');
+        var durationText = '⏱️ ' + esc(sp.duration || 5) + ' 秒';
         var mediaIcon = sp.mediaType === 'video' ? '🎬' : '🖼️';
 
         var isFirst = (index === 0);
@@ -7506,15 +7532,15 @@ const htmlContent = `<!DOCTYPE html>
         card.className = 'p-3.5 bg-slate-50 hover:bg-white rounded-2xl border border-slate-200 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs';
         card.innerHTML = '<div class="flex items-center gap-3 min-w-0">' +
           '<div class="w-16 h-12 rounded-xl bg-slate-200 overflow-hidden shrink-0 border border-slate-200 relative flex items-center justify-center">' +
-          '<img src="' + (sp.imageUrl || './spotlight-fluoride.jpg') + '" alt="縮圖" class="w-full h-full object-cover">' +
+          '<img src="' + (escUrl(sp.imageUrl) || './spotlight-fluoride.jpg') + '" alt="縮圖" class="w-full h-full object-cover">' +
           '<span class="absolute bottom-0.5 right-0.5 text-[0.5625rem] bg-black/60 text-white px-1 rounded">' + mediaIcon + '</span>' +
           '</div>' +
           '<div class="min-w-0 space-y-0.5">' +
           '<div class="flex items-center gap-2 flex-wrap">' +
-          '<h5 class="text-xs sm:text-sm font-black text-slate-800 truncate">' + (sp.title || '無標題') + '</h5>' +
+          '<h5 class="text-xs sm:text-sm font-black text-slate-800 truncate">' + (esc(sp.title) || '無標題') + '</h5>' +
           statusBadge +
           '</div>' +
-          '<p class="text-[0.6875rem] text-slate-500 font-medium truncate">' + (sp.subtitle || '') + '</p>' +
+          '<p class="text-[0.6875rem] text-slate-500 font-medium truncate">' + esc(sp.subtitle) + '</p>' +
           '<div class="text-[0.625rem] text-slate-400 flex items-center gap-2 flex-wrap">' +
           '<span>📅 ' + scheduleText + '</span>' +
           '<span>•</span>' +
@@ -7775,7 +7801,7 @@ const htmlContent = `<!DOCTYPE html>
 
           document.getElementById('spForm-imageUrl').value = compressed.dataUrl;
           if (previewImg) previewImg.src = compressed.dataUrl;
-          if (statusEl) statusEl.innerHTML = '<span class="text-teal-600 font-bold">✅ 已選取新圖片：' + file.name + '（點擊儲存後將同步至 Acticity 資料夾）</span>';
+          if (statusEl) statusEl.innerHTML = '<span class="text-teal-600 font-bold">✅ 已選取新圖片：' + esc(file.name) + '（點擊儲存後將同步至 Acticity 資料夾）</span>';
           showToast('新圖片已選取！', '📸');
         })
         .catch(err => {
@@ -7851,11 +7877,11 @@ const htmlContent = `<!DOCTYPE html>
         const item = document.createElement('div');
         item.className = 'bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs hover:shadow-md transition-all flex flex-col justify-between group p-2';
         item.innerHTML = '<div class="aspect-video bg-slate-100 rounded-xl overflow-hidden relative mb-2">' +
-          '<img src="' + f.imageUrl + '" alt="' + f.name + '" class="w-full h-full object-cover">' +
+          '<img src="' + escUrl(f.imageUrl) + '" alt="' + esc(f.name) + '" class="w-full h-full object-cover">' +
           '</div>' +
           '<div class="min-w-0 mb-2">' +
-          '<h5 class="text-xs font-bold text-slate-800 truncate" title="' + f.name + '">' + f.name + '</h5>' +
-          '<div class="text-[0.625rem] text-slate-400">' + (f.updatedAt || 'Acticity') + '</div>' +
+          '<h5 class="text-xs font-bold text-slate-800 truncate" title="' + esc(f.name) + '">' + esc(f.name) + '</h5>' +
+          '<div class="text-[0.625rem] text-slate-400">' + esc(f.updatedAt || 'Acticity') + '</div>' +
           '</div>' +
           '<button type="button" class="w-full py-1.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs tap-bounce">' +
           '選取此張圖片' +
@@ -7871,7 +7897,7 @@ const htmlContent = `<!DOCTYPE html>
       const previewImg = document.getElementById('spImagePreviewImg');
       if (previewImg) previewImg.src = imageUrl;
       const statusEl = document.getElementById('spImageUploadStatus');
-      if (statusEl) statusEl.innerHTML = '<span class="text-teal-600 font-bold">✅ 已套用 Acticity 檔案：' + fileName + '</span>';
+      if (statusEl) statusEl.innerHTML = '<span class="text-teal-600 font-bold">✅ 已套用 Acticity 檔案：' + esc(fileName) + '</span>';
       closeActivityFolderPicker();
       showToast('已成功選取 Acticity 圖片！', '🎉');
     }
@@ -8066,11 +8092,11 @@ const htmlContent = `<!DOCTYPE html>
       if (isSuccess) {
         container.className = container.className.replace(/border-\S+/g, '').replace(/bg-\S+/g, '') +
           ' bg-teal-50 border-teal-200';
-        if (textEl) textEl.innerHTML = '<span class="text-teal-700">' + title + '</span>';
+        if (textEl) textEl.innerHTML = '<span class="text-teal-700">' + esc(title) + '</span>';
       } else {
         container.className = container.className.replace(/border-\S+/g, '').replace(/bg-\S+/g, '') +
           ' bg-red-50 border-red-200';
-        if (textEl) textEl.innerHTML = '<span class="text-red-700">' + title + '</span>';
+        if (textEl) textEl.innerHTML = '<span class="text-red-700">' + esc(title) + '</span>';
       }
       if (detailEl) detailEl.textContent = detail || '';
 
@@ -8294,8 +8320,8 @@ const htmlContent = `<!DOCTYPE html>
                 <tbody class="divide-y divide-rose-100/50">
                   \${theme.goals.map(g => \`
                     <tr class="hover:bg-slate-50 transition-colors">
-                      <td class="px-4 py-3 align-top border-r border-rose-100 whitespace-pre-wrap">\${g.activity || ''}</td>
-                      <td class="px-4 py-3 align-top whitespace-pre-wrap">\${g.course || ''}</td>
+                      <td class="px-4 py-3 align-top border-r border-rose-100 whitespace-pre-wrap">\${esc(g.activity)}</td>
+                      <td class="px-4 py-3 align-top whitespace-pre-wrap">\${esc(g.course)}</td>
                     </tr>
                   \`).join('')}
                 </tbody>
@@ -8312,7 +8338,7 @@ const htmlContent = `<!DOCTYPE html>
                 const thumb = getPhotoDisplayUrl(url, false);
                 return thumb ? \`
                   <div class="aspect-square rounded-xl overflow-hidden border border-slate-200/80 shadow-xs bg-slate-100 select-none">
-                    <img src="\${thumb}" class="w-full h-full object-cover" alt="成果照片" loading="lazy" onerror="if(!this.dataset.fallback){this.dataset.fallback='1'; const m=this.src.match(/id=([a-zA-Z0-9_-]+)/); if(m){this.src='https://lh3.googleusercontent.com/d/'+m[1];}else{this.parentElement.style.display='none';}}else{this.parentElement.style.display='none';}">
+                    <img src="\${escUrl(thumb)}" class="w-full h-full object-cover" alt="成果照片" loading="lazy" onerror="if(!this.dataset.fallback){this.dataset.fallback='1'; const m=this.src.match(/id=([a-zA-Z0-9_-]+)/); if(m){this.src='https://lh3.googleusercontent.com/d/'+m[1];}else{this.parentElement.style.display='none';}}else{this.parentElement.style.display='none';}">
                   </div>
                 \` : '';
               }).join('')}
@@ -8323,7 +8349,7 @@ const htmlContent = `<!DOCTYPE html>
         html += \`
           <div class="bg-white border border-slate-200/80 rounded-2xl shadow-sm overflow-hidden flex flex-col group">
             <!-- 卡片標題列 (可點擊折疊) -->
-            <div class="px-4 py-3 bg-slate-50/50 flex items-center justify-between cursor-pointer select-none hover:bg-slate-100 transition-colors" onclick="toggleThemeCard('\${theme.id}')">
+            <div class="px-4 py-3 bg-slate-50/50 flex items-center justify-between cursor-pointer select-none hover:bg-slate-100 transition-colors" onclick="toggleThemeCard('\${jsq(theme.id)}')">
               <div class="flex items-center gap-3 min-w-0">
                 <div class="bg-rose-100 text-rose-600 font-bold px-2.5 py-1 rounded-lg text-xs shrink-0 shadow-sm border border-rose-200/50">
                   \${songEsc(theme.week || '')}
@@ -8337,12 +8363,12 @@ const htmlContent = `<!DOCTYPE html>
                 </div>
               </div>
               <div class="shrink-0 ml-2 w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center text-slate-400 group-hover:text-slate-600 border border-slate-200/80 transition-all">
-                <svg id="theme-arrow-\${theme.id}" class="w-4 h-4 transition-transform duration-300 \${isExpanded ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"></path></svg>
+                <svg id="theme-arrow-\${esc(theme.id)}" class="w-4 h-4 transition-transform duration-300 \${isExpanded ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"></path></svg>
               </div>
             </div>
             
             <!-- 卡片內容區 -->
-            <div id="theme-content-\${theme.id}" class="theme-card-content p-4 border-t border-slate-100 \${isExpanded ? '' : 'hidden'}">
+            <div id="theme-content-\${esc(theme.id)}" class="theme-card-content p-4 border-t border-slate-100 \${isExpanded ? '' : 'hidden'}">
               <div class="mb-2">
                 <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">\${state.lang === 'en' ? 'Theme Concept' : '主題概念'}</h4>
                 <div class="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap font-medium">\${themeConcept ? songEsc(themeConcept) : (state.lang === 'en' ? 'None' : '無')}</div>
@@ -8392,8 +8418,8 @@ const htmlContent = `<!DOCTYPE html>
           <td class="px-4 py-3 font-medium text-slate-800">\${songEsc(nameStr)}</td>
           <td class="px-4 py-3 text-center">
             <div class="flex items-center justify-center gap-2">
-              <button onclick="editTheme('\${t.id}')" class="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-emerald-100 hover:text-emerald-700 flex items-center justify-center transition-colors tap-bounce" title="編輯">✎</button>
-              <button onclick="confirmDeleteTheme('\${t.id}')" class="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-rose-100 hover:text-rose-600 flex items-center justify-center transition-colors tap-bounce" title="刪除">🗑️</button>
+              <button onclick="editTheme('\${jsq(t.id)}')" class="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-emerald-100 hover:text-emerald-700 flex items-center justify-center transition-colors tap-bounce" title="編輯">✎</button>
+              <button onclick="confirmDeleteTheme('\${jsq(t.id)}')" class="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-rose-100 hover:text-rose-600 flex items-center justify-center transition-colors tap-bounce" title="刪除">🗑️</button>
             </div>
           </td>
         </tr>
@@ -8455,8 +8481,8 @@ const htmlContent = `<!DOCTYPE html>
       const row = document.createElement('div');
       row.className = 'flex gap-2 items-start theme-goal-row';
       row.innerHTML = \`
-        <textarea class="goal-activity flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:bg-white transition-colors" rows="2" placeholder="活動目標...">\${activity}</textarea>
-        <textarea class="goal-course flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:bg-white transition-colors" rows="2" placeholder="課程目標...">\${course}</textarea>
+        <textarea class="goal-activity flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:bg-white transition-colors" rows="2" placeholder="活動目標...">\${esc(activity)}</textarea>
+        <textarea class="goal-course flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:bg-white transition-colors" rows="2" placeholder="課程目標...">\${esc(course)}</textarea>
         <button type="button" onclick="this.parentElement.remove()" class="mt-1 w-8 h-8 shrink-0 rounded-lg bg-rose-50 text-rose-500 hover:bg-rose-100 flex items-center justify-center tap-bounce font-bold">×</button>
       \`;
       container.appendChild(row);

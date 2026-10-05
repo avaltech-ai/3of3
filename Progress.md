@@ -181,3 +181,5 @@
   - GAS 專案原有 19 個部署（每次「新增部署」都會留下一個永久有效、停在舊程式碼的 /exec 網址，其中 9 個仍洩漏工作表清單且帶舊漏洞）。已用 `clasp undeploy` 移除 17 個舊部署，僅保留現行 @113 與 @HEAD。**日後發布一律「管理部署作業 → 編輯 → 新版本」，不要選「新增部署」**，發布後以 `clasp deployments` 確認數量。
   - Netlify 專案已移除；刪除 `netlify/`、`netlify.toml`、`fix_regex.js`、`patch*.js`、`temp_*.js`（一次性腳本，已在 git 歷史可還原）。刪除後重建的 `index.html` 與刪除前雜湊值一致，確認建置只依賴 `logo_b64.txt`。
 - **登入改用短效 token（2026-10-05）**：密碼只在登入時送出一次，後端發 token（閒置 2 小時／絕對 8 小時），之後所有寫入只帶 token，且只存 `sessionStorage`；舊版 `localStorage` 明文密碼自動清除。連錯 5 次鎖 15 分鐘；`checkPassword` 改為只認 token（原本是公開函式，可被當成猜密碼測試器）；變更密碼需 ≥10 字元並使所有 token 失效；`setupWeeklyBackupTrigger` 也遵守備份間隔。新增 `tests/auth.test.js`（44 項）。**部署順序：先發布後端新版本，再立刻推送前端**（兩者之間舊前端無法寫入）。
+- **前端 XSS 防護（2026-10-05）**：修補前以「全欄位下毒」偵測器實測，僅 A 類就有 61 處可被攻破（月曆、每日詳情、週月視圖、菜單、相簿、主題、文件、焦點活動、管理後台所有清單與表單下拉選單，另有 `javascript:` 網址與 `onclick` 內 JS 字串跳出）。新增 `esc()`／`jsq()`／`escUrl()`／`safeUrl()` 並套用到所有不可信資料；A～E 類各跑 2 輪皆 0，正常特殊字元（`&`、`<`、引號）原樣顯示、無雙重跳脫。新增 `tests/xss_harness.js` 與 `tests/README.md`。教訓：`songEsc` 只做 HTML 跳脫，不會擋 `javascript:`；偵測器需用舊版做「對照測試」確認抓得到、並重複執行（曾漏報一次）。
+

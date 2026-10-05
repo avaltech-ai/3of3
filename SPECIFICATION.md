@@ -626,6 +626,13 @@ git push origin main
 - **已知限制**：token 存在 `CacheService`，Google 在極少數情況可能提前清除快取，管理員會被要求重新登入（不影響資料）。`Settings` 內的密碼仍為明文（有試算表編輯權限者可見）。
 - **測試**：`node tests/auth.test.js`（模擬環境，44 項），修改認證、鎖定、備份相關程式後須全數通過才可部署。
 
+### 5.7 前端輸出跳脫（XSS 防護）
+
+- **原則**：試算表與使用者輸入的任何字串，都視為不可信。放進 HTML 前必須經過 `build_index.js` 的三個工具：`esc()`（HTML 文字／屬性）、`jsq()`（`onclick="fn('…')"` 內的 JS 字串，先 JS 跳脫再 HTML 跳脫）、`escUrl()`（`href`／`src`，只允許 http(s)、相對路徑、blob:、data:image/，`javascript:` 一律清空）。`textContent`／`.value` 賦值本身安全。
+- **為何要三種**：只做 HTML 跳脫不足以防禦——放在事件屬性裡的資料會先被瀏覽器解碼 `&quot;`，再被當成 JavaScript 執行；網址欄位則需要擋掉 `javascript:` 協定。
+- **新增畫面或欄位時**：所有插值都要套用上述工具，並執行 `tests/xss_harness.js`（說明見 `tests/README.md`），A～E 類須全為 0、L 類不得雙重跳脫，才可部署。
+- **已知限制**：這是「輸出端」防護。若有人取得試算表編輯權限，仍可改動內容（但無法執行程式）；`innerHTML` 仍被大量使用，新程式請優先使用 `textContent` 或上述工具。
+
 ---
 
 *本文件為桃子腳幼兒園諾貝爾 A 班專案之官方最高指引規格書，後續所有功能擴充或維護作業均須嚴格遵照本規範執行。*
