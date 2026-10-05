@@ -233,6 +233,11 @@ function warmAppDataCache() {
   } finally {
     APP_DATA_FORCE_REFRESH_ = false;
   }
+  try {
+    warmAlbumPhotos_(2);
+  } catch (e) {
+    console.warn('warmAlbumPhotos_ failed: ' + e);
+  }
 }
 
 /**
@@ -495,6 +500,12 @@ function clearAppDataCache() {
     const cache = CacheService.getScriptCache();
     cache.remove('app_data_v3');
     cache.remove('app_data_v4');
+    // 相簿照片清單快取也一併清除（上傳／刪除相片、手動「清除快取」後立即生效）
+    const keysJson = cache.get('albph_keys');
+    if (keysJson) {
+      cache.removeAll(JSON.parse(keysJson).map(function(id) { return 'albph_' + id; }));
+      cache.remove('albph_keys');
+    }
   } catch (e) {}
 }
 
@@ -1377,12 +1388,23 @@ function getAlbums() {
 /**
  * 取得特定相簿內的所有相片
  */
+const ALBUM_PHOTOS_TTL_SEC = 3600;      // 相簿照片清單快取 1 小時（寫入時會清除；預熱觸發器會補建）
+const ALBUM_PHOTOS_CACHE_MAX = 90000;  // CacheService 單筆上限 100KB，超過就不快取（仍可正常回傳）
+
 function getAlbumPhotos(albumFolderId) {
+  const cacheKey = /^[A-Za-z0-9_-]{10,100}$/.test(String(albumFolderId || '')) ? 'albph_' + albumFolderId : null;
+  if (cacheKey) {
+    try {
+      const hit = CacheService.getScriptCache().get(cacheKey);
+      if (hit) return JSON.parse(hit);
+    } catch (e) {}
+  }
   try {
     const folder = DriveApp.getFolderById(albumFolderId);
     const files = folder.getFiles();
     const photos = [];
 
+    // 只回傳 id／name／size（網址由前端用 id 組出；470 張相簿回應由約 227KB 縮到約 45KB，也才放得進快取）
     while (files.hasNext()) {
       const file = files.next();
       const mime = file.getMimeType();
@@ -1390,20 +1412,32 @@ function getAlbumPhotos(albumFolderId) {
         photos.push({
           id: file.getId(),
           name: file.getName(),
-          size: file.getSize(),
-          thumbnailUrl: 'https://drive.google.com/thumbnail?id=' + file.getId() + '&sz=w800',
-          viewUrl: 'https://drive.google.com/thumbnail?id=' + file.getId() + '&sz=w2048',
-          driveViewUrl: 'https://drive.google.com/file/d/' + file.getId() + '/view',
-          downloadUrl: 'https://drive.google.com/uc?export=download&id=' + file.getId()
+          size: file.getSize()
         });
       }
     }
 
-    return {
+    const result = {
       success: true,
       folderName: folder.getName(),
       photos: photos
     };
+    if (cacheKey) {
+      try {
+        const js = JSON.stringify(result);
+        if (js.length <= ALBUM_PHOTOS_CACHE_MAX) {
+          const cache = CacheService.getScriptCache();
+          cache.put(cacheKey, js, ALBUM_PHOTOS_TTL_SEC);
+          let keys = [];
+          try { keys = JSON.parse(cache.get('albph_keys') || '[]'); } catch (e) {}
+          if (keys.indexOf(albumFolderId) === -1 && keys.length < 100) {
+            keys.push(albumFolderId);
+            cache.put('albph_keys', JSON.stringify(keys), 21600);
+          }
+        }
+      } catch (e) {}
+    }
+    return result;
   } catch (err) {
     return {
       success: false,
@@ -1411,6 +1445,27 @@ function getAlbumPhotos(albumFolderId) {
       photos: []
     };
   }
+}
+
+/**
+ * 預熱相簿照片清單：每次最多補建 maxBuild 本「目前沒有快取」的相簿，避免單次執行過久。
+ */
+function warmAlbumPhotos_(maxBuild) {
+  const cache = CacheService.getScriptCache();
+  let albums = [];
+  try {
+    const cached = cache.get('app_data_v4');
+    if (cached) albums = (JSON.parse(cached).data || {}).albums || [];
+  } catch (e) {}
+  let built = 0;
+  for (let i = 0; i < albums.length && built < maxBuild; i++) {
+    const id = albums[i] && albums[i].id;
+    if (!id || !/^[A-Za-z0-9_-]{10,100}$/.test(String(id))) continue;
+    if (cache.get('albph_' + id)) continue;
+    getAlbumPhotos(id);
+    built++;
+  }
+  return built;
 }
 
 /**

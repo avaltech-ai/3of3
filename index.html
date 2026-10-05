@@ -4860,12 +4860,28 @@
 
       callBackend('getAlbumPhotos', { albumId: albumId }, res => {
         if (res && res.success) {
-          renderAlbumPhotosGrid(res.photos || []);   // 空相簿會顯示「此相簿目前無照片檔案」
+          renderAlbumPhotosGrid(expandAlbumPhotos(res.photos));   // 空相簿會顯示「此相簿目前無照片檔案」
         } else {
           showAlbumPhotosError();
         }
       }, err => {
         showAlbumPhotosError();
+      });
+    }
+
+    // 後端只回傳 {id, name, size}（縮小回應、才能快取）；網址在前端由 id 組出。
+    // 舊版後端若已帶完整網址則原樣保留。id 只允許 Drive 檔案 ID 字元，其餘的相片直接略過。
+    function expandAlbumPhotos(list) {
+      return (Array.isArray(list) ? list : []).filter(function(p) {
+        return p && typeof p.id === 'string' && /^[A-Za-z0-9_-]{10,100}$/.test(p.id);
+      }).map(function(p) {
+        const id = p.id;
+        return Object.assign({}, p, {
+          thumbnailUrl: p.thumbnailUrl || ('https://drive.google.com/thumbnail?id=' + id + '&sz=w800'),
+          viewUrl: p.viewUrl || ('https://drive.google.com/thumbnail?id=' + id + '&sz=w2048'),
+          driveViewUrl: p.driveViewUrl || ('https://drive.google.com/file/d/' + id + '/view'),
+          downloadUrl: p.downloadUrl || ('https://drive.google.com/uc?export=download&id=' + id)
+        });
       });
     }
 
