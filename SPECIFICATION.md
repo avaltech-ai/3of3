@@ -629,6 +629,9 @@
 # 2. 編譯靜態前端頁面，並依 tests/README.md 跑相關測試
 node build_index.js
 
+# 2b. 本機先跑自動化檢查（語法、index.html 與建置一致、Node 測試）；推送後 GitHub Actions 會再跑同一支
+bash tests/ci.sh
+
 # 3. 提交
 git add -A && git commit -m "feat/fix: 更新項目描述"
 

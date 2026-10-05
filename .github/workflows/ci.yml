@@ -1,0 +1,23 @@
+# 每次推送到 main 或開 PR 時：檢查語法、確認 index.html 與 build_index.js 一致、執行 Node 測試。
+# 內容與本機 `bash tests/ci.sh` 相同。此 repo 為公開：workflow 內不得放任何密碼、金鑰或 token。
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: 語法、建置一致與 Node 測試
+        run: bash tests/ci.sh

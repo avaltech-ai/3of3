@@ -107,3 +107,9 @@ console.log(await window.__nameMapFrontendTest());   // allPass 應為 true
 - `diag.html`（網站根目錄，`…/3of3/diag.html`）：手機連線診斷頁，逐一呼叫 `getAlbums`／`getAppData` 並顯示狀態碼、耗時、錯誤名稱；**只按一次按鈕**。
 - `tests/new_badge.js`：NEW 標籤（判斷邏輯含台北時區邊界、三種卡片渲染、惡意日期字串，17 項）。
 
+## 自動化檢查（CI）
+- `bash tests/ci.sh`：語法檢查（`Code.js`、`index.html` 內嵌 script）、重新建置並確認 `index.html` 與已提交版本一致（防止手改或忘了建置）、執行 6 套 Node 測試。任何一步失敗即以非 0 結束。
+- GitHub Actions（`.github/workflows/ci.yml`）在每次推送到 `main` 與每個 PR 自動執行同一支腳本；結果看 GitHub 倉庫的 Actions 分頁，或 `gh run list`。
+- 不含瀏覽器端測試（`tests/*.js` 需貼到 Console 執行），這些仍需手動跑。
+- 本機改動後、推送前先跑一次 `bash tests/ci.sh`，可避免推上去才發現失敗。
+
