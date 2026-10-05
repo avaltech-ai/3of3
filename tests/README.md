@@ -6,6 +6,12 @@ node tests/auth.test.js
 ```
 以模擬的 Cache／Properties／Drive 驗證登入 token、鎖定、變更密碼、備份間隔保護。修改 `Code.js` 的認證或備份邏輯後必跑，全部 ✓ 才可部署。
 
+## 1b. 後端冪等性測試（Node，約 1 秒）
+```bash
+node tests/idempotency.test.js
+```
+驗證同一個 `idempotencyKey` 只執行一次、失敗不快取、無效 token 不洩漏、格式不合法的編號被忽略、期限與大小限制。修改 `Code.js` 的 `doPost` 後必跑。
+
 ## 2. 前端 XSS 偵測器（瀏覽器內執行）
 `tests/xss_harness.js` 會把**真實資料的每個文字欄位**換成攻擊字串，驅動所有畫面渲染，再檢查：
 是否有被注入的元素、事件屬性（onclick 等）是否能被跳出而執行任意程式、網址是否為 `javascript:`。

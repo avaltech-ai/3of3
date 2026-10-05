@@ -302,8 +302,26 @@ function doPost(e) {
       if (!lock.tryLock(20000)) { lockBusy = true; lock = null; }
     }
 
+    // 冪等性：同一個 idempotencyKey 只會真正執行一次。
+    // 前端逾時後會自動重送（fetch → iframe；相簿上傳區塊也會重試），若第一次其實已成功，
+    // 沒有這層保護就會重複寫入。此檢查在互斥鎖之內，因此「重送比原請求先到」也會排隊後命中快取。
+    // 只有 token 驗證通過才會查詢，避免用猜的編號取得別人的操作結果。
+    let idemKey = '';
+    let dupResult = null;
+    if (!lockBusy && action !== 'verifyPassword' && action !== 'logout' && action !== 'checkSession' &&
+        postData && typeof postData.idempotencyKey === 'string' && /^[A-Za-z0-9_-]{16,80}$/.test(postData.idempotencyKey) &&
+        checkPassword(postData.password)) {
+      idemKey = postData.idempotencyKey;
+      const hit = CacheService.getScriptCache().get('idem_' + idemKey);
+      if (hit) {
+        try { dupResult = JSON.parse(hit); dupResult.duplicate = true; } catch (parseErr) { dupResult = null; }
+      }
+    }
+
     if (lockBusy) {
       result = { success: false, error: '系統目前忙碌（可能有其他管理員正在儲存），請稍候 10 秒再試一次。' };
+    } else if (dupResult) {
+      result = dupResult;   // 已處理過：直接回傳上次結果，不再執行
     } else if (action === 'verifyPassword') {
       result = verifyPassword(postData.password);
     } else if (action === 'logout') {
@@ -362,6 +380,14 @@ function doPost(e) {
       result = saveTheme(postData.themeData || postData.data, postData.password);
     } else if (action === 'deleteTheme') {
       result = deleteTheme(postData.id || postData.themeId, postData.password);
+    }
+
+    // 只記錄「成功」的結果（失敗的操作重試時仍應重新執行）；保留 10 分鐘，涵蓋逾時重送與上傳區塊重試
+    if (idemKey && !dupResult && result && result.success === true) {
+      try {
+        const js = JSON.stringify(result);
+        if (js.length <= 90000) CacheService.getScriptCache().put('idem_' + idemKey, js, 600);
+      } catch (cacheErr) {}
     }
 
     if (postData && postData.requestId) {

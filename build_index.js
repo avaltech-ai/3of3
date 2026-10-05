@@ -2435,6 +2435,20 @@ const htmlContent = `<!DOCTYPE html>
     const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbx5JGeiSH2J1vkOu4rh9NPwFBWNSkn5PkHfY5o25t-K4WcOK8b3VQjXi-TqUOzS8TvdJg/exec';
 
     // 跨環境後端通訊橋樑 (支援 GAS 內部環境與 GitHub Pages 外部環境)
+    // 冪等編號：同一次「使用者操作」的所有重送（fetch → iframe 備援、上傳區塊自動重試）共用同一個編號，
+    // 後端據此只執行一次，避免逾時重送造成重複寫入。格式需符合後端的 [A-Za-z0-9_-]{16,80}。
+    function newIdempotencyKey() {
+      let rnd = '';
+      try {
+        const a = new Uint32Array(3);
+        crypto.getRandomValues(a);
+        rnd = Array.prototype.map.call(a, function(n) { return n.toString(36); }).join('');
+      } catch (e) {
+        rnd = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+      }
+      return 'k' + Date.now().toString(36) + rnd;
+    }
+
     function callBackend(action, payload, successCb, errorCb) {
       // 任何呼叫只要被後端判定登入逾時／無效，先讓原本的 callback 處理（還原畫面等），再統一回到登入畫面
       const _origSuccessCb = successCb;
@@ -2506,6 +2520,10 @@ const htmlContent = `<!DOCTYPE html>
               }
             });
         } else {
+          // 寫入類動作附上冪等編號；之後 gasPostViaFetch 失敗降級為 iframe 重送時沿用同一個 payload（同一個編號）
+          if (payload && !payload.idempotencyKey && action !== 'verifyPassword' && action !== 'logout' && action !== 'checkSession') {
+            payload = Object.assign({}, payload, { idempotencyKey: newIdempotencyKey() });
+          }
           // 外部環境 POST 呼叫：優先使用標準 fetch POST (CORS 相容且無跨網域 iframe 阻擋問題)，失敗時自動降級至 iframe form POST
           gasPostViaFetch(action, payload, successCb, errorCb);
         }
@@ -7091,12 +7109,19 @@ const htmlContent = `<!DOCTYPE html>
       Promise.all(nextBatch.map(f => compressImageFile(f))).then(compressedFiles => {
         document.getElementById('albumUploadDetailLog').textContent = \`正在將第 \${startNum} ~ \${endNum} 張相片存入 Google Drive...\`;
 
+        // 同一個區塊位置共用同一個冪等編號：自動重試、甚至使用者按「重試」都不會讓同一批相片重複儲存
+        if (!up.pendingChunk || up.pendingChunk.index !== up.currentIndex) {
+          up.pendingChunk = { index: up.currentIndex, key: newIdempotencyKey() };
+        }
+        const chunkKey = up.pendingChunk.key;
+
         function attemptChunkSend(retriesLeft = 3) {
           callBackend('uploadPhotosChunk', {
             albumId: up.albumId,
             files: compressedFiles,
             isLastChunk: isLast,
-            password: state.adminPassword
+            password: state.adminPassword,
+            idempotencyKey: chunkKey
           }, res => {
             if (res && res.success) {
               up.currentIndex += nextBatch.length;
@@ -7104,7 +7129,7 @@ const htmlContent = `<!DOCTYPE html>
               // 遞迴呼叫下一批次
               uploadNextAlbumChunk();
             } else {
-              if (retriesLeft > 0) {
+              if (retriesLeft > 0 && !(res && res.authExpired)) {
                 document.getElementById('albumUploadDetailLog').textContent = \`上傳微幅延遲，正在自動重試 (\${4 - retriesLeft}/3 次)...\`;
                 setTimeout(() => attemptChunkSend(retriesLeft - 1), 1500);
               } else {
