@@ -743,7 +743,7 @@ git push origin main
 - **前端**：行事曆工具列下方「📆 訂閱行事曆」→ 說明視窗：Apple 用 `webcal://` 一鍵加入；Google 行事曆需複製網址後在電腦版「其他日曆 → 透過網址」貼上（手機版 Google 行事曆 App 不能直接以網址新增）。
 - **更新延遲**：Apple 行事曆約數小時；Google 行事曆常見 12～24 小時。這是訂閱機制本身的限制，不是網站問題。
 - **新增活動欄位或對象名稱時**：確認 `icsIsRelevantEvent_` 的判斷仍涵蓋（新增班級名稱預設不含，除非含上述關鍵字）。
-- **測試**：`node tests/ics.test.js`（已納入 CI）、瀏覽器 `tests/subscribe.js`。**實機訂閱（Apple／Google）需手動驗證**。
+- **測試**：`node tests/ics.test.js`（已納入 CI）、瀏覽器 `tests/subscribe.js`。**實機訂閱已驗證**：iPhone（`webcal://`）與 Google 行事曆電腦版（透過網址）皆可訂閱 GAS 的 302 轉址網址（2026-10-06）。
 
 ---
 
