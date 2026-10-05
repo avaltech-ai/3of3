@@ -3215,7 +3215,7 @@ const htmlContent = `<!DOCTYPE html>
           colorClasses = 'bg-slate-100 text-slate-700 border border-slate-200/90 font-medium';
           icon = '';
         } else {
-          // 所有其他幼兒園班級（諾貝爾 B、諾貝爾 C、諾奧、奧斯卡、雨奧、米羅 A、米羅 B、雨果、兩果等）
+          // 所有其他幼兒園班級（諾貝爾 B、諾貝爾 C、諾奧、奧斯卡、雨奧、米羅 A、米羅 B、雨果等）
           colorClasses = 'bg-indigo-50 text-indigo-700 border border-indigo-200 font-bold';
           icon = '<span class="mr-0.5">💛</span>';
         }
@@ -3319,7 +3319,6 @@ const htmlContent = `<!DOCTYPE html>
         {targetName: '雨奧', displayName: '💛 雨奧'},
         {targetName: '米羅 A', displayName: '💛 米羅 A'},
         {targetName: '米羅 B', displayName: '💛 米羅 B'},
-        {targetName: '兩果', displayName: '💛 兩果'},
         {targetName: '雨果', displayName: '💛 雨果'}
       ];
       state.eventCategoriesMajor = data.eventCategoriesMajor || []; state.eventCategoriesMinor = data.eventCategoriesMinor || [];
@@ -3397,7 +3396,6 @@ const htmlContent = `<!DOCTYPE html>
         {targetName: '雨奧', displayName: '💛 雨奧'},
         {targetName: '米羅 A', displayName: '💛 米羅 A'},
         {targetName: '米羅 B', displayName: '💛 米羅 B'},
-        {targetName: '兩果', displayName: '💛 兩果'},
         {targetName: '雨果', displayName: '💛 雨果'}
       ];
 
