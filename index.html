@@ -3026,59 +3026,11 @@
         {targetName: '雨果', displayName: '💛 雨果'}
       ];
 
-      state.events = [
-        { id: 'EV-01', date: '2026-08-03', title: '新學期開學日', target: '全園活動', categoryMajor: '全園活動', categoryMinor: '開學活動', category: '全園活動', timeLocation: '', description: '開學第一天', theme: '快樂上學趣' },
-        { id: 'EV-05', date: '2026-08-27', title: '諾貝爾 A、B、C 親師座談', target: '親職活動, 諾貝爾 A, 諾貝爾 B, 諾貝爾 C', categoryMajor: '班級主題', categoryMinor: '親職活動', category: '親職活動', timeLocation: '17:00 開始', description: '諾A班親師座談交流', theme: '快樂上學趣' },
-        { id: 'EV-06', date: '2026-09-07', title: '九月份幸福廚房', target: '米羅 A, 米羅 B, 兩果', categoryMajor: '班級主題', categoryMinor: '幸福廚房', category: '班級主題', timeLocation: '', description: '幸福廚房手作生活體驗', theme: '快樂上學趣' },
-        { id: 'EV-07', date: '2026-09-08', title: '九月份幸福廚房', target: '雨奧, 奧斯卡, 諾奧', categoryMajor: '班級主題', categoryMinor: '幸福廚房', category: '班級主題', timeLocation: '', description: '幸福廚房手作生活體驗。\n\n⏰ 雨奧 10:00、奧斯卡 10:50、諾奧 11:40', theme: '快樂上學趣' },
-        { id: 'EV-08', date: '2026-09-09', title: '幸福廚房（諾C/諾B/諾A）', target: '諾貝爾 C, 諾貝爾 B, 諾貝爾 A', categoryMajor: '班級主題', categoryMinor: '幸福廚房', category: '班級主題', timeLocation: '', description: '❤️ 諾貝爾 A 班九月份幸福廚房體驗！化身小小烘焙師！', theme: '快樂上學趣' },
-        { id: 'EV-12', date: '2026-10-05', title: '十月份幸福廚房', target: '米羅 A, 米羅 B, 兩果', categoryMajor: '班級主題', categoryMinor: '幸福廚房', category: '班級主題', timeLocation: '', description: '幸福廚房手作生活體驗', theme: '主題活動：人與自己／人與他人概念' },
-        { id: 'EV-13', date: '2026-10-06', title: '十月份幸福廚房', target: '雨奧, 奧斯卡, 諾奧', categoryMajor: '班級主題', categoryMinor: '幸福廚房', category: '班級主題', timeLocation: '', description: '幸福廚房手作生活體驗', theme: '主題活動：人與自己／人與他人概念' },
-        { id: 'EV-14', date: '2026-10-07', title: '十月份幸福廚房', target: '諾貝爾 C, 諾貝爾 B, 諾貝爾 A', categoryMajor: '班級主題', categoryMinor: '幸福廚房', category: '班級主題', timeLocation: '', description: '❤️ 諾貝爾 A 班十月份幸福廚房體驗！化身小小烘焙師！', theme: '主題活動：人與自己／人與他人概念' },
-        { id: 'EV-15', date: '2026-10-08', title: '十月壽星慶生會', target: '全園活動', categoryMajor: '全園活動', categoryMinor: '慶生活動', category: '全園活動', timeLocation: '', description: '分享快樂分享愛！', theme: '主題活動：人與自己／人與他人概念' },
-        { id: 'EV-16', date: '2026-10-09', endDate: '2026-10-11', title: '雙十節連假', target: '全園適用', categoryMajor: '休園', categoryMinor: '節慶放假', category: '節慶放假', timeLocation: '連假三日', description: '國慶連續假期放假', theme: '主題活動：人與自己／人與他人概念' },
-        { id: 'EV-17', date: '2026-10-23', title: '牙齒塗氟日 口腔保健檢查', calendarPrompt: '牙齒塗氟', target: '諾貝爾 A, 全園活動', categoryMajor: '重要活動', categoryMinor: '健康檢查', category: '重要活動', timeLocation: '08:30 (五)', description: '🌟 全園定期塗氟檢查，請家長務必攜帶健保卡！未攜帶無法參加喔！', theme: '主題活動：人與自己／人與他人概念' },
-        { id: 'EV-18', date: '2026-10-24', endDate: '2026-10-26', title: '光復節連假', calendarPrompt: '光復節連假', target: '全園適用', categoryMajor: '休園', categoryMinor: '節慶放假', category: '節慶放假', timeLocation: '連假三日', description: '光復節連續假期', theme: '主題活動：人與自己／人與他人概念' }
-      ];
+      state.events = [];  // 內建示範資料已移除：備援時寧可空白，也不顯示不存在的假內容
 
-      state.menus = [
-        { date: '2026-10-01', morningSnack: '紅藜雙色饅頭、米漿', fruit: '當季水果', lunchStaple: '糙白米飯', lunchMain: '青椒炒雞柳', lunchSide1: '木須炒蛋', lunchSide2: '有機蔬菜', lunchSoup: '玉米濃湯', afternoonSnack: '滑蛋雞肉粥', nutrients: '全穀雜糧類,豆魚蛋肉類,蔬菜類,水果類', note: '本園未使用不合格油品' },
-        { date: '2026-10-02', morningSnack: '全麥吐司、黑芝麻豆漿', fruit: '當季水果', lunchStaple: '日式和風拉麵', lunchMain: '有機蔬菜', lunchSide1: '蘿蔔貢丸湯', lunchSide2: '', lunchSoup: '', afternoonSnack: '豆花', nutrients: '全穀雜糧類,豆魚蛋肉類,蔬菜類,水果類', note: '' },
-        { date: '2026-10-05', morningSnack: '奶皇包、黑芝麻豆漿', fruit: '當季水果', lunchStaple: '古早味滷肉飯', lunchMain: '有機蔬菜', lunchSide1: '什錦蔬菜湯', lunchSide2: '', lunchSoup: '', afternoonSnack: '鹹粥', nutrients: '全穀雜糧類,豆魚蛋肉類,蔬菜類,水果類', note: '' },
-        { date: '2026-10-06', morningSnack: '芋頭堅果饅頭、燕麥豆漿', fruit: '當季水果', lunchStaple: '糙白米飯', lunchMain: '什錦冬粉', lunchSide1: '番茄豆腐', lunchSide2: '有機蔬菜', lunchSoup: '營養蔬菜湯', afternoonSnack: '綠豆薏仁湯', nutrients: '全穀雜糧類,豆魚蛋肉類,蔬菜類,水果類', note: '' },
-        { date: '2026-10-07', morningSnack: '什錦穀片、鮮奶', fruit: '當季水果', lunchStaple: '糙白米飯', lunchMain: '瓜仔肉', lunchSide1: '蛋香大黃瓜', lunchSide2: '有機蔬菜', lunchSoup: '魚丸湯', afternoonSnack: '芋頭粥', nutrients: '全穀雜糧類,豆魚蛋肉類,蔬菜類,水果類', note: '' },
-        { date: '2026-10-08', morningSnack: '果醬吐司、豆漿', fruit: '當季水果', lunchStaple: '味噌豬肉湯麵', lunchMain: '有機蔬菜', lunchSide1: '', lunchSide2: '', lunchSoup: '', afternoonSnack: '慶生會', nutrients: '全穀雜糧類,豆魚蛋肉類,蔬菜類,水果類', note: '十月慶生會' },
-        { date: '2026-10-23', morningSnack: '鹹奶油餐包、米漿', fruit: '當季水果', lunchStaple: '日式炒烏龍', lunchMain: '有機蔬菜', lunchSide1: '味噌湯', lunchSide2: '', lunchSoup: '', afternoonSnack: '桂圓燕麥粥', nutrients: '全穀雜糧類,豆魚蛋肉類,蔬菜類,水果類', note: '今日塗氟檢查日' }
-      ];
+      state.menus = [];  // 內建示範資料已移除：備援時寧可空白，也不顯示不存在的假內容
 
-      state.spotlights = [
-        {
-          id: 'SP-01',
-          title: '桃子腳幼兒園 牙齒塗氟日 活動攻略圖',
-          subtitle: '日期：2026/10/23 (五) 08:30 起全園分班檢查',
-          imageUrl: './spotlight-fluoride.jpg',
-          mediaType: 'image',
-          bulletPoints: '【衛教宣導】 正確刷牙示範，引導幼兒養成每日潔牙好習慣。\n【塗氟檢查】 每六個月定期專業口腔保健，細心守護孩子健康小乳牙。\n【注意事項】 請家長務必攜帶「健保卡」！未攜帶健保卡將無法參加塗氟檢查喔！\n【活動尾聲】 勇敢檢查完成的小朋友，將頒發口腔保健勇敢小獎狀！',
-          startDate: '2026-10-01',
-          endDate: '2026-10-31',
-          duration: 6,
-          priority: 1,
-          status: '啟用'
-        },
-        {
-          id: 'SP-02',
-          title: '幼兒園幸福廚房手作生活體驗',
-          subtitle: '日期：2026/10/07 (三) 諾貝爾 A 班手作日',
-          imageUrl: 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=1200&q=80',
-          mediaType: 'image',
-          bulletPoints: '【生活自理】 引導幼兒親手揉捏麵糰、體驗食材變化與手作樂趣。\n【小組合作】 學習分工收拾餐具與桌面，培養分享與責任感！\n【親師叮嚀】 當日請幫孩子穿著輕便服裝與圍裙，準備開心化身小小烘焙師！',
-          startDate: '2026-10-01',
-          endDate: '2026-10-20',
-          duration: 5,
-          priority: 2,
-          status: '啟用'
-        }
-      ];
+      state.spotlights = [];  // 內建示範資料已移除：備援時寧可空白，也不顯示不存在的假內容
 
       // 內建備援不再附帶示範文件：假文件會讓家長下載到不存在的檔案，也讓管理員刪不掉。
       state.docs = [];
@@ -4467,35 +4419,7 @@
     function renderFallbackAlbums() {
       const loading = document.getElementById('albumsLoading');
       if (loading) loading.classList.add('hidden');
-      state.cachedAlbums = [
-        {
-          id: 'demo_album_1',
-          category: '健康檢查',
-          folderName: '牙齒塗氟日口腔檢查',
-          title: '牙齒塗氟日口腔檢查',
-          photoCount: 18,
-          coverUrl: 'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=600&q=80',
-          folderUrl: 'https://drive.google.com/drive/folders/1iRFAr3FZMqV-okmktipdwamjAR7WWp6d'
-        },
-        {
-          id: 'demo_album_2',
-          category: '幸福廚房',
-          folderName: '幸福廚房手作生活體驗',
-          title: '幸福廚房手作生活體驗',
-          photoCount: 24,
-          coverUrl: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=600&q=80',
-          folderUrl: 'https://drive.google.com/drive/folders/1iRFAr3FZMqV-okmktipdwamjAR7WWp6d'
-        },
-        {
-          id: 'demo_album_3',
-          category: '親職活動',
-          folderName: '新學期親師座談交流',
-          title: '新學期親師座談交流',
-          photoCount: 12,
-          coverUrl: 'https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=600&q=80',
-          folderUrl: 'https://drive.google.com/drive/folders/1iRFAr3FZMqV-okmktipdwamjAR7WWp6d'
-        }
-      ];
+      state.cachedAlbums = [];  // 內建示範相簿已移除
       applyAlbumFilters();
       renderAdminAlbumsTable();
     }
