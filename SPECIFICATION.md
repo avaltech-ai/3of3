@@ -6,7 +6,7 @@
 > **系統名稱**：新北市桃子腳非營利幼兒園 - 諾貝爾 A 班班級資訊網 (Nobel A Class Portal)  
 > **維護單位**：三之三生命教育基金會 / 資訊工程團隊  
 > **原始碼存放庫**：GitHub (`avaltech-ai/3of3.git` on `main`)  
-> **正式網址**：`https://avaltech-ai.github.io/`
+> **正式網址**：`https://avaltech-ai.github.io/3of3/`
 
 ---
 
@@ -85,7 +85,7 @@
 |   getAppData / getAlbums / saveEvent / deleteDoc  |                         |
 |   uploadSong / saveTheme / batchUpdateSongDurations|                         | HTTP 302 Redirect
 | - 伺服端 5 分鐘記憶體快取 (CacheService: app_data_v4) |                         v
-| - 互斥寫入鎖 (LockService.getScriptLock)          |   +-------------------------------------------+
+| - 互斥寫入鎖 (LockService，doPost 全部寫入動作) |   +-------------------------------------------+
 +-------------------------+-------------------------+   | Google UserContent CDN (Echo Endpoint)    |
                           |                             | script.googleusercontent.com/macros/echo  |
                           |                             | 標頭: Access-Control-Allow-Origin: *      |
@@ -602,6 +602,16 @@ git push origin main
 | **管理員權限遭拒** | 修改活動顯示「管理員密碼錯誤」 | 檢查 `Settings` 表中 `ADMIN_PASSWORD` 欄位值 | 確認輸入的密碼是否與試算表設定一致（密碼不得寫在文件中）。 |
 | **檔案刪除失敗** | 文件前台點刪除但試算表未移除 | 檢查瀏覽器 Console 是否有網路阻擋 | 確認是否已更新至包含 `gasPostViaFetch` 之最新部署版本（@109 以上）。 |
 | **相簿照片無法載入** | 點擊相簿彈窗顯示「目前尚無相片」 | 檢查相簿對應之 Google Drive 資料夾權限 | 資料夾權限必須設為「知道連結的使用者均可檢視」。 |
+
+### 5.5 備份與還原 (Backup & Restore)
+
+- **自動備份**：`weeklyBackup()` 由時間觸發器每週日 03:00（Asia/Taipei）執行，將整份試算表複製到 Drive 資料夾 `桃子腳幼兒園 / Backup`（ID 見 `Code.js` 的 `BACKUP_FOLDER_ID`），檔名 `3of3_backup_YYYY-MM-DD_HHmm`。
+- **保留份數**：最近 8 份；更舊的移到垃圾桶（30 天內可還原），只處理檔名符合規則的檔案。複製失敗時不會清理任何舊備份。
+- **私人資料夾**：備份內含 `ADMIN_PASSWORD`，程式每次備份都會強制把該資料夾設為私人，**嚴禁分享為「知道連結即可檢視」**。
+- **手動備份**：試算表選單「🌟 諾貝爾A班專屬功能 → 💾 立即備份試算表」。
+- **首次設定**：在 GAS 編輯器選擇函式 `setupWeeklyBackupTrigger` 並執行一次（需授權），會建立觸發器並立刻備份一次。
+- **還原**：開啟備份檔 → 複製需要的工作表回正式試算表；或整份取代時，將備份檔的 ID 更新到 `Code.js` 的 `SPREADSHEET_ID` 並重新部署。
+- **寫入互斥**：`doPost` 對所有寫入動作取得 Script Lock（最長等待 20 秒，須小於前端 25 秒逾時），忙碌時回傳「系統目前忙碌」；`verifyPassword` 不佔鎖。
 
 ---
 

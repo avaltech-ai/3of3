@@ -8,7 +8,11 @@
 const SPREADSHEET_ID = '1lFRlvwQgo_B38YmtFD9BHqyGvuGstOK7etu3RO_BqQU';
 const ALBUMS_FOLDER_ID = '1iRFAr3FZMqV-okmktipdwamjAR7WWp6d';
 const DOCS_FOLDER_ID = '1Ie8medB2JPYdUA9LOryVnPAdko1t5rjR';
-const ACTIVITY_FOLDER_ID = '1EKWV3ASXIttVtud1f_pfl672MkEfwa8b2';
+// 試算表每週備份存放資料夾（Drive：桃子腳幼兒園 / Backup）。資料夾必須維持「私人」，備份內含管理員密碼。
+const BACKUP_FOLDER_ID = '1ozmReHOFGCDWJI_tVv59ogWMKNcMYoo';
+const BACKUP_KEEP_COUNT = 8;          // 只保留最近幾份備份（更舊的移到垃圾桶，30 天內可還原）
+const BACKUP_MIN_INTERVAL_DAYS = 5;   // 自動備份的最短間隔，防止被人反覆呼叫而擠掉舊備份
+const ACTIVITY_FOLDER_ID = '1EKWV3ASXltVtud1f_pfI672MkEfwa8b2';
 // 唱跳音符：音樂檔預設儲存的 Google Drive 資料夾
 const SONGS_FOLDER_ID = '1vurxReuOW0laMDw1xSSOqeM5zT0TCmBQ';
 
@@ -106,6 +110,7 @@ function onOpen() {
       .createMenu('🌟 諾貝爾A班專屬功能')
       .addItem('📁 立即建立／檢查相簿工作表 (AlbumCategories 與 Albums)', 'menuEnsureAlbumSheets')
       .addItem('🔄 清除快取並強制重新整理', 'menuClearCache')
+      .addItem('💾 立即備份試算表', 'menuBackupNow')
       .addItem('🚀 一鍵初始化／重設資料庫 (5大工作表與示範資料)', 'menuResetDatabase')
       .addItem('🌐 開啟班級網頁應用程式', 'openWebApp')
       .addToUi();
@@ -123,6 +128,84 @@ function menuClearCache() {
   clearAppDataCache();
   ensureAlbumSheetsExist();
   SpreadsheetApp.getUi().alert('✅ 快取已清除，所有最新資料與工作表已同步！');
+}
+
+/**
+ * 取得備份資料夾，並確保它是私人的（備份檔含管理員密碼，絕不可「知道連結即可檢視」）。
+ */
+function getBackupFolder_() {
+  const folder = DriveApp.getFolderById(BACKUP_FOLDER_ID);
+  if (folder.getSharingAccess() !== DriveApp.Access.PRIVATE) {
+    folder.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE);
+  }
+  return folder;
+}
+
+/**
+ * 備份核心：複製整份試算表到備份資料夾，成功後才清理過舊備份（最多保留 BACKUP_KEEP_COUNT 份）。
+ * 結尾底線 = 私有函式，網頁（google.script.run）無法直接呼叫。
+ */
+function backupSpreadsheet_() {
+  const folder = getBackupFolder_();
+  const ss = getSpreadsheet();
+  const stamp = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd_HHmm');
+  const copy = DriveApp.getFileById(ss.getId()).makeCopy('3of3_backup_' + stamp, folder);
+
+  // 只有「這次複製成功」才清理舊備份，且只動檔名符合規則的檔案；用垃圾桶而非永久刪除
+  const names = [];
+  const it = folder.getFiles();
+  while (it.hasNext()) {
+    const f = it.next();
+    if (/^3of3_backup_\d{4}-\d{2}-\d{2}_\d{4}$/.test(f.getName())) names.push({ name: f.getName(), file: f });
+  }
+  names.sort(function(a, b) { return a.name < b.name ? 1 : (a.name > b.name ? -1 : 0); });
+  let trashed = 0;
+  for (let i = BACKUP_KEEP_COUNT; i < names.length; i++) {
+    names[i].file.setTrashed(true);
+    trashed++;
+  }
+
+  PropertiesService.getScriptProperties().setProperty('LAST_BACKUP_AT', String(Date.now()));
+  return { name: copy.getName(), url: copy.getUrl(), kept: Math.min(names.length, BACKUP_KEEP_COUNT), trashed: trashed };
+}
+
+/**
+ * 每週自動備份入口（由時間觸發器呼叫）。
+ * 有最短間隔保護：距離上次成功備份不足 BACKUP_MIN_INTERVAL_DAYS 天就略過，
+ * 避免有人從網頁反覆呼叫此函式、把好的舊備份擠掉。
+ */
+function weeklyBackup() {
+  const last = Number(PropertiesService.getScriptProperties().getProperty('LAST_BACKUP_AT') || 0);
+  if (last && (Date.now() - last) < BACKUP_MIN_INTERVAL_DAYS * 86400000) {
+    console.log('weeklyBackup 略過：距離上次備份不足 ' + BACKUP_MIN_INTERVAL_DAYS + ' 天');
+    return { success: true, skipped: true };
+  }
+  const res = backupSpreadsheet_();
+  console.log('weeklyBackup 完成：' + JSON.stringify(res));
+  return { success: true, skipped: false };
+}
+
+/**
+ * 試算表選單「立即備份」：只能在試算表介面內由擁有者按下（網頁呼叫會因無 UI 而失敗）。
+ */
+function menuBackupNow() {
+  const ui = SpreadsheetApp.getUi();
+  const res = backupSpreadsheet_();
+  ui.alert('✅ 備份完成\n\n檔名：' + res.name + '\n目前保留 ' + res.kept + ' 份（上限 ' + BACKUP_KEEP_COUNT + ' 份）。');
+}
+
+/**
+ * 【只需在 GAS 編輯器手動執行一次】建立「每週日凌晨 3 點」自動備份觸發器。
+ * 重複執行是安全的：會先移除舊的同名觸發器再建立。
+ */
+function setupWeeklyBackupTrigger() {
+  ScriptApp.getProjectTriggers().forEach(function(t) {
+    if (t.getHandlerFunction() === 'weeklyBackup') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('weeklyBackup').timeBased().onWeekDay(ScriptApp.WeekDay.SUNDAY).atHour(3).create();
+  // 順便立刻備份一次，確認資料夾權限與流程都正常
+  const res = backupSpreadsheet_();
+  console.log('已建立每週日 03:00 自動備份觸發器；首次備份：' + res.name);
 }
 
 function openWebApp() {
@@ -188,6 +271,7 @@ function doGet(e) {
  */
 function doPost(e) {
   let isFormMode = false;
+  let lock = null;
   try {
     let postData = {};
 
@@ -202,7 +286,17 @@ function doPost(e) {
     const action = postData.action;
     let result = { success: false, error: '未知 POST 動作' };
 
-    if (action === 'verifyPassword') {
+    // 互斥鎖：所有寫入類動作一次只允許一個執行，避免兩位管理員同時儲存造成資料互蓋、列錯位或重複列。
+    // 等待上限 20 秒（需小於前端 25 秒逾時，否則前端會自動重送而重複寫入）。
+    let lockBusy = false;
+    if (action !== 'verifyPassword') {
+      lock = LockService.getScriptLock();
+      if (!lock.tryLock(20000)) { lockBusy = true; lock = null; }
+    }
+
+    if (lockBusy) {
+      result = { success: false, error: '系統目前忙碌（可能有其他管理員正在儲存），請稍候 10 秒再試一次。' };
+    } else if (action === 'verifyPassword') {
       result = verifyPassword(postData.password);
     } else if (action === 'saveEvent') {
       result = saveEvent(postData.data, postData.password);
@@ -291,6 +385,10 @@ function doPost(e) {
     }
     return ContentService.createTextOutput(errResult)
       .setMimeType(ContentService.MimeType.JSON);
+  } finally {
+    if (lock) {
+      try { lock.releaseLock(); } catch (releaseErr) {}
+    }
   }
 }
 

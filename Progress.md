@@ -163,3 +163,17 @@
   4. **嚴格身分鑑權機制**：移除前台任意字串登入漏洞，新增通用 `getAdminPassword()` 輔助函式，確保所有管理端異動操作皆帶有合法憑證。
   5. **資料庫歷史資料清理**：已直接執行清理作業，將使用者先前欲刪除的 `DOC-02`（全園活動規劃暨親職活動行事曆）與 `DOC-04`（諾貝爾A班作息與入園須知手冊）自 Google 試算表 `Docs` 工作表正式移除，資料庫與前台畫面完全對齊一致。
   6. **端對端完整迴歸驗證**：已執行即時新增 `DOC-TEST-ROUNDTRIP` 並立即呼叫刪除的雙向測試，確認 Google 試算表即時異動率達 100%。
+
+### 21. 安全性修補與穩健性強化（2026-10-05 / 10-11 測試驗證後續）
+- **P0 安全性**：
+  - 撤銷外洩的 GitHub PAT，git remote 改為不含 token（`gh auth setup-git` 管理憑證）。
+  - `doGet` 僅保留唯讀動作（getAppData/getAlbums/getAlbumPhotos/getActivityImages）；移除免密碼的 `setupInitialDatabase`、`clearCache`、`listSheetNames`、`syncSongDurations`、`batchUpdateSongDurations`。`doPost` 同步移除 `setupInitialDatabase`，`batchUpdateSongDurations` 加密碼檢查。
+  - `setupInitialDatabase` 改為私有 `setupInitialDatabase_`，僅能經試算表選單 `menuResetDatabase`（含二次確認）觸發；`ensureDatabaseInitialized` 不再自動灌入示範資料。
+  - `checkPassword` 不再有內建預設密碼退路；前端 `doAdminLogin` 移除所有寫死預設密碼的放行分支。管理員密碼已更換，repo 為公開，**密碼不得寫入任何文件或程式碼**。
+- **前端 bug**：`6e7b134` 在 template literal 內寫 `\n` 導致 build 後字串斷行、整段 script 無法執行（需寫 `\\n`，見第 3 條教訓）。已修復。
+- **刪除與快取**：後端回「找不到該文件編號」視為已刪除並重新同步；雲端同步失敗時顯示「可能是舊資料」提示；移除前端內建的示範活動／菜單／焦點活動／文件／相簿備援資料。
+- **P1 穩健性**：
+  - `doPost` 加入 `LockService` 互斥鎖（等待上限 20 秒，小於前端逾時 25 秒），登入驗證不佔鎖。
+  - 每週日 03:00 自動備份試算表到 Drive `桃子腳幼兒園 / Backup`，保留最近 8 份，備份資料夾強制私人（詳見 SPEC 5.5）。
+  - 修正 `Code.js` 中 `ACTIVITY_FOLDER_ID` 常數的 `I`/`l` 誤植（線上以 Settings 值為準，原值僅為備用）。
+- **已知未處理**：`localStorage` 仍明文保存管理員密碼（建議改 session token＋`sessionStorage`）；前端 `innerHTML` 缺統一跳脫；逾時重送可能重複寫入（建議 requestId 去重）；Tailwind CDN Play 版無 SRI。
