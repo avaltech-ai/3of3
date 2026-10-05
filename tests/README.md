@@ -39,6 +39,15 @@ for (const p of ['A','B','C','D','E','L']) console.log(p, await window.__xssRun(
 通過標準：A～E 的 `vulnCount` 全為 0；L 的 `extra.doubleEscaped` 為 `false` 且 `literalOccurrences` > 0；`renderErrors` 為空。
 新增畫面或欄位後必跑；**建議每類重複跑 2 輪**（曾因偵測時序漏報一次）。
 
+## 3. 唱跳音符選取連動測試（瀏覽器內執行）
+`tests/songs_selection.js` 驗證底部「已選取 N 首」、播放按鈕提示、實際播放內容三者一致：只計算、只播放**目前篩選範圍內**有勾選的歌；在其他篩選下勾選而被隱藏的歌會保留（切回去仍打勾），但不計入也不播放。涵蓋類別篩選、搜尋、重設、全選目前歌曲、點歌曲開始播放、英文介面（共 14 項）。測試期間播放器與提示訊息被替換成假函式。
+```js
+// 開啟 http://localhost:8765/index.html，等歌曲載入後：
+(0, eval)(await (await fetch('/tests/songs_selection.js')).text());
+console.log(await window.__songSelectionTest());   // allPass 應為 true
+```
+修改 `renderSongsList`、`updateSongsBottomBarUI`、`playSelectedSongs`、`openSongPlayer`、篩選相關函式後必跑。
+
 ## 新增畫面時的跳脫規則（build_index.js）
 - 放進 HTML 文字或屬性值：`esc(值)`
 - 放進 `onclick="fn('…')"` 的 JS 字串：`jsq(值)`

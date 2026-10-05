@@ -5714,6 +5714,15 @@
       updateSongsBottomBarUI();
     }
 
+    // 目前篩選範圍內「有勾選」的歌曲：底部計數、按鈕標籤與實際播放都以它為準，三者才會一致。
+    // 在其他篩選條件下勾選、目前被隱藏的歌曲會保留（切回去仍打勾），但不計入、也不播放。
+    function getVisibleSelectedSongs(filtered) {
+      const list = filtered || getFilteredSongs();
+      const sel = state.selectedSongIds;
+      if (!sel || sel.size === 0) return [];
+      return list.filter(function(s) { return sel.has(String(s.id)); });
+    }
+
     function toggleSelectSong(songId) {
       const idStr = String(songId);
       if (state.selectedSongIds.has(idStr)) {
@@ -5753,9 +5762,18 @@
       const countEl = document.getElementById('bottomBarSelectedCount');
       const allCb = document.getElementById('bottomBarSelectAllCheckbox');
       const playBtnLabel = document.getElementById('btnPlaySelectedSongsLabel');
-      const selCount = state.selectedSongIds ? state.selectedSongIds.size : 0;
+      const selCount = getVisibleSelectedSongs(filtered).length;
+      const totalSelected = state.selectedSongIds ? state.selectedSongIds.size : 0;
+      const hiddenSelected = Math.max(0, totalSelected - selCount);
 
-      if (countEl) countEl.textContent = state.lang === 'en' ? (selCount + ' Selected') : ('已選取 ' + selCount + ' 首');
+      if (countEl) {
+        countEl.textContent = state.lang === 'en' ? (selCount + ' Selected') : ('已選取 ' + selCount + ' 首');
+        if (hiddenSelected > 0) {
+          countEl.title = state.lang === 'en' ? (hiddenSelected + ' more selected under other filters (not counted or played)') : ('另有 ' + hiddenSelected + ' 首在其他篩選條件下勾選（不計入、也不會播放）');
+        } else {
+          countEl.removeAttribute('title');
+        }
+      }
 
       if (allCb) {
         const filteredSelectedCount = filtered.filter(function(s) { return state.selectedSongIds.has(String(s.id)); }).length;
@@ -5873,13 +5891,7 @@
         showToast('目前沒有符合篩選條件的歌曲', '⚠️');
         return;
       }
-      let selected = [];
-      if (state.selectedSongIds && state.selectedSongIds.size > 0) {
-        selected = filtered.filter(function(s) { return state.selectedSongIds.has(String(s.id)); });
-        if (selected.length === 0) {
-          selected = (state.songs || []).filter(function(s) { return state.selectedSongIds.has(String(s.id)); });
-        }
-      }
+      let selected = getVisibleSelectedSongs(filtered);
       if (selected.length === 0) {
         selected = filtered.slice();
         selected.forEach(function(s) { state.selectedSongIds.add(String(s.id)); });
@@ -5904,8 +5916,7 @@
 
       let queue = [];
       if (state.selectedSongIds && state.selectedSongIds.has(String(songId))) {
-        queue = filtered.filter(function(s) { return state.selectedSongIds.has(String(s.id)); });
-        if (queue.length === 0) queue = (state.songs || []).filter(function(s) { return state.selectedSongIds.has(String(s.id)); });
+        queue = getVisibleSelectedSongs(filtered);
       } else {
         queue = filtered.length > 0 ? filtered.slice() : [targetSong];
       }
