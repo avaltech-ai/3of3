@@ -2583,6 +2583,13 @@ const htmlContent = `<!DOCTYPE html>
       setTimeout(() => { form.remove(); }, 100);
     }
 
+    // 雲端同步失敗時明確告知：目前畫面可能是舊資料（避免老師、家長被過期內容誤導）
+    function notifySyncFailed() {
+      showToast(state.lang === 'en'
+        ? 'Cloud sync failed. The content shown may be outdated. Please reload.'
+        : '雲端資料同步失敗，目前顯示的可能是舊資料，請重新整理頁面。', '⚠️');
+    }
+
     function loadAppData(isSilent = true) {
       const syncBadge = document.getElementById('bgSyncBadge');
       if (isSilent) {
@@ -2600,6 +2607,7 @@ const htmlContent = `<!DOCTYPE html>
           } catch (e) {}
           handleDataLoaded(res.data);
         } else {
+          notifySyncFailed();
           if (!state.events || state.events.length === 0) {
             renderFallbackLocalData();
           }
@@ -2608,6 +2616,7 @@ const htmlContent = `<!DOCTYPE html>
         if (syncBadge) syncBadge.classList.add('hidden');
         showLoading(false);
         console.warn('GAS 連線失敗或逾時，已保持目前最新資料:', err);
+        notifySyncFailed();
         if (!state.events || state.events.length === 0) {
           renderFallbackLocalData();
         }
@@ -3075,12 +3084,8 @@ const htmlContent = `<!DOCTYPE html>
         }
       ];
 
-      state.docs = [
-        { id: 'DOC-01', fileName: '幼兒用藥委託單.pdf', category: '保健用藥', description: '幼兒在園需協助用藥時請家長填寫委託單', downloadUrl: 'https://drive.google.com/drive/folders/1Ie8medB2JPYdUA9LOryVnPAdko1t5rjR', updatedAt: '2026-09-01' },
-        { id: 'DOC-02', fileName: '115學年度(上)全園活動規劃暨親職活動行事曆.pdf', category: '學期行事曆', description: '包含全學期各月份主題與親師座談日期', downloadUrl: 'https://drive.google.com/drive/folders/1Ie8medB2JPYdUA9LOryVnPAdko1t5rjR', updatedAt: '2026-08-01' },
-        { id: 'DOC-03', fileName: '10月份營養午餐及點心菜單表.pdf', category: '餐飲菜單', description: '本月幼兒每日三餐營養菜單與檢核表', downloadUrl: 'https://drive.google.com/drive/folders/1Ie8medB2JPYdUA9LOryVnPAdko1t5rjR', updatedAt: '2026-10-01' },
-        { id: 'DOC-04', fileName: '諾貝爾A班新生家長入園須知手冊.pdf', category: '親師手冊', description: '作息時間表、接送規定與常規說明', downloadUrl: 'https://drive.google.com/drive/folders/1Ie8medB2JPYdUA9LOryVnPAdko1t5rjR', updatedAt: '2026-08-15' }
-      ];
+      // 內建備援不再附帶示範文件：假文件會讓家長下載到不存在的檔案，也讓管理員刪不掉。
+      state.docs = [];
 
       // 優先載入本地已自訂儲存的資料，確保重新整理依然永久生效
       try {
@@ -5355,6 +5360,13 @@ const htmlContent = `<!DOCTYPE html>
           } catch (e) {}
           renderDocsList();
           showToast(res.message || (state.lang === 'en' ? 'Document deleted from database!' : '文件已成功自資料庫刪除！'), '🗑️');
+          loadAppData(true);
+        } else if (res && res.error && String(res.error).indexOf('找不到該文件編號') !== -1) {
+          // 資料庫早已沒有這筆（畫面上是過期的快取）：等同刪除完成，移除並重新同步最新清單
+          state.docs = (state.docs || []).filter(d => String(d.id) !== String(id));
+          try { localStorage.setItem('nobel_a_docs_custom', JSON.stringify(state.docs)); } catch (e) {}
+          renderDocsList();
+          showToast(state.lang === 'en' ? 'This document was already removed. List refreshed.' : '這筆文件在資料庫中已不存在，已為您更新清單。', 'ℹ️');
           loadAppData(true);
         } else {
           state.docs = prevDocs;
