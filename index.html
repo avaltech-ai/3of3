@@ -943,6 +943,10 @@
           <button onclick="switchAdminSubtab('spotlight')" id="adminSubtabBtn-spotlight" data-i18n="admin.tabSpotlight" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
             🌟 焦點活動管理
           </button>
+          <button onclick="switchAdminSubtab('translations')" id="adminSubtabBtn-translations" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
+            <span data-i18n="admin.tabTranslations">🌐 英文對照</span>
+            <span id="mapAdminTabBadge" class="hidden ml-1 text-[0.625rem] font-extrabold text-white bg-rose-500 px-1.5 py-0.5 rounded-full align-middle" title="有新文字尚未加入對照表"></span>
+          </button>
           <button onclick="switchAdminSubtab('settings')" id="adminSubtabBtn-settings" data-i18n="admin.tabSettings" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
             ⚙️ 密碼與設定
           </button>
@@ -1634,6 +1638,72 @@
         </div>
 
         <!-- 子分頁 6: 密碼與系統設定 -->
+        <!-- 子分頁：英文對照（NameMap 名稱／TextMap 自由文字）網頁編輯 -->
+        <div id="adminPanel-translations" class="admin-panel space-y-4 hidden">
+          <div class="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <h4 class="font-black text-slate-800 text-base flex items-center gap-2">🌐 英文對照表</h4>
+              <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-2xl">
+                <button type="button" id="mapAdminKind-text" onclick="mapAdminSetKind('text')" class="px-3 py-1 rounded-xl text-xs font-bold bg-white text-slate-800 shadow-xs">內容（活動、菜單等）</button>
+                <button type="button" id="mapAdminKind-name" onclick="mapAdminSetKind('name')" class="px-3 py-1 rounded-xl text-xs font-bold text-slate-600">名稱（類別、班級）</button>
+              </div>
+            </div>
+            <p class="text-[0.6875rem] text-slate-500 leading-relaxed">流程：① 同步新文字 → ② 產生草稿（機器翻譯，不會公開）→ ③ 核對並修改英文 → ④ 儲存變更。英文空白的文字，英文介面會顯示中文。也可以直接在 Google 試算表的 TextMap／NameMap 編輯，兩種方式並存。</p>
+            <div id="mapAdminSummary" class="text-xs font-bold text-slate-700"></div>
+
+            <div class="flex flex-wrap items-center gap-2">
+              <button type="button" id="mapAdminSyncBtn" onclick="mapAdminSync()" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-xs font-bold text-slate-700 tap-bounce cursor-pointer">🔄 同步新文字</button>
+              <button type="button" id="mapAdminDraftBtn" onclick="mapAdminDraftRun()" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-xs font-bold text-slate-700 tap-bounce cursor-pointer">🤖 產生草稿</button>
+              <button type="button" id="mapAdminAdoptAllBtn" onclick="mapAdminAdoptAll()" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-xs font-bold text-slate-700 tap-bounce cursor-pointer">✅ 採用全部草稿</button>
+              <button type="button" id="mapAdminSaveBtn" onclick="mapAdminSave()" class="px-4 py-1.5 rounded-xl bg-peach-500 hover:bg-peach-600 text-white text-xs font-bold shadow-sm tap-bounce cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed" disabled>💾 儲存變更</button>
+            </div>
+
+            <div id="mapAdminProgress" class="hidden rounded-2xl bg-slate-50 border border-slate-200 p-3 space-y-1.5">
+              <div class="flex items-center justify-between gap-2 text-xs font-bold text-slate-700">
+                <span id="mapAdminProgressText"></span>
+                <button type="button" id="mapAdminCancelBtn" onclick="mapAdminCancelDraft()" class="px-2 py-0.5 rounded-lg bg-white border border-slate-300 text-[0.6875rem] text-slate-600 cursor-pointer">停止</button>
+              </div>
+              <div class="h-1.5 rounded-full bg-slate-200 overflow-hidden"><div id="mapAdminProgressBar" class="h-full bg-peach-500 transition-all duration-200" style="width:0%"></div></div>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+              <input id="mapAdminSearch" type="search" oninput="mapAdminOnQuery(this.value)" placeholder="搜尋中文或英文…" class="flex-1 min-w-[140px] px-3 py-1.5 rounded-xl border border-slate-300 text-xs" aria-label="搜尋">
+              <select id="mapAdminFilter" onchange="mapAdminOnFilter(this.value)" class="px-2.5 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-700 bg-white" aria-label="篩選">
+                <option value="all">全部</option>
+                <option value="missing">尚未翻譯</option>
+                <option value="draft">有草稿待確認</option>
+                <option value="done">已有英文</option>
+                <option value="unused">目前沒有使用</option>
+                <option value="dirty">已修改未儲存</option>
+              </select>
+              <button type="button" id="mapAdminDeleteBtn" onclick="mapAdminDeleteSelected()" class="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-xs font-bold text-rose-700 tap-bounce cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed" disabled>🗑️ 刪除選取</button>
+            </div>
+
+            <div class="rounded-2xl border border-slate-200 divide-y divide-slate-100 overflow-hidden">
+              <div class="hidden sm:grid grid-cols-12 gap-2 px-3 py-2 bg-slate-50 text-[0.6875rem] font-black text-slate-500">
+                <div class="col-span-4">中文原文（出處）</div><div class="col-span-3">機器草稿</div><div class="col-span-5">英文（公開顯示）</div>
+              </div>
+              <div id="mapAdminRows"></div>
+              <div id="mapAdminEmpty" class="hidden py-8 text-center text-xs text-slate-400"></div>
+            </div>
+
+            <div class="flex items-center justify-between gap-2">
+              <button type="button" id="mapAdminPrev" onclick="mapAdminPage(-1)" class="px-3 py-1 rounded-lg bg-slate-100 text-xs font-bold text-slate-600 cursor-pointer disabled:opacity-40" disabled>‹ 上一頁</button>
+              <span id="mapAdminPageText" class="text-[0.6875rem] font-bold text-slate-500"></span>
+              <button type="button" id="mapAdminNext" onclick="mapAdminPage(1)" class="px-3 py-1 rounded-lg bg-slate-100 text-xs font-bold text-slate-600 cursor-pointer disabled:opacity-40" disabled>下一頁 ›</button>
+            </div>
+
+            <details class="rounded-2xl bg-slate-50 border border-slate-200 p-3">
+              <summary class="text-xs font-bold text-slate-700 cursor-pointer">＋ 手動新增一筆</summary>
+              <div class="mt-2 grid grid-cols-1 sm:grid-cols-12 gap-2">
+                <input id="mapAdminAddZh" type="text" placeholder="中文原文（必須與網站上的文字完全相同）" class="sm:col-span-5 px-3 py-1.5 rounded-xl border border-slate-300 text-xs">
+                <input id="mapAdminAddEn" type="text" placeholder="英文" class="sm:col-span-5 px-3 py-1.5 rounded-xl border border-slate-300 text-xs">
+                <button type="button" onclick="mapAdminAddRow()" class="sm:col-span-2 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-black text-white text-xs font-bold cursor-pointer">加入</button>
+              </div>
+            </details>
+          </div>
+        </div>
+
         <div id="adminPanel-settings" class="admin-panel space-y-4 hidden">
           <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4 max-w-xl">
             <h4 class="font-black text-slate-800 text-base">密碼與系統設定</h4>
@@ -2162,6 +2232,7 @@
           tabUploadDoc: '📂 文件檔案上傳',
           tabThemes: '📚 主題活動',
           tabSpotlight: '🌟 焦點活動管理',
+          tabTranslations: '🌐 英文對照',
           tabSettings: '⚙️ 密碼與設定'
         },
         footer: {
@@ -2388,6 +2459,7 @@
           tabUploadDoc: '📂 Upload Docs',
           tabThemes: '📚 Weekly Themes',
           tabSpotlight: '🌟 Highlights',
+          tabTranslations: '🌐 Translations',
           tabSettings: '⚙️ Settings'
         },
         footer: {
@@ -2908,6 +2980,13 @@
         if (action === 'getAppData') runner.getAppData();
         else if (action === 'getAlbums') runner.getAlbums();
         else if (action === 'getTextMap') runner.getTextMap();
+        else if (action === 'mapList') runner.adminMapList(payload.kind, payload.password);
+        else if (action === 'mapSave') runner.adminMapSave(payload.kind, payload.changes, payload.password);
+        else if (action === 'mapDelete') runner.adminMapDelete(payload.kind, payload.zhList, payload.password);
+        else if (action === 'mapSync') runner.adminMapSync(payload.kind, payload.password);
+        else if (action === 'textDraft') runner.adminTextDraft(payload.limit, payload.password);
+        else if (action === 'textAdopt') runner.adminTextAdopt(payload.zhList, payload.password);
+        else if (action === 'mapStatus') runner.adminMapStatus(payload.password);
         else if (action === 'getAlbumPhotos') runner.getAlbumPhotos(payload.albumId);
         else if (action === 'verifyPassword') runner.verifyPassword(payload.password);
         else if (action === 'logout') runner.adminLogout(payload.password);
@@ -3205,6 +3284,397 @@
       document.documentElement.classList.toggle('big-text', on);
       try { localStorage.setItem('nobel_a_big_text', on ? '1' : '0'); } catch (e) {}
       syncBigTextButton();
+    }
+
+    // ---------- 後台：英文對照（NameMap 名稱／TextMap 自由文字）網頁編輯 ----------
+    // 資料仍存在試算表，網頁與試算表編輯並存。英文欄只在「儲存變更」時才批次寫入；機器草稿只放 draft 欄，不會公開。
+    const MAP_ADMIN_PER_PAGE = 50;
+    const MAP_ADMIN_SAVE_CHUNK = 500;
+    const MAP_ADMIN_DELETE_CHUNK = 100;
+    const mapAdmin = {
+      kind: 'text', data: { text: null, name: null }, dirty: { text: {}, name: {} }, extra: { text: [], name: [] },
+      sel: {}, filter: 'all', query: '', page: 0, status: null, busy: false, drafting: false, cancelDraft: false
+    };
+
+    function mapAdminKinds() { return ['text', 'name']; }
+    function mapAdminHasDirty() {
+      return mapAdminKinds().some(function(k) { return Object.keys(mapAdmin.dirty[k]).length > 0; });
+    }
+    function mapAdminUnusedLabel() { return (mapAdmin.data[mapAdmin.kind] && mapAdmin.data[mapAdmin.kind].unusedLabel) || '（目前沒有使用）'; }
+
+    // 目前種類的所有列（含本機新增、尚未儲存的列）；每列附上「有效英文」（有未儲存修改就用修改後的）
+    function mapAdminAllRows() {
+      const k = mapAdmin.kind;
+      const base = (mapAdmin.data[k] && mapAdmin.data[k].rows) || [];
+      const dirty = mapAdmin.dirty[k];
+      const out = base.map(function(r) {
+        const has = Object.prototype.hasOwnProperty.call(dirty, r.zh);
+        return { zh: r.zh, en: r.en, draft: r.draft, used_in: r.used_in, note: r.note, cur: has ? dirty[r.zh] : r.en, changed: has, isNew: false };
+      });
+      mapAdmin.extra[k].forEach(function(r) {
+        out.push({ zh: r.zh, en: '', draft: '', used_in: '（手動新增，尚未儲存）', note: '', cur: Object.prototype.hasOwnProperty.call(dirty, r.zh) ? dirty[r.zh] : '', changed: true, isNew: true });
+      });
+      return out;
+    }
+
+    function mapAdminMatchFilter(r) {
+      const unused = mapAdminUnusedLabel();
+      const f = mapAdmin.filter;
+      const isUnused = String(r.used_in || '').trim() === unused;
+      const cur = String(r.cur || '').trim();
+      if (f === 'missing') return !isUnused && !cur;
+      if (f === 'draft') return !isUnused && !cur && !!String(r.draft || '').trim();
+      if (f === 'done') return !!cur;
+      if (f === 'unused') return isUnused;
+      if (f === 'dirty') return r.changed;
+      return true;
+    }
+
+    function mapAdminFilteredRows() {
+      const q = String(mapAdmin.query || '').trim().toLowerCase();
+      return mapAdminAllRows().filter(function(r) {
+        if (!mapAdminMatchFilter(r)) return false;
+        if (!q) return true;
+        return (r.zh + ' ' + r.cur + ' ' + r.draft + ' ' + r.used_in).toLowerCase().indexOf(q) !== -1;
+      });
+    }
+
+    function mapAdminSetBusy(on) {
+      mapAdmin.busy = !!on;
+      mapAdminUpdateControls();
+    }
+
+    function mapAdminUpdateControls() {
+      const k = mapAdmin.kind;
+      const nDirty = Object.keys(mapAdmin.dirty[k]).length;
+      const save = document.getElementById('mapAdminSaveBtn');
+      if (save) {
+        save.textContent = '💾 儲存變更' + (nDirty ? '（' + nDirty + '）' : '');
+        save.disabled = mapAdmin.busy || nDirty === 0;
+      }
+      const isText = k === 'text';
+      ['mapAdminDraftBtn', 'mapAdminAdoptAllBtn'].forEach(function(id) {
+        const b = document.getElementById(id);
+        if (!b) return;
+        b.classList.toggle('hidden', !isText);
+        b.disabled = mapAdmin.busy;
+      });
+      const sync = document.getElementById('mapAdminSyncBtn'); if (sync) sync.disabled = mapAdmin.busy;
+      const del = document.getElementById('mapAdminDeleteBtn');
+      if (del) {
+        const nSel = Object.keys(mapAdmin.sel).length;
+        del.textContent = '🗑️ 刪除選取' + (nSel ? '（' + nSel + '）' : '');
+        del.disabled = mapAdmin.busy || nSel === 0;
+      }
+      mapAdminKinds().forEach(function(kk) {
+        const b = document.getElementById('mapAdminKind-' + kk);
+        if (b) b.className = 'px-3 py-1 rounded-xl text-xs font-bold ' + (kk === k ? 'bg-white text-slate-800 shadow-xs' : 'text-slate-600');
+      });
+    }
+
+    function mapAdminRenderSummary() {
+      const el = document.getElementById('mapAdminSummary');
+      if (!el) return;
+      const k = mapAdmin.kind;
+      const st = mapAdmin.status && mapAdmin.status[k];
+      if (!mapAdmin.data[k]) { el.textContent = '載入中…'; return; }
+      const parts = ['共 ' + mapAdmin.data[k].rows.length + ' 筆'];
+      if (st) {
+        parts.push('尚未翻譯 ' + st.missingEn + ' 筆' + (k === 'text' ? '（其中有草稿 ' + st.withDraft + ' 筆）' : ''));
+        if (st.pendingNew > 0) parts.push('⚠️ 有 ' + st.pendingNew + ' 筆新文字尚未加入，請按「同步新文字」');
+        if (st.unused > 0) parts.push('目前沒有使用 ' + st.unused + ' 筆');
+      }
+      el.textContent = parts.join('　｜　');
+    }
+
+    function mapAdminRenderRows() {
+      const box = document.getElementById('mapAdminRows');
+      const empty = document.getElementById('mapAdminEmpty');
+      if (!box) return;
+      const rows = mapAdminFilteredRows();
+      const pages = Math.max(1, Math.ceil(rows.length / MAP_ADMIN_PER_PAGE));
+      if (mapAdmin.page >= pages) mapAdmin.page = pages - 1;
+      if (mapAdmin.page < 0) mapAdmin.page = 0;
+      const slice = rows.slice(mapAdmin.page * MAP_ADMIN_PER_PAGE, (mapAdmin.page + 1) * MAP_ADMIN_PER_PAGE);
+      box.textContent = '';
+      const unused = mapAdminUnusedLabel();
+      const isText = mapAdmin.kind === 'text';
+      slice.forEach(function(r) {
+        const row = document.createElement('div');
+        row.className = 'map-admin-row grid grid-cols-1 sm:grid-cols-12 gap-1.5 sm:gap-2 px-3 py-2 items-start' + (r.changed ? ' bg-amber-50/60' : '');
+        row.setAttribute('data-zh', r.zh);
+        const c1 = document.createElement('div'); c1.className = 'sm:col-span-4 min-w-0 flex items-start gap-1.5';
+        const isUnused = String(r.used_in || '').trim() === unused;
+        if (isUnused && !r.isNew) {
+          const cb = document.createElement('input'); cb.type = 'checkbox'; cb.className = 'mt-1 shrink-0'; cb.title = '選取以刪除（目前沒有使用）';
+          cb.checked = !!mapAdmin.sel[r.zh];
+          cb.addEventListener('change', function() { if (cb.checked) mapAdmin.sel[r.zh] = true; else delete mapAdmin.sel[r.zh]; mapAdminUpdateControls(); });
+          c1.appendChild(cb);
+        }
+        const zhBox = document.createElement('div'); zhBox.className = 'min-w-0';
+        const zh = document.createElement('div'); zh.className = 'text-xs font-bold text-slate-800 whitespace-pre-wrap break-words'; zh.textContent = r.zh;
+        const src = document.createElement('div'); src.className = 'text-[0.625rem] text-slate-400 break-words'; src.textContent = r.used_in || '';
+        zhBox.appendChild(zh); zhBox.appendChild(src); c1.appendChild(zhBox);
+        row.appendChild(c1);
+        const c2 = document.createElement('div'); c2.className = 'sm:col-span-3 min-w-0 flex items-start gap-1.5';
+        if (isText) {
+          const dr = document.createElement('div'); dr.className = 'text-xs text-slate-500 italic break-words flex-1 min-w-0'; dr.textContent = r.draft || '';
+          c2.appendChild(dr);
+          if (r.draft && !String(r.cur || '').trim()) {
+            const ad = document.createElement('button'); ad.type = 'button'; ad.textContent = '採用';
+            ad.className = 'shrink-0 px-2 py-0.5 rounded-lg bg-white border border-slate-300 text-[0.6875rem] font-bold text-slate-700 cursor-pointer';
+            ad.addEventListener('click', function() { mapAdminSetValue(r.zh, r.draft); mapAdminRenderRows(); });
+            c2.appendChild(ad);
+          }
+        }
+        row.appendChild(c2);
+        const c3 = document.createElement('div'); c3.className = isText ? 'sm:col-span-5' : 'sm:col-span-8';
+        const inp = document.createElement('input'); inp.type = 'text'; inp.value = r.cur || ''; inp.maxLength = isText ? 600 : 100;
+        inp.placeholder = '尚未翻譯（英文介面會顯示中文）';
+        inp.className = 'w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs';
+        inp.addEventListener('input', function() { mapAdminSetValue(r.zh, inp.value); row.classList.toggle('bg-amber-50/60', mapAdminIsChanged(r.zh)); });
+        c3.appendChild(inp); row.appendChild(c3);
+        box.appendChild(row);
+      });
+      if (empty) {
+        empty.classList.toggle('hidden', slice.length > 0);
+        empty.textContent = !mapAdmin.data[mapAdmin.kind] ? '載入中…' : (rows.length === 0 && !mapAdmin.query && mapAdmin.filter === 'all' ? '還沒有資料，請先按「同步新文字」' : '沒有符合條件的項目');
+      }
+      const pt = document.getElementById('mapAdminPageText'); if (pt) pt.textContent = '第 ' + (mapAdmin.page + 1) + ' / ' + pages + ' 頁（符合 ' + rows.length + ' 筆）';
+      const pv = document.getElementById('mapAdminPrev'); if (pv) pv.disabled = mapAdmin.page <= 0;
+      const nx = document.getElementById('mapAdminNext'); if (nx) nx.disabled = mapAdmin.page >= pages - 1;
+      mapAdminRenderSummary();
+      mapAdminUpdateControls();
+    }
+
+    function mapAdminIsChanged(zh) { return Object.prototype.hasOwnProperty.call(mapAdmin.dirty[mapAdmin.kind], zh); }
+
+    // 記錄一格修改：與伺服器上的值相同就不算修改
+    function mapAdminSetValue(zh, value) {
+      const k = mapAdmin.kind;
+      const base = ((mapAdmin.data[k] && mapAdmin.data[k].rows) || []).filter(function(r) { return r.zh === zh; })[0];
+      const orig = base ? String(base.en || '').trim() : '';
+      const v = String(value === undefined || value === null ? '' : value).replace(/[\r\n]+/g, ' ').trim();
+      if (base && v === orig) delete mapAdmin.dirty[k][zh]; else mapAdmin.dirty[k][zh] = v;
+      mapAdminUpdateControls();
+    }
+
+    function mapAdminOnQuery(v) { mapAdmin.query = v; mapAdmin.page = 0; mapAdminRenderRows(); }
+    function mapAdminOnFilter(v) { mapAdmin.filter = v; mapAdmin.page = 0; mapAdminRenderRows(); }
+    function mapAdminPage(d) { mapAdmin.page += d; mapAdminRenderRows(); }
+
+    function mapAdminLoad(kind, done) {
+      mapAdminSetBusy(true);
+      callBackend('mapList', { kind: kind, password: state.adminPassword }, function(res) {
+        mapAdminSetBusy(false);
+        if (res && res.success && Array.isArray(res.rows)) {
+          mapAdmin.data[kind] = { rows: res.rows, hasDraft: !!res.hasDraft, unusedLabel: res.unusedLabel };
+          mapAdmin.extra[kind] = mapAdmin.extra[kind].filter(function(x) { return !res.rows.some(function(r) { return r.zh === x.zh; }); });
+          if (kind === mapAdmin.kind) mapAdminRenderRows();
+          if (done) done();
+        } else if (!(res && res.authExpired)) {
+          showToast('載入失敗：' + ((res && res.error) || '未知錯誤'), '❌');
+        }
+      }, function(err) {
+        mapAdminSetBusy(false);
+        showToast('載入失敗：' + ((err && err.message) || '連線逾時'), '❌');
+      });
+    }
+
+    function mapAdminRefreshStatus(done) {
+      callBackend('mapStatus', { password: state.adminPassword }, function(res) {
+        if (res && res.success) { mapAdmin.status = res; mapAdminRenderSummary(); mapAdminUpdateBadge(); }
+        if (done) done();
+      }, function() { if (done) done(); });
+    }
+
+    function mapAdminUpdateBadge() {
+      const b = document.getElementById('mapAdminTabBadge');
+      if (!b) return;
+      const st = mapAdmin.status;
+      const n = st ? ((st.text && st.text.pendingNew) || 0) + ((st.name && st.name.pendingNew) || 0) : 0;
+      b.textContent = n > 99 ? '99+' : String(n);
+      b.classList.toggle('hidden', n <= 0);
+      b.title = n > 0 ? '有 ' + n + ' 筆新文字尚未加入對照表' : '';
+    }
+
+    // 登入後在背景取得統計，讓頁籤顯示「有新文字待處理」的紅點（失敗就不顯示，不打擾）
+    function mapAdminRefreshBadge() {
+      if (!state.adminPassword) return;
+      mapAdminRefreshStatus();
+    }
+
+    function mapAdminOpen() {
+      if (!mapAdminHasDirty()) { mapAdmin.data = { text: null, name: null }; }
+      mapAdminRenderRows();
+      if (!mapAdmin.data[mapAdmin.kind]) mapAdminLoad(mapAdmin.kind);
+      mapAdminRefreshStatus();
+    }
+
+    function mapAdminSetKind(kind) {
+      if (kind === mapAdmin.kind) return;
+      mapAdmin.kind = kind; mapAdmin.page = 0; mapAdmin.sel = {};
+      mapAdminRenderRows();
+      if (!mapAdmin.data[kind]) mapAdminLoad(kind);
+    }
+
+    function mapAdminSave() {
+      const k = mapAdmin.kind;
+      const keys = Object.keys(mapAdmin.dirty[k]);
+      if (keys.length === 0) return;
+      const changes = keys.map(function(zh) { return { zh: zh, en: mapAdmin.dirty[k][zh] }; });
+      mapAdminSetBusy(true);
+      let idx = 0, updated = 0, added = 0, errors = [];
+      const next = function() {
+        if (idx >= changes.length) {
+          mapAdminSetBusy(false);
+          showToast('已儲存：更新 ' + updated + ' 筆、新增 ' + added + ' 筆' + (errors.length ? '（' + errors.length + ' 筆有問題）' : ''), errors.length ? '⚠️' : '✅');
+          mapAdminLoad(k, function() { mapAdminRefreshStatus(); });
+          return;
+        }
+        const chunk = changes.slice(idx, idx + MAP_ADMIN_SAVE_CHUNK);
+        callBackend('mapSave', { kind: k, changes: chunk, password: state.adminPassword }, function(res) {
+          if (res && res.success) {
+            idx += chunk.length; updated += res.updated || 0; added += res.added || 0;
+            chunk.forEach(function(c) { delete mapAdmin.dirty[k][c.zh]; });
+            (res.errors || []).forEach(function(m) { errors.push(m); });
+            next();
+          } else {
+            mapAdminSetBusy(false);
+            if (!(res && res.authExpired)) showToast('儲存失敗：' + ((res && res.error) || '未知錯誤') + '（尚未儲存的修改仍保留在畫面上）', '❌');
+          }
+        }, function(err) {
+          mapAdminSetBusy(false);
+          showToast('儲存失敗：' + ((err && err.message) || '連線逾時') + '（尚未儲存的修改仍保留在畫面上）', '❌');
+        });
+      };
+      next();
+    }
+
+    function mapAdminSync() {
+      const k = mapAdmin.kind;
+      mapAdminSetBusy(true);
+      callBackend('mapSync', { kind: k, password: state.adminPassword }, function(res) {
+        mapAdminSetBusy(false);
+        if (res && res.success) {
+          const r = res.report || {};
+          showToast('同步完成：新增 ' + (r.added || 0) + ' 筆' + (r.capped ? '（已達列數上限）' : ''), '✅');
+          mapAdminLoad(k, function() { mapAdminRefreshStatus(); });
+        } else if (!(res && res.authExpired)) {
+          showToast('同步失敗：' + ((res && res.error) || '未知錯誤'), '❌');
+        }
+      }, function(err) {
+        mapAdminSetBusy(false);
+        showToast('同步失敗：' + ((err && err.message) || '連線逾時'), '❌');
+      });
+    }
+
+    function mapAdminCancelDraft() { mapAdmin.cancelDraft = true; }
+
+    function mapAdminProgress(text, pct) {
+      const box = document.getElementById('mapAdminProgress');
+      if (!box) return;
+      if (text === null) { box.classList.add('hidden'); return; }
+      box.classList.remove('hidden');
+      const t1 = document.getElementById('mapAdminProgressText'); if (t1) t1.textContent = text;
+      const bar = document.getElementById('mapAdminProgressBar'); if (bar) bar.style.width = Math.max(0, Math.min(100, pct || 0)) + '%';
+    }
+
+    // 連續產生機器草稿：每次 20 筆，直到完成、按停止、額度用盡或出錯；顯示進度
+    function mapAdminDraftRun() {
+      if (mapAdmin.drafting) return;
+      const st = mapAdmin.status && mapAdmin.status.text;
+      const total = st ? st.missingEn - st.withDraft : 0;
+      if (st && total <= 0) { showToast('沒有需要產生草稿的項目（請先按「同步新文字」）', 'ℹ️'); return; }
+      if (!confirm('要用機器翻譯為尚未翻譯的文字產生英文草稿嗎？\n草稿只會顯示在「機器草稿」欄，不會公開，需要您核對後才會上線。')) return;
+      mapAdmin.drafting = true; mapAdmin.cancelDraft = false;
+      mapAdminSetBusy(true);
+      let done = 0;
+      const finish = function(msg, icon) {
+        mapAdmin.drafting = false; mapAdminSetBusy(false); mapAdminProgress(null);
+        showToast(msg, icon || '✅');
+        mapAdminLoad('text', function() { mapAdminRefreshStatus(); });
+      };
+      const step = function() {
+        if (mapAdmin.cancelDraft) { finish('已停止，共產生 ' + done + ' 筆草稿', 'ℹ️'); return; }
+        callBackend('textDraft', { limit: 20, password: state.adminPassword }, function(res) {
+          if (!(res && res.success && res.result)) {
+            mapAdmin.drafting = false; mapAdminSetBusy(false); mapAdminProgress(null);
+            if (!(res && res.authExpired)) showToast('產生草稿失敗：' + ((res && res.error) || '未知錯誤'), '❌');
+            return;
+          }
+          const r = res.result;
+          done += r.drafted || 0;
+          const remaining = r.remaining || 0;
+          mapAdminProgress('已產生 ' + done + ' 筆草稿，還剩 ' + remaining + ' 筆…', (done + remaining) > 0 ? done * 100 / (done + remaining) : 100);
+          if (r.stoppedByQuota) { finish('已達 Google 翻譯的每日額度，共產生 ' + done + ' 筆；請明天再繼續', '⚠️'); return; }
+          if (remaining <= 0 || (r.drafted || 0) === 0) { finish('草稿完成：共產生 ' + done + ' 筆（請核對後再採用）', '✅'); return; }
+          step();
+        }, function(err) {
+          mapAdmin.drafting = false; mapAdminSetBusy(false); mapAdminProgress(null);
+          showToast('產生草稿中斷：' + ((err && err.message) || '連線逾時') + '（已產生 ' + done + ' 筆）', '❌');
+        });
+      };
+      mapAdminProgress('準備中…', 0);
+      step();
+    }
+
+    function mapAdminAdoptAll() {
+      const st = mapAdmin.status && mapAdmin.status.text;
+      if (st && st.withDraft <= 0) { showToast('目前沒有可採用的草稿', 'ℹ️'); return; }
+      if (!confirm('把所有「英文空白、有草稿」的項目一次採用為正式英文？\n採用後英文介面就會公開顯示，請確認您已核對過草稿。')) return;
+      mapAdminSetBusy(true);
+      callBackend('textAdopt', { zhList: null, password: state.adminPassword }, function(res) {
+        mapAdminSetBusy(false);
+        if (res && res.success) {
+          showToast('已採用 ' + (res.adopted || 0) + ' 筆草稿為正式英文', '✅');
+          mapAdminLoad('text', function() { mapAdminRefreshStatus(); });
+        } else if (!(res && res.authExpired)) {
+          showToast('採用失敗：' + ((res && res.error) || '未知錯誤'), '❌');
+        }
+      }, function(err) {
+        mapAdminSetBusy(false);
+        showToast('採用失敗：' + ((err && err.message) || '連線逾時'), '❌');
+      });
+    }
+
+    function mapAdminDeleteSelected() {
+      const k = mapAdmin.kind;
+      const list = Object.keys(mapAdmin.sel);
+      if (list.length === 0) return;
+      if (!confirm('確定刪除選取的 ' + list.length + ' 筆「目前沒有使用」的項目嗎？\n（網站上還在使用的項目不會被刪除）')) return;
+      mapAdminSetBusy(true);
+      let idx = 0, deleted = 0, skipped = 0;
+      const next = function() {
+        if (idx >= list.length) {
+          mapAdminSetBusy(false); mapAdmin.sel = {};
+          showToast('已刪除 ' + deleted + ' 筆' + (skipped ? '，略過 ' + skipped + ' 筆（仍在使用）' : ''), '🗑️');
+          mapAdminLoad(k, function() { mapAdminRefreshStatus(); });
+          return;
+        }
+        const chunk = list.slice(idx, idx + MAP_ADMIN_DELETE_CHUNK);
+        callBackend('mapDelete', { kind: k, zhList: chunk, password: state.adminPassword }, function(res) {
+          if (res && res.success) { idx += chunk.length; deleted += res.deleted || 0; skipped += res.skipped || 0; next(); }
+          else { mapAdminSetBusy(false); if (!(res && res.authExpired)) showToast('刪除失敗：' + ((res && res.error) || '未知錯誤'), '❌'); }
+        }, function(err) { mapAdminSetBusy(false); showToast('刪除失敗：' + ((err && err.message) || '連線逾時'), '❌'); });
+      };
+      next();
+    }
+
+    function mapAdminAddRow() {
+      const zhEl = document.getElementById('mapAdminAddZh'), enEl = document.getElementById('mapAdminAddEn');
+      const zh = String(zhEl.value || '').replace(/[\s　]+/g, ' ').trim();
+      const en = String(enEl.value || '').replace(/[\r\n]+/g, ' ').trim();
+      if (!zh || !en) { showToast('請輸入中文原文與英文', '⚠️'); return; }
+      const k = mapAdmin.kind;
+      const exists = ((mapAdmin.data[k] && mapAdmin.data[k].rows) || []).some(function(r) { return r.zh === zh; });
+      if (exists) { showToast('這個中文已經在表中，請直接修改該列的英文', 'ℹ️'); return; }
+      if (!mapAdmin.extra[k].some(function(r) { return r.zh === zh; })) mapAdmin.extra[k].push({ zh: zh });
+      mapAdmin.dirty[k][zh] = en;
+      zhEl.value = ''; enEl.value = '';
+      mapAdmin.filter = 'dirty'; const f = document.getElementById('mapAdminFilter'); if (f) f.value = 'dirty';
+      mapAdminRenderRows();
+      showToast('已加入，按「儲存變更」後生效', '✅');
     }
 
     // ---------- 以「加到主畫面」App 模式開啟時的支援 ----------
@@ -3963,6 +4433,7 @@
         toggleMobileSidebar();
       }
       if (window.innerWidth >= 768) closeSidebarTouch();
+      if (tabName === 'admin') { try { mapAdminRefreshBadge(); } catch (e) {} }
       state.currentTab = tabName;
       ['home', 'albums', 'songs', 'themes', 'docs', 'admin'].forEach(tab => {
         const contentEl = document.getElementById(`tabContent-${tab}`);
@@ -7403,6 +7874,7 @@
         else renderAdminAlbumsTable();
       }
       if (subtab === 'settings') loadSettingsToForm();
+      if (subtab === 'translations') mapAdminOpen();
       if (subtab === 'songs') {
         renderSongCategoriesUI();
         renderAdminSongsTable();

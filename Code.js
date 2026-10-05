@@ -580,6 +580,20 @@ function doPost(e) {
       result = checkPassword(postData.password)
         ? batchUpdateSongDurations(postData.durationsMap || postData.data || {})
         : authFail_();
+    } else if (action === 'mapList') {
+      result = adminMapList(postData.kind, postData.password);
+    } else if (action === 'mapSave') {
+      result = adminMapSave(postData.kind, postData.changes, postData.password);
+    } else if (action === 'mapDelete') {
+      result = adminMapDelete(postData.kind, postData.zhList, postData.password);
+    } else if (action === 'mapSync') {
+      result = adminMapSync(postData.kind, postData.password);
+    } else if (action === 'textDraft') {
+      result = adminTextDraft(postData.limit, postData.password);
+    } else if (action === 'textAdopt') {
+      result = adminTextAdopt(postData.zhList, postData.password);
+    } else if (action === 'mapStatus') {
+      result = adminMapStatus(postData.password);
     } else if (action === 'saveTheme') {
       result = saveTheme(postData.themeData || postData.data, postData.password);
     } else if (action === 'deleteTheme') {
@@ -1479,8 +1493,9 @@ function draftTextMap_(limit) {
   return res;
 }
 
-/** 把「en 空白、draft 有內容」的列，一次把 draft 複製成 en（老師核對草稿後使用）。回傳採用筆數。 */
-function adoptTextDrafts_() {
+/** 把「en 空白、draft 有內容」的列，把 draft 複製成 en（老師核對草稿後使用）。onlyList 有值時只處理這些中文原文。回傳採用筆數。 */
+function adoptTextDrafts_(onlyList) {
+  const only = Array.isArray(onlyList) ? onlyList.reduce(function(acc, z) { acc[normalizeText_(z)] = true; return acc; }, {}) : null;
   const ss = getSpreadsheet();
   const ens = ensureTextMapSheet_(ss);
   const sh = ens.sheet, cols = ens.cols;
@@ -1490,6 +1505,7 @@ function adoptTextDrafts_() {
   rows.forEach(function(row, i) {
     const draft = normalizeText_(row[cols.draft - 1]);
     if (!draft || normalizeText_(row[cols.en - 1])) return;
+    if (only && !Object.prototype.hasOwnProperty.call(only, normalizeText_(row[cols.zh - 1]))) return;
     sh.getRange(i + 2, cols.en).setNumberFormat('@').setValue(textCellSafe_(draft));
     n++;
   });
@@ -1638,6 +1654,228 @@ function menuAdoptTextDrafts() {
     ui.alert('✅ 已採用 ' + n + ' 筆草稿為正式英文。\n前台最多 10 分鐘內生效（或選「清除快取」立即生效）。');
   } finally {
     lock.releaseLock();
+  }
+}
+
+// -------------------------------------------------------------
+// 後台「英文對照」網頁編輯（需管理員 token）：同一組動作同時服務 NameMap（名稱）與 TextMap（自由文字）。
+// 資料仍存在試算表的 NameMap／TextMap 工作表，因此直接在試算表編輯與網頁編輯可以並存。
+// 這些是全域函式（google.script.run 與 doPost 都能呼叫），所以每一個都先驗證 token。
+// -------------------------------------------------------------
+const MAP_ADMIN_MAX_CHANGES = 500;   // 單次儲存最多幾筆變更
+const MAP_ADMIN_MAX_DELETE = 100;    // 單次刪除最多幾列（deleteRow 逐列執行，較慢）
+const MAP_ADMIN_DRAFT_BATCH = 20;    // 網頁單次要求最多產生幾筆草稿（POST 逾時 25 秒內可完成）
+const MAP_ADMIN_MANUAL = '（手動新增）';
+
+const MAP_KINDS_ = {
+  text: { sheet: TEXT_MAP_SHEET, headers: TEXT_MAP_HEADERS, norm: normalizeText_, maxRows: TEXT_MAP_MAX_ROWS, maxLen: TEXT_MAP_MAX_LEN, hasDraft: true,
+          ensure: ensureTextMapSheet_, clear: clearTextMapCache_, unused: TEXT_MAP_UNUSED },
+  name: { sheet: NAME_MAP_SHEET, headers: NAME_MAP_HEADERS, norm: normalizeName_, maxRows: 2000, maxLen: NAME_MAP_MAX_LEN, hasDraft: false,
+          ensure: ensureNameMapSheet_, clear: clearAppDataCache, unused: '（目前沒有使用）' }
+};
+
+function mapKind_(kind) {
+  return Object.prototype.hasOwnProperty.call(MAP_KINDS_, kind) ? MAP_KINDS_[kind] : null;
+}
+
+/** 管理員輸入的英文：轉字串、控制字元與換行換成空白、去頭尾、限制長度（以 = + - @ 開頭的在寫入儲存格時另外處理） */
+function mapSanitizeEn_(v, maxLen) {
+  return String(v === undefined || v === null ? '' : v).replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, maxLen);
+}
+
+function mapReadAll_(cfg) {
+  const ens = cfg.ensure(getSpreadsheet());
+  const sh = ens.sheet, cols = ens.cols;
+  const width = Math.max(sh.getLastColumn(), cfg.headers.length);
+  const n = sh.getLastRow() > 1 ? sh.getLastRow() - 1 : 0;
+  const values = n > 0 ? sh.getRange(2, 1, n, width).getValues() : [];
+  return { sh: sh, cols: cols, width: width, values: values };
+}
+
+/** 讀取整張對照表（每個中文只取第一列，與前台生效規則一致）。 */
+function adminMapList(kind, password) {
+  if (!checkPassword(password)) return authFail_();
+  try {
+    const cfg = mapKind_(kind);
+    if (!cfg) return { success: false, error: '未知的對照表' };
+    const all = mapReadAll_(cfg);
+    const seen = {};
+    const rows = [];
+    all.values.forEach(function(row) {
+      const zh = cfg.norm(row[all.cols.zh - 1]);
+      if (!zh || Object.prototype.hasOwnProperty.call(seen, zh)) return;
+      seen[zh] = true;
+      rows.push({
+        zh: zh,
+        en: String(row[all.cols.en - 1] === undefined || row[all.cols.en - 1] === null ? '' : row[all.cols.en - 1]),
+        draft: cfg.hasDraft ? String(row[all.cols.draft - 1] === undefined || row[all.cols.draft - 1] === null ? '' : row[all.cols.draft - 1]) : '',
+        used_in: String(row[all.cols.used_in - 1] === undefined || row[all.cols.used_in - 1] === null ? '' : row[all.cols.used_in - 1]),
+        note: String(row[all.cols.note - 1] === undefined || row[all.cols.note - 1] === null ? '' : row[all.cols.note - 1])
+      });
+    });
+    return { success: true, kind: kind, rows: rows, hasDraft: cfg.hasDraft, unusedLabel: cfg.unused };
+  } catch (err) {
+    return { success: false, error: String(err) };
+  }
+}
+
+/**
+ * 批次儲存英文：changes = [{ zh, en }]。已存在的中文只更新 en 欄（整欄一次寫回，不逐格寫入）；
+ * 不存在的中文且 en 有內容 → 新增一列（出處標示「手動新增」）。en 傳空字串＝清除英文。
+ */
+function adminMapSave(kind, changes, password) {
+  if (!checkPassword(password)) return authFail_();
+  try {
+    const cfg = mapKind_(kind);
+    if (!cfg) return { success: false, error: '未知的對照表' };
+    if (!Array.isArray(changes) || changes.length === 0) return { success: false, error: '沒有要儲存的變更' };
+    if (changes.length > MAP_ADMIN_MAX_CHANGES) return { success: false, error: '一次最多儲存 ' + MAP_ADMIN_MAX_CHANGES + ' 筆，請分次儲存' };
+    const all = mapReadAll_(cfg);
+    const sh = all.sh, cols = all.cols;
+    const rowOf = {};
+    all.values.forEach(function(row, i) {
+      const z = cfg.norm(row[cols.zh - 1]);
+      if (z && !Object.prototype.hasOwnProperty.call(rowOf, z)) rowOf[z] = i;
+    });
+    const enCol = all.values.map(function(row) { return [row[cols.en - 1] === undefined || row[cols.en - 1] === null ? '' : row[cols.en - 1]]; });
+    const result = { updated: 0, added: 0, unchanged: 0, errors: [] };
+    const appends = [];
+    const appended = {};
+    changes.forEach(function(c) {
+      const zh = cfg.norm(c && c.zh);
+      if (!zh || zh === '__proto__' || zh.length > 2000) { result.errors.push('無效的中文原文：' + String(c && c.zh).slice(0, 30)); return; }
+      const en = mapSanitizeEn_(c.en, cfg.maxLen);
+      if (Object.prototype.hasOwnProperty.call(rowOf, zh)) {
+        const i = rowOf[zh];
+        if (cfg.norm(enCol[i][0]) === en) { result.unchanged++; return; }
+        enCol[i][0] = textCellSafe_(en);
+        result.updated++;
+      } else {
+        if (!en || Object.prototype.hasOwnProperty.call(appended, zh)) { result.unchanged++; return; }
+        if (all.values.length + appends.length >= cfg.maxRows) { result.errors.push('已達列數上限 ' + cfg.maxRows); return; }
+        const row = new Array(all.width).fill('');
+        row[cols.zh - 1] = textCellSafe_(zh);
+        row[cols.en - 1] = textCellSafe_(en);
+        row[cols.used_in - 1] = MAP_ADMIN_MANUAL;
+        appended[zh] = true;
+        appends.push(row);
+        result.added++;
+      }
+    });
+    if (result.updated > 0 && all.values.length > 0) {
+      const range = sh.getRange(2, cols.en, all.values.length, 1);
+      range.setNumberFormat('@');
+      range.setValues(enCol);
+    }
+    if (appends.length > 0) {
+      const start = sh.getLastRow() + 1;
+      [cols.zh, cols.en].forEach(function(c) { sh.getRange(start, c, appends.length, 1).setNumberFormat('@'); });
+      sh.getRange(start, 1, appends.length, all.width).setValues(appends);
+    }
+    if (result.updated > 0 || result.added > 0) cfg.clear();
+    result.success = true;
+    return result;
+  } catch (err) {
+    return { success: false, error: String(err) };
+  }
+}
+
+/** 刪除「目前沒有使用」的列（使用中的不能刪，避免誤刪還在顯示的翻譯）。回傳 { deleted, skipped }。 */
+function adminMapDelete(kind, zhList, password) {
+  if (!checkPassword(password)) return authFail_();
+  try {
+    const cfg = mapKind_(kind);
+    if (!cfg) return { success: false, error: '未知的對照表' };
+    if (!Array.isArray(zhList) || zhList.length === 0) return { success: false, error: '沒有選取要刪除的列' };
+    if (zhList.length > MAP_ADMIN_MAX_DELETE) return { success: false, error: '一次最多刪除 ' + MAP_ADMIN_MAX_DELETE + ' 列，請分次刪除' };
+    const want = {};
+    zhList.forEach(function(z) { want[cfg.norm(z)] = true; });
+    const all = mapReadAll_(cfg);
+    const targets = [];
+    const deletable = {};   // 中文 → 第一列是否為「目前沒有使用」；重複的列沿用第一列的判斷
+    all.values.forEach(function(row, i) {
+      const z = cfg.norm(row[all.cols.zh - 1]);
+      if (!z || !Object.prototype.hasOwnProperty.call(want, z)) return;
+      if (!Object.prototype.hasOwnProperty.call(deletable, z)) deletable[z] = cfg.norm(row[all.cols.used_in - 1]) === cfg.norm(cfg.unused);
+      if (deletable[z]) targets.push(i + 2);
+    });
+    const skipped = Object.keys(deletable).filter(function(z) { return !deletable[z]; }).length;
+    for (let k = targets.length - 1; k >= 0; k--) all.sh.deleteRow(targets[k]);
+    if (targets.length > 0) cfg.clear();
+    return { success: true, deleted: targets.length, skipped: skipped };
+  } catch (err) {
+    return { success: false, error: String(err) };
+  }
+}
+
+/** 同步：掃描所有文字／名稱，新增尚未收錄的（不覆蓋任何英文）。 */
+function adminMapSync(kind, password) {
+  if (!checkPassword(password)) return authFail_();
+  try {
+    const cfg = mapKind_(kind);
+    if (!cfg) return { success: false, error: '未知的對照表' };
+    const report = kind === 'text' ? syncTextMap_() : syncNameMap_();
+    return { success: true, kind: kind, report: report };
+  } catch (err) {
+    return { success: false, error: String(err) };
+  }
+}
+
+/** 產生一小批機器翻譯草稿（網頁會連續呼叫直到完成並顯示進度）。 */
+function adminTextDraft(limit, password) {
+  if (!checkPassword(password)) return authFail_();
+  try {
+    const n = Math.min(Math.max(Math.floor(Number(limit) || MAP_ADMIN_DRAFT_BATCH), 1), MAP_ADMIN_DRAFT_BATCH);
+    return { success: true, result: draftTextMap_(n) };
+  } catch (err) {
+    return { success: false, error: String(err) };
+  }
+}
+
+/** 採用草稿：zhList 有值只採用這些，否則採用全部「en 空白、draft 有內容」的列。 */
+function adminTextAdopt(zhList, password) {
+  if (!checkPassword(password)) return authFail_();
+  try {
+    if (zhList !== undefined && zhList !== null && !Array.isArray(zhList)) return { success: false, error: '格式錯誤' };
+    if (Array.isArray(zhList) && zhList.length > MAP_ADMIN_MAX_CHANGES) return { success: false, error: '一次最多採用 ' + MAP_ADMIN_MAX_CHANGES + ' 筆' };
+    return { success: true, adopted: adoptTextDrafts_(Array.isArray(zhList) ? zhList : null) };
+  } catch (err) {
+    return { success: false, error: String(err) };
+  }
+}
+
+/** 後台頁籤用的統計與「有新文字待翻譯」提示：已收錄筆數、尚未填英文、有草稿待確認、尚未收錄的新文字。 */
+function adminMapStatus(password) {
+  if (!checkPassword(password)) return authFail_();
+  try {
+    const out = { success: true };
+    const ss = getSpreadsheet();
+    ['text', 'name'].forEach(function(kind) {
+      const cfg = MAP_KINDS_[kind];
+      const all = mapReadAll_(cfg);
+      const inSheet = {};
+      const st = { total: 0, missingEn: 0, withDraft: 0, unused: 0, pendingNew: 0 };
+      all.values.forEach(function(row) {
+        const z = cfg.norm(row[all.cols.zh - 1]);
+        if (!z || Object.prototype.hasOwnProperty.call(inSheet, z)) return;
+        inSheet[z] = true;
+        st.total++;
+        if (cfg.norm(row[all.cols.used_in - 1]) === cfg.norm(cfg.unused)) { st.unused++; return; }
+        if (!cfg.norm(row[all.cols.en - 1])) {
+          st.missingEn++;
+          if (cfg.hasDraft && cfg.norm(row[all.cols.draft - 1])) st.withDraft++;
+        }
+      });
+      let order = [];
+      try {
+        order = kind === 'text' ? collectTextSources_((getAppData() || {}).data).order : collectNameSources_(ss).order;
+      } catch (e) {}
+      order.forEach(function(z) { if (!Object.prototype.hasOwnProperty.call(inSheet, z)) st.pendingNew++; });
+      out[kind] = st;
+    });
+    return out;
+  } catch (err) {
+    return { success: false, error: String(err) };
   }
 }
 
