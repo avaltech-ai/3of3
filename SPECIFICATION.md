@@ -67,7 +67,7 @@
                                                   v
 +---------------------------------------------------------------------------------------------------+
 |                                 靜態前端託管 (Frontend Hosting)                                    |
-|                                     GitHub Pages / Netlify                                        |
+|                                     GitHub Pages                                                  |
 |                                                                                                   |
 |  - 原始碼核心: build_index.js  ---> 編譯輸出: index.html (單一獨立發布檔案，大小約 440KB)                 |
 |  - Tailwind CSS 3.4 CDN + Lucide Icons + 自訂向量 SVG 圖標集                                      |
@@ -114,7 +114,7 @@
 
 | 環節 / 元件 | 技術選型 | 職責與用途 | 備註與限制 |
 | :--- | :--- | :--- | :--- |
-| **前端建置核心** | Node.js (`build_index.js`) | 單一檔案原始碼架構維護，負責將邏輯、樣式、SVG、雙語字典打包產出為靜態 `index.html`。 | **禁止直接手工修改 `index.html`**，所有改動必須在 `build_index.js` 進行並執行 `node build_index.js`。 |
+| **前端建置核心** | Node.js (`build_index.js`) | 單一檔案原始碼架構維護，負責將邏輯、樣式、SVG、雙語字典打包產出為靜態 `index.html`。 | **禁止直接手工修改 `index.html`**，所有改動必須在 `build_index.js` 進行並執行 `node build_index.js`（建置只依賴 `logo_b64.txt`）。部署前須驗證內嵌 script 語法（`node --check`）。 |
 | **樣式與排版** | Tailwind CSS (CDN Play) | 現代化實用型 CSS 框架，負責全站 Flexbox / Grid 響應式佈局、色彩調色盤與動畫。 | 預設字型縮放使用 root `17.5px`，任意數值邊距需使用 rem 避免破碎。 |
 | **應用程式狀態** | Vanilla JS `state` 物件 | 單一真實來源 (Single Source of Truth)，儲存活動、菜單、文件、相簿、歌曲、管理員密碼與語系。 | 掛載於 `window.state` 方便偵錯，具備 `localStorage` 離線容錯機制。 |
 | **後端 API** | Google Apps Script (GAS) | 託管於 Google 雲端，負責 `doGet` (資料查詢) 與 `doPost` (新增、更新、刪除、鑑權驗證)。 | 使用 `@google/clasp` 進行本地與雲端雙向同步。 |

@@ -1,7 +1,7 @@
 # 3of3 Kindergarten Web App Progress & Lessons Learned
 
 ## Current Project Status
-- **Architecture**: A serverless frontend deployed on GitHub/Netlify (from `avaltech-ai/3of3.git`), connecting directly to a Google Apps Script (GAS) backend for all data needs.
+- **Architecture**: A serverless frontend deployed on GitHub Pages (from `avaltech-ai/3of3.git`; Netlify project removed 2026-10-05), connecting directly to a Google Apps Script (GAS) backend for all data needs.
 - **Frontend Framework**: Vanilla HTML/JS styled with TailwindCSS (via CDN). Single-page application logic defined in `build_index.js`, which generates `index.html`.
 - **Backend API**: Google Apps Script deployed as a Web App (access: "Anyone"). Handles GET and POST requests.
 - **Latest Features Implemented**:
@@ -177,3 +177,6 @@
   - 每週日 03:00 自動備份試算表到 Drive `桃子腳幼兒園 / Backup`，保留最近 8 份，備份資料夾強制私人（詳見 SPEC 5.5）。
   - 修正 `Code.js` 中 `ACTIVITY_FOLDER_ID` 常數的 `I`/`l` 誤植（線上以 Settings 值為準，原值僅為備用）。
 - **已知未處理**：`localStorage` 仍明文保存管理員密碼（建議改 session token＋`sessionStorage`）；前端 `innerHTML` 缺統一跳脫；逾時重送可能重複寫入（建議 requestId 去重）；Tailwind CDN Play 版無 SRI。
+- **部署與 repo 清理（2026-10-05）**：
+  - GAS 專案原有 19 個部署（每次「新增部署」都會留下一個永久有效、停在舊程式碼的 /exec 網址，其中 9 個仍洩漏工作表清單且帶舊漏洞）。已用 `clasp undeploy` 移除 17 個舊部署，僅保留現行 @113 與 @HEAD。**日後發布一律「管理部署作業 → 編輯 → 新版本」，不要選「新增部署」**，發布後以 `clasp deployments` 確認數量。
+  - Netlify 專案已移除；刪除 `netlify/`、`netlify.toml`、`fix_regex.js`、`patch*.js`、`temp_*.js`（一次性腳本，已在 git 歷史可還原）。刪除後重建的 `index.html` 與刪除前雜湊值一致，確認建置只依賴 `logo_b64.txt`。
