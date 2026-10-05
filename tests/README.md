@@ -112,4 +112,8 @@ console.log(await window.__nameMapFrontendTest());   // allPass 應為 true
 - GitHub Actions（`.github/workflows/ci.yml`）在每次推送到 `main` 與每個 PR 自動執行同一支腳本；結果看 GitHub 倉庫的 Actions 分頁，或 `gh run list`。
 - 不含瀏覽器端測試（`tests/*.js` 需貼到 Console 執行），這些仍需手動跑。
 - 本機改動後、推送前先跑一次 `bash tests/ci.sh`，可避免推上去才發現失敗。
+- `node tests/pwa.test.js`：加到主畫面設定（manifest 欄位、圖示存在且尺寸正確且不透明、`index.html` 的 link／meta，30 項；已納入 `tests/ci.sh`）。
+- `tests/standalone.js`（瀏覽器）：App 模式的重新整理鈕與回到前景自動同步（13 項）。
+- **提醒**：瀏覽器可能快取 `tests/*.js`；改了測試檔後，載入時請用 `fetch('/tests/xxx.js?v='+Date.now(), {cache:'no-store'})`。XSS 偵測器會執行每個 `on*` 處理器，新增會導向或重新載入頁面的按鈕時，要在 `xss_harness.js` 的「安全閥」區塊把對應函式換成假函式。
+- **更換 logo 時**：把新的透明背景 PNG 放成 `logo-hires.png`，執行 `python3 tools/make_icons.py` 重新產生 `icons/`，再跑 `node tests/pwa.test.js`。
 

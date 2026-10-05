@@ -50,6 +50,7 @@
    - 5.4 故障排除與健康檢查清單 (Troubleshooting Checklist)
    - 5.5～5.8 備份與還原、管理員認證、前端輸出跳脫（XSS）、冪等性
    - 5.9 後端快取、預熱與讀取重試／等待提示
+   - 5.10 加到手機主畫面（PWA）與 App 模式
 
 ---
 
@@ -717,6 +718,13 @@ git push origin main
 - **同步失敗提示**帶錯誤原因（`notifySyncFailed(err)`，例如 `[TypeError: Load failed]`），方便在手機上直接回報。
 - **診斷頁**：`diag.html`（`…/3of3/diag.html`）在手機上逐一呼叫 `getAlbums`、`getAppData` 兩次並顯示狀態碼、耗時、錯誤名稱；請只按一次按鈕（多按會讓輸出交錯）。
 - **測試**：`node tests/warmcache.test.js`（10 項）、`node tests/albumphotos.test.js`（21 項）；瀏覽器：`tests/retry_frontend.js`、`tests/albumphotos_frontend.js`、`tests/wait_hint.js`（15 項）、`tests/songs_player.js`（16 項）。
+
+### 5.10 加到手機主畫面（PWA）與 App 模式
+
+- **設定**：`manifest.webmanifest`（`short_name`「諾貝爾A」、`display: standalone`、相對路徑 `./`，GitHub Pages 子路徑 `/3of3/` 下才正確）；圖示在 `icons/`（`apple-touch-icon.png` 180、`icon-192.png`、`icon-512.png`、`icon-maskable-512.png`），**白底、不透明**（iPhone 會把透明區域顯示成黑色）；`index.html` 的 `<link rel="manifest">`、`apple-touch-icon`、`theme-color` 與 iOS／Android App 模式 `<meta>`。**不做 service worker／離線快取**（容易讓使用者卡在舊版）。
+- **圖示來源**：`logo-hires.png`（900×900 透明 PNG）→ `python3 tools/make_icons.py`（純標準函式庫）。換 logo 時重跑並執行 `node tests/pwa.test.js`。
+- **App 模式的差異**：沒有網址列與重新整理鈕（iPhone 也不能下拉更新）。因此：標頭有「↻」重新整理鈕（只在 App 模式顯示，`location.reload()`；手機絕對定位貼在標頭右上角不佔版面，md 以上排進版面）；回到前景且離開超過 5 分鐘（`FOREGROUND_SYNC_MS`）自動靜默同步資料，但管理員已登入或有彈窗開著時不同步；同步失敗提示改為「請點右上角 ↻」。判斷 App 模式：`navigator.standalone` 或 `matchMedia('(display-mode: standalone)')`。
+- **測試**：`node tests/pwa.test.js`（30 項，已納入 CI）、瀏覽器 `tests/standalone.js`（13 項）。實機的「加入主畫面」流程需手動驗證（iPhone：Safari 分享 → 加入主畫面）。
 
 ---
 
