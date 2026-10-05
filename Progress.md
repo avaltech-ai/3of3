@@ -5,7 +5,7 @@
 > **新對話接手時請先讀本節**，再視需要讀 `SPECIFICATION.md`（規格正本）與 `tests/README.md`（測試說明）。下方「Critical Technical Lessons Learned」第 1～21 條是歷史紀錄，**其中第 1、2、19 條已過時**（見各條註記）；第 21 條之後的條列為 2026-10-05 起的新增項目。
 
 ### 一、目前狀態（一句話）
-**線上穩定，沒有待部署項目。** 後端 GAS 現行部署 **@122「限制資料夾 ID」**（另有不可刪的 `@HEAD`，共 2 個部署）；前端 GitHub Pages 為最新 commit。`NameMap` 的 13 個英文名稱已由使用者填寫完成（2026-10-05）；暫緩項目見 `TODO.md`，Safari 實機驗收見 `tests/safari-checklist.md`。**使用者需在試算表選單按一次「⚡ 啟用網頁快取預熱」**（已按過）。
+**線上穩定，沒有待部署項目。** 後端 GAS 現行部署 **@123「行事曆訂閱」**（另有不可刪的 `@HEAD`，共 2 個部署）；前端 GitHub Pages 為最新 commit。`NameMap` 的 13 個英文名稱已由使用者填寫完成（2026-10-05）；暫緩項目見 `TODO.md`，Safari 實機驗收見 `tests/safari-checklist.md`。**使用者需在試算表選單按一次「⚡ 啟用網頁快取預熱」**（已按過）。
 
 ### 二、系統概覽
 - **架構**：靜態前端（GitHub Pages，`https://avaltech-ai.github.io/3of3/`）＋ Google Apps Script Web App（唯一 `/exec` 端點）＋ Google Sheets（資料庫）＋ Google Drive（相片、文件、音訊）。**已無 Netlify**。
@@ -282,4 +282,4 @@
   - **測試**：`tests/ics.test.js`（Node，36 項，7 種破壞皆被抓到，已納入 CI）、`tests/subscribe.js`（瀏覽器，15 項，3 種破壞皆被抓到）。
   - **部署**：後端先（`clasp push`→管理部署作業→新版本），確認 `?action=getCalendarIcs` 回 `text/calendar` 後才推前端（否則按鈕指向的網址在後端尚未發布時會回 JSON「未知動作」）。
   - **未驗證**：Apple 行事曆（`webcal://` 經 GAS 302 轉址）與 Google 行事曆（「透過網址」）實際能否訂閱、Content-Type 是否被接受、更新延遲；需使用者在實體手機／電腦實測。
-
+- **行事曆訂閱 後端部署驗證（2026-10-06，@123）**：`?action=getCalendarIcs` 回 `text/calendar; charset=utf-8`（先 302 轉址再 200，約 1.6～4 秒）、23 筆活動（與預期的諾貝爾 A／全園／親職一致，不含別班專屬）、最長行 75 位元組、無單獨 LF、UID 不重複、DTEND 皆晚於 DTSTART、備註無 `1899`；`listSheetNames` 仍回「未知動作」；部署數量仍為 2。
