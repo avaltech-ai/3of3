@@ -101,3 +101,7 @@ console.log(await window.__nameMapFrontendTest());   // allPass 應為 true
 - `tests/songs_player.js`：連續播放用同一個播放器 `loadVideoById` 換歌（不銷毀重建）。
 - 另有 Node：`node tests/warmcache.test.js`（快取預熱，10 項）、`node tests/albumphotos.test.js`（相簿照片快取，12 項）。
 - `tests/wait_hint.js`：載入等待提示與縮圖進度（約 20 秒，15 項）。
+
+## 實機驗收與診斷
+- `tests/safari-checklist.md`：iPad／iPhone Safari 實機驗收清單（18 項）。
+- `diag.html`（網站根目錄，`…/3of3/diag.html`）：手機連線診斷頁，逐一呼叫 `getAlbums`／`getAppData` 並顯示狀態碼、耗時、錯誤名稱；**只按一次按鈕**。
