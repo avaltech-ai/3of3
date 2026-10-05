@@ -5671,6 +5671,7 @@ const htmlContent = `<!DOCTYPE html>
     var songPlayerToken = 0;
     var songPlayerCurrent = null;
     var songPlayerUsingFallback = false;
+    var songPlayerReady = false; // YT.Player 已就緒（onReady 之後才能用 loadVideoById 直接換歌）
     var ytApiPromise = null;
     var songRepeat = false;
     try { songRepeat = localStorage.getItem('nobel_a_song_repeat') === '1'; } catch (e) {}
@@ -6298,6 +6299,7 @@ const htmlContent = `<!DOCTYPE html>
         try { songPlayer.destroy(); } catch (e) {}
       }
       songPlayer = null;
+      songPlayerReady = false;
       const holder = document.getElementById('songPlayerHolder');
       if (holder) holder.innerHTML = '';
     }
@@ -6320,7 +6322,40 @@ const htmlContent = `<!DOCTYPE html>
       holder.appendChild(f);
     }
 
+    // 若當前歌曲沒有時長，從播放器讀取並更新畫面
+    function fillSongDurationFromPlayer(p) {
+      try {
+        if (songPlayerCurrent && !songPlayerCurrent.duration) {
+          const d = p.getDuration();
+          if (d && !isNaN(d) && d > 0) {
+            const sec = Math.round(d);
+            const m = Math.floor(sec / 60);
+            const s = sec % 60;
+            const formatted = (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+            songPlayerCurrent.duration = formatted;
+            const durEl = document.getElementById('songPlayerDuration');
+            if (durEl) {
+              durEl.textContent = '⏱️ ' + formatted;
+              durEl.classList.remove('hidden');
+            }
+          }
+        }
+      } catch (err) {}
+    }
+
     function mountSongPlayer(vid) {
+      // 連續播放：已有就緒的播放器時，直接用同一個播放器載入下一首。
+      // iPhone Safari 只允許「使用者點擊過的播放器」自動開始播放；銷毀重建會失去這個許可，
+      // 結果換歌後停在第一格、要再手動按播放。
+      if (vid && songPlayer && songPlayerReady && !songPlayerUsingFallback && typeof songPlayer.loadVideoById === 'function') {
+        showSongPlayerError(false);
+        try {
+          songPlayer.loadVideoById(vid);
+          return;
+        } catch (err) {
+          // 換歌失敗就退回銷毀重建
+        }
+      }
       destroySongPlayer();
       songPlayerUsingFallback = false;
       showSongPlayerError(false);
@@ -6340,27 +6375,12 @@ const htmlContent = `<!DOCTYPE html>
           playerVars: { autoplay: 1, rel: 0, playsinline: 1, modestbranding: 1 },
           events: {
             onReady: function(e) {
-              try {
-                e.target.playVideo();
-                // 若當前歌曲無時長，自動偵測並更新
-                if (songPlayerCurrent && !songPlayerCurrent.duration) {
-                  const d = e.target.getDuration();
-                  if (d && !isNaN(d) && d > 0) {
-                    const sec = Math.round(d);
-                    const m = Math.floor(sec / 60);
-                    const s = sec % 60;
-                    const formatted = (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
-                    songPlayerCurrent.duration = formatted;
-                    const durEl = document.getElementById('songPlayerDuration');
-                    if (durEl) {
-                      durEl.textContent = '⏱️ ' + formatted;
-                      durEl.classList.remove('hidden');
-                    }
-                  }
-                }
-              } catch (err) {}
+              songPlayerReady = true;
+              try { e.target.playVideo(); } catch (err) {}
+              fillSongDurationFromPlayer(e.target);
             },
             onStateChange: function(e) {
+              if (e.data === YT.PlayerState.PLAYING) fillSongDurationFromPlayer(e.target);
               if (e.data === YT.PlayerState.ENDED) {
                 if (songPlayerQueue.length <= 1) {
                   if (songRepeatList) {

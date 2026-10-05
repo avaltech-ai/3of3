@@ -94,3 +94,9 @@ console.log(await window.__nameMapFrontendTest());   // allPass 應為 true
 - 放進 `onclick="fn('…')"` 的 JS 字串：`jsq(值)`
 - 放進 `href`／`src`：`escUrl(值)`（只允許 http(s)、相對路徑、blob:、data:image/）
 - 用 `textContent`／`.value` 賦值是安全的，不需跳脫
+
+## 瀏覽器測試補充（2026-10-05，貼到載入 index.html 的頁面 Console 執行）
+- `tests/retry_frontend.js`：讀取失敗自動重試（3 種情境，約 30 秒）。
+- `tests/albumphotos_frontend.js`：相簿照片瘦身回應（由 id 組網址、不合法 id 被略過）。
+- `tests/songs_player.js`：連續播放用同一個播放器 `loadVideoById` 換歌（不銷毀重建）。
+- 另有 Node：`node tests/warmcache.test.js`（快取預熱，10 項）、`node tests/albumphotos.test.js`（相簿照片快取，12 項）。
