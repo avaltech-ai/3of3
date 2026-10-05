@@ -112,6 +112,7 @@ function onOpen() {
       .addItem('🔄 清除快取並強制重新整理', 'menuClearCache')
       .addItem('🔤 同步名稱對照表（中英文名稱）', 'menuSyncNameMap')
       .addItem('🖼️ 重建相簿封面候選（每天輪替封面用）', 'menuRebuildCoverCandidates')
+      .addItem('⚡ 啟用網頁快取預熱（每 5 分鐘，載入更快）', 'menuSetupWarmCache')
       .addItem('💾 立即備份試算表', 'menuBackupNow')
       .addItem('🔓 解除後台登入鎖定', 'menuResetLoginLock')
       .addItem('🚀 一鍵初始化／重設資料庫 (5大工作表與示範資料)', 'menuResetDatabase')
@@ -216,6 +217,41 @@ function setupWeeklyBackupTrigger() {
   });
   ScriptApp.newTrigger('weeklyBackup').timeBased().onWeekDay(ScriptApp.WeekDay.SUNDAY).atHour(3).create();
   console.log('首次備份成功：' + res.name + '；已建立每週日 03:00 自動備份觸發器。');
+}
+
+/**
+ * 快取預熱：由時間觸發器每 5 分鐘呼叫，在背景重建 getAppData 快取，
+ * 讓使用者開網頁時幾乎都直接命中快取（快取未命中時要讀整份試算表，約 7～12 秒，手機偶爾更久）。
+ * 失敗不影響網站：下一位使用者照舊現場讀取。
+ */
+function warmAppDataCache() {
+  APP_DATA_FORCE_REFRESH_ = true;
+  try {
+    getAppData();
+  } catch (e) {
+    console.warn('warmAppDataCache failed: ' + e);
+  } finally {
+    APP_DATA_FORCE_REFRESH_ = false;
+  }
+}
+
+/**
+ * 建立「每 5 分鐘預熱快取」觸發器（試算表選單可按；重複執行安全：已存在就不再建立）。
+ */
+function setupWarmCacheTrigger() {
+  const exists = ScriptApp.getProjectTriggers().some(function(t) {
+    return t.getHandlerFunction() === 'warmAppDataCache';
+  });
+  if (!exists) ScriptApp.newTrigger('warmAppDataCache').timeBased().everyMinutes(5).create();
+  warmAppDataCache();
+  return { success: true, created: !exists };
+}
+
+function menuSetupWarmCache() {
+  const res = setupWarmCacheTrigger();
+  SpreadsheetApp.getUi().alert(res.created
+    ? '✅ 已啟用：每 5 分鐘自動預熱網頁資料快取，並已立即預熱一次。'
+    : '✅ 預熱觸發器已存在，已立即預熱一次。');
 }
 
 function openWebApp() {
@@ -460,14 +496,19 @@ function clearAppDataCache() {
 /**
  * 取得前台初始化所需的全部資料（一次取得，加速前端渲染）
  */
+let APP_DATA_FORCE_REFRESH_ = false; // 僅預熱觸發器在自己的執行內設為 true（每次執行各有獨立的全域變數，不影響網頁請求）
+const APP_DATA_CACHE_TTL_SEC = 600;     // 快取 10 分鐘；預熱觸發器每 5 分鐘重建一次，所以使用者幾乎都命中快取
+
 function getAppData() {
   try {
     // 1. 優先嘗試讀取快取（大幅降低延遲至 0.2s，避免前端久候）
     try {
-      const cache = CacheService.getScriptCache();
-      const cached = cache.get('app_data_v4');
-      if (cached) {
-        return JSON.parse(cached);
+      if (!APP_DATA_FORCE_REFRESH_) {
+        const cache = CacheService.getScriptCache();
+        const cached = cache.get('app_data_v4');
+        if (cached) {
+          return JSON.parse(cached);
+        }
       }
     } catch (e) {}
 
@@ -798,7 +839,7 @@ function getAppData() {
     };
     try {
       const cache = CacheService.getScriptCache();
-      cache.put('app_data_v4', JSON.stringify(result), 300); // 快取 5 分鐘
+      cache.put('app_data_v4', JSON.stringify(result), APP_DATA_CACHE_TTL_SEC);
     } catch (e) {}
     return result;
   } catch (err) {

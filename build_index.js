@@ -2731,33 +2731,43 @@ const htmlContent = `<!DOCTYPE html>
           let url = GAS_API_URL + '?action=' + encodeURIComponent(action);
           if (payload && payload.albumId) url += '&albumId=' + encodeURIComponent(payload.albumId);
           
-          let isDone = false;
-          const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-          const timeoutTimer = setTimeout(() => {
-            if (!isDone) {
-              isDone = true;
-              if (controller) controller.abort();
-              if (errorCb) errorCb(new Error('伺服器連線逾時'));
-            }
-          }, 30000); // 後端快取未命中時讀整份試算表約 7～12 秒，手機網路更慢；10 秒太短會誤判為同步失敗
-
-          fetch(url, { redirect: 'follow', signal: controller ? controller.signal : undefined })
-            .then(r => {
+          // 失敗（逾時、HTTP 錯誤、回傳不是 JSON）自動重試：後端即使這次來不及回應，仍會把結果存進快取，
+          // 重試通常就命中快取。getAppData 最多 3 次、其他讀取 2 次，全部失敗才通知呼叫端。
+          const maxAttempts = (action === 'getAppData') ? 3 : 2;
+          const attemptOnce = (n) => {
+            let isDone = false;
+            const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+            let timeoutTimer = null;
+            const fail = (err) => {
               if (isDone) return;
               isDone = true;
               clearTimeout(timeoutTimer);
-              return r.json();
-            })
-            .then(res => {
-              if (res && successCb) successCb(res);
-            })
-            .catch(err => {
-              if (!isDone) {
+              if (n < maxAttempts) {
+                console.warn('GAS 讀取失敗，重試 ' + n + '/' + (maxAttempts - 1) + '：', err);
+                setTimeout(() => attemptOnce(n + 1), 1500);
+              } else if (errorCb) {
+                errorCb(err);
+              }
+            };
+            timeoutTimer = setTimeout(() => {
+              if (controller) controller.abort();
+              fail(new Error('伺服器連線逾時'));
+            }, 30000); // 後端快取未命中時讀整份試算表約 7～12 秒，手機網路更慢；10 秒太短會誤判為同步失敗
+
+            fetch(url, { redirect: 'follow', signal: controller ? controller.signal : undefined })
+              .then(r => {
+                if (!r.ok) throw new Error('HTTP ' + r.status);
+                return r.json();
+              })
+              .then(res => {
+                if (isDone) return;
                 isDone = true;
                 clearTimeout(timeoutTimer);
-                if (errorCb) errorCb(err);
-              }
-            });
+                if (res && successCb) successCb(res);
+              })
+              .catch(fail);
+          };
+          attemptOnce(1);
         } else {
           // 寫入類動作附上冪等編號；之後 gasPostViaFetch 失敗降級為 iframe 重送時沿用同一個 payload（同一個編號）
           if (payload && !payload.idempotencyKey && action !== 'verifyPassword' && action !== 'logout' && action !== 'checkSession') {
