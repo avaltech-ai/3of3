@@ -2314,6 +2314,17 @@
     };
     window.state = state;
 
+    function getAdminPassword() {
+      let pwd = state.adminPassword;
+      if (!pwd) {
+        try {
+          pwd = sessionStorage.getItem('nobel_a_admin_pwd') || localStorage.getItem('nobel_a_admin_pwd') || '';
+          if (pwd) state.adminPassword = pwd;
+        } catch (e) {}
+      }
+      return pwd;
+    }
+
     // 初始化程式
     function initApp() {
       try {
@@ -2447,10 +2458,53 @@
               }
             });
         } else {
-          // 外部環境備援方案：隱藏 iframe form POST (完全繞過跨域)
-          gasPostViaIframe(action, payload, successCb, errorCb);
+          // 外部環境 POST 呼叫：優先使用標準 fetch POST (CORS 相容且無跨網域 iframe 阻擋問題)，失敗時自動降級至 iframe form POST
+          gasPostViaFetch(action, payload, successCb, errorCb);
         }
       }
+    }
+
+    // ==================== 標準 fetch POST（跨域 GAS API 優先通訊機制）====================
+    function gasPostViaFetch(action, payload, successCb, errorCb) {
+      let isDone = false;
+      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const timeoutTimer = setTimeout(() => {
+        if (!isDone) {
+          isDone = true;
+          if (controller) controller.abort();
+          console.warn('gasPostViaFetch timed out, falling back to gasPostViaIframe');
+          gasPostViaIframe(action, payload, successCb, errorCb);
+        }
+      }, 25000);
+
+      const bodyStr = JSON.stringify(Object.assign({ action: action }, payload || {}));
+
+      fetch(GAS_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/plain;charset=utf-8'
+        },
+        body: bodyStr,
+        redirect: 'follow',
+        signal: controller ? controller.signal : undefined
+      })
+      .then(r => {
+        if (isDone) return;
+        return r.json();
+      })
+      .then(res => {
+        if (isDone) return;
+        isDone = true;
+        clearTimeout(timeoutTimer);
+        if (successCb) successCb(res);
+      })
+      .catch(err => {
+        if (isDone) return;
+        isDone = true;
+        clearTimeout(timeoutTimer);
+        console.warn('gasPostViaFetch network error, falling back to gasPostViaIframe:', err);
+        gasPostViaIframe(action, payload, successCb, errorCb);
+      });
     }
 
     // ==================== 隱藏 iframe + form POST（跨域 GAS 通訊核心機制）====================
@@ -5193,7 +5247,7 @@
           callBackend('uploadDocument', {
             meta: docMeta,
             file: fileObj,
-            password: state.adminPassword
+            password: getAdminPassword()
           }, res => {
             if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = '<span>💾</span> 儲存修改'; }
             if (res && res.success) {
@@ -5249,18 +5303,19 @@
       closeDocEditModal();
       showToast('文件資訊已成功儲存！', '✅');
 
+      const pwd = getAdminPassword();
       if (saveBtn) { saveBtn.disabled = true; saveBtn.innerHTML = '<span>⏳</span> 同步中...'; }
-      callBackend('saveDoc', { docData: docData, password: state.adminPassword }, res => {
+      callBackend('saveDoc', { docData: docData, password: pwd }, res => {
         if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = '<span>💾</span> 儲存修改'; }
         if (res && res.success) {
           showToast(res.message || '文件已同步至雲端！', '✅');
           loadAppData();
         } else {
-          showToast('文件已套用於前台！', '✅');
+          showToast((res && res.error) ? ('同步失敗: ' + res.error) : '文件已套用於前台！', (res && res.error) ? '❌' : '✅');
         }
       }, err => {
         if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = '<span>💾</span> 儲存修改'; }
-        showToast('文件已套用於前台！', '✅');
+        showToast('網路連線逾時，文件已套用於前台', '⚠️');
       });
     }
 
@@ -5278,23 +5333,37 @@
     }
 
     function handleDeleteDocDirect(id, name) {
-      if (!confirm('確定要自常用清單中刪除「' + name + '」嗎？')) return;
-      showToast('刪除文件中...', '⏳');
-      state.docs = state.docs.filter(d => String(d.id) !== String(id));
-      try {
-        localStorage.setItem('nobel_a_docs_custom', JSON.stringify(state.docs));
-      } catch (e) {}
-      renderDocsList();
+      const pwd = getAdminPassword();
+      if (!pwd) {
+        showToast(state.lang === 'en' ? 'Please log in as admin before deleting!' : '請先以管理員身分登入後再進行刪除！', '⚠️');
+        return;
+      }
 
-      callBackend('deleteDoc', { docId: id, id: id, password: state.adminPassword }, res => {
+      if (!confirm((state.lang === 'en' ? 'Are you sure you want to delete "' : '確定要自常用清單中刪除「') + name + (state.lang === 'en' ? '"?
+(This will remove the record from the database)' : '」嗎？
+（資料庫中的記錄將會被移除）'))) return;
+
+      showToast(state.lang === 'en' ? 'Deleting document from database...' : '正在同步自資料庫刪除文件...', '⏳');
+      const prevDocs = state.docs ? [...state.docs] : [];
+
+      callBackend('deleteDoc', { docId: id, id: id, password: pwd }, res => {
         if (res && res.success) {
-          showToast(res.message || '文件已刪除！', '🗑️');
-          loadAppData();
+          state.docs = (state.docs || []).filter(d => String(d.id) !== String(id));
+          try {
+            localStorage.setItem('nobel_a_docs_custom', JSON.stringify(state.docs));
+          } catch (e) {}
+          renderDocsList();
+          showToast(res.message || (state.lang === 'en' ? 'Document deleted from database!' : '文件已成功自資料庫刪除！'), '🗑️');
+          loadAppData(true);
         } else {
-          showToast('已自前台清單中移除', '🗑️');
+          state.docs = prevDocs;
+          renderDocsList();
+          showToast((state.lang === 'en' ? 'Delete failed: ' : '刪除失敗：') + ((res && res.error) || '未知錯誤'), '❌');
         }
       }, err => {
-        showToast('已自前台清單中移除', '🗑️');
+        state.docs = prevDocs;
+        renderDocsList();
+        showToast((state.lang === 'en' ? 'Delete failed: ' : '刪除失敗：') + (err && err.message ? err.message : '連線逾時'), '❌');
       });
     }
 
@@ -6396,7 +6465,7 @@
           showAdminDashboard();
           renderDocsList();
           showToast('歡迎登入管理後台！', '🎉');
-        } else if (pwd === 'nobel-a-2026' || pwd.length > 0) {
+        } else if (pwd === 'nobel-a-2026') {
           state.adminPassword = pwd;
           try { sessionStorage.setItem('nobel_a_admin_pwd', pwd); localStorage.setItem('nobel_a_admin_pwd', pwd); } catch (e) {}
           showAdminDashboard();
@@ -6406,7 +6475,7 @@
           showToast('密碼不正確，請重新輸入！', '❌');
         }
       }, err => {
-        if (pwd === 'nobel-a-2026' || pwd.length > 0) {
+        if (pwd === 'nobel-a-2026') {
           state.adminPassword = pwd;
           try { sessionStorage.setItem('nobel_a_admin_pwd', pwd); localStorage.setItem('nobel_a_admin_pwd', pwd); } catch (e) {}
           showAdminDashboard();
@@ -7402,7 +7471,7 @@
         callBackend('uploadDocument', {
           meta: docMeta,
           file: fileObj,
-          password: state.adminPassword
+          password: getAdminPassword()
         }, res => {
           btn.disabled = false;
           if (res && res.success) {

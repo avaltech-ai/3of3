@@ -1992,17 +1992,32 @@ function deleteDoc(docId, password) {
   try {
     const ss = getSpreadsheet();
     const sheet = ss.getSheetByName('Docs');
+    if (!sheet) return { success: false, error: '找不到 Docs 工作表' };
     const data = sheet.getDataRange().getValues();
-    const idIndex = data[0].indexOf('id');
+    if (!data || data.length <= 1) return { success: false, error: 'Docs 工作表無資料' };
 
+    const headers = data[0].map(function(h) { return String(h || '').trim(); });
+    const idIndex = headers.indexOf('id');
+    const nameIndex = headers.indexOf('fileName');
+    const driveIdIndex = headers.indexOf('driveFileId');
+
+    const target = String(docId || '').trim();
     for (let i = 1; i < data.length; i++) {
-      if (String(data[i][idIndex]) === String(docId)) {
+      const rowId = idIndex !== -1 ? String(data[i][idIndex] || '').trim() : '';
+      const rowDriveId = driveIdIndex !== -1 ? String(data[i][driveIdIndex] || '').trim() : '';
+      const rowName = nameIndex !== -1 ? String(data[i][nameIndex] || '').trim() : '';
+
+      if (
+        (rowId && rowId === target) ||
+        (rowDriveId && rowDriveId === target) ||
+        (rowName && rowName === target)
+      ) {
         sheet.deleteRow(i + 1);
         clearAppDataCache();
         return { success: true, message: '文件已成功自清單移除！' };
       }
     }
-    return { success: false, error: '找不到該文件編號' };
+    return { success: false, error: '找不到該文件編號 (' + target + ')' };
   } catch (err) {
     return { success: false, error: err.toString() };
   }
