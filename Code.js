@@ -9,7 +9,7 @@ const SPREADSHEET_ID = '1lFRlvwQgo_B38YmtFD9BHqyGvuGstOK7etu3RO_BqQU';
 const ALBUMS_FOLDER_ID = '1iRFAr3FZMqV-okmktipdwamjAR7WWp6d';
 const DOCS_FOLDER_ID = '1Ie8medB2JPYdUA9LOryVnPAdko1t5rjR';
 // 試算表每週備份存放資料夾（Drive：桃子腳幼兒園 / Backup）。資料夾必須維持「私人」，備份內含管理員密碼。
-const BACKUP_FOLDER_ID = '1ozmReHOFGCDWJI_tVv59ogWMKNcMYoo';
+const BACKUP_FOLDER_ID = '1ozmReHOFGCDWJI_tVv59ogoWMKNcMYoo';
 const BACKUP_KEEP_COUNT = 8;          // 只保留最近幾份備份（更舊的移到垃圾桶，30 天內可還原）
 const BACKUP_MIN_INTERVAL_DAYS = 5;   // 自動備份的最短間隔，防止被人反覆呼叫而擠掉舊備份
 const ACTIVITY_FOLDER_ID = '1EKWV3ASXltVtud1f_pfI672MkEfwa8b2';
@@ -199,13 +199,15 @@ function menuBackupNow() {
  * 重複執行是安全的：會先移除舊的同名觸發器再建立。
  */
 function setupWeeklyBackupTrigger() {
+  // 先立刻備份一次：資料夾 ID、權限、流程任何一環有問題都會在這裡拋錯，
+  // 此時尚未建立觸發器，不會留下「每週都失敗」的排程。
+  const res = backupSpreadsheet_();
+
   ScriptApp.getProjectTriggers().forEach(function(t) {
     if (t.getHandlerFunction() === 'weeklyBackup') ScriptApp.deleteTrigger(t);
   });
   ScriptApp.newTrigger('weeklyBackup').timeBased().onWeekDay(ScriptApp.WeekDay.SUNDAY).atHour(3).create();
-  // 順便立刻備份一次，確認資料夾權限與流程都正常
-  const res = backupSpreadsheet_();
-  console.log('已建立每週日 03:00 自動備份觸發器；首次備份：' + res.name);
+  console.log('首次備份成功：' + res.name + '；已建立每週日 03:00 自動備份觸發器。');
 }
 
 function openWebApp() {
