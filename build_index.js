@@ -2127,6 +2127,7 @@ const htmlContent = `<!DOCTYPE html>
           songFirstInList: "已是清單中第一首歌曲",
           songAllPlayed: "✅ 清單內歌曲已全數播放完畢！",
           opFailed: "執行失敗: ",
+          albumLoadFailed: "無法載入相簿照片，請檢查網路後再試。",
         },
         toasts: {
           langSwitched: '已切換為繁體中文'
@@ -2318,6 +2319,7 @@ const htmlContent = `<!DOCTYPE html>
           songFirstInList: "This is the first song in the list",
           songAllPlayed: "✅ All songs in the list have finished playing!",
           opFailed: "Operation failed: ",
+          albumLoadFailed: "Unable to load album photos. Please check your connection and try again.",
         },
         toasts: {
           langSwitched: 'Switched to English'
@@ -2481,6 +2483,12 @@ const htmlContent = `<!DOCTYPE html>
       }
     };
     window.state = state;
+
+    // 相簿沒有封面時的中性佔位圖（內建 SVG，不依賴外部網站，也不使用任何人物照片）
+    const ALBUM_COVER_PLACEHOLDER = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 450"><rect width="600" height="450" fill="#FFF1EC"/>' +
+      '<rect x="190" y="150" width="220" height="150" rx="26" fill="#FBC4B6"/><rect x="240" y="126" width="70" height="34" rx="10" fill="#FBC4B6"/>' +
+      '<circle cx="300" cy="225" r="46" fill="#FFF1EC" stroke="#F08A7A" stroke-width="10"/></svg>');
 
     // ==================== 輸出跳脫（XSS 防護） ====================
     // 凡是「來自試算表／使用者輸入」的字串，放進 HTML 之前一律經過下列函式：
@@ -4728,7 +4736,7 @@ const htmlContent = `<!DOCTYPE html>
       }
 
       albums.forEach(alb => {
-        const cover = alb.coverUrl || 'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=600&q=80';
+        const cover = alb.coverUrl || ALBUM_COVER_PLACEHOLDER;
         const badgeClass = getAlbumCategoryBadgeClass(alb.category);
         const safeTitle = jsq(alb.title || t('ui.albumDefaultTitle'));
 
@@ -4771,23 +4779,23 @@ const htmlContent = `<!DOCTYPE html>
       document.getElementById('albumPhotosModal').classList.remove('hidden');
 
       callBackend('getAlbumPhotos', { albumId: albumId }, res => {
-        if (res && res.success && res.photos && res.photos.length > 0) {
-          renderAlbumPhotosGrid(res.photos);
+        if (res && res.success) {
+          renderAlbumPhotosGrid(res.photos || []);   // 空相簿會顯示「此相簿目前無照片檔案」
         } else {
-          renderFallbackPhotos();
+          showAlbumPhotosError();
         }
       }, err => {
-        renderFallbackPhotos();
+        showAlbumPhotosError();
       });
     }
 
-    function renderFallbackPhotos() {
-      const demoPhotos = [
-        { id: 'p1', name: '塗氟檢查01.jpg', thumbnailUrl: 'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=600&q=80', viewUrl: 'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=1200&q=80', downloadUrl: '#' },
-        { id: 'p2', name: '小朋友刷牙示範.jpg', thumbnailUrl: 'https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=600&q=80', viewUrl: 'https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=1200&q=80', downloadUrl: '#' },
-        { id: 'p3', name: '小禮物獎勵.jpg', thumbnailUrl: 'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=600&q=80', viewUrl: 'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=1200&q=80', downloadUrl: '#' }
-      ];
-      renderAlbumPhotosGrid(demoPhotos);
+    // 相片載入失敗：顯示明確訊息，絕不顯示假照片
+    function showAlbumPhotosError() {
+      currentAlbumPhotosList = [];
+      const countBadge = document.getElementById('modalAlbumCount');
+      if (countBadge) countBadge.textContent = '';
+      const grid = document.getElementById('albumPhotosGrid');
+      if (grid) grid.innerHTML = '<div class="col-span-full py-16 text-center text-slate-400 font-bold">' + esc(t('ui.albumLoadFailed')) + '</div>';
     }
 
     function getPhotoDisplayUrl(p, highRes = true) {
@@ -7472,7 +7480,7 @@ const htmlContent = `<!DOCTYPE html>
       albums.forEach(alb => {
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-slate-50/80 transition-colors';
-        const cover = alb.coverUrl || 'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=120&q=80';
+        const cover = alb.coverUrl || ALBUM_COVER_PLACEHOLDER;
         const badgeClass = getAlbumCategoryBadgeClass(alb.category);
         const safeTitle = jsq(alb.title || '相簿');
 
