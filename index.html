@@ -1764,10 +1764,10 @@
           </button>
         </div>
 
-        <!-- 右側：下載音樂檔 -->
-        <a id="songPlayerDownload" href="#" target="_blank" rel="noopener noreferrer" class="hidden w-9 h-9 rounded-full bg-white/15 hover:bg-white/30 text-white flex items-center justify-center tap-bounce transition-colors ml-auto sm:ml-0" title="下載音樂檔" aria-label="下載音樂檔" data-i18n-title="ui.songDownloadTitle" data-i18n-aria="ui.songDownloadTitle">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M7 11l5 5 5-5"/><path d="M4 19h16"/></svg>
-        </a>
+        <!-- 右側：全螢幕（瀏覽器不支援對網頁元素全螢幕時隱藏，例如 iPhone Safari；影片內建的 YouTube 全螢幕鈕仍可用） -->
+        <button type="button" id="songPlayerFullscreen" onclick="toggleSongPlayerFullscreen()" class="hidden w-9 h-9 rounded-full bg-white/15 hover:bg-white/30 text-white flex items-center justify-center tap-bounce transition-colors ml-auto sm:ml-0 cursor-pointer" title="全螢幕" aria-label="全螢幕" data-i18n-title="ui.playerFullscreen" data-i18n-aria="ui.playerFullscreen">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/><path d="M20 15v5h-5"/></svg>
+        </button>
       </div>
     </div>
   </div>
@@ -2107,6 +2107,7 @@
           songQueueBadge: "第 {i} / {n} 首",
           playerPrev: "上一首",
           playerNext: "下一首",
+          playerFullscreen: "全螢幕",
           playerShuffle: "隨機",
           playerRepeat: "循環",
           playerShuffleTitle: "隨機播放開關",
@@ -2299,6 +2300,7 @@
           songQueueBadge: "{i} / {n}",
           playerPrev: "Previous",
           playerNext: "Next",
+          playerFullscreen: "Fullscreen",
           playerShuffle: "Shuffle",
           playerRepeat: "Repeat",
           playerShuffleTitle: "Toggle shuffle",
@@ -6248,19 +6250,46 @@
 
       updateQueueBadge();
 
-      const dl = document.getElementById('songPlayerDownload');
-      if (song.downloadUrl) {
-        dl.href = safeUrl(song.downloadUrl) || '#';
-        dl.classList.remove('hidden');
-      } else {
-        dl.classList.add('hidden');
-      }
+      const fsBtn = document.getElementById('songPlayerFullscreen');
+      if (fsBtn) fsBtn.classList.toggle('hidden', !songFullscreenSupported());
       const yt = document.getElementById('songPlayerOpenYoutube');
       if (yt) yt.href = safeUrl(song.youtubeUrl) || ('https://www.youtube.com/watch?v=' + getSongYoutubeId(song));
 
       updateSongModalModesUI();
       document.getElementById('songPlayerModal').classList.remove('hidden');
       mountSongPlayer(getSongYoutubeId(song));
+    }
+
+    // 全螢幕：只有瀏覽器支援對網頁元素全螢幕時才顯示按鈕（iPhone Safari 不支援，改用影片內建的 YouTube 全螢幕鈕）。
+    // 全螢幕的是播放器的 iframe 本身；連續播放換歌時沿用同一個播放器（loadVideoById），所以換歌後仍保持全螢幕。
+    function songFullscreenSupported() {
+      return !!(document.fullscreenEnabled || document.webkitFullscreenEnabled);
+    }
+
+    function getSongPlayerFrame() {
+      try { if (songPlayer && typeof songPlayer.getIframe === 'function') return songPlayer.getIframe(); } catch (e) {}
+      return document.querySelector('#songPlayerHolder iframe');
+    }
+
+    function exitSongFullscreen() {
+      const cur = document.fullscreenElement || document.webkitFullscreenElement;
+      if (!cur) return;
+      try {
+        const p = (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+        if (p && p.catch) p.catch(function() {});
+      } catch (e) {}
+    }
+
+    function toggleSongPlayerFullscreen() {
+      if (document.fullscreenElement || document.webkitFullscreenElement) { exitSongFullscreen(); return; }
+      const f = getSongPlayerFrame();
+      if (!f) return;
+      const req = f.requestFullscreen || f.webkitRequestFullscreen;
+      if (!req) return;
+      try {
+        const p = req.call(f);
+        if (p && p.catch) p.catch(function() {});
+      } catch (e) {}
     }
 
     function playNextSongInQueue() {
@@ -6401,6 +6430,7 @@
     }
 
     function closeSongPlayer() {
+      exitSongFullscreen();
       destroySongPlayer();
       songPlayerCurrent = null;
       showSongPlayerError(false);

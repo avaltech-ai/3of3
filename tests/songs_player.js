@@ -32,5 +32,27 @@
   openSongPlayerFromQueue(1); await new Promise(r=>setTimeout(r,100));
   ok(instance.vid==='aaaaaaaaaa2','尚未就緒時快速換歌：最後播放的是第二首（退回重建，不丟失）');
   closeSongPlayer();
+
+  // —— 全螢幕按鈕 ——
+  const setFs=(v)=>{ Object.defineProperty(document,'fullscreenEnabled',{value:v,configurable:true}); Object.defineProperty(document,'webkitFullscreenEnabled',{value:v,configurable:true}); };
+  created=0; destroyed=0;
+  let reqCalls=0, exitCalls=0, fsEl=null;
+  const iframe=document.createElement('iframe');
+  iframe.requestFullscreen=function(){ reqCalls++; fsEl=iframe; return Promise.resolve(); };
+  Object.defineProperty(document,'fullscreenElement',{get:()=>fsEl,configurable:true});
+  document.exitFullscreen=function(){ exitCalls++; fsEl=null; return Promise.resolve(); };
+  FakePlayer.prototype.getIframe=function(){ return iframe; };
+  ok(!document.getElementById('songPlayerDownload'),'播放器內已沒有下載鈕');
+  setFs(true); songPlayerQueue=[mk(1),mk(2)]; openSongPlayerFromQueue(0); await new Promise(r=>setTimeout(r,100));
+  const fb=document.getElementById('songPlayerFullscreen');
+  ok(!fb.classList.contains('hidden'),'瀏覽器支援全螢幕：顯示全螢幕鈕');
+  fb.click(); ok(reqCalls===1,'按下 → 對播放器 iframe 要求全螢幕');
+  instance.opts.events.onStateChange({data:0,target:instance}); await new Promise(r=>setTimeout(r,50));
+  ok(destroyed===0 && fsEl===iframe,'全螢幕中播完換下一首：播放器沒被銷毀、仍在全螢幕');
+  fb.click(); ok(exitCalls===1 && fsEl===null,'再按一次 → 離開全螢幕');
+  fb.click(); closeSongPlayer(); ok(exitCalls===2,'全螢幕中關閉播放器 → 先離開全螢幕');
+  setFs(false); openSongPlayerFromQueue(0); await new Promise(r=>setTimeout(r,100));
+  ok(document.getElementById('songPlayerFullscreen').classList.contains('hidden'),'瀏覽器不支援（如 iPhone Safari）：隱藏全螢幕鈕');
+  closeSongPlayer();
   console.log(res.join('\n')); return res;
 })();
