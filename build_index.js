@@ -2490,6 +2490,47 @@ const htmlContent = `<!DOCTYPE html>
       '<rect x="190" y="150" width="220" height="150" rx="26" fill="#FBC4B6"/><rect x="240" y="126" width="70" height="34" rx="10" fill="#FBC4B6"/>' +
       '<circle cx="300" cy="225" r="46" fill="#FFF1EC" stroke="#F08A7A" stroke-width="10"/></svg>');
 
+    // ==================== 名稱對照（試算表維護的名稱的英文顯示） ====================
+    // 類別、學期、活動對象等名稱由試算表維護；英文對照放在試算表 NameMap，後端以 { 中文: 英文 } 回傳。
+    // 顯示時用 tn(名稱)：英文介面且有對照 → 英文；否則顯示原本的中文。
+    // 內部的篩選與比對一律仍使用中文原名，不受翻譯影響。
+    function normName(s) {
+      const str = String(s === undefined || s === null ? '' : s);
+      let out = '';
+      let pendingSpace = false;
+      for (let i = 0; i < str.length; i++) {
+        const code = str.charCodeAt(i);
+        const isSpace = code === 32 || code === 9 || code === 10 || code === 11 || code === 12 || code === 13 || code === 160 || code === 12288;
+        if (isSpace) { pendingSpace = out.length > 0; }
+        else { if (pendingSpace) out += ' '; out += str.charAt(i); pendingSpace = false; }
+      }
+      return out;
+    }
+    function setNameMap(raw) {
+      const m = Object.create(null);
+      if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+        Object.keys(raw).forEach(function(k) {
+          const v = raw[k];
+          const key = normName(k);
+          const en = (typeof v === 'string') ? v.trim() : '';
+          if (key && en && !(key in m)) m[key] = en.slice(0, 100);
+        });
+      }
+      state.nameMap = m;
+    }
+    // 該名稱的英文對照（不論目前語言）；沒有則回傳空字串。供搜尋比對使用。
+    function nameEn(name) {
+      const m = state.nameMap;
+      if (!m) return '';
+      const key = normName(name);
+      return (key && (key in m)) ? m[key] : '';
+    }
+    function tn(name) {
+      const n = String(name === undefined || name === null ? '' : name);
+      if (state.lang !== 'en') return n;
+      return nameEn(n) || n;
+    }
+
     // 相簿封面「每天固定一張」：依「日期＋相簿編號」決定性地從後端提供的候選清單挑一張。
     // 同一天所有訪客看到相同封面（瀏覽器可快取、不會每次重新整理就閃動），隔天自動換。
     // 候選為空、格式不符或載入失敗時，一律退回固定封面 coverUrl（不會比原本更糟）。
@@ -3111,7 +3152,7 @@ const htmlContent = `<!DOCTYPE html>
           icon = '<span class="mr-0.5">💛</span>';
         }
 
-        return \`<span class="inline-flex items-center rounded-full font-bold shadow-2xs whitespace-nowrap transition-transform hover:scale-105 \${sizeClasses} \${colorClasses}">\${icon}\${esc(t)}</span>\`;
+        return \`<span class="inline-flex items-center rounded-full font-bold shadow-2xs whitespace-nowrap transition-transform hover:scale-105 \${sizeClasses} \${colorClasses}">\${icon}\${esc(tn(t))}</span>\`;
       }).join('');
     }
 
@@ -3125,7 +3166,7 @@ const htmlContent = `<!DOCTYPE html>
           if (cat === '全部文件' || cat === '全部') {
             pillsContainer.innerHTML += '<button onclick="filterDocs(\\'全部\\')" class="doc-cat-btn px-3 py-1 rounded-xl text-xs font-bold bg-indigo-600 text-white shadow-xs">' + (state.lang === 'en' ? 'All Docs' : '全部文件') + '</button>';
           } else {
-            pillsContainer.innerHTML += '<button onclick="filterDocs(\\'' + jsq(cat) + '\\')" class="doc-cat-btn px-3 py-1 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">' + esc(cat) + '</button>';
+            pillsContainer.innerHTML += '<button onclick="filterDocs(\\'' + jsq(cat) + '\\')" class="doc-cat-btn px-3 py-1 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">' + esc(tn(cat)) + '</button>';
           }
         });
       }
@@ -3195,6 +3236,7 @@ const htmlContent = `<!DOCTYPE html>
 
       
 
+            setNameMap(data.nameMap);
             state.docCategories = data.docCategories || ['全部文件', '保健用藥', '學期行事曆', '餐飲菜單', '親師手冊'];
       state.eventTargets = data.eventTargets || [
         {targetName: '全園活動', displayName: '🏫 全園活動'},
@@ -4526,7 +4568,7 @@ const htmlContent = `<!DOCTYPE html>
         cats.forEach(c => {
           const opt = document.createElement('option');
           opt.value = c;
-          opt.textContent = c;
+          opt.textContent = tn(c);
           if (curVal === c) opt.selected = true;
           filterCat.appendChild(opt);
         });
@@ -4595,10 +4637,10 @@ const htmlContent = `<!DOCTYPE html>
         pill.onclick = function() { toggleAlbumCategoryFilter(c); };
         if (isSelected) {
           pill.className = 'px-3.5 py-1.5 rounded-full text-xs font-black shadow-xs bg-teal-600 text-white ring-2 ring-teal-500/40 cursor-pointer tap-bounce transition-all inline-flex items-center justify-center scale-102';
-          pill.textContent = c;
+          pill.textContent = tn(c);
         } else {
           pill.className = 'px-3.5 py-1.5 rounded-full text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/80 cursor-pointer tap-bounce transition-all inline-flex items-center justify-center';
-          pill.textContent = c;
+          pill.textContent = tn(c);
         }
         container.appendChild(pill);
       });
@@ -4706,7 +4748,7 @@ const htmlContent = `<!DOCTYPE html>
         // 1. 關鍵字比對 (主題、類別、資料夾名稱)
         if (kw) {
           const matchTitle = (alb.title || '').toLowerCase().includes(kw);
-          const matchCat = (alb.category || '').toLowerCase().includes(kw);
+          const matchCat = (alb.category || '').toLowerCase().includes(kw) || nameEn(alb.category).toLowerCase().includes(kw);
           const matchFolder = (alb.folderName || '').toLowerCase().includes(kw);
           if (!matchTitle && !matchCat && !matchFolder) return false;
         }
@@ -4779,7 +4821,7 @@ const htmlContent = `<!DOCTYPE html>
 
               <!-- 左上角：活動類別徽章 -->
               <div class="absolute top-2 left-2 \${badgeClass} text-[0.6875rem] font-extrabold px-2.5 py-0.5 rounded-full shadow-xs backdrop-blur-xs">
-                \${esc(alb.category || t('ui.albumDefaultCategory'))}
+                \${esc(tn(alb.category) || t('ui.albumDefaultCategory'))}
               </div>
             </div>
 
@@ -5308,7 +5350,7 @@ const htmlContent = `<!DOCTYPE html>
           '<div>' +
           '<div class="flex items-center gap-2 flex-wrap">' +
           '<h4 class="font-black text-slate-800 text-sm sm:text-base">' + (esc(doc.fileName) || (state.lang === 'en' ? 'Untitled Document' : '未命名文件')) + '</h4>' +
-          '<span class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-indigo-100 text-indigo-800">' + (esc(doc.category) || (state.lang === 'en' ? 'General' : '一般')) + '</span>' +
+          '<span class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-indigo-100 text-indigo-800">' + (esc(tn(doc.category)) || (state.lang === 'en' ? 'General' : '一般')) + '</span>' +
           '</div>' +
           '<p class="text-xs text-slate-500 mt-1 leading-relaxed">' + (esc(doc.description) || (state.lang === 'en' ? 'Click to preview or download document' : '點擊即可線上下載或預覽文件')) + '</p>' +
           '<div class="text-[0.6875rem] text-slate-400 mt-1">' + (state.lang === 'en' ? 'Updated: ' : '更新日期：') + esc(doc.updatedAt || '2026-09-01') + '</div>' +
@@ -5741,7 +5783,7 @@ const htmlContent = `<!DOCTYPE html>
       cats.forEach(function(c) {
         const pill = document.createElement('button');
         pill.type = 'button';
-        pill.textContent = c;
+        pill.textContent = tn(c);
         pill.className = (!isAll && state.selectedSongCategories.has(c)) ? on : off;
         pill.onclick = function() { toggleSongCategoryFilter(c); };
         container.appendChild(pill);
@@ -5782,7 +5824,8 @@ const htmlContent = `<!DOCTYPE html>
       return all.filter(function(s) {
         if (kw) {
           const hit = String(s.title || '').toLowerCase().indexOf(kw) !== -1 ||
-                      String(s.category || '').toLowerCase().indexOf(kw) !== -1;
+                      String(s.category || '').toLowerCase().indexOf(kw) !== -1 ||
+                      nameEn(s.category).toLowerCase().indexOf(kw) !== -1;
           if (!hit) return false;
         }
         if (selected.size > 0 && !selected.has(String(s.category || '').trim())) return false;
@@ -5878,7 +5921,7 @@ const htmlContent = `<!DOCTYPE html>
         const info = document.createElement('div');
         info.className = 'flex-1 min-w-0 flex flex-col items-start gap-1.5';
         let metaHtml = '<div class="flex items-center gap-1.5 flex-wrap w-full">' +
-          '<span class="' + getSongCategoryBadgeClass(song.category) + ' text-[0.6875rem] font-extrabold px-2.5 py-0.5 rounded-full">' + songEsc(song.category || t('ui.songUncategorized')) + '</span>';
+          '<span class="' + getSongCategoryBadgeClass(song.category) + ' text-[0.6875rem] font-extrabold px-2.5 py-0.5 rounded-full">' + songEsc(tn(song.category) || t('ui.songUncategorized')) + '</span>';
         if (formattedDur) {
           metaHtml += '<span class="hidden sm:inline-flex items-center gap-1 text-[11px] sm:text-xs text-slate-500 font-semibold bg-slate-100/90 px-2 py-0.5 rounded-full">⏱️ ' + songEsc(formattedDur) + '</span>';
         }
@@ -6161,7 +6204,7 @@ const htmlContent = `<!DOCTYPE html>
 
       document.getElementById('songPlayerTitle').textContent = song.title || '';
       const badge = document.getElementById('songPlayerCategory');
-      badge.textContent = song.category || t('ui.songUncategorized');
+      badge.textContent = tn(song.category) || t('ui.songUncategorized');
       badge.className = getSongCategoryBadgeClass(song.category) + ' text-[0.6875rem] font-extrabold px-2.5 py-0.5 rounded-full shrink-0';
 
       const durEl = document.getElementById('songPlayerDuration');
@@ -8448,7 +8491,7 @@ const htmlContent = `<!DOCTYPE html>
         state.themeSemesters.forEach(sem => {
           const opt = document.createElement('option');
           opt.value = sem;
-          opt.textContent = sem;
+          opt.textContent = tn(sem);
           select.appendChild(opt);
         });
       }
@@ -8597,7 +8640,7 @@ const htmlContent = `<!DOCTYPE html>
                   <h3 class="font-black text-slate-800 text-base sm:text-lg truncate">\${songEsc(themeName)}</h3>
                   <div class="text-xs font-semibold text-slate-500 mt-0.5 flex items-center gap-1.5 truncate">
                     <span>\${songEsc(dateRangeStr)}</span>
-                    \${theme.semester ? \`<span class="text-[10px] bg-slate-200/70 px-1.5 py-0.5 rounded text-slate-600">\${songEsc(theme.semester)}</span>\` : ''}
+                    \${theme.semester ? \`<span class="text-[10px] bg-slate-200/70 px-1.5 py-0.5 rounded text-slate-600">\${songEsc(tn(theme.semester))}</span>\` : ''}
                   </div>
                 </div>
               </div>

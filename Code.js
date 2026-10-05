@@ -110,6 +110,7 @@ function onOpen() {
       .createMenu('🌟 諾貝爾A班專屬功能')
       .addItem('📁 立即建立／檢查相簿工作表 (AlbumCategories 與 Albums)', 'menuEnsureAlbumSheets')
       .addItem('🔄 清除快取並強制重新整理', 'menuClearCache')
+      .addItem('🔤 同步名稱對照表（中英文名稱）', 'menuSyncNameMap')
       .addItem('🖼️ 重建相簿封面候選（每天輪替封面用）', 'menuRebuildCoverCandidates')
       .addItem('💾 立即備份試算表', 'menuBackupNow')
       .addItem('🔓 解除後台登入鎖定', 'menuResetLoginLock')
@@ -783,6 +784,7 @@ function getAppData() {
         eventTargets: eventTargets || [],
         eventCategoriesMajor: eventCategoriesMajor || [],
         eventCategoriesMinor: eventCategoriesMinor || [],
+        nameMap: getNameMapForApp_(ss),
         settings: {
           className: settings.CLASS_NAME || '諾貝爾 A 班',
           kindergartenName: settings.KINDERGARTEN_NAME || '桃子腳幼兒園',
@@ -804,6 +806,251 @@ function getAppData() {
       success: false,
       error: err.toString()
     };
+  }
+}
+
+// -------------------------------------------------------------
+// 名稱對照表（NameMap）：試算表維護的名稱（類別、學期、活動對象）的英文對照
+// -------------------------------------------------------------
+const NAME_MAP_SHEET = 'NameMap';
+const NAME_MAP_HEADERS = ['zh', 'en', 'used_in', 'note'];
+const NAME_MAP_MAX_LEN = 100;       // 單一英文名稱的長度上限
+const NAME_MAP_MAX_ENTRIES = 500;   // 回傳給前台的對照筆數上限
+const NAME_MAP_SKIP = { '全部文件': 1, '全部': 1 };   // 前台以固定文字（語系字典）呈現，不查對照表
+
+// 字典工作表：[工作表, 欄位名稱, 顯示用名稱]
+const NAME_DICTIONARIES_ = [
+  ['AlbumCategories', 'categoryName', '相簿類別'],
+  ['DocCategories', 'categoryName', '文件類別'],
+  ['SongCategories', 'categoryName', '歌曲類別'],
+  ['ThemeSemesters', 'semesterName', '學期'],
+  ['EventCategories', 'categoryName', '活動大項（目前前台未顯示）'],
+  ['EventCategoriesMinor', 'categoryName', '活動細項（目前前台未顯示）'],
+  ['EventTargets', 'targetName', '活動對象']
+];
+// 資料表中「使用到這些名稱」的欄位：[工作表, 欄位, 以逗號分隔?, 對應的字典名稱]
+const NAME_USAGES_ = [
+  ['Events', 'target', true, '活動對象'],
+  ['Events', 'categoryMajor', false, '活動大項（目前前台未顯示）'],
+  ['Events', 'categoryMinor', false, '活動細項（目前前台未顯示）'],
+  ['Albums', 'category', false, '相簿類別'],
+  ['Docs', 'category', false, '文件類別'],
+  ['Songs', 'category', false, '歌曲類別'],
+  ['Themes', 'semester', false, '學期']
+];
+// 程式內建、不在任何字典裡但前台會顯示的名稱
+const NAME_BUILTINS_ = [['全園', '程式內建（活動對象留白時的預設名稱）']];
+
+// 英文草稿：只在「新增列」時預填；已存在的列永遠不覆蓋（老師改過的英文不會被洗掉）。
+// 班級名稱等專有名詞刻意不給草稿（留空，前台暫時顯示中文）。
+const NAME_DRAFTS_ = {
+  '主題活動': 'Theme Activities', '生活日常': 'Daily Life', '學習區': 'Learning Centers', '大肌肉活動': 'Gross Motor Activities',
+  '幸福廚房': 'Happy Kitchen', '慶生會': 'Birthday Party', '戶外踏訪': 'Outdoor Excursions', '節慶活動': 'Festival Activities',
+  '保健用藥': 'Health & Medication', '餐飲菜單': 'Meal Menus', '親師手冊': 'Parent-Teacher Handbook', '學期行事曆': 'Semester Calendar',
+  '重要活動': 'Important Events', '班級主題': 'Class Themes', '全園活動': 'School-wide Events', '休園': 'School Closed',
+  '親職講座': 'Parent Workshop', '親師座談': 'Parent-Teacher Meeting', '慶生活動': 'Birthday Celebration', '歲末活動': 'Year-end Event',
+  '闖關活動': 'Challenge Stations', '節慶放假': 'Holiday Break', '園務消毒': 'Campus Disinfection', '開學活動': 'Back-to-school Event',
+  '健康檢查': 'Health Check-up', '親職活動': 'Parent Event', '全園適用': 'All Classes', '全園': 'School-wide'
+};
+
+function normalizeName_(s) {
+  return String(s === undefined || s === null ? '' : s).replace(/[\s　]+/g, ' ').trim();
+}
+function hasCjk_(s) { return /[㐀-鿿]/.test(s); }
+
+function draftNameTranslation_(zh) {
+  const n = normalizeName_(zh);
+  if (Object.prototype.hasOwnProperty.call(NAME_DRAFTS_, n)) return NAME_DRAFTS_[n];
+  const m = n.match(/^(\d+)\s*學年\s*([上下])學期$/);
+  if (m) return 'Academic Year ' + m[1] + ', Semester ' + (m[2] === '上' ? 1 : 2);
+  return '';
+}
+
+function readSheetRows_(ss, sheetName) {
+  const sh = ss.getSheetByName(sheetName);
+  if (!sh) return { headers: [], rows: [] };
+  const values = sh.getDataRange().getValues();
+  if (values.length === 0) return { headers: [], rows: [] };
+  return { headers: values[0].map(function(h) { return String(h).trim(); }), rows: values.slice(1) };
+}
+
+/**
+ * 掃描所有字典與資料列，找出「前台會顯示的、含中文」的名稱。
+ * 回傳 { names: { 正規化名稱: { labels:[...], notes:[...] } }, order:[...] }
+ */
+function collectNameSources_(ss) {
+  const names = {};
+  const order = [];
+  function touch(name, label) {
+    if (!names[name]) { names[name] = { labels: [], notes: [] }; order.push(name); }
+    if (label && names[name].labels.indexOf(label) === -1) names[name].labels.push(label);
+    return names[name];
+  }
+  const dictSets = {};   // 字典名稱 → 正規化名稱集合
+  NAME_DICTIONARIES_.forEach(function(d) {
+    const data = readSheetRows_(ss, d[0]);
+    const idx = data.headers.indexOf(d[1]);
+    dictSets[d[2]] = dictSets[d[2]] || {};
+    if (idx === -1) return;
+    data.rows.forEach(function(row) {
+      const raw = String(row[idx] === undefined || row[idx] === null ? '' : row[idx]);
+      const n = normalizeName_(raw);
+      if (!n || !hasCjk_(n) || NAME_MAP_SKIP[n]) return;
+      const rec = touch(n, d[2]);
+      dictSets[d[2]][n] = true;
+      if (raw !== n && rec.notes.indexOf('字典「' + d[0] + '」中此名稱前後或中間有多餘空白（系統已自動忽略空白差異，建議到字典修正）') === -1) {
+        rec.notes.push('字典「' + d[0] + '」中此名稱前後或中間有多餘空白（系統已自動忽略空白差異，建議到字典修正）');
+      }
+    });
+  });
+  NAME_USAGES_.forEach(function(u) {
+    const data = readSheetRows_(ss, u[0]);
+    const idx = data.headers.indexOf(u[1]);
+    if (idx === -1) return;
+    data.rows.forEach(function(row) {
+      const cell = row[idx];
+      if (cell === undefined || cell === null || cell === '') return;
+      const parts = u[2] ? String(cell).split(/[,，]/) : [String(cell)];
+      parts.forEach(function(part) {
+        const n = normalizeName_(part);
+        if (!n || !hasCjk_(n) || NAME_MAP_SKIP[n]) return;
+        const rec = touch(n, u[3]);
+        if (!dictSets[u[3]] || !dictSets[u[3]][n]) {
+          const msg = '「' + u[0] + '」資料用了這個名稱，但字典「' + u[3] + '」沒有（可能是打錯字，或字典漏列）';
+          if (rec.notes.indexOf(msg) === -1) rec.notes.push(msg);
+        }
+      });
+    });
+  });
+  NAME_BUILTINS_.forEach(function(b) { const rec = touch(b[0], b[1]); });
+  return { names: names, order: order };
+}
+
+/** 確保 NameMap 工作表存在並回傳 { sheet, cols }（欄位位置從 1 起算） */
+function ensureNameMapSheet_(ss) {
+  let sh = ss.getSheetByName(NAME_MAP_SHEET);
+  if (!sh) {
+    sh = ss.insertSheet(NAME_MAP_SHEET);
+    sh.appendRow(NAME_MAP_HEADERS);
+    sh.getRange(1, 1, 1, NAME_MAP_HEADERS.length).setFontWeight('bold').setBackground('#E0E7FF');
+  }
+  const lastCol = Math.max(1, sh.getLastColumn());
+  const headers = sh.getRange(1, 1, 1, lastCol).getValues()[0].map(function(h) { return String(h).trim(); });
+  const cols = {};
+  NAME_MAP_HEADERS.forEach(function(h) {
+    let i = headers.indexOf(h);
+    if (i === -1) {
+      i = headers.length;
+      headers.push(h);
+      sh.getRange(1, i + 1).setValue(h).setFontWeight('bold').setBackground('#E0E7FF');
+    }
+    cols[h] = i + 1;
+  });
+  return { sheet: sh, cols: cols };
+}
+
+/**
+ * 同步名稱對照表：補齊新名稱（英文只在新增列時預填草稿）、更新「出處」與「備註」，
+ * 絕不覆蓋或清除任何一列的 en。回傳 { added, total, missingEn, issues, unused }。
+ */
+function syncNameMap_() {
+  const ss = getSpreadsheet();
+  const collected = collectNameSources_(ss);
+  const ens = ensureNameMapSheet_(ss);
+  const sh = ens.sheet, cols = ens.cols;
+  const width = Math.max(sh.getLastColumn(), 4);
+  const data = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, width).getValues() : [];
+  const rowOf = {};
+  const dupZh = [];
+  data.forEach(function(row, i) {
+    const n = normalizeName_(row[cols.zh - 1]);
+    if (!n) return;
+    if (rowOf[n] !== undefined) dupZh.push(n); else rowOf[n] = i;
+  });
+  // 既有列：只更新「出處」與「備註」兩欄
+  const usedCol = [], noteCol = [];
+  data.forEach(function(row) {
+    const n = normalizeName_(row[cols.zh - 1]);
+    const rec = n ? collected.names[n] : null;
+    usedCol.push([rec ? rec.labels.join('、') : (n ? '（目前沒有使用）' : '')]);
+    noteCol.push([rec ? rec.notes.join('；') : '']);
+  });
+  if (data.length > 0) {
+    sh.getRange(2, cols.used_in, data.length, 1).setValues(usedCol);
+    sh.getRange(2, cols.note, data.length, 1).setValues(noteCol);
+  }
+  // 新名稱：附加在最後
+  const append = [];
+  collected.order.forEach(function(n) {
+    if (rowOf[n] !== undefined) return;
+    const rec = collected.names[n];
+    const row = new Array(width).fill('');
+    row[cols.zh - 1] = n;
+    row[cols.en - 1] = draftNameTranslation_(n);
+    row[cols.used_in - 1] = rec.labels.join('、');
+    row[cols.note - 1] = rec.notes.join('；');
+    append.push(row);
+  });
+  if (append.length > 0) {
+    const start = sh.getLastRow() + 1;
+    sh.getRange(start, 1, append.length, width).setValues(append);
+    sh.getRange(start, cols.en, append.length, 1).setNumberFormat('@');
+  }
+  // 報告
+  const report = { added: append.length, total: data.length + append.length, missingEn: [], issues: [], unused: 0 };
+  const allRows = data.concat(append);
+  allRows.forEach(function(row) {
+    const n = normalizeName_(row[cols.zh - 1]);
+    if (!n) return;
+    const rec = collected.names[n];
+    if (!rec) { report.unused++; return; }
+    if (!normalizeName_(row[cols.en - 1])) report.missingEn.push(n);
+  });
+  collected.order.forEach(function(n) { collected.names[n].notes.forEach(function(msg) { report.issues.push(n + '：' + msg); }); });
+  dupZh.forEach(function(n) { report.issues.push(n + '：對照表中出現重複的列，只有第一列會生效，請刪除多餘的列'); });
+  clearAppDataCache();
+  return report;
+}
+
+/** 供 getAppData 使用：{ 正規化中文: 英文 }，只含英文欄位有填的列；內容經過長度與型別限制 */
+function getNameMapForApp_(ss) {
+  const out = {};
+  try {
+    const sh = ss ? ss.getSheetByName(NAME_MAP_SHEET) : null;
+    if (!sh || sh.getLastRow() < 2) return out;
+    const values = sh.getDataRange().getValues();
+    const headers = values[0].map(function(h) { return String(h).trim(); });
+    const zi = headers.indexOf('zh'), ei = headers.indexOf('en');
+    if (zi === -1 || ei === -1) return out;
+    let count = 0;
+    for (let r = 1; r < values.length && count < NAME_MAP_MAX_ENTRIES; r++) {
+      const zh = normalizeName_(values[r][zi]);
+      const en = normalizeName_(values[r][ei]).replace(/[\u0000-\u001f\u007f]/g, '').slice(0, NAME_MAP_MAX_LEN);
+      if (!zh || !en || Object.prototype.hasOwnProperty.call(out, zh)) continue;
+      out[zh] = en;
+      count++;
+    }
+  } catch (e) {
+    console.warn('getNameMapForApp_ failed: ' + e);
+  }
+  return out;
+}
+
+/** 試算表選單：同步名稱對照表（只能在試算表介面由擁有者按下） */
+function menuSyncNameMap() {
+  const ui = SpreadsheetApp.getUi();
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(30000)) { ui.alert('⚠️ 系統目前忙碌，請稍後再試。'); return; }
+  try {
+    const r = syncNameMap_();
+    const lines = ['✅ 名稱對照表已同步', '', '新增名稱：' + r.added + ' 個（共 ' + r.total + ' 個）', '尚未填英文：' + r.missingEn.length + ' 個（前台暫時顯示中文）'];
+    if (r.missingEn.length) lines.push('  ' + r.missingEn.slice(0, 12).join('、') + (r.missingEn.length > 12 ? '…' : ''));
+    if (r.unused) lines.push('目前沒有使用的名稱：' + r.unused + ' 個（保留不刪除）');
+    if (r.issues.length) { lines.push('', '⚠️ 發現 ' + r.issues.length + ' 個資料問題（詳見 NameMap 的 note 欄）：'); r.issues.slice(0, 6).forEach(function(m) { lines.push('・' + m); }); if (r.issues.length > 6) lines.push('…其餘請看 note 欄'); }
+    lines.push('', '英文填好後，前台最多 5 分鐘內生效（或選「清除快取」立即生效）。');
+    ui.alert(lines.join('\n'));
+  } finally {
+    lock.releaseLock();
   }
 }
 

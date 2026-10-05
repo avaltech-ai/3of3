@@ -46,6 +46,14 @@
     var rawClone = JSON.parse(JSON.stringify(raw));
     (rawClone.albums || []).forEach(function (a) { if (!a.coverCandidates) a.coverCandidates = ['PLACEHOLDERCANDIDATE0001', 'PLACEHOLDERCANDIDATE0002']; });
     var data = poison(rawClone, pass, '');
+    // 名稱對照表：以「被下毒後的名稱」當鍵、攻擊字串當英文值（需在英文介面下執行才會被顯示出來）
+    var nm = {}, ni = 0;
+    function addName(v) { if (typeof v === 'string' && v.trim()) nm[v.trim()] = payloadFor(pass, 'nameMap.' + (ni++), false); }
+    (data.albumCategories || []).forEach(addName); (data.docCategories || []).forEach(addName); (data.songCategories || []).forEach(addName); (data.themeSemesters || []).forEach(addName);
+    (data.eventTargets || []).forEach(function (t) { addName(t.targetName); });
+    (data.events || []).forEach(function (e) { String(e.target || '').split(/[,，]/).forEach(addName); });
+    (data.albums || []).forEach(function (a) { addName(a.category); }); (data.songs || []).forEach(function (sg) { addName(sg.category); }); (data.docs || []).forEach(function (d) { addName(d.category); }); (data.themes || []).forEach(function (th) { addName(th.semester); });
+    data.nameMap = nm;
     function step(name, fn) { try { fn(); } catch (e) { errors.push(name + ': ' + (e && e.message)); } }
 
     state.adminPassword = 'x'.repeat(64);

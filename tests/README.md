@@ -18,6 +18,12 @@ node tests/covers.test.js
 ```
 驗證封面候選的取樣（均勻、決定性、與輸入順序無關）、解析（惡意或壞掉的儲存格內容被過濾）、試算表欄位處理（只寫單格、不動其他欄位）、重建功能（單一相簿失敗不中斷其他）、上傳最後區塊自動建立候選（失敗不影響上傳）、`getAlbums` 回傳（共 48 項）。修改 `Code.js` 的相簿相關程式後必跑。
 
+## 1d. 名稱對照表後端測試（Node，約 1 秒）
+```bash
+node tests/namemap.test.js
+```
+驗證名稱正規化、英文草稿規則、掃描（含字典多空白、資料用了字典沒有的名稱）、同步（冪等、**絕不覆蓋老師填的英文**）、回傳給前台的內容過濾與上限（共 43 項）。修改 `Code.js` 的名稱對照相關程式後必跑。
+
 ## 2. 前端 XSS 偵測器（瀏覽器內執行）
 `tests/xss_harness.js` 會把**真實資料的每個文字欄位**換成攻擊字串，驅動所有畫面渲染，再檢查：
 是否有被注入的元素、事件屬性（onclick 等）是否能被跳出而執行任意程式、網址是否為 `javascript:`。
@@ -74,6 +80,14 @@ const rep = await window.__i18nAudit(window.__raw);   // rep.items = 仍是中�
 console.log(await window.__coverFrontendTest());   // allPass 應為 true
 ```
 注意：測試用的候選 ID 是假的，渲染後必須「立即同步讀取」圖片網址（否則瀏覽器收到錯誤、備援先動作，會誤判）；測試中已處理。
+
+## 6. 名稱對照表前端測試（瀏覽器內執行）
+`tests/namemap_frontend.js` 驗證 `tn()`／`nameEn()` 的翻譯與備援（查不到顯示中文）、對照表過濾（空值、非字串、`__proto__` 等）、各顯示點（相簿、文件、歌曲含播放視窗、學期、活動對象）、**篩選仍以中文原名運作**、搜尋同時比對中英文、切換語言即時更新、惡意英文內容被跳脫（共 25 項）。
+```js
+(0, eval)(await (await fetch('/tests/namemap_frontend.js')).text());
+console.log(await window.__nameMapFrontendTest());   // allPass 應為 true
+```
+> 測試必須從中文介面開始、並在頁面資料載入完成後執行。測試會暫時擋住「背景雲端資料更新」（`handleDataLoaded`），否則更新完成時會把測試用的對照或畫面清掉而誤判。`covers_frontend.js` 同樣處理。
 
 ## 新增畫面時的跳脫規則（build_index.js）
 - 放進 HTML 文字或屬性值：`esc(值)`

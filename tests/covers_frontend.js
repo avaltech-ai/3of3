@@ -3,6 +3,8 @@
 (function () {
   window.__coverFrontendTest = async function () {
     const R = {}; const wait = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+    // 測試期間擋住背景的雲端資料更新：它完成時會重新渲染相簿格子，把測試中的卡片換掉而造成誤判
+    const realHDL = window.handleDataLoaded; window.handleDataLoaded = function () {};
     const cands = Array.from({ length: 12 }, function (_, i) { return 'CANDIDATE' + String(i).padStart(2, '0') + 'abcdefghij'; });
     const alb = { id: 'ALBUM-AAAAAAAAAAAA', title: '測試相簿', category: '班級主題', photoCount: 99, coverUrl: 'https://drive.google.com/thumbnail?id=FIXEDCOVER00001&sz=w600', coverCandidates: cands, folderUrl: 'https://drive.google.com/drive/folders/x', updatedAt: '2026-01-01' };
     const idOf = function (url) { return (url.match(/id=([A-Za-z0-9_-]+)/) || [])[1]; };
@@ -66,6 +68,7 @@
     const adminImg = document.querySelector('#adminAlbumsTableBody img');
     R.t14_adminFixed = { pass: !!adminImg && adminImg.getAttribute('src') === alb.coverUrl };
     state.cachedAlbums = savedAlbums; try { applyAlbumFilters(); } catch (e) {}
+    window.handleDataLoaded = realHDL;
     R.allPass = Object.keys(R).every(function (k) { return k === 'allPass' || (R[k] && R[k].pass === true); });
     return R;
   };
