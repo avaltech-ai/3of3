@@ -74,7 +74,7 @@
 - **預熱觸發器是否運作**：已請使用者重複按過選單；以「靜置 13 分鐘後 `getAppData` 是否仍快」間接驗證中，結果記於 `Progress.md`。
 
 ## 已完成
-- **P3 加到手機主畫面（PWA）**（2026-10-05，僅前端；**待使用者在實體 iPhone／Android 驗證**）：`manifest.webmanifest`（名稱「諾貝爾A」、`display: standalone`）、`icons/`（由 `logo-hires.png` 經 `tools/make_icons.py` 產生：白底，iPhone 會把透明區域顯示成黑色）、App 模式專用的標頭「↻」重新整理鈕與回到前景超過 5 分鐘自動同步。不做 service worker／離線快取。
+- **P3 加到手機主畫面（PWA）**（2026-10-05，僅前端；使用者已在實機驗證 App 模式沒問題）：`manifest.webmanifest`（名稱「諾貝爾A」、`display: standalone`）、`icons/`（由 `logo-hires.png` 經 `tools/make_icons.py` 產生：白底，iPhone 會把透明區域顯示成黑色）、App 模式專用的標頭「↻」重新整理鈕與回到前景超過 5 分鐘自動同步。不做 service worker／離線快取。
 - **P4 自動化測試（GitHub Actions）**（2026-10-05）：`.github/workflows/ci.yml` 在每次推送到 `main` 與 PR 執行 `bash tests/ci.sh`（語法、`index.html` 與建置一致、6 套 Node 測試）；本機也可直接跑同一支腳本。故意破壞 3 種（手改 `index.html`、弄壞程式行為、語法錯誤）都會失敗。
 - **P2 「NEW」標籤**（2026-10-05，僅前端）：相簿、文件、主題活動在最近 7 天內新增或更新時顯示紅色 NEW（中英文相同）。依 `updatedAt`（最後修改時間，修改舊資料也會重新標示）。活動（`Events`）沒有建立時間欄位，未納入。
 - 實體 iPad／iPhone Safari 驗收：使用者回報未發現問題（2026-10-05；清單見 `tests/safari-checklist.md`）。
