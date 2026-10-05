@@ -42,7 +42,10 @@
     window.prompt = function () { return ''; };
     window.open = function () { return null; };
 
-    var data = poison(JSON.parse(JSON.stringify(raw)), pass, '');
+    // 確保相簿資料帶有 coverCandidates 欄位，這樣候選照片的路徑也會被下毒測試（即使後端尚未提供該欄位）
+    var rawClone = JSON.parse(JSON.stringify(raw));
+    (rawClone.albums || []).forEach(function (a) { if (!a.coverCandidates) a.coverCandidates = ['PLACEHOLDERCANDIDATE0001', 'PLACEHOLDERCANDIDATE0002']; });
+    var data = poison(rawClone, pass, '');
     function step(name, fn) { try { fn(); } catch (e) { errors.push(name + ': ' + (e && e.message)); } }
 
     state.adminPassword = 'x'.repeat(64);

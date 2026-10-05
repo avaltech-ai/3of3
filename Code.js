@@ -110,6 +110,7 @@ function onOpen() {
       .createMenu('🌟 諾貝爾A班專屬功能')
       .addItem('📁 立即建立／檢查相簿工作表 (AlbumCategories 與 Albums)', 'menuEnsureAlbumSheets')
       .addItem('🔄 清除快取並強制重新整理', 'menuClearCache')
+      .addItem('🖼️ 重建相簿封面候選（每天輪替封面用）', 'menuRebuildCoverCandidates')
       .addItem('💾 立即備份試算表', 'menuBackupNow')
       .addItem('🔓 解除後台登入鎖定', 'menuResetLoginLock')
       .addItem('🚀 一鍵初始化／重設資料庫 (5大工作表與示範資料)', 'menuResetDatabase')
@@ -806,6 +807,130 @@ function getAppData() {
   }
 }
 
+// -------------------------------------------------------------
+// 相簿封面候選（每天固定一張，由前端依日期挑選）
+// -------------------------------------------------------------
+const COVER_CANDIDATE_MAX = 12;                 // 每本相簿最多保留幾張候選照片
+const COVER_CANDIDATES_HEADER = 'coverCandidates';
+
+/** 列出資料夾內所有圖片（依 Drive 回傳順序）；回傳 [{ id, name }] */
+function listAlbumImageEntries_(folder) {
+  const out = [];
+  const files = folder.getFiles();
+  while (files.hasNext()) {
+    const file = files.next();
+    if (String(file.getMimeType()).indexOf('image/') === 0) out.push({ id: file.getId(), name: file.getName() });
+  }
+  return out;
+}
+
+/**
+ * 純函式：從圖片清單均勻取樣至多 max 張當封面候選。
+ * 先依檔名排序（檔名通常反映拍攝順序），再等距取樣，讓候選涵蓋整場活動的不同時段；
+ * 結果只與清單內容有關，與 Drive 的回傳順序無關，且一定是不重複的有效 ID。
+ */
+function sampleCoverCandidates_(entries, max) {
+  const m = (typeof max === 'number' && max > 0) ? Math.min(Math.floor(max) || 1, COVER_CANDIDATE_MAX) : COVER_CANDIDATE_MAX;   // 不是正數一律用預設值
+  const seen = {};
+  const list = (entries || []).filter(function(e) {
+    const id = e && String(e.id || '');
+    if (!id || !/^[A-Za-z0-9_-]{10,100}$/.test(id) || seen[id]) return false;
+    seen[id] = true;
+    return true;
+  }).sort(function(a, b) {
+    const an = String(a.name || ''), bn = String(b.name || '');
+    return an < bn ? -1 : (an > bn ? 1 : (a.id < b.id ? -1 : 1));
+  });
+  if (list.length <= m) return list.map(function(e) { return e.id; });
+  const step = list.length / m;
+  const out = [];
+  for (let i = 0; i < m; i++) out.push(list[Math.min(list.length - 1, Math.floor(i * step + step / 2))].id);
+  return out;
+}
+
+/** 解析試算表儲存格內容為候選 ID 陣列；任何格式錯誤、非法 ID 一律丟棄，最多 COVER_CANDIDATE_MAX 筆 */
+function parseCoverCandidates_(val) {
+  let arr = [];
+  if (Array.isArray(val)) arr = val;
+  else if (typeof val === 'string' && val.trim()) {
+    try { const p = JSON.parse(val); if (Array.isArray(p)) arr = p; } catch (e) { arr = []; }
+  }
+  const seen = {};
+  const out = [];
+  for (let i = 0; i < arr.length && out.length < COVER_CANDIDATE_MAX; i++) {
+    const id = typeof arr[i] === 'string' ? arr[i].trim() : '';
+    if (/^[A-Za-z0-9_-]{10,100}$/.test(id) && !seen[id]) { seen[id] = true; out.push(id); }
+  }
+  return out;
+}
+
+/** 確保 Albums 工作表有 coverCandidates 欄，回傳該欄的位置（從 1 起算） */
+function ensureAlbumCoverColumn_(sheet) {
+  const lastCol = Math.max(1, sheet.getLastColumn());
+  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(function(h) { return String(h).trim(); });
+  const idx = headers.indexOf(COVER_CANDIDATES_HEADER);
+  if (idx > -1) return idx + 1;
+  const col = lastCol + 1;
+  sheet.getRange(1, col).setValue(COVER_CANDIDATES_HEADER).setFontWeight('bold').setBackground('#CCFBF1');
+  return col;
+}
+
+/** 寫入某本相簿的封面候選（只改這一格，不動其他欄位）；找不到該相簿回傳 false */
+function setAlbumCoverCandidates_(albumsSheet, albumId, ids) {
+  const data = albumsSheet.getDataRange().getValues();
+  const headers = data[0].map(function(h) { return String(h).trim(); });
+  const idIdx = headers.indexOf('id');
+  if (idIdx === -1) return false;
+  for (let r = 1; r < data.length; r++) {
+    if (String(data[r][idIdx]) === String(albumId)) {
+      const col = ensureAlbumCoverColumn_(albumsSheet);
+      albumsSheet.getRange(r + 1, col).setNumberFormat('@').setValue(JSON.stringify(parseCoverCandidates_(ids)));
+      return true;
+    }
+  }
+  return false;
+}
+
+/** 為 Albums 表中所有相簿（重新）建立封面候選。回傳 { updated, skipped, errors } */
+function rebuildAlbumCoverCandidates_() {
+  const ss = getSpreadsheet();
+  const sheet = ss ? ss.getSheetByName('Albums') : null;
+  const res = { updated: 0, skipped: 0, errors: [] };
+  if (!sheet) return res;
+  const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return res;
+  const headers = data[0].map(function(h) { return String(h).trim(); });
+  const idIdx = headers.indexOf('id');
+  if (idIdx === -1) return res;
+  for (let r = 1; r < data.length; r++) {
+    const albumId = String(data[r][idIdx] || '').trim();
+    if (!albumId) { res.skipped++; continue; }
+    try {
+      const folder = DriveApp.getFolderById(albumId);
+      const ids = sampleCoverCandidates_(listAlbumImageEntries_(folder));
+      if (ids.length > 0 && setAlbumCoverCandidates_(sheet, albumId, ids)) res.updated++; else res.skipped++;
+    } catch (e) {
+      res.errors.push(albumId + ': ' + e);
+    }
+  }
+  clearAppDataCache();
+  return res;
+}
+
+/** 試算表選單：重建所有相簿的封面候選（只能在試算表介面由擁有者按下） */
+function menuRebuildCoverCandidates() {
+  const ui = SpreadsheetApp.getUi();
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(30000)) { ui.alert('⚠️ 系統目前忙碌（可能有人正在上傳相簿），請稍後再試。'); return; }
+  try {
+    const res = rebuildAlbumCoverCandidates_();
+    ui.alert('✅ 封面候選已重建\\n\\n成功：' + res.updated + ' 本\\n略過：' + res.skipped + ' 本' + (res.errors.length ? '\\n失敗：' + res.errors.length + ' 本（請查看執行記錄）' : ''));
+    if (res.errors.length) console.warn('rebuildAlbumCoverCandidates_ errors: ' + res.errors.join(' | '));
+  } finally {
+    lock.releaseLock();
+  }
+}
+
 /**
  * 取得相簿清單（整合 Google Sheets Albums 資料表與 Google Drive Albums 資料夾）
  */
@@ -896,6 +1021,7 @@ function getAlbums() {
         folderName: folderName,
         photoCount: photoCount,
         coverUrl: coverUrl,
+        coverCandidates: parseCoverCandidates_(existing && existing.coverCandidates),
         folderUrl: subFolder.getUrl(),
         updatedAt: existing && existing.updatedAt ? existing.updatedAt : subFolder.getDateCreated().toISOString()
       };
@@ -927,6 +1053,7 @@ function getAlbums() {
           folderName: sAlb.folderName || sAlb.title,
           photoCount: parseInt(sAlb.photoCount || 0, 10),
           coverUrl: sAlb.coverUrl || '',
+          coverCandidates: parseCoverCandidates_(sAlb.coverCandidates),
           folderUrl: sAlb.folderUrl || '',
           updatedAt: sAlb.updatedAt || ''
         });
@@ -1198,19 +1325,14 @@ function uploadPhotosChunk(param1, param2, param3, param4) {
     // 若為最後一批，計算實際相片總數以確保 100% 精確，並清除快取
     if (isLastChunk) {
       try {
-        let preciseCount = 0;
+        const imageEntries = listAlbumImageEntries_(targetFolder);
+        const preciseCount = imageEntries.length;
         let finalCover = firstCoverUrl;
-        const allFiles = targetFolder.getFiles();
-        while (allFiles.hasNext()) {
-          const file = allFiles.next();
-          if (file.getMimeType().indexOf('image/') === 0) {
-            preciseCount++;
-            if (!finalCover) {
-              finalCover = 'https://drive.google.com/thumbnail?id=' + file.getId() + '&sz=w600';
-            }
-          }
+        if (!finalCover && imageEntries.length > 0) {
+          finalCover = 'https://drive.google.com/thumbnail?id=' + imageEntries[0].id + '&sz=w600';
         }
         currentTotal = preciseCount;
+        const coverCandidateIds = sampleCoverCandidates_(imageEntries);
 
         if (ss) {
           const albumsSheet = ss.getSheetByName('Albums');
@@ -1228,6 +1350,8 @@ function uploadPhotosChunk(param1, param2, param3, param4) {
                 break;
               }
             }
+            // 封面候選失敗不得影響上傳結果（前端會退回固定封面）
+            try { setAlbumCoverCandidates_(albumsSheet, albumId, coverCandidateIds); } catch (candErr) { console.warn('Cover candidates skipped: ' + candErr); }
           }
         }
       } catch (e) {
@@ -1387,6 +1511,7 @@ function uploadPhotosToAlbum(param1, param2, param3, param4, param5, param6) {
         const newRow = headers.map(h => rowData[h] !== undefined ? rowData[h] : '');
         albumsSheet.appendRow(newRow);
       }
+      try { setAlbumCoverCandidates_(albumsSheet, folderId, sampleCoverCandidates_(listAlbumImageEntries_(targetFolder))); } catch (candErr) { console.warn('Cover candidates skipped: ' + candErr); }
       clearAppDataCache();
     }
 
@@ -2853,7 +2978,7 @@ function ensureAlbumSheetsExist() {
   }
 
   // 2. 確保 Albums 工作表存在（相簿資料庫紀錄）
-  const targetHeaders = ['id', 'category', 'title', 'folderName', 'photoCount', 'coverUrl', 'folderUrl', 'updatedAt'];
+  const targetHeaders = ['id', 'category', 'title', 'folderName', 'photoCount', 'coverUrl', 'folderUrl', 'updatedAt', 'coverCandidates'];
   let albumsSheet = ss.getSheetByName('Albums');
   if (albumsSheet) {
     const data = albumsSheet.getDataRange().getValues();

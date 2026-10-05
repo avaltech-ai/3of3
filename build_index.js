@@ -2490,6 +2490,32 @@ const htmlContent = `<!DOCTYPE html>
       '<rect x="190" y="150" width="220" height="150" rx="26" fill="#FBC4B6"/><rect x="240" y="126" width="70" height="34" rx="10" fill="#FBC4B6"/>' +
       '<circle cx="300" cy="225" r="46" fill="#FFF1EC" stroke="#F08A7A" stroke-width="10"/></svg>');
 
+    // 相簿封面「每天固定一張」：依「日期＋相簿編號」決定性地從後端提供的候選清單挑一張。
+    // 同一天所有訪客看到相同封面（瀏覽器可快取、不會每次重新整理就閃動），隔天自動換。
+    // 候選為空、格式不符或載入失敗時，一律退回固定封面 coverUrl（不會比原本更糟）。
+    function fnv1a32(str) {
+      let h = 2166136261;
+      const s = String(str);
+      for (let i = 0; i < s.length; i++) {
+        h ^= s.charCodeAt(i);
+        h = Math.imul(h, 16777619) >>> 0;
+      }
+      return h >>> 0;
+    }
+    function localDateKey(d) {
+      const x = d || new Date();
+      return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0');
+    }
+    function pickDailyCoverUrl(alb, dateKey) {
+      const fixed = (alb && alb.coverUrl) || ALBUM_COVER_PLACEHOLDER;
+      const raw = (alb && Array.isArray(alb.coverCandidates)) ? alb.coverCandidates : [];
+      const cands = raw.filter(function(id) { return typeof id === 'string' && /^[A-Za-z0-9_-]{10,100}$/.test(id); });
+      if (cands.length === 0) return { url: fixed, fallback: '' };
+      const idx = fnv1a32((dateKey || localDateKey()) + '|' + String(alb.id)) % cands.length;
+      const url = 'https://drive.google.com/thumbnail?id=' + cands[idx] + '&sz=w600';
+      return { url: url, fallback: (fixed !== url ? fixed : '') };
+    }
+
     // ==================== 輸出跳脫（XSS 防護） ====================
     // 凡是「來自試算表／使用者輸入」的字串，放進 HTML 之前一律經過下列函式：
     //   esc(s)     → 放進 HTML 文字內容或屬性值（&、<、>、雙引號、單引號都會被轉義）
@@ -4736,14 +4762,15 @@ const htmlContent = `<!DOCTYPE html>
       }
 
       albums.forEach(alb => {
-        const cover = alb.coverUrl || ALBUM_COVER_PLACEHOLDER;
+        const coverPick = pickDailyCoverUrl(alb);
+        const cover = coverPick.url;
         const badgeClass = getAlbumCategoryBadgeClass(alb.category);
         const safeTitle = jsq(alb.title || t('ui.albumDefaultTitle'));
 
         grid.innerHTML += \`
           <div class="bg-white rounded-3xl p-3 border border-slate-200/80 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer tap-bounce" onclick="openAlbumPhotos('\${jsq(alb.id)}', '\${safeTitle}')">
             <div class="aspect-[4/3] rounded-2xl overflow-hidden bg-slate-100 relative">
-              <img src="\${escUrl(cover)}" alt="\${esc(alb.title)}" class="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300">
+              <img src="\${escUrl(cover)}" data-fb="\${escUrl(coverPick.fallback)}" onerror="if(this.dataset.fb &amp;&amp; this.src !== this.dataset.fb){this.src = this.dataset.fb;}" alt="\${esc(alb.title)}" class="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300">
               
               <!-- 右上角：照片數量 -->
               <div class="absolute top-2 right-2 bg-black/60 text-white text-[0.6875rem] font-bold px-2 py-0.5 rounded-full backdrop-blur-xs flex items-center gap-1 shadow-xs">

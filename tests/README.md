@@ -12,6 +12,12 @@ node tests/idempotency.test.js
 ```
 驗證同一個 `idempotencyKey` 只執行一次、失敗不快取、無效 token 不洩漏、格式不合法的編號被忽略、期限與大小限制。修改 `Code.js` 的 `doPost` 後必跑。
 
+## 1c. 相簿封面候選後端測試（Node，約 1 秒）
+```bash
+node tests/covers.test.js
+```
+驗證封面候選的取樣（均勻、決定性、與輸入順序無關）、解析（惡意或壞掉的儲存格內容被過濾）、試算表欄位處理（只寫單格、不動其他欄位）、重建功能（單一相簿失敗不中斷其他）、上傳最後區塊自動建立候選（失敗不影響上傳）、`getAlbums` 回傳（共 48 項）。修改 `Code.js` 的相簿相關程式後必跑。
+
 ## 2. 前端 XSS 偵測器（瀏覽器內執行）
 `tests/xss_harness.js` 會把**真實資料的每個文字欄位**換成攻擊字串，驅動所有畫面渲染，再檢查：
 是否有被注入的元素、事件屬性（onclick 等）是否能被跳出而執行任意程式、網址是否為 `javascript:`。
@@ -59,6 +65,15 @@ const rep = await window.__i18nAudit(window.__raw);   // rep.items = 仍是中�
 判讀時要排除「刻意保留」的項目：語言切換鈕上的「繁體中文」、切換鈕的中英並列提示、焦點活動的內容文字。管理後台約 220 筆尚未翻譯（刻意：後台使用者為中文教師）。新增畫面或文字後，公開頁面的漏翻譯應維持在 0（刻意保留者除外）。
 
 > 注意：`xss_harness.js` 會把「被下毒的測試資料」載入頁面。**執行完請重新整理頁面，再跑其他測試**（否則歌曲選取測試等會因資料被污染而誤判失敗）。`songs_selection.js` 需從中文介面開始執行。
+
+## 5. 相簿封面每日輪替前端測試（瀏覽器內執行）
+`tests/covers_frontend.js` 驗證每天固定一張（決定性、每天輪替、分佈不偏斜、不同相簿不同）、備援（無候選、惡意候選、圖片載入失敗自動退回固定封面，含真實網路失敗）、實際渲染（重新渲染封面不變）、後台維持固定封面。
+```js
+// 開啟 http://localhost:8765/index.html，等相簿載入後：
+(0, eval)(await (await fetch('/tests/covers_frontend.js')).text());
+console.log(await window.__coverFrontendTest());   // allPass 應為 true
+```
+注意：測試用的候選 ID 是假的，渲染後必須「立即同步讀取」圖片網址（否則瀏覽器收到錯誤、備援先動作，會誤判）；測試中已處理。
 
 ## 新增畫面時的跳脫規則（build_index.js）
 - 放進 HTML 文字或屬性值：`esc(值)`
