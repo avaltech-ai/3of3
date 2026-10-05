@@ -1390,14 +1390,42 @@ function getAlbums() {
 const ALBUM_PHOTOS_TTL_SEC = 3600;      // 相簿照片清單快取 1 小時（寫入時會清除；預熱觸發器會補建）
 const ALBUM_PHOTOS_CACHE_MAX = 90000;  // CacheService 單筆上限 100KB，超過就不快取（仍可正常回傳）
 
+/**
+ * 安全性：getAlbumPhotos 是公開匿名入口，只能列出「已登記在 Albums 工作表」的相簿資料夾。
+ * 否則任何人只要拿到某個 Drive 資料夾 ID，就能請本帳號代為列出該資料夾的檔案。
+ * 先查 getAppData 快取（命中時不碰試算表），查不到再讀 Albums 工作表（剛新增的相簿）；任何錯誤一律視為不允許。
+ */
+function isRegisteredAlbumId_(id) {
+  try {
+    const cached = CacheService.getScriptCache().get('app_data_v4');
+    if (cached) {
+      const albums = (JSON.parse(cached).data || {}).albums || [];
+      if (albums.some(function(a) { return a && String(a.id).trim() === id; })) return true;
+    }
+  } catch (e) {}
+  try {
+    const ss = getSpreadsheet();
+    const sheet = ss && ss.getSheetByName('Albums');
+    if (!sheet) return false;
+    return getSheetDataAsObjects(sheet).some(function(r) { return String(r.id || '').trim() === id; });
+  } catch (e) {
+    return false;
+  }
+}
+
 function getAlbumPhotos(albumFolderId) {
-  const cacheKey = /^[A-Za-z0-9_-]{10,100}$/.test(String(albumFolderId || '')) ? 'albph_' + albumFolderId : null;
+  const idStr = String(albumFolderId || '').trim();
+  const cacheKey = /^[A-Za-z0-9_-]{10,100}$/.test(idStr) ? 'albph_' + idStr : null;
   if (cacheKey) {
     try {
       const hit = CacheService.getScriptCache().get(cacheKey);
-      if (hit) return JSON.parse(hit);
+      if (hit) return JSON.parse(hit); // 只有通過下面登記檢查的相簿才會進快取
     } catch (e) {}
   }
+  if (!cacheKey || !isRegisteredAlbumId_(idStr)) {
+    return { success: false, error: '找不到相簿', photos: [] };
+  }
+  albumFolderId = idStr;
   try {
     const folder = DriveApp.getFolderById(albumFolderId);
     const files = folder.getFiles();
