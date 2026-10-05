@@ -111,6 +111,9 @@ function onOpen() {
       .addItem('📁 立即建立／檢查相簿工作表 (AlbumCategories 與 Albums)', 'menuEnsureAlbumSheets')
       .addItem('🔄 清除快取並強制重新整理', 'menuClearCache')
       .addItem('🔤 同步名稱對照表（中英文名稱）', 'menuSyncNameMap')
+      .addItem('🌐 同步英文翻譯（活動、菜單等自由文字）', 'menuSyncTextMap')
+      .addItem('🤖 產生英文草稿（機器翻譯，不會公開）', 'menuDraftTextMap')
+      .addItem('✅ 採用全部英文草稿（核對後公開）', 'menuAdoptTextDrafts')
       .addItem('🖼️ 重建相簿封面候選（每天輪替封面用）', 'menuRebuildCoverCandidates')
       .addItem('⚡ 啟用網頁快取預熱（每 5 分鐘，載入更快）', 'menuSetupWarmCache')
       .addItem('💾 立即備份試算表', 'menuBackupNow')
@@ -238,6 +241,12 @@ function warmAppDataCache() {
   } catch (e) {
     console.warn('warmAlbumPhotos_ failed: ' + e);
   }
+  try {
+    clearTextMapCache_();
+    getTextMap();
+  } catch (e) {
+    console.warn('warm text map failed: ' + e);
+  }
 }
 
 /**
@@ -276,7 +285,7 @@ function doGet(e) {
   // 自動檢查相簿與分類工作表是否已建立。
   // getAppData 不在這裡檢查：快取命中時完全不碰試算表（開試算表偶爾卡 20 秒以上甚至更久，會拖累每位使用者），
   // 快取未命中時 getAppData 自己會呼叫 ensureDatabaseInitialized 做同樣的檢查。
-  const skipEnsure = !!(e && e.parameter && (e.parameter.action === 'getAppData' || e.parameter.action === 'getCalendarIcs'));
+  const skipEnsure = !!(e && e.parameter && (e.parameter.action === 'getAppData' || e.parameter.action === 'getCalendarIcs' || e.parameter.action === 'getTextMap'));
   if (!skipEnsure) {
     try {
       ensureAlbumSheetsExist();
@@ -306,6 +315,8 @@ function doGet(e) {
     try {
       if (action === 'getAppData') {
         result = getAppData();
+      } else if (action === 'getTextMap') {
+        result = getTextMap();
       } else if (action === 'getAlbums') {
         result = getAlbums();
       } else if (action === 'getAlbumPhotos') {
@@ -645,6 +656,7 @@ function clearAppDataCache() {
     const cache = CacheService.getScriptCache();
     cache.remove('app_data_v3');
     cache.remove('app_data_v4');
+    cacheRemoveLarge_('text_map_v1'); // 英文對照快取
     // 相簿照片清單快取也一併清除（上傳／刪除相片、手動「清除快取」後立即生效）
     const keysJson = cache.get('albph_keys');
     if (keysJson) {
@@ -1250,6 +1262,380 @@ function menuSyncNameMap() {
     if (r.issues.length) { lines.push('', '⚠️ 發現 ' + r.issues.length + ' 個資料問題（詳見 NameMap 的 note 欄）：'); r.issues.slice(0, 6).forEach(function(m) { lines.push('・' + m); }); if (r.issues.length > 6) lines.push('…其餘請看 note 欄'); }
     lines.push('', '英文填好後，前台最多 5 分鐘內生效（或選「清除快取」立即生效）。');
     ui.alert(lines.join('\n'));
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// -------------------------------------------------------------
+// 自由文字英文對照表（TextMap）：活動、每日菜單、主題活動、焦點活動、相簿標題、常用文件的中文文字 → 英文。
+// 與 NameMap 同樣做法：以「中文原文」為索引（菜單重複的菜名只需翻一次；老師改了中文原文，舊翻譯自動不再套用）。
+// 欄位：zh（中文原文，多行文字以「行」為單位）、en（老師確認的正式英文，公開顯示）、draft（機器翻譯草稿，預設不公開）、used_in、note。
+// 英文只在前台切到英文介面時才由 getTextMap 載入（獨立快取，不放進 getAppData，避免逼近 100KB 快取上限）。
+// -------------------------------------------------------------
+const TEXT_MAP_SHEET = 'TextMap';
+const TEXT_MAP_HEADERS = ['zh', 'en', 'draft', 'used_in', 'note'];
+const TEXT_MAP_MAX_ROWS = 3000;        // 對照表列數上限
+const TEXT_MAP_MAX_LEN = 600;          // 單筆英文長度上限
+const TEXT_MAP_CACHE_KEY = 'text_map_v1';
+const TEXT_MAP_DRAFT_BATCH = 80;       // 每次最多產生幾筆機器草稿
+const TEXT_MAP_DRAFT_BUDGET_MS = 240000; // 單次執行最多花 4 分鐘（GAS 上限 6 分鐘）
+const TEXT_MAP_UNUSED = '（目前沒有使用）';
+
+// 資料表 → 前台會顯示的自由文字欄位
+const TEXT_SOURCES_ = [
+  ['events', ['title', 'description', 'timeLocation', 'theme', 'calendarPrompt'], '活動'],
+  ['menus', ['morningSnack', 'fruit', 'lunchStaple', 'lunchMain', 'lunchSide1', 'lunchSide2', 'lunchSoup', 'afternoonSnack', 'note'], '每日菜單'],
+  ['themes', ['themeName', 'name', 'themeConcept', 'concept'], '主題活動'],
+  ['spotlights', ['title', 'subtitle', 'tags', 'bulletPoints'], '焦點活動'],
+  ['albums', ['title'], '相簿標題'],
+  ['docs', ['fileName', 'description'], '常用文件']
+];
+const TEXT_FIELD_LABELS_ = {
+  title: '標題', description: '說明', timeLocation: '時間地點', theme: '學期主題', calendarPrompt: '日曆提示',
+  morningSnack: '早點', fruit: '水果', lunchStaple: '主食', lunchMain: '主菜', lunchSide1: '副菜', lunchSide2: '副菜', lunchSoup: '湯品', afternoonSnack: '午點', note: '備註',
+  themeName: '名稱', name: '名稱', themeConcept: '概念', concept: '概念', subtitle: '副標題', tags: '標籤', bulletPoints: '重點', fileName: '名稱'
+};
+
+function normalizeText_(s) {
+  return String(s === undefined || s === null ? '' : s).replace(/[\s　]+/g, ' ').trim();
+}
+
+/** 一段文字拆成「行」為單位的條目（已正規化、去空行）。多行欄位（如焦點活動重點）每行各自對照。 */
+function textUnits_(value) {
+  return String(value === undefined || value === null ? '' : value).split(/\r?\n/).map(normalizeText_).filter(Boolean);
+}
+
+/** 只含日期、時間、星期的條目（例如「2026/10/07（三）11:40」）不需要翻譯。 */
+function textIsDateLike_(u) {
+  const rest = u.replace(/[（(][一二三四五六日][）)]/g, '').replace(/星期[一二三四五六日]|週[一二三四五六日]/g, '').replace(/[0-9\s\/\-:：.~～()（）,，]/g, '');
+  return rest === '';
+}
+
+function textNeedsTranslation_(u) {
+  return !!u && hasCjk_(u) && !textIsDateLike_(u);
+}
+
+/** 掃描 getAppData 資料，找出前台會顯示、含中文、需要翻譯的文字。回傳 { units: { 文字: { labels: [...] } }, order: [...] } */
+function collectTextSources_(data) {
+  const units = {}, order = [];
+  const add = function(raw, label) {
+    textUnits_(raw).forEach(function(u) {
+      if (!textNeedsTranslation_(u) || u === '__proto__') return;
+      if (!Object.prototype.hasOwnProperty.call(units, u)) { units[u] = { labels: [] }; order.push(u); }
+      if (units[u].labels.indexOf(label) === -1) units[u].labels.push(label);
+    });
+  };
+  const d = data || {};
+  TEXT_SOURCES_.forEach(function(src) {
+    (d[src[0]] || []).forEach(function(row) {
+      if (!row) return;
+      src[1].forEach(function(f) { add(row[f], src[2] + '：' + (TEXT_FIELD_LABELS_[f] || f)); });
+    });
+  });
+  (d.themes || []).forEach(function(th) {
+    (th && Array.isArray(th.goals) ? th.goals : []).forEach(function(g) {
+      if (!g) return;
+      add(g.activity, '主題活動：活動目標');
+      add(g.course, '主題活動：課程目標');
+    });
+  });
+  return { units: units, order: order };
+}
+
+function ensureTextMapSheet_(ss) {
+  let sh = ss.getSheetByName(TEXT_MAP_SHEET);
+  if (!sh) {
+    sh = ss.insertSheet(TEXT_MAP_SHEET);
+    sh.appendRow(TEXT_MAP_HEADERS);
+    sh.getRange(1, 1, 1, TEXT_MAP_HEADERS.length).setFontWeight('bold').setBackground('#E0E7FF');
+  }
+  const lastCol = Math.max(1, sh.getLastColumn());
+  const headers = sh.getRange(1, 1, 1, lastCol).getValues()[0].map(function(h) { return String(h).trim(); });
+  const cols = {};
+  TEXT_MAP_HEADERS.forEach(function(h) {
+    let i = headers.indexOf(h);
+    if (i === -1) {
+      i = headers.length;
+      headers.push(h);
+      sh.getRange(1, i + 1).setValue(h).setFontWeight('bold').setBackground('#E0E7FF');
+    }
+    cols[h] = i + 1;
+  });
+  return { sheet: sh, cols: cols };
+}
+
+/** 強制重讀最新資料（不用快取）。失敗就拋錯。 */
+function getAppDataFresh_() {
+  APP_DATA_FORCE_REFRESH_ = true;
+  try {
+    const res = getAppData();
+    if (!res || !res.success || !res.data) throw new Error('讀取資料失敗：' + (res && res.error));
+    return res.data;
+  } finally {
+    APP_DATA_FORCE_REFRESH_ = false;
+  }
+}
+
+/** 試算表儲存格以文字處理，避免以 = + - @ 開頭的內容被當成公式 */
+function textCellSafe_(v) {
+  const t = String(v === undefined || v === null ? '' : v);
+  return /^[=+\-@]/.test(t) ? "'" + t : t;
+}
+
+/**
+ * 同步 TextMap：補齊新文字（en、draft 留空）、更新「出處」；絕不覆蓋或清除任何一列的 en 與 draft。
+ * 回傳 { added, total, missingEn, withDraft, unused, capped }。
+ */
+function syncTextMap_() {
+  const ss = getSpreadsheet();
+  const data = getAppDataFresh_();
+  const collected = collectTextSources_(data);
+  const ens = ensureTextMapSheet_(ss);
+  const sh = ens.sheet, cols = ens.cols;
+  const width = Math.max(sh.getLastColumn(), TEXT_MAP_HEADERS.length);
+  const rows = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, width).getValues() : [];
+  const rowOf = {};
+  rows.forEach(function(row, i) {
+    const z = normalizeText_(row[cols.zh - 1]);
+    if (z && !Object.prototype.hasOwnProperty.call(rowOf, z)) rowOf[z] = i;
+  });
+  if (rows.length > 0) {
+    const usedCol = rows.map(function(row) {
+      const z = normalizeText_(row[cols.zh - 1]);
+      const rec = z && Object.prototype.hasOwnProperty.call(collected.units, z) ? collected.units[z] : null;
+      return [rec ? rec.labels.join('、') : (z ? TEXT_MAP_UNUSED : '')];
+    });
+    sh.getRange(2, cols.used_in, rows.length, 1).setValues(usedCol);
+  }
+  const append = [];
+  let capped = false;
+  collected.order.forEach(function(z) {
+    if (Object.prototype.hasOwnProperty.call(rowOf, z)) return;
+    if (rows.length + append.length >= TEXT_MAP_MAX_ROWS) { capped = true; return; }
+    const row = new Array(width).fill('');
+    row[cols.zh - 1] = textCellSafe_(z);
+    row[cols.used_in - 1] = collected.units[z].labels.join('、');
+    append.push(row);
+  });
+  if (append.length > 0) {
+    const start = sh.getLastRow() + 1;
+    [cols.zh, cols.en, cols.draft].forEach(function(c) { sh.getRange(start, c, append.length, 1).setNumberFormat('@'); });
+    sh.getRange(start, 1, append.length, width).setValues(append);
+  }
+  const report = { added: append.length, total: rows.length + append.length, missingEn: 0, withDraft: 0, unused: 0, capped: capped };
+  rows.concat(append).forEach(function(row) {
+    const z = normalizeText_(row[cols.zh - 1]);
+    if (!z) return;
+    if (!Object.prototype.hasOwnProperty.call(collected.units, z)) { report.unused++; return; }
+    if (!normalizeText_(row[cols.en - 1])) { report.missingEn++; if (normalizeText_(row[cols.draft - 1])) report.withDraft++; }
+  });
+  clearTextMapCache_();
+  return report;
+}
+
+/** 機器翻譯（Apps Script 內建 LanguageApp，免金鑰）。回傳清理過的英文，失敗回傳 ''。 */
+function machineTranslateZhToEn_(zh) {
+  const out = LanguageApp.translate(zh, 'zh-TW', 'en');
+  return String(out === undefined || out === null ? '' : out).replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, TEXT_MAP_MAX_LEN);
+}
+
+/**
+ * 為「目前有使用、en 與 draft 都空白」的列產生機器翻譯草稿（只寫 draft 欄，不動 en）。
+ * 每次最多 limit 筆、最多 TEXT_MAP_DRAFT_BUDGET_MS 毫秒；遇到額度用盡就停止。回傳 { drafted, remaining, errors, stoppedByQuota }。
+ */
+function draftTextMap_(limit) {
+  const ss = getSpreadsheet();
+  const ens = ensureTextMapSheet_(ss);
+  const sh = ens.sheet, cols = ens.cols;
+  const width = Math.max(sh.getLastColumn(), TEXT_MAP_HEADERS.length);
+  const rows = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, width).getValues() : [];
+  const max = (typeof limit === 'number' && limit > 0) ? Math.min(Math.floor(limit), TEXT_MAP_DRAFT_BATCH) : TEXT_MAP_DRAFT_BATCH;
+  const started = Date.now();
+  const pending = [];
+  rows.forEach(function(row, i) {
+    const z = normalizeText_(row[cols.zh - 1]);
+    if (!z || normalizeText_(row[cols.en - 1]) || normalizeText_(row[cols.draft - 1])) return;
+    if (normalizeText_(row[cols.used_in - 1]) === TEXT_MAP_UNUSED) return;
+    pending.push({ rowIndex: i + 2, zh: z });
+  });
+  const res = { drafted: 0, remaining: 0, errors: 0, stoppedByQuota: false };
+  for (let k = 0; k < pending.length; k++) {
+    if (res.drafted >= max || Date.now() - started > TEXT_MAP_DRAFT_BUDGET_MS) break;
+    let en = '';
+    try {
+      en = machineTranslateZhToEn_(pending[k].zh);
+    } catch (e) {
+      res.errors++;
+      if (/quota|limit|too many|Service invoked too many/i.test(String(e))) { res.stoppedByQuota = true; break; }
+      continue;
+    }
+    if (!en || en === pending[k].zh) { res.errors++; continue; }
+    sh.getRange(pending[k].rowIndex, cols.draft).setNumberFormat('@').setValue(textCellSafe_(en));
+    res.drafted++;
+  }
+  res.remaining = Math.max(0, pending.length - res.drafted - res.errors);
+  clearTextMapCache_();
+  return res;
+}
+
+/** 把「en 空白、draft 有內容」的列，一次把 draft 複製成 en（老師核對草稿後使用）。回傳採用筆數。 */
+function adoptTextDrafts_() {
+  const ss = getSpreadsheet();
+  const ens = ensureTextMapSheet_(ss);
+  const sh = ens.sheet, cols = ens.cols;
+  const width = Math.max(sh.getLastColumn(), TEXT_MAP_HEADERS.length);
+  const rows = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, width).getValues() : [];
+  let n = 0;
+  rows.forEach(function(row, i) {
+    const draft = normalizeText_(row[cols.draft - 1]);
+    if (!draft || normalizeText_(row[cols.en - 1])) return;
+    sh.getRange(i + 2, cols.en).setNumberFormat('@').setValue(textCellSafe_(draft));
+    n++;
+  });
+  clearTextMapCache_();
+  return n;
+}
+
+/** { 正規化中文: 英文 }：只含 en 有填的列；useDraft 為真時，en 空白的列改用 draft。 */
+function getTextMapForApp_(ss, useDraft) {
+  const out = {};
+  try {
+    const sh = ss ? ss.getSheetByName(TEXT_MAP_SHEET) : null;
+    if (!sh || sh.getLastRow() < 2) return out;
+    const values = sh.getDataRange().getValues();
+    const headers = values[0].map(function(h) { return String(h).trim(); });
+    const zi = headers.indexOf('zh'), ei = headers.indexOf('en'), di = headers.indexOf('draft');
+    if (zi === -1 || ei === -1) return out;
+    let count = 0;
+    for (let r = 1; r < values.length && count < TEXT_MAP_MAX_ROWS; r++) {
+      const zh = normalizeText_(values[r][zi]);
+      let en = normalizeText_(values[r][ei]);
+      if (!en && useDraft && di !== -1) en = normalizeText_(values[r][di]);
+      en = en.replace(/[\u0000-\u001f\u007f]/g, '').slice(0, TEXT_MAP_MAX_LEN);
+      if (!zh || !en || zh === '__proto__' || Object.prototype.hasOwnProperty.call(out, zh)) continue;
+      out[zh] = en;
+      count++;
+    }
+  } catch (e) {
+    console.warn('getTextMapForApp_ failed: ' + e);
+  }
+  return out;
+}
+
+// 大型快取：CacheService 單筆上限 100KB（位元組），中文每字最多 3 位元組，所以以 24000 字元為一塊分段存放
+const CACHE_CHUNK_CHARS = 24000;
+
+function cachePutLarge_(key, str, ttl) {
+  try {
+    const n = Math.max(1, Math.ceil(str.length / CACHE_CHUNK_CHARS));
+    if (n > 20) return;
+    const obj = {};
+    for (let i = 0; i < n; i++) obj[key + '_' + i] = str.slice(i * CACHE_CHUNK_CHARS, (i + 1) * CACHE_CHUNK_CHARS);
+    obj[key + '_n'] = String(n);
+    CacheService.getScriptCache().putAll(obj, ttl);
+  } catch (e) {}
+}
+
+function cacheGetLarge_(key) {
+  try {
+    const cache = CacheService.getScriptCache();
+    const n = Number(cache.get(key + '_n'));
+    if (!n || n < 1 || n > 20) return null;
+    let s = '';
+    for (let i = 0; i < n; i++) {
+      const part = cache.get(key + '_' + i);
+      if (part === null || part === undefined) return null;   // 少一塊就視為沒有快取
+      s += part;
+    }
+    return s;
+  } catch (e) {
+    return null;
+  }
+}
+
+function cacheRemoveLarge_(key) {
+  try {
+    const cache = CacheService.getScriptCache();
+    const n = Number(cache.get(key + '_n')) || 0;
+    const keys = [key + '_n'];
+    for (let i = 0; i < Math.min(n, 20); i++) keys.push(key + '_' + i);
+    cache.removeAll(keys);
+  } catch (e) {}
+}
+
+function clearTextMapCache_() {
+  cacheRemoveLarge_(TEXT_MAP_CACHE_KEY);
+}
+
+function textSettingTrue_(v) {
+  return ['TRUE', '1', 'YES', 'Y', '是'].indexOf(String(v === undefined || v === null ? '' : v).trim().toUpperCase()) !== -1;
+}
+
+/** 公開唯讀：回傳英文對照 { success, map, count }。Settings 的 SHOW_MACHINE_TRANSLATION 為 TRUE 時，en 空白的列改用機器草稿。 */
+function getTextMap() {
+  try {
+    const cached = cacheGetLarge_(TEXT_MAP_CACHE_KEY);
+    if (cached) return JSON.parse(cached);
+    const ss = getSpreadsheet();
+    if (!ss) throw new Error('no spreadsheet');
+    const settings = getSettingsObject(ss.getSheetByName('Settings'));
+    const map = getTextMapForApp_(ss, textSettingTrue_(settings.SHOW_MACHINE_TRANSLATION));
+    const result = { success: true, map: map, count: Object.keys(map).length };
+    cachePutLarge_(TEXT_MAP_CACHE_KEY, JSON.stringify(result), APP_DATA_CACHE_TTL_SEC);
+    return result;
+  } catch (e) {
+    return { success: false, error: String(e), map: {} };
+  }
+}
+
+function textMapAlertLines_(r) {
+  const lines = ['新增文字：' + r.added + ' 筆（共 ' + r.total + ' 筆）', '尚未填英文：' + r.missingEn + ' 筆（其中已有機器草稿 ' + r.withDraft + ' 筆；前台暫時顯示中文）'];
+  if (r.unused) lines.push('目前沒有使用的文字：' + r.unused + ' 筆（保留不刪除）');
+  if (r.capped) lines.push('⚠️ 已達列數上限 ' + TEXT_MAP_MAX_ROWS + '，部分新文字未加入。');
+  return lines;
+}
+
+/** 試算表選單：同步英文對照表（掃描所有自由文字，新增尚未收錄的） */
+function menuSyncTextMap() {
+  const ui = SpreadsheetApp.getUi();
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(30000)) { ui.alert('⚠️ 系統目前忙碌，請稍後再試。'); return; }
+  try {
+    const r = syncTextMap_();
+    ui.alert(['✅ 英文對照表（TextMap）已同步', ''].concat(textMapAlertLines_(r)).concat(['', '下一步：選「產生英文草稿」，再到 TextMap 核對 draft 欄，確認後按「採用全部草稿」或自行填入 en 欄。']).join('\n'));
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/** 試算表選單：產生機器翻譯草稿（只寫 draft 欄，不會公開，也不動 en） */
+function menuDraftTextMap() {
+  const ui = SpreadsheetApp.getUi();
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(30000)) { ui.alert('⚠️ 系統目前忙碌，請稍後再試。'); return; }
+  try {
+    const r = draftTextMap_(TEXT_MAP_DRAFT_BATCH);
+    const lines = ['🤖 已產生機器翻譯草稿：' + r.drafted + ' 筆', '還有 ' + r.remaining + ' 筆尚未產生' + (r.remaining > 0 ? '（請再按一次）' : '')];
+    if (r.errors) lines.push('失敗或無法翻譯：' + r.errors + ' 筆');
+    if (r.stoppedByQuota) lines.push('⚠️ 已達 Google 翻譯的每日額度，請明天再繼續。');
+    lines.push('', '草稿只存在 draft 欄，前台不會顯示。請核對後再採用。');
+    ui.alert(lines.join('\n'));
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/** 試算表選單：把所有「en 空白、draft 有內容」的草稿一次採用為正式英文（會公開，請先核對） */
+function menuAdoptTextDrafts() {
+  const ui = SpreadsheetApp.getUi();
+  const res = ui.alert('採用全部英文草稿', '這會把所有「en 欄空白、draft 欄有內容」的草稿複製到 en 欄，英文介面就會公開顯示。\n\n請確認您已核對過 draft 欄的翻譯。要繼續嗎？', ui.ButtonSet.YES_NO);
+  if (res !== ui.Button.YES) return;
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(30000)) { ui.alert('⚠️ 系統目前忙碌，請稍後再試。'); return; }
+  try {
+    const n = adoptTextDrafts_();
+    ui.alert('✅ 已採用 ' + n + ' 筆草稿為正式英文。\n前台最多 10 分鐘內生效（或選「清除快取」立即生效）。');
   } finally {
     lock.releaseLock();
   }

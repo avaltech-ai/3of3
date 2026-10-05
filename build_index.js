@@ -2594,8 +2594,10 @@ const htmlContent = `<!DOCTYPE html>
       try {
         localStorage.setItem('nobel_a_lang', state.lang);
       } catch (e) {}
+      if (state.lang === 'en') primeTextMapFromStorage();
       applyTranslations();
       showToast(t('toasts.langSwitched'), '🌐');
+      loadTextMap();
     }
 
     // 全域應用狀態
@@ -2687,6 +2689,51 @@ const htmlContent = `<!DOCTYPE html>
       const n = String(name === undefined || name === null ? '' : name);
       if (state.lang !== 'en') return n;
       return nameEn(n) || n;
+    }
+
+    // ---------- 自由文字英文（TextMap）----------
+    // 活動、每日菜單、主題活動、焦點活動、相簿標題、常用文件的中文文字 → 老師確認過的英文。
+    // 只在英文介面才載入（getTextMap，獨立於 getAppData）；查不到的一律顯示中文原文。多行文字以「行」為單位對照。
+    const TEXT_MAP_STORAGE_KEY = 'nobel_a_text_map';
+
+    function textKey(s) {
+      return String(s === undefined || s === null ? '' : s).replace(/[\\s\\u3000]+/g, ' ').trim();
+    }
+
+    function tx(s) {
+      if (state.lang !== 'en' || s === undefined || s === null) return s;
+      const map = state.textMap;
+      if (!map || typeof map !== 'object') return s;
+      const raw = String(s);
+      if (raw.indexOf('\\n') === -1) {
+        const k = textKey(raw);
+        return k && Object.prototype.hasOwnProperty.call(map, k) ? map[k] : s;
+      }
+      return raw.split(/\\r?\\n/).map(function(line) {
+        const k = textKey(line);
+        return k && Object.prototype.hasOwnProperty.call(map, k) ? map[k] : line;
+      }).join('\\n');
+    }
+
+    // 先用上次存在瀏覽器的對照立即顯示（避免切到英文時先閃一下中文），再於背景更新
+    function primeTextMapFromStorage() {
+      if (state.textMap) return;
+      try {
+        const saved = JSON.parse(localStorage.getItem(TEXT_MAP_STORAGE_KEY) || 'null');
+        if (saved && saved.map && typeof saved.map === 'object') state.textMap = saved.map;
+      } catch (e) {}
+    }
+
+    function loadTextMap() {
+      if (state.lang !== 'en') return;
+      callBackend('getTextMap', {}, function(res) {
+        if (!res || !res.success || !res.map || typeof res.map !== 'object') return;
+        let same = false;
+        try { same = !!state.textMap && JSON.stringify(state.textMap) === JSON.stringify(res.map); } catch (e) {}
+        state.textMap = res.map;
+        try { localStorage.setItem(TEXT_MAP_STORAGE_KEY, JSON.stringify({ map: res.map, at: Date.now() })); } catch (e) {}
+        if (!same && state.lang === 'en') { try { applyTranslations(); } catch (e) {} }
+      }, function() { /* 失敗就維持現狀（中文或上次的對照），不打擾使用者 */ });
     }
 
     // 相簿封面「每天固定一張」：依「日期＋相簿編號」決定性地從後端提供的候選清單挑一張。
@@ -2813,12 +2860,14 @@ const htmlContent = `<!DOCTYPE html>
       showLoading(false);
 
       // 套用當前語系文字
+      primeTextMapFromStorage();
       applyTranslations();
       syncBigTextButton();
       initStandaloneSupport();
 
       // 2. 靜默在背景連線至雲端讀取最新資料庫並自動無縫更新（Stale-While-Revalidate）
       loadAppData(true);
+      loadTextMap();
     }
 
     if (document.readyState === 'loading') {
@@ -2862,6 +2911,7 @@ const htmlContent = `<!DOCTYPE html>
 
         if (action === 'getAppData') runner.getAppData();
         else if (action === 'getAlbums') runner.getAlbums();
+        else if (action === 'getTextMap') runner.getTextMap();
         else if (action === 'getAlbumPhotos') runner.getAlbumPhotos(payload.albumId);
         else if (action === 'verifyPassword') runner.verifyPassword(payload.password);
         else if (action === 'logout') runner.adminLogout(payload.password);
@@ -2887,7 +2937,7 @@ const htmlContent = `<!DOCTYPE html>
       } else {
         // 外部環境模式 (Netlify / GitHub Pages)
         
-        if (action === 'getAppData' || action === 'getAlbums' || action === 'getAlbumPhotos' || action === 'getActivityImages') {
+        if (action === 'getAppData' || action === 'getAlbums' || action === 'getAlbumPhotos' || action === 'getActivityImages' || action === 'getTextMap') {
           let url = GAS_API_URL + '?action=' + encodeURIComponent(action);
           if (payload && payload.albumId) url += '&albumId=' + encodeURIComponent(payload.albumId);
           
@@ -3118,13 +3168,13 @@ const htmlContent = `<!DOCTYPE html>
         const weekday = i >= 1 && i <= 5;
         if (!menu && !weekday) return;
         const dash = '—';
-        const lunch = menu ? [menu.lunchStaple, menu.lunchMain, menu.lunchSide1, menu.lunchSide2, menu.lunchSoup].map(function(x) { return String(x || '').trim(); }).filter(Boolean).join(isEn ? ', ' : '、') : '';
+        const lunch = menu ? [menu.lunchStaple, menu.lunchMain, menu.lunchSide1, menu.lunchSide2, menu.lunchSoup].map(function(x) { return String(tx(String(x || '').trim()) || ''); }).filter(Boolean).join(isEn ? ', ' : '、') : '';
         rows.push('<tr><td>' + esc(dStr.slice(5).replace('-', '/')) + ' (' + dayNames[i] + ')</td>' +
-          '<td>' + (esc(menu && menu.morningSnack) || dash) + '</td>' +
-          '<td>' + (esc(menu && menu.fruit) || dash) + '</td>' +
+          '<td>' + (esc(tx(menu && menu.morningSnack)) || dash) + '</td>' +
+          '<td>' + (esc(tx(menu && menu.fruit)) || dash) + '</td>' +
           '<td>' + (esc(lunch) || dash) + '</td>' +
-          '<td>' + (esc(menu && menu.afternoonSnack) || dash) + '</td>' +
-          '<td>' + (esc(menu && menu.note) || dash) + '</td></tr>');
+          '<td>' + (esc(tx(menu && menu.afternoonSnack)) || dash) + '</td>' +
+          '<td>' + (esc(tx(menu && menu.note)) || dash) + '</td></tr>');
       });
       const title = esc((isEn ? 'Taozihjiao Kindergarten · Nobel A · ' : '桃子腳幼兒園 諾貝爾 A 班　') + t('cal.printTitle'));
       const range = esc(dates[0].replace(/-/g, '/') + ' – ' + dates[6].replace(/-/g, '/'));
@@ -4084,7 +4134,7 @@ const htmlContent = `<!DOCTYPE html>
       const sp = activeList[currentSpotlightIndex];
 
       const titleEl = document.getElementById('spotlightTitle');
-      if (titleEl) titleEl.textContent = sp.title || t('ui.spotlightDefaultTitle');
+      if (titleEl) titleEl.textContent = tx(sp.title) || t('ui.spotlightDefaultTitle');
       
       const statusBadge = document.getElementById('spotlightStatusBadge');
       if (statusBadge) {
@@ -4122,7 +4172,7 @@ const htmlContent = `<!DOCTYPE html>
       }
 
       const subEl = document.getElementById('spotlightSubtitle');
-      if (subEl) subEl.textContent = sp.subtitle || '';
+      if (subEl) subEl.textContent = tx(sp.subtitle) || '';
 
       const durBadge = document.getElementById('spotlightDurationBadge');
       if (durBadge) {
@@ -4154,7 +4204,7 @@ const htmlContent = `<!DOCTYPE html>
       }
 
       renderSpotlightMedia(sp);
-      renderSpotlightPoints(sp.bulletPoints);
+      renderSpotlightPoints(tx(sp.bulletPoints));
       renderSpotlightDots(activeList.length, currentSpotlightIndex);
       startSpotlightTimer(sp.duration || 5, activeList.length);
     }
@@ -4347,7 +4397,7 @@ const htmlContent = `<!DOCTYPE html>
     function openSpotlightModal() {
       const activeList = filterActiveSpotlights(state.spotlights);
       const sp = activeList[currentSpotlightIndex] || state.spotlights[0] || {};
-      document.getElementById('modalSpotlightTitle').textContent = sp.title || t('ui.spotlightModalTitle');
+      document.getElementById('modalSpotlightTitle').textContent = tx(sp.title) || t('ui.spotlightModalTitle');
 
       const prevBtn = document.getElementById('modalSpotlightPrevBtn');
       const nextBtn = document.getElementById('modalSpotlightNextBtn');
@@ -4406,7 +4456,7 @@ const htmlContent = `<!DOCTYPE html>
         }
       }
 
-      document.getElementById('modalSpotlightDesc').textContent = sp.bulletPoints || t('ui.spotlightModalDesc');
+      document.getElementById('modalSpotlightDesc').textContent = tx(sp.bulletPoints) || t('ui.spotlightModalDesc');
       document.getElementById('spotlightModal').classList.remove('hidden');
     }
 
@@ -4608,7 +4658,7 @@ const htmlContent = `<!DOCTYPE html>
         const promptEvents = dayEvents.filter(e => (e.calendarPrompt || e['行事曆提示'] || '').trim());
         if (promptEvents.length > 0) {
           const banners = promptEvents.map(pe => {
-            const promptText = (pe.calendarPrompt || pe['行事曆提示']).trim();
+            const promptText = tx((pe.calendarPrompt || pe['行事曆提示']).trim());
             const isHighlight = (pe.target || '').includes('諾貝爾A') || (pe.target || '').includes('諾貝爾 A') || (pe.target || '').includes('諾A');
             return \`<div class="text-[0.625rem] tracking-tight leading-tight px-1.5 py-0.5 rounded break-words \${isHighlight ? 'bg-peach-500 text-white font-black' : 'bg-rose-100/80 text-rose-700 font-medium'}" title="\${esc(promptText)}">\${esc(promptText)}</div>\`;
           });
@@ -4761,13 +4811,13 @@ const htmlContent = `<!DOCTYPE html>
                 <div class="flex items-center gap-1.5 flex-wrap">
                   \${renderTargetBadges(ev.target)}
                 </div>
-                <span class="text-xs font-bold text-slate-500">\${esc(ev.timeLocation || '')}</span>
+                <span class="text-xs font-bold text-slate-500">\${esc(tx(ev.timeLocation || ''))}</span>
               </div>
               <h5 class="text-sm font-black text-slate-800 flex items-center gap-1.5 flex-wrap">
-                \${esc(ev.title)}
+                \${esc(tx(ev.title))}
                 \${eventMinorBadgeHtml(ev)}
               </h5>
-              \${ev.description ? \`<p class="text-xs text-slate-600 leading-relaxed font-medium bg-white/70 p-2.5 rounded-xl whitespace-pre-line">\${esc(ev.description)}</p>\` : ''}
+              \${ev.description ? \`<p class="text-xs text-slate-600 leading-relaxed font-medium bg-white/70 p-2.5 rounded-xl whitespace-pre-line">\${esc(tx(ev.description))}</p>\` : ''}
             </div>
           \`;
         });
@@ -4775,7 +4825,7 @@ const htmlContent = `<!DOCTYPE html>
 
       // 學期主題名稱
       const firstEvent = dayEvents[0];
-      const themeText = (firstEvent && firstEvent.theme) ? firstEvent.theme : '主題活動：人與自己／人與他人概念';
+      const themeText = (firstEvent && firstEvent.theme) ? tx(firstEvent.theme) : '主題活動：人與自己／人與他人概念';
       document.getElementById('themeNameText').textContent = themeText;
 
       // 2. 渲染菜單卡片
@@ -4803,11 +4853,11 @@ const htmlContent = `<!DOCTYPE html>
       } else {
         // 午餐內容整合
         const lunchItems = [
-          dayMenu.lunchStaple ? (isEn ? \`Staple: \${esc(dayMenu.lunchStaple)}\` : \`主食：\${esc(dayMenu.lunchStaple)}\`) : '',
-          dayMenu.lunchMain ? (isEn ? \`Main: \${esc(dayMenu.lunchMain)}\` : \`主菜：\${esc(dayMenu.lunchMain)}\`) : '',
-          dayMenu.lunchSide1 ? (isEn ? \`Side: \${esc(dayMenu.lunchSide1)}\` : \`副菜一：\${esc(dayMenu.lunchSide1)}\`) : '',
-          dayMenu.lunchSide2 ? (isEn ? \`Side: \${esc(dayMenu.lunchSide2)}\` : \`副菜二：\${esc(dayMenu.lunchSide2)}\`) : '',
-          dayMenu.lunchSoup ? (isEn ? \`Soup: \${esc(dayMenu.lunchSoup)}\` : \`湯品：\${esc(dayMenu.lunchSoup)}\`) : ''
+          dayMenu.lunchStaple ? (isEn ? \`Staple: \${esc(tx(dayMenu.lunchStaple))}\` : \`主食：\${esc(tx(dayMenu.lunchStaple))}\`) : '',
+          dayMenu.lunchMain ? (isEn ? \`Main: \${esc(tx(dayMenu.lunchMain))}\` : \`主菜：\${esc(tx(dayMenu.lunchMain))}\`) : '',
+          dayMenu.lunchSide1 ? (isEn ? \`Side: \${esc(tx(dayMenu.lunchSide1))}\` : \`副菜一：\${esc(tx(dayMenu.lunchSide1))}\`) : '',
+          dayMenu.lunchSide2 ? (isEn ? \`Side: \${esc(tx(dayMenu.lunchSide2))}\` : \`副菜二：\${esc(tx(dayMenu.lunchSide2))}\`) : '',
+          dayMenu.lunchSoup ? (isEn ? \`Soup: \${esc(tx(dayMenu.lunchSoup))}\` : \`湯品：\${esc(tx(dayMenu.lunchSoup))}\`) : ''
         ].filter(Boolean).join(isEn ? ', ' : '、');
 
         menuListEl.innerHTML = \`
@@ -4817,7 +4867,7 @@ const htmlContent = `<!DOCTYPE html>
               <span class="text-base">🥛</span>
               <div class="flex-1">
                 <span class="font-bold text-orange-900 text-xs">\${isEn ? 'Morning Snack (08:30): ' : '早點（08:30）：'}</span>
-                <span class="text-slate-700 font-medium">\${esc(dayMenu.morningSnack) || (isEn ? 'Nutritious Snack' : '營養早點')}</span>
+                <span class="text-slate-700 font-medium">\${esc(tx(dayMenu.morningSnack)) || (isEn ? 'Nutritious Snack' : '營養早點')}</span>
               </div>
             </div>
             <!-- 當季水果 -->
@@ -4825,7 +4875,7 @@ const htmlContent = `<!DOCTYPE html>
               <span class="text-base">🍎</span>
               <div class="flex-1">
                 <span class="font-bold text-rose-900 text-xs">\${isEn ? 'Seasonal Fruit: ' : '當季水果：'}</span>
-                <span class="text-slate-700 font-medium">\${esc(dayMenu.fruit) || (isEn ? 'Fresh Seasonal Fruit' : '新鮮當季水果')}</span>
+                <span class="text-slate-700 font-medium">\${esc(tx(dayMenu.fruit)) || (isEn ? 'Fresh Seasonal Fruit' : '新鮮當季水果')}</span>
               </div>
             </div>
             <!-- 午餐五菜一湯 -->
@@ -4841,11 +4891,11 @@ const htmlContent = `<!DOCTYPE html>
               <span class="text-base">🍰</span>
               <div class="flex-1">
                 <span class="font-bold text-teal-900 text-xs">\${isEn ? 'Afternoon Snack (14:30): ' : '午後點心（14:30）：'}</span>
-                <span class="text-slate-700 font-medium">\${esc(dayMenu.afternoonSnack) || (isEn ? 'Energizing Snack' : '自製活力點心')}</span>
+                <span class="text-slate-700 font-medium">\${esc(tx(dayMenu.afternoonSnack)) || (isEn ? 'Energizing Snack' : '自製活力點心')}</span>
               </div>
             </div>
           </div>
-          \${dayMenu.note ? \`<div class="text-xs font-bold text-amber-700 bg-amber-50 p-2 rounded-xl border border-amber-200 flex items-center gap-1">📌 \${isEn ? 'Note: ' : '備註：'}\${esc(dayMenu.note)}</div>\` : ''}
+          \${dayMenu.note ? \`<div class="text-xs font-bold text-amber-700 bg-amber-50 p-2 rounded-xl border border-amber-200 flex items-center gap-1">📌 \${isEn ? 'Note: ' : '備註：'}\${esc(tx(dayMenu.note))}</div>\` : ''}
         \`;
       }
     }
@@ -4873,8 +4923,8 @@ const htmlContent = `<!DOCTYPE html>
 
         const isToday = (dStr === state.selectedDateStr);
 
-        let eventsSummary = dayEvents.map(e => \`<span class="px-2 py-0.5 rounded text-[0.6875rem] font-bold bg-peach-100 text-peach-700 mr-1">\${esc(e.title)}</span>\`).join('') || ('<span class="text-slate-400 text-xs">' + (isEn ? 'Regular Routine' : '常態作息') + '</span>');
-        let lunchSummary = dayMenu ? (isEn ? \`Staple:\${esc(dayMenu.lunchStaple)} / Main:\${esc(dayMenu.lunchMain)} / Snack:\${esc(dayMenu.afternoonSnack)}\` : \`主食:\${esc(dayMenu.lunchStaple)} / 主菜:\${esc(dayMenu.lunchMain)} / 午點:\${esc(dayMenu.afternoonSnack)}\`) : (isEn ? 'No meals/Family Day' : '未供餐/家庭日');
+        let eventsSummary = dayEvents.map(e => \`<span class="px-2 py-0.5 rounded text-[0.6875rem] font-bold bg-peach-100 text-peach-700 mr-1">\${esc(tx(e.title))}</span>\`).join('') || ('<span class="text-slate-400 text-xs">' + (isEn ? 'Regular Routine' : '常態作息') + '</span>');
+        let lunchSummary = dayMenu ? (isEn ? \`Staple:\${esc(tx(dayMenu.lunchStaple))} / Main:\${esc(tx(dayMenu.lunchMain))} / Snack:\${esc(tx(dayMenu.afternoonSnack))}\` : \`主食:\${esc(tx(dayMenu.lunchStaple))} / 主菜:\${esc(tx(dayMenu.lunchMain))} / 午點:\${esc(tx(dayMenu.afternoonSnack))}\`) : (isEn ? 'No meals/Family Day' : '未供餐/家庭日');
 
         container.innerHTML += \`
           <div class="p-3.5 rounded-2xl border \${isToday ? 'bg-peach-50/80 border-peach-300' : 'bg-slate-50 border-slate-100'} flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 cursor-pointer hover:bg-peach-50 transition-colors" onclick="onDateClicked('\${dStr}')">
@@ -4937,13 +4987,13 @@ const htmlContent = `<!DOCTYPE html>
               </div>
               <div>
                 <div class="flex items-center gap-1.5 flex-wrap">
-                  <span class="text-xs font-bold \${isNobelA ? 'text-peach-600' : 'text-slate-800'}">\${esc(ev.title)}</span>
+                  <span class="text-xs font-bold \${isNobelA ? 'text-peach-600' : 'text-slate-800'}">\${esc(tx(ev.title))}</span>
                   \${eventMinorBadgeHtml(ev)}
                   <div class="inline-flex items-center gap-1 flex-wrap">
                     \${renderTargetBadges(ev.target, 'sm')}
                   </div>
                 </div>
-                <div class="text-xs text-slate-400 mt-0.5">\${esc(ev.description || ev.timeLocation) || (isEn ? 'Wonderful Learning Experience' : '精彩生活體驗')}</div>
+                <div class="text-xs text-slate-400 mt-0.5">\${esc(tx(ev.description || ev.timeLocation)) || (isEn ? 'Wonderful Learning Experience' : '精彩生活體驗')}</div>
               </div>
             </div>
             <span class="text-xs font-bold text-slate-400">\${isEn ? 'View ➔' : '點此查看 ➔'}</span>
@@ -5147,7 +5197,7 @@ const htmlContent = `<!DOCTYPE html>
       const filtered = allAlbums.filter(alb => {
         // 1. 關鍵字比對 (主題、類別、資料夾名稱)
         if (kw) {
-          const matchTitle = (alb.title || '').toLowerCase().includes(kw);
+          const matchTitle = (String(alb.title || '') + ' ' + String(tx(alb.title || '') || '')).toLowerCase().includes(kw);
           const matchCat = (alb.category || '').toLowerCase().includes(kw) || nameEn(alb.category).toLowerCase().includes(kw);
           const matchFolder = (alb.folderName || '').toLowerCase().includes(kw);
           if (!matchTitle && !matchCat && !matchFolder) return false;
@@ -5247,7 +5297,7 @@ const htmlContent = `<!DOCTYPE html>
         grid.innerHTML += \`
           <div class="bg-white rounded-3xl p-3 border border-slate-200/80 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer tap-bounce" onclick="openAlbumPhotos('\${jsq(alb.id)}', '\${safeTitle}')">
             <div class="aspect-[4/3] rounded-2xl overflow-hidden bg-slate-100 relative">
-              <img src="\${escUrl(cover)}" data-fb="\${escUrl(coverPick.fallback)}" onerror="if(this.dataset.fb &amp;&amp; this.src !== this.dataset.fb){this.src = this.dataset.fb;}" alt="\${esc(alb.title)}" class="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300">
+              <img src="\${escUrl(cover)}" data-fb="\${escUrl(coverPick.fallback)}" onerror="if(this.dataset.fb &amp;&amp; this.src !== this.dataset.fb){this.src = this.dataset.fb;}" alt="\${esc(tx(alb.title))}" class="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300">
               
               <!-- 右上角：照片數量 -->
               <div class="absolute top-2 right-2 bg-black/60 text-white text-[0.6875rem] font-bold px-2 py-0.5 rounded-full backdrop-blur-xs flex items-center gap-1 shadow-xs">
@@ -5262,7 +5312,7 @@ const htmlContent = `<!DOCTYPE html>
 
             <div class="pt-2.5 pb-0.5 px-1">
               <div class="flex items-center gap-1.5 min-w-0">
-                <h4 class="font-black text-slate-800 text-sm line-clamp-2 break-words" title="\${esc(alb.title)}">\${esc(alb.title)}</h4>
+                <h4 class="font-black text-slate-800 text-sm line-clamp-2 break-words" title="\${esc(tx(alb.title))}">\${esc(tx(alb.title))}</h4>
                 \${newBadgeHtml(alb.updatedAt)}
               </div>
             </div>
@@ -5278,7 +5328,7 @@ const htmlContent = `<!DOCTYPE html>
     const PHOTO_AUTO_PLAY_DELAY = 3000;
 
     function openAlbumPhotos(albumId, albumTitle) {
-      document.getElementById('modalAlbumTitle').textContent = albumTitle || t('ui.albumModalDefault');
+      document.getElementById('modalAlbumTitle').textContent = tx(albumTitle) || t('ui.albumModalDefault');
       const countBadge = document.getElementById('modalAlbumCount');
       if (countBadge) countBadge.textContent = '';
       const grid = document.getElementById('albumPhotosGrid');
@@ -5851,11 +5901,11 @@ const htmlContent = `<!DOCTYPE html>
           getDocFileIconHtml(doc) +
           '<div>' +
           '<div class="flex items-center gap-2 flex-wrap">' +
-          '<h4 class="font-black text-slate-800 text-sm sm:text-base">' + (esc(doc.fileName) || (state.lang === 'en' ? 'Untitled Document' : '未命名文件')) + '</h4>' +
+          '<h4 class="font-black text-slate-800 text-sm sm:text-base">' + (esc(tx(doc.fileName)) || (state.lang === 'en' ? 'Untitled Document' : '未命名文件')) + '</h4>' +
           '<span class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-indigo-100 text-indigo-800">' + (esc(tn(doc.category)) || (state.lang === 'en' ? 'General' : '一般')) + '</span>' +
           newBadgeHtml(doc.updatedAt) +
           '</div>' +
-          '<p class="text-xs text-slate-500 mt-1 leading-relaxed">' + (esc(doc.description) || (state.lang === 'en' ? 'Click to preview or download document' : '點擊即可線上下載或預覽文件')) + '</p>' +
+          '<p class="text-xs text-slate-500 mt-1 leading-relaxed">' + (esc(tx(doc.description)) || (state.lang === 'en' ? 'Click to preview or download document' : '點擊即可線上下載或預覽文件')) + '</p>' +
           '<div class="text-[0.6875rem] text-slate-400 mt-1">' + (state.lang === 'en' ? 'Updated: ' : '更新日期：') + esc(doc.updatedAt || '2026-09-01') + '</div>' +
           '</div>' +
           '</div>' +
@@ -9137,8 +9187,8 @@ const htmlContent = `<!DOCTYPE html>
         // Wait, requirements say "預設為展開的狀態" (default expanded)
         const isExpanded = allThemesExpanded || true; // Let's just make all expanded initially as requested, unless manually collapsed.
         // Actually, user requested "預設為展開的狀態", so we'll just expand all by default upon render if we don't track individual state.
-        const themeName = theme.themeName || theme.name || (state.lang === 'en' ? 'Untitled Theme' : '未命名主題');
-        const themeConcept = theme.themeConcept || theme.concept || '';
+        const themeName = tx(theme.themeName || theme.name) || (state.lang === 'en' ? 'Untitled Theme' : '未命名主題');
+        const themeConcept = tx(theme.themeConcept || theme.concept || '');
         const dateRangeStr = (theme.startDate ? (theme.startDate + (theme.endDate ? (' ~ ' + theme.endDate) : '')) : (theme.dateRange || ''));
         const photosList = theme.photos || theme.results || [];
         
@@ -9156,8 +9206,8 @@ const htmlContent = `<!DOCTYPE html>
                 <tbody class="divide-y divide-rose-100/50">
                   \${theme.goals.map(g => \`
                     <tr class="hover:bg-slate-50 transition-colors">
-                      <td class="px-4 py-3 align-top border-r border-rose-100 whitespace-pre-wrap">\${esc(g.activity)}</td>
-                      <td class="px-4 py-3 align-top whitespace-pre-wrap">\${esc(g.course)}</td>
+                      <td class="px-4 py-3 align-top border-r border-rose-100 whitespace-pre-wrap">\${esc(tx(g.activity))}</td>
+                      <td class="px-4 py-3 align-top whitespace-pre-wrap">\${esc(tx(g.course))}</td>
                     </tr>
                   \`).join('')}
                 </tbody>

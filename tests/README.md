@@ -121,4 +121,6 @@ console.log(await window.__nameMapFrontendTest());   // allPass 應為 true
 - `tests/sidebar.js`（瀏覽器，**視窗寬度需 ≥ 768**）：側邊欄對齊（切換頁籤後再量）與觸控裝置的展開／收合邏輯（18 項）。
 - `node tests/ics.test.js`：行事曆訂閱 `.ics`（篩選、全天事件日期含跨月跨年、逸出、位元組摺行、髒資料、`doGet` 唯讀動作與失敗備援，36 項；已納入 `tests/ci.sh`）。
 - `tests/subscribe.js`（瀏覽器）：訂閱按鈕與說明視窗（網址、`webcal://`、複製與備援、關閉、字典，15 項）。
+- `node tests/textmap.test.js`：自由文字英文 TextMap 後端（掃描、同步不覆蓋、機器草稿只寫 draft、採用草稿、回傳與大型分段快取、`doGet` 唯讀動作，65 項；已納入 `tests/ci.sh`）。
+- `tests/textmap_frontend.js`（瀏覽器）：`tx()` 查表與各顯示位置（活動、菜單、列印、焦點活動、相簿、文件、主題）、退回中文、跳脫、載入與快取（40 項）。
 
