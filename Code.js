@@ -169,7 +169,7 @@ function doGet(e) {
       .setMimeType(ContentService.MimeType.JSON);
   }
 
-  // 自動檢查資料庫是否已初始化，未初始化則自動建立
+  // 檢查並補齊缺少的相簿工作表（不會自動灌入示範資料）
   try {
     ensureDatabaseInitialized();
   } catch (err) {
@@ -2715,16 +2715,21 @@ function ensureAlbumSheetsExist() {
   };
 }
 
+/**
+ * 每次載入前的「無破壞性」檢查：只補齊缺少的相簿相關工作表。
+ * 重要：絕不在這裡自動灌入示範資料或清空任何工作表。
+ * （過去 Events 只剩標題列時會自動重灌示範資料，等於活動被刪光後會被假資料覆蓋。）
+ * 全新試算表的初始化只能由擁有者在試算表選單「一鍵初始化／重設資料庫」手動執行。
+ */
 function ensureDatabaseInitialized() {
   const ss = getSpreadsheet();
   if (!ss) return;
 
   const eventsSheet = ss.getSheetByName('Events');
-  if (!eventsSheet || eventsSheet.getLastRow() <= 1) {
-    setupInitialDatabase_();
-  } else {
-    ensureAlbumSheetsExist();
+  if (!eventsSheet) {
+    console.warn('Events 工作表不存在：請由試算表選單「一鍵初始化／重設資料庫」手動初始化。');
   }
+  ensureAlbumSheetsExist();
 }
 
 function normalizeDateString(val) {
