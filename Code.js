@@ -276,13 +276,27 @@ function doGet(e) {
   // 自動檢查相簿與分類工作表是否已建立。
   // getAppData 不在這裡檢查：快取命中時完全不碰試算表（開試算表偶爾卡 20 秒以上甚至更久，會拖累每位使用者），
   // 快取未命中時 getAppData 自己會呼叫 ensureDatabaseInitialized 做同樣的檢查。
-  const skipEnsure = !!(e && e.parameter && e.parameter.action === 'getAppData');
+  const skipEnsure = !!(e && e.parameter && (e.parameter.action === 'getAppData' || e.parameter.action === 'getCalendarIcs'));
   if (!skipEnsure) {
     try {
       ensureAlbumSheetsExist();
     } catch (err) {
       console.error('ensureAlbumSheetsExist in doGet failed: ' + err.toString());
     }
+  }
+
+  // 行事曆訂閱（唯讀）：回傳 iCalendar 文字，不是 JSON。資料來自 getAppData（快取命中時完全不碰試算表）。
+  if (e && e.parameter && e.parameter.action === 'getCalendarIcs') {
+    let ics;
+    try {
+      const app = getAppData();
+      if (!app || !app.success || !app.data) throw new Error('no data');
+      ics = buildIcs_(app.data.events || [], new Date());
+    } catch (err) {
+      console.error('getCalendarIcs failed: ' + err.toString());
+      ics = buildIcs_([], new Date()); // 失敗時回傳空行事曆，不要讓訂閱端出現錯誤頁
+    }
+    return ContentService.createTextOutput(ics).setMimeType(ContentService.MimeType.ICAL);
   }
 
   // 如果帶有 action 參數，則作為 REST API 回傳 JSON（支援 GitHub Pages 跨網域讀取）
@@ -320,6 +334,137 @@ function doGet(e) {
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
     .addMetaTag('viewport', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no')
     .setFaviconUrl('https://img.icons8.com/color/48/school.png');
+}
+
+// -------------------------------------------------------------
+// 行事曆訂閱（iCalendar / .ics）：只含與諾貝爾 A 班家長相關的活動（諾貝爾 A、全園、親職）。
+// 一律做成「全天事件」：時間地點欄位是自由文字（「17:00 開始」「連假三日」…），無法可靠解析成起訖時間，
+// 所以放進備註。純函式（輸入活動陣列與現在時間），方便測試。
+// -------------------------------------------------------------
+const ICS_MAX_EVENTS = 500;
+
+function icsNormalizeTarget_(t) {
+  return String(t || '').replace(/\s+/g, '');
+}
+
+/** 活動是否與諾貝爾 A 班家長相關：對象含全園、親職活動、諾貝爾 A（含「諾貝爾A班」「諾A」）；對象為空視為全園。 */
+function icsIsRelevantEvent_(ev) {
+  const raw = String((ev && ev.target) || '').trim();
+  if (!raw) return true;
+  const tokens = raw.split(/[,，、]+/).map(icsNormalizeTarget_).filter(Boolean);
+  if (tokens.length === 0) return true;
+  return tokens.some(function(tk) {
+    return tk.indexOf('全園') !== -1 || tk.indexOf('親職') !== -1 || tk.indexOf('諾貝爾A') !== -1 || tk === '諾A' || tk === '諾A班';
+  });
+}
+
+/** 轉成 YYYY-MM-DD；只接受 YYYY-MM-DD 開頭且是真實存在的日期，否則回傳 ''。 */
+function icsYmd_(v) {
+  const m = String(v === null || v === undefined ? '' : v).trim().match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
+  if (!m) return '';
+  const y = +m[1], mo = +m[2], d = +m[3];
+  const dt = new Date(Date.UTC(y, mo - 1, d));
+  if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== mo - 1 || dt.getUTCDate() !== d) return '';
+  return dt.toISOString().slice(0, 10);
+}
+
+function icsAddDays_(ymd, n) {
+  const p = ymd.split('-');
+  return new Date(Date.UTC(+p[0], +p[1] - 1, +p[2] + n)).toISOString().slice(0, 10);
+}
+
+/** 文字逸出（RFC 5545）：反斜線、分號、逗號、換行。 */
+function icsEscape_(s) {
+  return String(s === null || s === undefined ? '' : s)
+    .replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,')
+    .replace(/\r\n|\r|\n/g, '\\n');
+}
+
+/** 以 UTF-8 位元組數摺行（每行不超過 75 位元組，續行以空白開頭），不拆開多位元組字元。 */
+function icsFold_(line) {
+  const out = [];
+  let cur = '', curBytes = 0, limit = 75;
+  const chars = Array.from(line);
+  for (let i = 0; i < chars.length; i++) {
+    const ch = chars[i];
+    const b = ch.length === 0 ? 0 : (ch.charCodeAt(0) < 0x80 ? 1 : (ch.codePointAt(0) < 0x800 ? 2 : (ch.codePointAt(0) < 0x10000 ? 3 : 4)));
+    if (curBytes + b > limit) {
+      out.push(cur);
+      cur = ' ';
+      curBytes = 1;
+      limit = 75;
+    }
+    cur += ch;
+    curBytes += b;
+  }
+  out.push(cur);
+  return out.join('\r\n');
+}
+
+/** 「時間地點」欄位有時被試算表誤轉成日期（例如 1899-12-30），不能顯示。 */
+function icsCleanTimeLocation_(v) {
+  const t = String(v === null || v === undefined ? '' : v).trim();
+  if (!t) return '';
+  if (/^\d{4}-\d{2}-\d{2}(T.*)?$/.test(t)) return '';
+  return t;
+}
+
+function icsStamp_(d) {
+  return d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
+}
+
+function icsSimpleHash_(str) {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+  return ('00000000' + h.toString(16)).slice(-8);
+}
+
+function buildIcs_(events, now) {
+  const stamp = icsStamp_(now || new Date());
+  const lines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//3of3//Nobel A Class Calendar//ZH',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'X-WR-CALNAME:' + icsEscape_('桃子腳幼兒園 諾貝爾 A 班'),
+    'X-WR-TIMEZONE:Asia/Taipei',
+    'REFRESH-INTERVAL;VALUE=DURATION:PT6H',
+    'X-PUBLISHED-TTL:PT6H'
+  ];
+  let count = 0;
+  (events || []).forEach(function(ev) {
+    if (count >= ICS_MAX_EVENTS || !ev) return;
+    const start = icsYmd_(ev.date);
+    if (!start || !icsIsRelevantEvent_(ev)) return;
+    let end = icsYmd_(ev.endDate);
+    if (!end || end < start) end = start;
+    const title = String(ev.title || '').trim() || '活動';
+    const details = [];
+    const tl = icsCleanTimeLocation_(ev.timeLocation);
+    if (tl) details.push('時間地點：' + tl);
+    const desc = String(ev.description || '').trim();
+    if (desc) details.push(desc);
+    const target = String(ev.target || '').trim();
+    if (target) details.push('適用對象：' + target.split(/[,，、]+/).map(function(x) { return x.trim(); }).filter(Boolean).join('、'));
+    const minor = String(ev.categoryMinor || '').trim();
+    if (minor) details.push('類別：' + minor);
+    const uidBase = String(ev.id || '').trim() || (start + '-' + icsSimpleHash_(title));
+    lines.push('BEGIN:VEVENT');
+    const uidSafe = uidBase.replace(/[^A-Za-z0-9_.-]/g, '-') + (/[^A-Za-z0-9_.-]/.test(uidBase) ? '-' + icsSimpleHash_(uidBase) : '');
+    lines.push('UID:' + uidSafe + '@3of3.avaltech-ai.github.io');
+    lines.push('DTSTAMP:' + stamp);
+    lines.push('DTSTART;VALUE=DATE:' + start.replace(/-/g, ''));
+    lines.push('DTEND;VALUE=DATE:' + icsAddDays_(end, 1).replace(/-/g, ''));
+    lines.push('SUMMARY:' + icsEscape_(title));
+    if (details.length) lines.push('DESCRIPTION:' + icsEscape_(details.join('\n')));
+    if (minor) lines.push('CATEGORIES:' + icsEscape_(minor));
+    lines.push('TRANSP:TRANSPARENT');
+    lines.push('END:VEVENT');
+    count++;
+  });
+  lines.push('END:VCALENDAR');
+  return lines.map(icsFold_).join('\r\n') + '\r\n';
 }
 
 /**

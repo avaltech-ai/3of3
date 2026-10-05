@@ -276,3 +276,10 @@
   1. **對齊 bug**：`switchTab()` 切換頁籤時會用 JS 重寫每個頁籤按鈕的 `className`，其中寫的是 `px-2 py-2`，而 HTML 標記與底部的「大字」「語言切換」按鈕是 `px-1.5 py-1.5`——頁籤按鈕一旦被切換過，圖示與文字就比其他項目右移約 2.4px、列高也不同（47.5 vs 43px）。早先「側邊欄對齊」那次只改了標記、漏了這兩行 JS。已改為 `px-1.5 py-1.5`；實測所有項目圖示左緣 14.3px、文字左緣 47.5px，與標題列圖示一致。**教訓**：UI 的 class 若在標記與 JS 兩處各寫一份，改一處必漏另一處；用「切換過頁籤之後」再量一次對齊。
   2. **iPad 無法展開（可用性 bug，非程式錯誤）**：側邊欄原本只靠 `onmouseenter` 展開，iPad 沒有 hover，使用者只能去點蘑菇圖示右側看不見的圖釘邊緣。現在在**沒有 hover 的裝置且寬度 ≥ 768**（`@media (hover: none) and (min-width: 768px)`）才顯示明確的展開鈕「»」（展開後變「«」並顯示「收合選單」），同時讓圖釘常顯；點選單以外的地方或選了頁籤會自動收合，已釘選時不收合；手機（< 768）維持漢堡選單。滑鼠裝置完全不顯示該鈕、行為不變。新增 `tests/sidebar.js`（18 項，視窗需 ≥ 768；4 種破壞皆被抓到）。**未驗證**：實體 iPad 上（`hover: none` 的媒體查詢實際是否成立、點擊展開鈕與點外面收合的手感），桌面瀏覽器無法模擬 `hover: none`，只驗證了邏輯與樣式規則。
 - **iPad 實機驗證（2026-10-06，使用者回報）**：側邊欄對齊與觸控展開鈕驗證沒問題（上一條「未驗證」項目已完成）。
+- **行事曆訂閱 .ics（P1，2026-10-06，使用者決定範圍與內容）**：
+  - **後端**（`Code.js`）：`doGet` 新增**唯讀**動作 `getCalendarIcs`，回傳 `text/calendar`（`ContentService.MimeType.ICAL`），資料取自 `getAppData()`（快取命中時完全不碰試算表，且與 `getAppData` 一樣略過工作表檢查）；取資料失敗時回傳空的有效行事曆（訂閱端不會出現錯誤頁）。核心是純函式 `buildIcs_(events, now)`：只含與諾貝爾 A 班家長相關的活動（`icsIsRelevantEvent_`：對象含「全園」「親職」「諾貝爾 A」「諾 A」，對象為空視為全園；其他班專屬活動不含，29 筆中約排除 6 筆）；**一律全天事件**（`DTSTART;VALUE=DATE`、`DTEND` 為結束日隔天，連假／跨月／跨年皆驗證），因為 `timeLocation` 是自由文字（「17:00 開始」「連假三日」，甚至有試算表誤轉的 `1899-12-30`，後者會被濾掉）；`SUMMARY` 只放活動名稱，`DESCRIPTION` 放時間地點、說明、適用對象、類別；`TRANSP:TRANSPARENT`（不佔用家長的忙碌時段）；RFC 5545 逸出（反斜線、分號、逗號、換行）與**以 UTF-8 位元組摺行**（每行 ≤ 75 位元組，不拆壞中文字）；UID 穩定且僅含安全字元；上限 500 筆；`REFRESH-INTERVAL` 與 `X-PUBLISHED-TTL` 為 6 小時。
+  - **前端**：行事曆工具列下方「📆 訂閱行事曆」按鈕 → `#calendarSubscribeModal`（id 以 Modal 結尾，回到前景自動同步會視為使用者忙碌）：Apple 連結 `webcal://script.google.com/macros/s/…/exec?action=getCalendarIcs`、Google 行事曆「透過網址」步驟與複製鈕（`navigator.clipboard`，失敗退回 `execCommand`，再失敗提示手動複製）、說明「全天事件、Apple 數小時內同步、Google 可能 12～24 小時」。中英文字典齊全。
+  - **測試**：`tests/ics.test.js`（Node，36 項，7 種破壞皆被抓到，已納入 CI）、`tests/subscribe.js`（瀏覽器，15 項，3 種破壞皆被抓到）。
+  - **部署**：後端先（`clasp push`→管理部署作業→新版本），確認 `?action=getCalendarIcs` 回 `text/calendar` 後才推前端（否則按鈕指向的網址在後端尚未發布時會回 JSON「未知動作」）。
+  - **未驗證**：Apple 行事曆（`webcal://` 經 GAS 302 轉址）與 Google 行事曆（「透過網址」）實際能否訂閱、Content-Type 是否被接受、更新延遲；需使用者在實體手機／電腦實測。
+

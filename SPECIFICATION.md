@@ -1,7 +1,7 @@
 # 桃子腳幼兒園諾貝爾 A 班 - 系統需求規格書與維護架構指南
 **Project Requirements Specification & System Architecture Guide**
 
-> **版本**：v2.5.0 (2026 學年度最新穩定版；後端部署 @122)  
+> **版本**：v2.5.0 (2026 學年度最新穩定版；後端部署 @123)  
 > **發布日期**：2026-10-05  
 > **系統名稱**：新北市桃子腳非營利幼兒園 - 諾貝爾 A 班班級資訊網 (Nobel A Class Portal)  
 > **維護單位**：三之三生命教育基金會 / 資訊工程團隊  
@@ -51,6 +51,7 @@
    - 5.5～5.8 備份與還原、管理員認證、前端輸出跳脫（XSS）、冪等性
    - 5.9 後端快取、預熱與讀取重試／等待提示
    - 5.10 加到手機主畫面（PWA）與 App 模式
+   - 5.11 行事曆訂閱（iCalendar / .ics）
 
 ---
 
@@ -733,6 +734,16 @@ git push origin main
 - **圖示來源**：`logo-hires.png`（900×900 透明 PNG）→ `python3 tools/make_icons.py`（純標準函式庫）。換 logo 時重跑並執行 `node tests/pwa.test.js`。
 - **App 模式的差異**：沒有網址列與重新整理鈕（iPhone 也不能下拉更新）。因此：標頭有「↻」重新整理鈕（只在 App 模式顯示，`location.reload()`；手機絕對定位貼在標頭右上角不佔版面，md 以上排進版面）；回到前景且離開超過 5 分鐘（`FOREGROUND_SYNC_MS`）自動靜默同步資料，但管理員已登入或有彈窗開著時不同步；同步失敗提示改為「請點右上角 ↻」。判斷 App 模式：`navigator.standalone` 或 `matchMedia('(display-mode: standalone)')`。
 - **測試**：`node tests/pwa.test.js`（30 項，已納入 CI）、瀏覽器 `tests/standalone.js`（13 項）。實機的「加入主畫面」流程需手動驗證（iPhone：Safari 分享 → 加入主畫面）。
+
+### 5.11 行事曆訂閱（iCalendar / .ics）
+
+- **端點**：`GET <GAS /exec>?action=getCalendarIcs`（公開、唯讀；與網站資料相同，不含任何密碼或金鑰）。回傳 `text/calendar`；資料取自 `getAppData()`（快取命中時不碰試算表）；失敗時回傳空的有效行事曆。
+- **內容規則**（使用者決定）：只含與諾貝爾 A 班家長相關的活動——適用對象含「全園」「親職」「諾貝爾 A」「諾 A」，對象為空視為全園；只屬於其他班（米羅、雨果、雨奧、奧斯卡、諾奧、諾貝爾 B／C）的活動不含。標題只放活動名稱；備註放時間地點、說明、適用對象、類別。**一律全天事件**（`timeLocation` 為自由文字，無法可靠解析；被試算表誤轉成日期的值如 `1899-12-30` 會被濾掉）。`DTEND` 為結束日隔天；`TRANSP:TRANSPARENT`；上限 500 筆。
+- **格式**：CRLF、RFC 5545 文字逸出、以 UTF-8 位元組摺行（每行 ≤ 75 位元組）、UID 為 `<活動id>@3of3.avaltech-ai.github.io`（無 id 以日期＋標題雜湊）、`REFRESH-INTERVAL` 與 `X-PUBLISHED-TTL` 為 6 小時。實作：`buildIcs_()`、`icsIsRelevantEvent_()`、`icsFold_()` 等純函式。
+- **前端**：行事曆工具列下方「📆 訂閱行事曆」→ 說明視窗：Apple 用 `webcal://` 一鍵加入；Google 行事曆需複製網址後在電腦版「其他日曆 → 透過網址」貼上（手機版 Google 行事曆 App 不能直接以網址新增）。
+- **更新延遲**：Apple 行事曆約數小時；Google 行事曆常見 12～24 小時。這是訂閱機制本身的限制，不是網站問題。
+- **新增活動欄位或對象名稱時**：確認 `icsIsRelevantEvent_` 的判斷仍涵蓋（新增班級名稱預設不含，除非含上述關鍵字）。
+- **測試**：`node tests/ics.test.js`（已納入 CI）、瀏覽器 `tests/subscribe.js`。**實機訂閱（Apple／Google）需手動驗證**。
 
 ---
 

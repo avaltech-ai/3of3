@@ -485,6 +485,11 @@ const htmlContent = `<!DOCTYPE html>
             </button>
           </div>
         </div>
+        <div class="flex justify-end -mt-1 mb-1">
+          <button type="button" onclick="openCalendarSubscribe()" id="btnCalendarSubscribe" class="text-xs font-bold text-slate-600 hover:text-peach-600 px-2.5 py-1 rounded-lg bg-slate-50 hover:bg-peach-50 border border-slate-200 tap-bounce flex items-center gap-1 cursor-pointer">
+            <span>📆</span> <span data-i18n="cal.subscribeBtn">訂閱行事曆</span>
+          </button>
+        </div>
 
         <!-- 星期表頭 (週日為每週第一天) -->
         <div id="calendarWeekdaysHeader" class="grid grid-cols-7 gap-1 text-center font-bold text-xs">
@@ -1747,6 +1752,31 @@ const htmlContent = `<!DOCTYPE html>
   </div>
 
   <!-- ==================== 桃子腳幼兒園 完整 Google Drive 照片連結彈窗 ==================== -->
+  <!-- ==================== 訂閱行事曆說明視窗 ==================== -->
+  <div id="calendarSubscribeModal" class="fixed inset-0 z-60 modal-backdrop flex items-center justify-center p-3 sm:p-5 hidden select-none" onclick="if(event.target===this)closeCalendarSubscribe()">
+    <div class="bg-white rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl relative border border-slate-100 flex flex-col gap-3 max-h-[88vh] overflow-y-auto" onclick="event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="calSubTitle">
+      <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+        <h3 id="calSubTitle" class="text-base sm:text-lg font-black text-slate-800 flex items-center gap-2"><span>📆</span> <span data-i18n="cal.subscribeTitle">訂閱諾貝爾 A 班行事曆</span></h3>
+        <button type="button" onclick="closeCalendarSubscribe()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold tap-bounce shrink-0" title="關閉" data-i18n-title="ui.close" aria-label="關閉" data-i18n-aria="ui.close">✕</button>
+      </div>
+      <p class="text-xs text-slate-600 leading-relaxed" data-i18n="cal.subscribeIntro">訂閱後，園內活動會自動出現在您手機的行事曆，有更新時自動同步。只包含諾貝爾 A 班、全園與親職活動。</p>
+      <a id="calSubAppleLink" href="#" class="px-4 py-2.5 rounded-xl bg-peach-500 hover:bg-peach-600 text-white font-bold text-sm text-center shadow-sm tap-bounce" data-i18n="cal.subscribeApple">加入 iPhone／iPad／Mac 行事曆</a>
+      <div class="rounded-2xl bg-slate-50 border border-slate-200 p-3 space-y-2">
+        <div class="text-xs font-black text-slate-700" data-i18n="cal.subscribeGoogleTitle">Google 行事曆（Android／電腦）</div>
+        <ol class="text-xs text-slate-600 leading-relaxed list-decimal pl-4 space-y-0.5">
+          <li data-i18n="cal.subscribeStep1">複製下方訂閱網址</li>
+          <li data-i18n="cal.subscribeStep2">電腦開啟 calendar.google.com，左側「其他日曆」旁按「＋」→「透過網址」</li>
+          <li data-i18n="cal.subscribeStep3">貼上網址並按「新增日曆」</li>
+        </ol>
+        <div class="flex items-center gap-2">
+          <input id="calSubUrl" type="text" readonly class="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-slate-300 text-[0.6875rem] font-mono text-slate-600 bg-white" onfocus="this.select()" aria-label="訂閱網址" data-i18n-aria="cal.subscribeUrlLabel">
+          <button type="button" onclick="copyCalendarSubscribeUrl()" id="btnCalSubCopy" class="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-100 border border-slate-300 text-xs font-bold text-slate-700 tap-bounce shrink-0 cursor-pointer" data-i18n="cal.subscribeCopy">複製網址</button>
+        </div>
+      </div>
+      <p class="text-[0.6875rem] text-slate-400 leading-relaxed" data-i18n="cal.subscribeNote">活動以「全天事件」顯示，時間與地點請看活動備註。Apple 行事曆約數小時內同步；Google 行事曆的更新可能需要 12～24 小時才會出現。</p>
+    </div>
+  </div>
+
   <div id="fullDriveLinksModal" class="fixed inset-0 z-60 modal-backdrop flex items-center justify-center p-3 sm:p-5 hidden select-none" onclick="handleFullDriveModalBackdrop(event)">
     <div class="bg-white rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl relative border border-slate-100 flex flex-col gap-4 max-h-[85vh] overflow-y-auto" onclick="event.stopPropagation()">
       <!-- 標題與關閉按鈕 -->
@@ -2059,6 +2089,19 @@ const htmlContent = `<!DOCTYPE html>
           weekOverviewTitle: '本週生活與餐點總覽（週日～週六）',
           backToDayView: '返回單日點選',
           printWeekMenu: '列印本週菜單',
+          subscribeBtn: '訂閱行事曆',
+          subscribeTitle: '訂閱諾貝爾 A 班行事曆',
+          subscribeIntro: '訂閱後，園內活動會自動出現在您手機的行事曆，有更新時自動同步。只包含諾貝爾 A 班、全園與親職活動。',
+          subscribeApple: '加入 iPhone／iPad／Mac 行事曆',
+          subscribeGoogleTitle: 'Google 行事曆（Android／電腦）',
+          subscribeStep1: '複製下方訂閱網址',
+          subscribeStep2: '電腦開啟 calendar.google.com，左側「其他日曆」旁按「＋」→「透過網址」',
+          subscribeStep3: '貼上網址並按「新增日曆」',
+          subscribeUrlLabel: '訂閱網址',
+          subscribeCopy: '複製網址',
+          subscribeCopied: '已複製訂閱網址',
+          subscribeCopyFail: '無法自動複製，請長按網址欄位手動複製',
+          subscribeNote: '活動以「全天事件」顯示，時間與地點請看活動備註。Apple 行事曆約數小時內同步；Google 行事曆的更新可能需要 12～24 小時才會出現。',
           printNoMenu: '本週尚無菜單資料可列印',
           printTitle: '本週菜單',
           printColDate: '日期',
@@ -2272,6 +2315,19 @@ const htmlContent = `<!DOCTYPE html>
           weekOverviewTitle: 'Weekly Routine & Meals Overview',
           backToDayView: 'Back to Day View',
           printWeekMenu: 'Print weekly menu',
+          subscribeBtn: 'Subscribe to calendar',
+          subscribeTitle: 'Subscribe to the Nobel A calendar',
+          subscribeIntro: 'Once subscribed, school events appear in your phone calendar and stay in sync. Includes Nobel A, whole-school and parent events only.',
+          subscribeApple: 'Add to iPhone / iPad / Mac calendar',
+          subscribeGoogleTitle: 'Google Calendar (Android / computer)',
+          subscribeStep1: 'Copy the subscription URL below',
+          subscribeStep2: 'On a computer, open calendar.google.com, press the plus next to Other calendars, then From URL',
+          subscribeStep3: 'Paste the URL and press Add calendar',
+          subscribeUrlLabel: 'Subscription URL',
+          subscribeCopy: 'Copy URL',
+          subscribeCopied: 'Subscription URL copied',
+          subscribeCopyFail: 'Could not copy automatically. Long-press the URL field to copy it manually.',
+          subscribeNote: 'Events appear as all-day events; see the event notes for time and place. Apple Calendar syncs within hours; Google Calendar can take 12 to 24 hours to show changes.',
           printNoMenu: 'No menu data to print for this week',
           printTitle: 'Weekly Menu',
           printColDate: 'Date',
@@ -2998,6 +3054,42 @@ const htmlContent = `<!DOCTYPE html>
 
       // 提交後立即清除 form DOM
       setTimeout(() => { form.remove(); }, 100);
+    }
+
+    // ---------- 訂閱行事曆（.ics）----------
+    // 後端唯讀動作 getCalendarIcs 回傳 iCalendar。Apple 用 webcal://（一鍵加入）；Google 行事曆要貼網址。
+    function calendarSubscribeUrl() { return GAS_API_URL + '?action=getCalendarIcs'; }
+
+    function openCalendarSubscribe() {
+      const url = calendarSubscribeUrl();
+      const input = document.getElementById('calSubUrl');
+      if (input) input.value = url;
+      const apple = document.getElementById('calSubAppleLink');
+      if (apple) apple.href = 'webcal://' + url.replace(/^https?:\\/\\//, '');
+      const m = document.getElementById('calendarSubscribeModal');
+      if (m) m.classList.remove('hidden');
+    }
+
+    function closeCalendarSubscribe() {
+      const m = document.getElementById('calendarSubscribeModal');
+      if (m) m.classList.add('hidden');
+    }
+
+    function copyCalendarSubscribeUrl() {
+      const input = document.getElementById('calSubUrl');
+      const url = input ? input.value : calendarSubscribeUrl();
+      const fallback = function() {
+        try {
+          if (input) { input.focus(); input.select(); input.setSelectionRange(0, url.length); }
+          if (document.execCommand && document.execCommand('copy')) { showToast(t('cal.subscribeCopied'), '✅'); return; }
+        } catch (e) {}
+        showToast(t('cal.subscribeCopyFail'), 'ℹ️');
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(function() { showToast(t('cal.subscribeCopied'), '✅'); }).catch(fallback);
+      } else {
+        fallback();
+      }
     }
 
     // ---------- 列印本週菜單 ----------
