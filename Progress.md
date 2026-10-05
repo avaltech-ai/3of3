@@ -1,26 +1,89 @@
 # 3of3 Kindergarten Web App Progress & Lessons Learned
 
-## Current Project Status
-- **Architecture**: A serverless frontend deployed on GitHub Pages (from `avaltech-ai/3of3.git`; Netlify project removed 2026-10-05), connecting directly to a Google Apps Script (GAS) backend for all data needs.
-- **Frontend Framework**: Vanilla HTML/JS styled with TailwindCSS (via CDN). Single-page application logic defined in `build_index.js`, which generates `index.html`.
-- **Backend API**: Google Apps Script deployed as a Web App (access: "Anyone"). Handles GET and POST requests.
-- **Latest Features Implemented**:
-  - Header & Branding overhaul: 3&3 logo, official kindergarten badges, "Happy Life" capsule tag, and top-right admin login/logout controls.
-  - Complete Weekly Themes (主題活動) system with dual date pickers, dynamic semester selector, Google Drive thumbnail CDN rendering, and newest-first sorting (`sortThemesDesc`).
-  - Songs & Music Player (唱跳音符) duration fix and YouTube API batch duration sync (`batchUpdateSongDurations`).
-  - Navigation hierarchy realignment placing "主題活動" between "班級日常" and "影像記錄", with pixel-aligned sidebar header.
-  - iPad and tablet viewport optimization with compact 136px pinned sidebar and 48px collapsed rail.
-  - Footer contact information restyling with prominent rose-600 telephone and fax numbers.
-  - Bilingual UI Language Toggle (繁體中文 `zh-TW` & English `en`):
-    - Client-side dictionary system (`I18N`) supporting complete UI bilingual translation for all views: Navigation, Header, Spotlight, Calendar (Day/Week/Month), Themes, Albums, Songs, Docs, Admin, Footer, and Toast notifications.
-    - Sidebar toggle button at bottom of shared sidebar (`#desktopSidebar` / mobile drawer): displays `🌐 English` / `🌐 繁體中文` when expanded, and `🌐` when collapsed.
-    - 0-lag instant in-memory translation via `applyTranslations()` + auto-remember preference in `localStorage.getItem('nobel_a_lang')`.
-    - Dynamic views (calendar week/month views, filter tags, category pills, counts, and empty states) seamlessly update upon language change.
-  - Current GAS Backend deployed at version `@106`.
+## 📌 專案進度摘要（交接用，2026-10-05 更新）
+
+> **新對話接手時請先讀本節**，再視需要讀 `SPECIFICATION.md`（規格正本）與 `tests/README.md`（測試說明）。下方「Critical Technical Lessons Learned」第 1～21 條是歷史紀錄，**其中第 1、2、19 條已過時**（見各條註記）；第 21 條之後的條列為 2026-10-05 起的新增項目。
+
+### 一、目前狀態（一句話）
+**線上穩定，沒有待部署或待推送的項目。** `main` = `origin/main`；後端 GAS 現行部署 **@117「名稱對照表」**（另有不可刪的 `@HEAD`，共 2 個部署）；前端 GitHub Pages 為最新 commit。唯一待辦是**使用者自行填寫試算表 `NameMap` 的 13 個英文名稱**（見第七節）。
+
+### 二、系統概覽
+- **架構**：靜態前端（GitHub Pages，`https://avaltech-ai.github.io/3of3/`）＋ Google Apps Script Web App（唯一 `/exec` 端點）＋ Google Sheets（資料庫）＋ Google Drive（相片、文件、音訊）。**已無 Netlify**。
+- **原始碼**：前端只改 `build_index.js`（單一檔案），再執行 `node build_index.js` 產生 `index.html`（**禁止手改 `index.html`**）；後端為 `Code.js`；`logo_b64.txt` 是建置唯一依賴的資源檔。
+- **GitHub**：`avaltech-ai/3of3`（**公開 repo**，任何密碼、金鑰、token 都不得進 repo）。本機以 `gh auth setup-git` 管理憑證（帳號 `avaltech-ai`），remote 網址不含 token。
+- **環境**：Mac 沒有 Homebrew；Node 在 `~/.nvm/versions/node/v24.18.0/bin`（指令前要 `export PATH="$HOME/.nvm/versions/node/v24.18.0/bin:$PATH"`）；`clasp` 已登入。管理員密碼存在試算表 `Settings!ADMIN_PASSWORD`，**不在任何文件或程式碼中**。
+- **規模參考**：`getAppData` 回應 61.8KB（`CacheService` 單筆上限 100KB，餘裕約 38KB）；相簿 12 本、照片約 2,686 張；現場列出一本 470 張相簿約 6.5～7.4 秒（所以任何「載入時現場掃 Drive」的做法都不可行）。
+
+### 三、已完成項目（2026-10-05 一輪）
+- **資安**：撤銷外洩的 GitHub token；封死 `doGet`／`doPost` 的免密碼危險路徑（`setupInitialDatabase` 等）；移除預設密碼後門並換密碼；移除 17 個仍帶舊漏洞的舊 GAS 部署；登入改**短效 token**（閒置 2 小時、絕對 8 小時、`sessionStorage`）＋錯 5 次鎖 15 分鐘；`checkPassword` 只認 token；變更密碼需 ≥10 字元並使所有 token 失效；前端全站輸出跳脫（`esc()`／`jsq()`／`escUrl()`，修補前實測 HTML 注入類 61 處可被攻破、現為 0）。
+- **穩定性**：寫入互斥鎖（`LockService`，20 秒）；冪等性（`idempotencyKey`，防逾時重送與相簿上傳區塊重試造成重複寫入）；每週日 03:00 自動備份試算表到 Drive「桃子腳幼兒園/Backup」（保留 8 份、私人資料夾）；修好整個前端 script 無法執行的語法錯誤（`\n` 在模板字串內需寫成 `\\n`）；不再自動灌入示範資料；移除前端與相簿的假示範資料與網路圖庫連結。
+- **功能與介面**：側邊欄對齊（釘選寬度 152px）；唱跳音符手機版面重排；選取數量／播放內容改為只看目前篩選範圍；焦點活動標籤中英文都不再含「Spotlight」；**公開頁面介面文字全面接上語系字典**（63 處漏翻譯 → 6 處刻意保留）；**相簿封面每天固定一張**（`Albums.coverCandidates`，每本最多 12 張候選，前台依日期＋相簿編號挑選，載入失敗退回固定封面）；**名稱對照表 `NameMap`**（試算表維護的類別、學期、活動對象的英文顯示；英文欄空白則顯示中文）。
+- **效能評估（量測後決定不做）**：Tailwind 預先編譯（桌面量測現場編譯成本很小）；`innerHTML` 全面改 `textContent`（已有跳脫工具與偵測器把關）。已做的低風險改善：Tailwind 改用固定版本網址 `cdn.tailwindcss.com/3.4.17`（**該 CDN 無 CORS 標頭，不可加 SRI，否則整站失去樣式**）。
+
+### 四、測試與驗證工具（`tests/`，每次改動前後都要跑）
+| 檔案 | 類型 | 內容 | 結果 |
+| :-- | :-- | :-- | :-- |
+| `auth.test.js` | Node | 登入 token、鎖定、變更密碼、備份間隔保護 | 44 通過 |
+| `idempotency.test.js` | Node | 冪等去重 | 21 通過 |
+| `covers.test.js` | Node | 相簿封面候選（取樣、解析、重建、上傳整合） | 48 通過 |
+| `namemap.test.js` | Node | 名稱對照表（正規化、掃描、同步、回傳過濾） | 43 通過 |
+| `xss_harness.js` | 瀏覽器 | 全欄位下毒的 XSS 偵測器（A～E 攻擊類型＋L 正常字元不得雙重跳脫） | A～E 全 0 |
+| `songs_selection.js` | 瀏覽器 | 歌曲選取數量／播放內容連動（14 項） | 全過 |
+| `covers_frontend.js` | 瀏覽器 | 封面每日輪替與備援（15 項） | 全過 |
+| `namemap_frontend.js` | 瀏覽器 | 名稱對照前台顯示、搜尋、安全（25 項） | 全過 |
+| `i18n_audit.js` | 瀏覽器 | 英文介面漏翻譯稽核 | 公開頁面剩 6 處（刻意保留） |
+
+- **Node 測試**：`node tests/xxx.test.js`。**瀏覽器測試**用法見 `tests/README.md`（`python3 -m http.server 8765` 後在頁面內執行）。
+- **測試品質做法**：重要測試都用「故意破壞程式」（變異測試）驗證抓得到；曾因此抓出一個恆為真的斷言。
+- **瀏覽器測試的陷阱**：① `xss_harness` 跑完會把「被下毒的資料」留在頁面，**要重新整理再跑其他測試**；② 測試期間必須擋住背景雲端更新（`handleDataLoaded`），否則更新完成時會把測試資料／畫面洗掉造成誤判（`covers_frontend`、`namemap_frontend` 已處理）；③ 封面測試用假的候選 ID，渲染後要「立即同步讀取」；④ `songs_selection` 需從中文介面開始。
+
+### 五、標準作業流程（SOP）
+1. 修改 `build_index.js`／`Code.js` → `node build_index.js` 重新建置。
+2. 驗證：`node --check`（Code.js 與抽出的內嵌 script）＋相關 Node 測試＋瀏覽器測試（含 XSS 偵測、必要時 i18n 稽核）。
+3. 提交：`git add -A && git commit`（commit 訊息結尾加 `Co-Authored-By` 行）。
+4. **部署順序：後端先、前端後**（除非該次標示可顛倒）：
+   - 後端：`clasp push` → GAS 編輯器「部署 → 管理部署作業 → 鉛筆 → 版本選**新版本** → 部署」。**絕不能選「新增部署」**（會留下帶舊漏洞、永久有效的舊 `/exec` 網址；發布後用 `clasp deployments` 確認仍是 2 個）。
+   - 前端：`git push origin main`，GitHub Pages 約 1～2 分鐘重建，用 `gh api repos/avaltech-ai/3of3/pages/builds/latest` 確認。
+5. 部署後驗證：`curl` 唯讀檢查 `?action=getAppData`（success、各資料筆數、新欄位）與 `?action=listSheetNames`（必須回「未知動作」）。**不要加 `-X POST`**（`-L` 轉址後仍用 POST 會拿到 HTML）；**不要送錯誤密碼**（會累計鎖定次數）。
+6. 瀏覽器驗證時要繞過 GitHub Pages 約 10 分鐘的頁面快取（網址加 `?fresh=…`）。
+
+### 六、試算表維運（選單「🌟 諾貝爾A班專屬功能」）
+- 💾 立即備份試算表（另有每週日 03:00 自動備份，觸發器已建立）
+- 🔓 解除後台登入鎖定（連錯 5 次會鎖 15 分鐘）
+- 🖼️ 重建相簿封面候選（既有相簿、或在 Drive 內直接增刪照片後要按；新上傳相簿會自動建立）
+- 🔤 同步名稱對照表（字典新增名稱後按；**絕不覆蓋已填的英文**；`note` 欄會提醒資料問題）
+- 🚀 一鍵初始化／重設資料庫（**危險**：會清空 Events 等表，已加二次確認，不要輕易使用）
+- 注意：直接在試算表改資料，前台最多 5 分鐘後生效（`getAppData` 快取）；**不可更改工作表名稱與第一列欄位名稱**。
+
+### 七、待辦與待決定（皆不阻塞線上運作）
+**需要使用者處理**
+1. `NameMap` 的 `en` 欄有 13 個空白：`桃子腳`（建議 `Taozihjiao`）、`其他`（`Other`）、班級名稱 `諾貝爾 A／B／C`、`諾奧`、`奧斯卡`、`雨奧`、`米羅 A／B`、`兩果`、`雨果`、`高峰活動`（不確定意思，前台未顯示可不急）。
+2. 確認班名是「雨果」還是「兩果」（活動資料用了「雨果」、字典只有「兩果」）；並到 `EventTargets` 刪掉 `諾貝爾 A ` 後面多的空白（系統已自動忽略，非必須）。
+3. 在實體 iPad／iPhone Safari 上做最後驗收（桌面瀏覽器模擬無法取代，過去重大 bug 多為 Safari 特有）。
+
+**可選的後續項目（目前不建議主動做）**
+- 管理後台約 220 筆介面文字維持中文（後台使用者為中文教師）；若要英文化是另一批較大的工作。
+- `Settings` 的管理員密碼目前為明文（改存雜湊的取捨：就不能再直接在試算表改密碼）。
+- 某本相簿（例如「健康檢查」）若不想隨機出現封面，需新增排除設定。
+- 活動標題、歌名、相簿標題、文件名稱等自由文字的英文版（需在各資料表新增英文欄位，工作量大）。
+- 活動大項／細項前台目前沒有顯示（只在後台與日曆圖示判斷用）。
+
+### 八、已知限制與風險
+- token、冪等快取、登入鎖定都存在 `CacheService`，Google 極少數情況會提前清除：結果是老師被要求重新登入，不影響資料。
+- 相簿候選在 Drive 內直接刪除照片後不會自動更新：封面載入失敗會退回固定封面，按選單重建即可。
+- 前端仍有近百處 `innerHTML`（已有跳脫工具與偵測器把關）；新程式請優先用 `textContent` 或 `esc()`／`jsq()`／`escUrl()`。
+- 既有行為：每次上傳的最後一個區塊會把固定封面 `coverUrl` 設為該區塊第一張新照片（現僅作備援）。
+- `doGet` 是公開匿名入口，**只能放唯讀動作**；任何寫入、清快取、初始化都不得放進去。
+
+### 九、與使用者協作的偏好（沿用）
+繁體中文；結論先行；新功能先討論設計與決定點、由使用者拍板再動工；建議傾向全盤採納（所以建議要務實可實作並標明取捨）；**交付必附手動部署步驟**；GAS 重新部署要沿用同一個部署以保住 `/exec` 網址；使用者非工程背景，說明用後果與類比，但檔名、指令、路徑要精確可複製。
+
+---
 
 ## Critical Technical Lessons Learned (Do Not Repeat)
 
 ### 1. Google Apps Script POST Requests & CORS
+> ⚠️ **已過時**：現行做法是 `fetch` + `text/plain`（見第 20 條），iframe 僅為備援；且 `doPost` 已加互斥鎖、冪等與 token 驗證（見第 21 條之後）。
 **Problem**: Netlify serverless functions (`/api/gas`) and direct `fetch()` POST requests from browsers fail due to Google's strict bot-protection and CORS policies. Google responds with a 302 redirect to a login page or a 404 page, breaking the API.
 **Solution**: 
 - **Hidden Iframe Submission**: Always submit POST requests via a hidden `<form target="iframeId">`. This entirely bypasses CORS restrictions.
@@ -28,6 +91,7 @@
 - **Message Reception**: The frontend listens for the `message` event to receive the API response from the iframe.
 
 ### 2. GAS Deployment Corruption (`clasp deploy -i`)
+> ⚠️ **已更新**：目前一律用「管理部署作業 → 編輯 → 新版本」發布並沿用同一個部署；**不要選「新增部署」**（會留下帶舊漏洞的永久舊網址，曾因此累積 19 個部署）。
 **Problem**: Running `clasp deploy -i [Deployment_ID]` on a deployment originally created via the GAS UI can silently corrupt its execution context. POST requests will inexplicably return a "404 Not Found" Google Drive error page instead of executing `doPost()`.
 **Solution**:
 - Avoid using `clasp deploy -i` for the main Web App deployment if it exhibits weird behavior. Use the GAS Web UI to click "New Deployment", then update the URL in the frontend code.
@@ -147,6 +211,7 @@
   - Reclaimed 60px–120px of active viewport width for the main content area, providing ample breathing room for cards, forms, and photo galleries on iPad in both portrait and landscape modes.
 
 ### 19. Current Deployment Version & Environments
+> ⚠️ **已過時**：現行部署版本與環境請見本檔最上方「專案進度摘要」。
 - **Frontend**: Source maintained in `build_index.js`, compiling to `index.html`. Tracked on GitHub (`avaltech-ai/3of3.git` on branch `main`).
 - **Google Apps Script Backend**: Version deployed at `@109` (`AKfycbx5JGeiSH2J1vkOu4rh9NPwFBWNSkn5PkHfY5o25t-K4WcOK8b3VQjXi-TqUOzS8TvdJg`).
 
