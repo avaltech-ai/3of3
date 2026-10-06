@@ -368,6 +368,9 @@ const htmlContent = `<!DOCTYPE html>
             <span class="bg-peach-500 text-white text-xs font-extrabold px-3 py-1 rounded-full shadow-sm flex items-center gap-1.5">
               <span>✨</span> <span data-i18n="cal.spotlightTag">焦點活動</span>
             </span>
+            <button type="button" id="spotlightHistoryBtn" onclick="openSpotlightHistory()" class="bg-white/80 hover:bg-white text-peach-600 border border-peach-200 text-xs font-extrabold px-3 py-1 rounded-full shadow-sm flex items-center gap-1.5 tap-bounce cursor-pointer">
+              <span>🕘</span> <span data-i18n="ui.spotHistBtn">歷史焦點</span>
+            </button>
           </div>
 
           <!-- 輪播控制與狀態 (多活動自動顯示) -->
@@ -1795,6 +1798,41 @@ const htmlContent = `<!DOCTYPE html>
     </div>
   </div>
 
+  <!-- ==================== 歷史焦點彈窗（只列最近一季內已結束的焦點活動）==================== -->
+  <div id="spotlightHistoryModal" class="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-3 sm:p-5 hidden" onclick="if (event.target === this) closeSpotlightHistory()">
+    <div class="bg-white rounded-3xl max-w-5xl w-full h-[90vh] flex flex-col p-4 sm:p-6 shadow-2xl relative">
+      <div class="flex items-center justify-between gap-2 pb-3 border-b border-slate-100 shrink-0">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="text-xl shrink-0">🕘</span>
+          <div class="min-w-0">
+            <h3 class="text-base sm:text-lg font-black text-slate-800 truncate" data-i18n="ui.spotHistTitle">歷史焦點</h3>
+            <p class="text-[0.6875rem] text-slate-400 font-semibold truncate" data-i18n="ui.spotHistSub">最近一季已結束的焦點活動</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeSpotlightHistory()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-base tap-bounce shrink-0" title="關閉" data-i18n-title="ui.close">✕</button>
+      </div>
+      <div id="spotHistListPane" class="flex-1 min-h-0 overflow-y-auto pt-3 space-y-3">
+        <input id="spotHistSearch" type="search" oninput="spotHistOnQuery(this.value)" placeholder="搜尋標題、標籤或內容…" data-i18n-placeholder="ui.spotHistSearch" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-peach-500 focus:outline-none" aria-label="搜尋">
+        <div id="spotHistCards" class="space-y-4"></div>
+        <div id="spotHistEmpty" class="hidden py-10 text-center text-xs text-slate-400"></div>
+      </div>
+      <div id="spotHistDetailPane" class="hidden flex-1 min-h-0 overflow-y-auto pt-3 space-y-3">
+        <button type="button" onclick="spotHistBack()" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 tap-bounce cursor-pointer" data-i18n="ui.spotHistBack">‹ 返回列表</button>
+        <h4 id="spotHistDetailTitle" class="text-lg sm:text-xl font-black text-slate-800 leading-snug break-words"></h4>
+        <p id="spotHistDetailSub" class="text-xs sm:text-sm text-slate-600 font-semibold break-words"></p>
+        <div class="w-full h-[40vh] sm:h-[48vh] min-h-[220px] rounded-2xl overflow-hidden border border-rose-100 bg-rose-50/60 flex items-center justify-center">
+          <img id="spotHistDetailImg" src="" alt="" class="w-full h-full object-contain select-none">
+          <div id="spotHistDetailVideoBox" class="w-full h-full hidden">
+            <iframe id="spotHistDetailIframe" class="w-full h-full border-0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+            <video id="spotHistDetailVideo" class="w-full h-full object-contain hidden" controls playsinline muted loop></video>
+          </div>
+        </div>
+        <div id="spotHistDetailTags" class="flex flex-wrap gap-1.5"></div>
+        <div id="spotHistDetailPoints" class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- ==================== 相簿照片瀏覽彈窗 (ALBUM LIGHTBOX MODAL) ==================== -->
   <div id="albumPhotosModal" class="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-3 sm:p-5 hidden">
     <div class="bg-white rounded-3xl max-w-4xl w-full h-[90vh] flex flex-col p-4 sm:p-6 shadow-2xl relative">
@@ -2257,6 +2295,15 @@ const htmlContent = `<!DOCTYPE html>
           spotlightPrev: "上一個焦點活動",
           spotlightNext: "下一個焦點活動",
           spotlightImgAlt: "焦點活動",
+          spotHistBtn: "歷史焦點",
+          spotHistTitle: "歷史焦點",
+          spotHistSub: "最近一季已結束的焦點活動",
+          spotHistSearch: "搜尋標題、標籤或內容…",
+          spotHistEmpty: "目前還沒有歷史焦點",
+          spotHistNoMatch: "沒有符合的活動",
+          spotHistBack: "‹ 返回列表",
+          spotHistMonth: "{y} 年 {m} 月",
+          spotHistVideo: "🎬 影片",
           slidePrev: "上一張",
           slideNext: "下一張",
           guideAlt: "活動攻略",
@@ -2484,6 +2531,15 @@ const htmlContent = `<!DOCTYPE html>
           spotlightPrev: "Previous highlight",
           spotlightNext: "Next highlight",
           spotlightImgAlt: "Highlight",
+          spotHistBtn: "Past Highlights",
+          spotHistTitle: "Past Highlights",
+          spotHistSub: "Highlights that ended in the past quarter",
+          spotHistSearch: "Search title, tags or details…",
+          spotHistEmpty: "No past highlights yet",
+          spotHistNoMatch: "No matching activities",
+          spotHistBack: "‹ Back to list",
+          spotHistMonth: "{mn} {y}",
+          spotHistVideo: "🎬 Video",
           slidePrev: "Previous",
           slideNext: "Next",
           guideAlt: "Highlight guide",
@@ -2658,6 +2714,7 @@ const htmlContent = `<!DOCTYPE html>
       renderDocsList();
       // 焦點活動、播放佇列、相片檢視器按鈕等動態文字也要即時跟著換語言
       try { if (state.spotlights && state.spotlights.length) renderSpotlightSection(); } catch (e) {}
+      try { if (isSpotlightHistoryOpen()) renderSpotlightHistory(); } catch (e) {}
       try { updateQueueBadge(); } catch (e) {}
       try { updateAutoPlayButtonUI(); } catch (e) {}
     }
@@ -4858,8 +4915,8 @@ const htmlContent = `<!DOCTYPE html>
       }
     }
 
-    function renderSpotlightPoints(bulletPoints) {
-      const ptsContainer = document.getElementById('spotlightPoints');
+    function renderSpotlightPoints(bulletPoints, targetEl) {
+      const ptsContainer = targetEl || document.getElementById('spotlightPoints');
       if (!ptsContainer) return;
       ptsContainer.innerHTML = '';
 
@@ -5062,6 +5119,163 @@ const htmlContent = `<!DOCTYPE html>
       const modalVideo = document.getElementById('modalSpotlightVideo');
       if (modalVideo) modalVideo.pause();
       document.getElementById('spotlightModal').classList.add('hidden');
+    }
+
+    // ==================== 歷史焦點（只列最近一季內已結束的焦點活動）====================
+    // 條件：狀態不是「停用」、結束日（endDate）早於今天且不早於「三個月前的今天」、目前沒有在輪播中顯示。
+    // 超過一季的活動不再顯示（資料仍留在試算表，不會被刪除）。依結束日由新到舊，並以年月分段。
+    const SPOTLIGHT_HISTORY_MONTHS = 3;
+    const SPOT_HIST_MONTH_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const spotHist = { query: '', openId: null };
+
+    // todayStr（YYYY-MM-DD）往前推 months 個月；該月沒有那一天就取當月最後一天（例如 5/31 的三個月前是 2/28 或 2/29）
+    function spotHistCutoff(todayStr, months) {
+      const p = String(todayStr).split('-');
+      let y = Number(p[0]), m = Number(p[1]) - months, d = Number(p[2]);
+      while (m < 1) { m += 12; y--; }
+      const last = new Date(y, m, 0).getDate();
+      if (d > last) d = last;
+      return y + '-' + ('0' + m).slice(-2) + '-' + ('0' + d).slice(-2);
+    }
+
+    function getHistorySpotlights(list, todayStr) {
+      const today = todayStr || getTodayDateStr();
+      const cutoff = spotHistCutoff(today, SPOTLIGHT_HISTORY_MONTHS);
+      const showing = filterActiveSpotlights(list);
+      return (list || []).filter(function(sp) {
+        if (!sp || sp.status === '停用' || showing.indexOf(sp) !== -1) return false;
+        const end = String(sp.endDate || '').slice(0, 10);
+        return !!end && end < today && end >= cutoff;
+      }).sort(function(a, b) {
+        const ea = String(a.endDate || '').slice(0, 10), eb = String(b.endDate || '').slice(0, 10);
+        if (ea !== eb) return ea < eb ? 1 : -1;
+        const sa = String(a.startDate || '').slice(0, 10), sb = String(b.startDate || '').slice(0, 10);
+        return sa < sb ? 1 : (sa > sb ? -1 : 0);
+      });
+    }
+
+    function isSpotlightHistoryOpen() {
+      const m = document.getElementById('spotlightHistoryModal');
+      return !!m && !m.classList.contains('hidden');
+    }
+
+    function spotHistTagList(sp) {
+      return String(tx(sp.tags) || '').split(/[,，、]/).map(function(x) { return x.trim(); }).filter(Boolean);
+    }
+
+    function spotHistChip(text) {
+      const c = document.createElement('span');
+      c.className = 'text-[0.625rem] font-bold text-rose-600 bg-rose-50 border border-rose-100 px-2 py-0.5 rounded-full';
+      c.textContent = text;
+      return c;
+    }
+
+    function spotHistStopMedia() {
+      const f = document.getElementById('spotHistDetailIframe'); if (f) f.src = '';
+      const v = document.getElementById('spotHistDetailVideo'); if (v) { try { v.pause(); } catch (e) {} }
+    }
+
+    function openSpotlightHistory() {
+      spotHist.query = ''; spotHist.openId = null;
+      const q = document.getElementById('spotHistSearch'); if (q) q.value = '';
+      document.getElementById('spotlightHistoryModal').classList.remove('hidden');
+      renderSpotlightHistory();
+      const pane = document.getElementById('spotHistListPane'); if (pane) pane.scrollTop = 0;
+    }
+
+    function closeSpotlightHistory() {
+      spotHistStopMedia();
+      spotHist.openId = null;
+      document.getElementById('spotlightHistoryModal').classList.add('hidden');
+    }
+
+    function spotHistOnQuery(v) { spotHist.query = v; renderSpotlightHistory(); }
+    function spotHistOpen(id) { spotHist.openId = id; renderSpotlightHistory(); const d = document.getElementById('spotHistDetailPane'); if (d) d.scrollTop = 0; }
+    function spotHistBack() { spotHistStopMedia(); spotHist.openId = null; renderSpotlightHistory(); }
+
+    function renderSpotlightHistory() {
+      const listPane = document.getElementById('spotHistListPane'), detailPane = document.getElementById('spotHistDetailPane');
+      if (!listPane || !detailPane) return;
+      const all = getHistorySpotlights(state.spotlights);
+      let openSp = null;
+      if (spotHist.openId !== null) openSp = all.filter(function(sp) { return sp.id === spotHist.openId; })[0] || null;
+      if (!openSp) spotHist.openId = null;
+      listPane.classList.toggle('hidden', !!openSp);
+      detailPane.classList.toggle('hidden', !openSp);
+      if (openSp) { renderSpotHistDetail(openSp); return; }
+      spotHistStopMedia();
+
+      const q = String(spotHist.query || '').trim().toLowerCase();
+      const rows = all.filter(function(sp) {
+        if (!q) return true;
+        const hay = [sp.title, sp.subtitle, sp.tags, sp.bulletPoints, tx(sp.title), tx(sp.subtitle), tx(sp.tags), tx(sp.bulletPoints)].join(' ').toLowerCase();
+        return hay.indexOf(q) !== -1;
+      });
+      const box = document.getElementById('spotHistCards'), empty = document.getElementById('spotHistEmpty');
+      box.textContent = '';
+      let lastMonth = '', grid = null;
+      rows.forEach(function(sp) {
+        const ym = String(sp.endDate || '').slice(0, 7);
+        if (ym !== lastMonth || !grid) {
+          lastMonth = ym;
+          const y = ym.slice(0, 4), mm = Number(ym.slice(5, 7));
+          const h = document.createElement('h4');
+          h.className = 'text-xs font-black text-slate-500 border-b border-slate-100 pb-1';
+          h.setAttribute('data-month', ym);
+          h.textContent = t('ui.spotHistMonth', { y: y, m: mm, mn: SPOT_HIST_MONTH_EN[mm - 1] || mm });
+          box.appendChild(h);
+          grid = document.createElement('div');
+          grid.className = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3';
+          box.appendChild(grid);
+        }
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = 'spot-hist-card text-left bg-white rounded-2xl border border-rose-100 shadow-sm hover:shadow-md overflow-hidden flex flex-col tap-bounce cursor-pointer';
+        card.setAttribute('data-id', sp.id === undefined ? '' : String(sp.id));
+        const thumb = document.createElement('div');
+        thumb.className = 'w-full aspect-[16/10] bg-rose-50 flex items-center justify-center overflow-hidden';
+        if (detectMediaKind(sp.imageUrl, sp.mediaType) === 'video') {
+          const v = document.createElement('span'); v.className = 'text-sm font-bold text-rose-400'; v.textContent = t('ui.spotHistVideo'); thumb.appendChild(v);
+        } else {
+          const im = document.createElement('img'); im.className = 'w-full h-full object-cover'; im.loading = 'lazy'; im.alt = '';
+          im.src = safeUrl(sp.imageUrl) || './spotlight-fluoride.jpg'; thumb.appendChild(im);
+        }
+        card.appendChild(thumb);
+        const body = document.createElement('div'); body.className = 'p-3 space-y-1.5 min-w-0';
+        const ti = document.createElement('div'); ti.className = 'text-sm font-black text-slate-800 leading-snug line-clamp-2 break-words'; ti.textContent = tx(sp.title) || t('ui.spotlightDefaultTitle');
+        body.appendChild(ti);
+        if (sp.subtitle) { const su = document.createElement('div'); su.className = 'text-[0.6875rem] font-semibold text-slate-500 break-words'; su.textContent = tx(sp.subtitle); body.appendChild(su); }
+        const tags = spotHistTagList(sp).slice(0, 2);
+        if (tags.length) { const tw = document.createElement('div'); tw.className = 'flex flex-wrap gap-1'; tags.forEach(function(x) { tw.appendChild(spotHistChip(x)); }); body.appendChild(tw); }
+        card.appendChild(body);
+        card.addEventListener('click', function() { spotHistOpen(sp.id); });
+        grid.appendChild(card);
+      });
+      if (empty) {
+        empty.classList.toggle('hidden', rows.length > 0);
+        empty.textContent = all.length === 0 ? t('ui.spotHistEmpty') : t('ui.spotHistNoMatch');
+      }
+    }
+
+    function renderSpotHistDetail(sp) {
+      document.getElementById('spotHistDetailTitle').textContent = tx(sp.title) || t('ui.spotlightDefaultTitle');
+      document.getElementById('spotHistDetailSub').textContent = tx(sp.subtitle) || '';
+      const img = document.getElementById('spotHistDetailImg'), vbox = document.getElementById('spotHistDetailVideoBox');
+      const ifr = document.getElementById('spotHistDetailIframe'), vid = document.getElementById('spotHistDetailVideo');
+      spotHistStopMedia();
+      if (detectMediaKind(sp.imageUrl, sp.mediaType) === 'video') {
+        const info = getEmbedVideoInfo(sp.imageUrl, false);
+        img.classList.add('hidden'); vbox.classList.remove('hidden');
+        if (info.type === 'iframe') { ifr.classList.remove('hidden'); vid.classList.add('hidden'); ifr.src = info.src; }
+        else if (info.type === 'video') { vid.classList.remove('hidden'); ifr.classList.add('hidden'); vid.src = info.src; }
+        else { vbox.classList.add('hidden'); }
+      } else {
+        vbox.classList.add('hidden'); img.classList.remove('hidden');
+        img.src = safeUrl(sp.imageUrl) || './spotlight-fluoride.jpg';
+      }
+      const tw = document.getElementById('spotHistDetailTags'); tw.textContent = '';
+      spotHistTagList(sp).forEach(function(x) { tw.appendChild(spotHistChip(x)); });
+      renderSpotlightPoints(tx(sp.bulletPoints), document.getElementById('spotHistDetailPoints'));
     }
 
     // ==================== 行事曆邏輯 (週日為第一天) ====================
@@ -6267,7 +6481,9 @@ const htmlContent = `<!DOCTYPE html>
         const apModal = document.getElementById('albumPhotosModal');
         if (apModal && !apModal.classList.contains('hidden') && e.key === 'Escape') {
           closeAlbumModal();
+          return;
         }
+        if (isSpotlightHistoryOpen() && e.key === 'Escape') closeSpotlightHistory();
       }
     });
 
