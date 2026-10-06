@@ -1030,9 +1030,21 @@
           <!-- 已排定活動列表 -->
           <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
             <h4 class="font-black text-slate-800 text-base">既有排定活動一覽</h4>
-            <div id="adminEventsTableContainer" class="overflow-x-auto max-h-96">
+            <div class="flex flex-wrap items-center gap-2">
+              <input id="adminEventsSearch" type="search" oninput="adminListOnQuery('events', this.value)" placeholder="搜尋活動名稱、說明、時間地點…" class="flex-1 min-w-[10rem] px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-peach-500 focus:outline-none" aria-label="搜尋活動">
+              <select id="adminEventsCat" onchange="adminListOnFilter('events', 'cat', this.value)" class="px-2.5 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-700 bg-white" aria-label="類別"></select>
+              <select id="adminEventsTarget" onchange="adminListOnFilter('events', 'target', this.value)" class="px-2.5 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-700 bg-white" aria-label="對象"></select>
+              <select id="adminEventsSort" onchange="adminListOnFilter('events', 'sort', this.value)" class="px-2.5 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-700 bg-white" aria-label="排序">
+                <option value="new">最新建立</option>
+                <option value="dateDesc">日期由新到舊</option>
+                <option value="dateAsc">日期由舊到新</option>
+              </select>
+              <button type="button" id="adminEventsClear" onclick="adminListClear('events')" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 tap-bounce cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed" disabled>清除篩選</button>
+            </div>
+            <div id="adminEventsTableContainer" class="overflow-x-auto">
               <!-- JS 動態插入 -->
             </div>
+            <div id="adminEventsPager"></div>
           </div>
         </div>
 
@@ -1257,6 +1269,11 @@
               </div>
             </div>
 
+            <div class="flex flex-wrap items-center gap-2">
+              <input id="adminAlbumsSearch" type="search" oninput="adminListOnQuery('albums', this.value)" placeholder="搜尋相簿主題、資料夾名稱…" class="flex-1 min-w-[10rem] px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-teal-500 focus:outline-none" aria-label="搜尋相簿">
+              <select id="adminAlbumsCat" onchange="adminListOnFilter('albums', 'cat', this.value)" class="px-2.5 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-700 bg-white" aria-label="活動類別"></select>
+              <button type="button" id="adminAlbumsClear" onclick="adminListClear('albums')" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 tap-bounce cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed" disabled>清除篩選</button>
+            </div>
             <div class="overflow-x-auto">
               <table class="w-full text-left text-xs border-collapse">
                 <thead>
@@ -1273,6 +1290,7 @@
                 </tbody>
               </table>
             </div>
+            <div id="adminAlbumsPager"></div>
           </div>
         </div>
 
@@ -1355,6 +1373,11 @@
                 <button type="button" onclick="refreshSongs()" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold tap-bounce">🔄 重新整理</button>
               </div>
             </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <input id="adminSongsSearch" type="search" oninput="adminListOnQuery('songs', this.value)" placeholder="搜尋歌名、音樂檔名…" class="flex-1 min-w-[10rem] px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-fuchsia-500 focus:outline-none" aria-label="搜尋歌曲">
+              <select id="adminSongsCat" onchange="adminListOnFilter('songs', 'cat', this.value)" class="px-2.5 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-700 bg-white" aria-label="類別"></select>
+              <button type="button" id="adminSongsClear" onclick="adminListClear('songs')" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 tap-bounce cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed" disabled>清除篩選</button>
+            </div>
             <div class="overflow-x-auto">
               <table class="w-full text-left text-xs border-collapse">
                 <thead>
@@ -1371,6 +1394,7 @@
                 </tbody>
               </table>
             </div>
+            <div id="adminSongsPager"></div>
           </div>
         </div>
 
@@ -7784,16 +7808,20 @@
       const tbody = document.getElementById('adminSongsTableBody');
       const countBadge = document.getElementById('adminSongsCountBadge');
       if (!tbody) return;
-      const songs = state.songs || [];
-      if (countBadge) countBadge.textContent = '共 ' + songs.length + ' 首歌曲';
+      const allSongs = state.songs || [];
+      if (countBadge) countBadge.textContent = '共 ' + allSongs.length + ' 首歌曲';
       tbody.innerHTML = '';
+      adminSongsFillFilters();
+      const info = adminListSlice(adminSongsView(allSongs, adminLists.songs), adminLists.songs);
+      adminLists.songs.page = info.page;
+      adminListRenderPager('songs', info, allSongs.length);
 
-      if (songs.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-400">目前尚無歌曲，請於上方表單新增！</td></tr>';
+      if (info.total === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-400">' + (allSongs.length === 0 ? '目前尚無歌曲，請於上方表單新增！' : '沒有符合條件的歌曲') + '</td></tr>';
         return;
       }
 
-      songs.forEach(function(song) {
+      info.rows.forEach(function(song) {
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-slate-50/80 transition-colors';
         const thumb = getSongThumbUrl(song);
@@ -8270,7 +8298,7 @@
       if (existingIdx >= 0) {
         state.events[existingIdx] = eventData;
       } else {
-        state.events.unshift(eventData);
+        state.events.push(eventData);
       }
       try {
         localStorage.setItem('nobel_a_events_custom', JSON.stringify(state.events));
@@ -8357,9 +8385,253 @@
       });
     }
 
+    // ---------- 後台列表：搜尋、篩選與分頁（活動、相簿、歌曲共用）----------
+    // 「最新建立」：活動、歌曲沒有建立時間欄位，以試算表列順序倒過來（新增一筆會加在最後一列，編輯不改變位置）；
+    // 相簿用「建立或更新日期」由新到舊，同一天再依編號由新到舊。只影響後台列表，前台排序不變。
+    const ADMIN_LIST_SIZES = [10, 20, 50, 0];   // 0 = 全部
+    function adminListTerms(q) {
+      return String(q === undefined || q === null ? '' : q).toLowerCase().split(/[\s\u3000]+/).filter(Boolean);
+    }
+    function adminListMatches(hay, terms) {
+      const h = String(hay === undefined || hay === null ? '' : hay).toLowerCase();
+      return terms.every(function(t) { return h.indexOf(t) !== -1; });
+    }
+    function adminListKey(s) { return String(s === undefined || s === null ? '' : s).replace(/[\s\u3000]+/g, ''); }
+    // items：已篩選並排好序的陣列；st：{ page（從 0 起算）, size（0＝全部）}。頁碼超出範圍會夾回最後一頁。
+    function adminListSlice(items, st) {
+      const total = items.length;
+      const size = st.size > 0 ? st.size : Math.max(1, total);
+      const pages = Math.max(1, Math.ceil(total / size));
+      const page = Math.min(Math.max(0, Math.floor(Number(st.page) || 0)), pages - 1);
+      return { rows: items.slice(page * size, page * size + size), total: total, pages: pages, page: page, size: size };
+    }
+    function adminEventMajor(ev) { return String(ev.categoryMajor || ev['活動類別 (大項)'] || ev.category || '').trim(); }
+    function adminEventMinor(ev) { return String(ev.categoryMinor || ev['活動類別 (細項)'] || '').trim(); }
+    function adminEventTargetKeys(ev) { return String(ev.target || '').split(/[,，]+/).map(adminListKey).filter(Boolean); }
+    // 活動：st = { query, cat（'' 全部、'M:大項'、'm:細項'）, target, sort（new／dateDesc／dateAsc）}
+    function adminEventsView(events, st, normDate) {
+      const nd = normDate || function(d) { return String(d || '').slice(0, 10); };
+      const terms = adminListTerms(st.query);
+      const targetKey = adminListKey(st.target);
+      const list = [];
+      (events || []).forEach(function(ev, i) {
+        if (!ev) return;
+        if (st.cat) {
+          const val = st.cat.slice(2);
+          if (st.cat.indexOf('M:') === 0 && adminEventMajor(ev) !== val) return;
+          if (st.cat.indexOf('m:') === 0 && adminEventMinor(ev) !== val) return;
+        }
+        if (targetKey && adminEventTargetKeys(ev).indexOf(targetKey) === -1) return;
+        if (terms.length && !adminListMatches([ev.title, adminEventMajor(ev), adminEventMinor(ev), ev.calendarPrompt, ev.timeLocation, ev.description, ev.theme, ev.target, nd(ev.date)].join(' '), terms)) return;
+        list.push({ ev: ev, i: i, d: nd(ev.date) });
+      });
+      list.sort(function(a, b) {
+        if (st.sort === 'dateDesc' && a.d !== b.d) return a.d < b.d ? 1 : -1;
+        if (st.sort === 'dateAsc' && a.d !== b.d) return a.d < b.d ? -1 : 1;
+        return b.i - a.i;
+      });
+      return list.map(function(x) { return x.ev; });
+    }
+    // 編號由新到舊：純數字（時間戳記）的排前面、數字大的在前；其餘字串依字母由大到小
+    function adminIdNewerFirst(x, y) {
+      const sx = String(x === undefined || x === null ? '' : x).trim(), sy = String(y === undefined || y === null ? '' : y).trim();
+      const nx = /^[0-9]+$/.test(sx), ny = /^[0-9]+$/.test(sy);
+      if (nx && ny) return Number(sy) - Number(sx);
+      if (nx) return -1;
+      if (ny) return 1;
+      return sy < sx ? -1 : (sy > sx ? 1 : 0);
+    }
+    // 相簿：st = { query, cat }
+    function adminAlbumsView(albums, st) {
+      const terms = adminListTerms(st.query);
+      const catKey = adminListKey(st.cat);
+      const out = (albums || []).filter(function(a) {
+        if (!a) return false;
+        if (catKey && adminListKey(a.category) !== catKey) return false;
+        return !terms.length || adminListMatches([a.title, a.folderName, a.category].join(' '), terms);
+      });
+      out.sort(function(a, b) {
+        const ua = String(a.updatedAt || ''), ub = String(b.updatedAt || '');
+        if (ua !== ub) return ua < ub ? 1 : -1;
+        return adminIdNewerFirst(a.id, b.id);
+      });
+      return out;
+    }
+    // 歌曲：st = { query, cat }
+    function adminSongsView(songs, st) {
+      const terms = adminListTerms(st.query);
+      const catKey = adminListKey(st.cat);
+      const list = [];
+      (songs || []).forEach(function(sg, i) {
+        if (!sg) return;
+        if (catKey && adminListKey(sg.category) !== catKey) return;
+        if (terms.length && !adminListMatches([sg.title, sg.fileName, sg.category].join(' '), terms)) return;
+        list.push({ s: sg, i: i });
+      });
+      list.sort(function(a, b) { return b.i - a.i; });
+      return list.map(function(x) { return x.s; });
+    }
+    // ===== 以下為畫面（需要瀏覽器）=====
+    function adminListStoredSize(key) {
+      try {
+        const raw = localStorage.getItem('nobel_a_adminlist_size_' + key);
+        if (raw === null) return 10;
+        const v = Number(raw);
+        return ADMIN_LIST_SIZES.indexOf(v) !== -1 ? v : 10;
+      } catch (e) { return 10; }
+    }
+    const adminLists = {
+      events: { query: '', cat: '', target: '', sort: 'new', page: 0, size: adminListStoredSize('events') },
+      albums: { query: '', cat: '', page: 0, size: adminListStoredSize('albums') },
+      songs: { query: '', cat: '', page: 0, size: adminListStoredSize('songs') }
+    };
+    const ADMIN_LIST_RENDER = { events: 'renderAdminEventsTable', albums: 'renderAdminAlbumsTable', songs: 'renderAdminSongsTable' };
+    function adminListRerender(key) { try { window[ADMIN_LIST_RENDER[key]](); } catch (e) {} }
+    function adminListOnQuery(key, v) { adminLists[key].query = v; adminLists[key].page = 0; adminListRerender(key); }
+    function adminListOnFilter(key, field, v) { adminLists[key][field] = v; adminLists[key].page = 0; adminListRerender(key); }
+    function adminListOnSize(key, v) {
+      const n = Number(v);
+      adminLists[key].size = ADMIN_LIST_SIZES.indexOf(n) !== -1 ? n : 10;
+      adminLists[key].page = 0;
+      try { localStorage.setItem('nobel_a_adminlist_size_' + key, String(adminLists[key].size)); } catch (e) {}
+      adminListRerender(key);
+    }
+    function adminListGo(key, where) {
+      const st = adminLists[key];
+      if (where === 'first') st.page = 0;
+      else if (where === 'prev') st.page = Math.max(0, st.page - 1);
+      else if (where === 'next') st.page = st.page + 1;
+      else if (where === 'last') st.page = 1e9;
+      adminListRerender(key);
+    }
+    function adminListClear(key) {
+      const st = adminLists[key];
+      st.query = ''; st.cat = ''; if ('target' in st) st.target = ''; if ('sort' in st) st.sort = 'new'; st.page = 0;
+      adminListRerender(key);
+    }
+    function adminListIsFiltered(key) {
+      const st = adminLists[key];
+      return !!(st.query || st.cat || st.target || (st.sort && st.sort !== 'new'));
+    }
+    // 把目前的篩選值同步回搜尋框與下拉，並更新「清除篩選」按鈕
+    function adminListSyncToolbar(key, ids) {
+      const st = adminLists[key];
+      const q = document.getElementById(ids.search); if (q && q.value !== st.query) q.value = st.query;
+      const c = document.getElementById(ids.cat); if (c) c.value = st.cat;
+      if (ids.target) { const t = document.getElementById(ids.target); if (t) t.value = st.target; }
+      if (ids.sort) { const so = document.getElementById(ids.sort); if (so) so.value = st.sort; }
+      const b = document.getElementById(ids.clear); if (b) b.disabled = !adminListIsFiltered(key);
+    }
+    // 重建單層下拉：values 為字串陣列；目前選取的值若已不存在就視為「全部」
+    function adminListFillSelect(sel, allLabel, values, current) {
+      if (!sel) return '';
+      sel.textContent = '';
+      const o0 = document.createElement('option'); o0.value = ''; o0.textContent = allLabel; sel.appendChild(o0);
+      values.forEach(function(v) { const o = document.createElement('option'); o.value = v; o.textContent = v; sel.appendChild(o); });
+      const keep = values.indexOf(current) !== -1 ? current : '';
+      sel.value = keep;
+      return keep;
+    }
+    function adminListUnique(arr) {
+      const seen = Object.create(null), out = [];
+      arr.forEach(function(x) { const v = String(x === undefined || x === null ? '' : x).trim(); if (v && !seen[v]) { seen[v] = true; out.push(v); } });
+      return out;
+    }
+    const ADMIN_PAGER_ICONS = {
+      first: '<path d="M11 17l-5-5 5-5M18 17l-5-5 5-5"/>',
+      prev: '<path d="M15 18l-6-6 6-6"/>',
+      next: '<path d="M9 18l6-6-6-6"/>',
+      last: '<path d="M13 17l5-5-5-5M6 17l5-5-5-5"/>'
+    };
+    const ADMIN_PAGER_TITLES = { first: '第一頁', prev: '上一頁', next: '下一頁', last: '最末頁' };
+    // 分頁列：左邊「符合 N 筆（共 M 筆）」與每頁筆數；右邊（超過一頁才出現）第一頁、上一頁、頁碼、下一頁、最末頁（圖示按鈕）
+    function adminListRenderPager(key, info, allCount) {
+      const box = document.getElementById('admin' + key.charAt(0).toUpperCase() + key.slice(1) + 'Pager');
+      if (!box) return;
+      box.textContent = '';
+      if (allCount <= 0) return;
+      box.className = 'admin-pager flex flex-wrap items-center justify-between gap-2 pt-1';
+      const left = document.createElement('div'); left.className = 'flex items-center gap-3 text-[0.6875rem] font-bold text-slate-500';
+      const cnt = document.createElement('span'); cnt.className = 'admin-pager-count';
+      cnt.textContent = info.total === allCount ? ('共 ' + allCount + ' 筆') : ('符合 ' + info.total + ' 筆（共 ' + allCount + ' 筆）');
+      left.appendChild(cnt);
+      const lab = document.createElement('label'); lab.className = 'flex items-center gap-1';
+      lab.appendChild(document.createTextNode('每頁'));
+      const sel = document.createElement('select'); sel.className = 'admin-pager-size px-2 py-1 rounded-lg border border-slate-300 text-[0.6875rem] font-bold text-slate-700 bg-white'; sel.setAttribute('aria-label', '每頁筆數');
+      ADMIN_LIST_SIZES.forEach(function(n) { const o = document.createElement('option'); o.value = String(n); o.textContent = n === 0 ? '全部' : String(n); if (n === adminLists[key].size) o.selected = true; sel.appendChild(o); });
+      sel.addEventListener('change', function() { adminListOnSize(key, sel.value); });
+      lab.appendChild(sel); left.appendChild(lab);
+      box.appendChild(left);
+      if (info.pages > 1) {
+        const nav = document.createElement('div'); nav.className = 'admin-pager-nav flex items-center gap-1';
+        const mk = function(where, disabled) {
+          const b = document.createElement('button'); b.type = 'button'; b.setAttribute('data-go', where);
+          b.setAttribute('aria-label', ADMIN_PAGER_TITLES[where]); b.title = ADMIN_PAGER_TITLES[where]; b.disabled = disabled;
+          b.className = 'w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center tap-bounce cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed';
+          b.innerHTML = '<svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ADMIN_PAGER_ICONS[where] + '</svg>';
+          b.addEventListener('click', function() { adminListGo(key, where); });
+          return b;
+        };
+        const atFirst = info.page <= 0, atLast = info.page >= info.pages - 1;
+        nav.appendChild(mk('first', atFirst)); nav.appendChild(mk('prev', atFirst));
+        const pg = document.createElement('span'); pg.className = 'admin-pager-page min-w-[3.5rem] text-center text-xs font-black text-slate-600'; pg.textContent = (info.page + 1) + ' / ' + info.pages;
+        nav.appendChild(pg);
+        nav.appendChild(mk('next', atLast)); nav.appendChild(mk('last', atLast));
+        box.appendChild(nav);
+      }
+    }
+    // 活動：重建「類別」「對象」下拉（類別分「大項」「細項」兩組；已有活動用到但設定表沒有的也會列出）
+    function adminEventsFillFilters() {
+      const st = adminLists.events;
+      const catSel = document.getElementById('adminEventsCat');
+      if (catSel) {
+        const events = state.events || [];
+        const majors = adminListUnique((state.eventCategoriesMajor || []).concat(events.map(adminEventMajor)));
+        const minors = adminListUnique((state.eventCategoriesMinor || []).concat(events.map(adminEventMinor)));
+        catSel.textContent = '';
+        const o0 = document.createElement('option'); o0.value = ''; o0.textContent = '全部類別'; catSel.appendChild(o0);
+        [['大項', 'M:', majors], ['細項', 'm:', minors]].forEach(function(g) {
+          if (!g[2].length) return;
+          const og = document.createElement('optgroup'); og.label = g[0];
+          g[2].forEach(function(v) { const o = document.createElement('option'); o.value = g[1] + v; o.textContent = v; og.appendChild(o); });
+          catSel.appendChild(og);
+        });
+        if (!Array.prototype.some.call(catSel.options, function(o) { return o.value === st.cat; })) st.cat = '';
+      }
+      const tSel = document.getElementById('adminEventsTarget');
+      if (tSel) {
+        const names = (state.eventTargets || []).map(function(t) { return String(t.targetName || '').trim(); });
+        const used = [];
+        (state.events || []).forEach(function(ev) { String(ev.target || '').split(/[,，]+/).forEach(function(x) { used.push(x); }); });
+        const all = adminListUnique(names.concat(used));
+        const seenKey = Object.create(null), vals = [];
+        all.forEach(function(v) { const k = adminListKey(v); if (!seenKey[k]) { seenKey[k] = true; vals.push(v); } });
+        tSel.textContent = '';
+        const o0 = document.createElement('option'); o0.value = ''; o0.textContent = '全部對象'; tSel.appendChild(o0);
+        vals.forEach(function(v) { const o = document.createElement('option'); o.value = v; o.textContent = v; tSel.appendChild(o); });
+        if (!vals.some(function(v) { return adminListKey(v) === adminListKey(st.target); })) st.target = '';
+        else st.target = (vals.filter(function(v) { return adminListKey(v) === adminListKey(st.target); })[0]) || '';
+      }
+      adminListSyncToolbar('events', { search: 'adminEventsSearch', cat: 'adminEventsCat', target: 'adminEventsTarget', sort: 'adminEventsSort', clear: 'adminEventsClear' });
+    }
+    function adminAlbumsFillFilters() {
+      const st = adminLists.albums;
+      st.cat = adminListFillSelect(document.getElementById('adminAlbumsCat'), '全部活動類別', adminListUnique((state.albumCategories || []).concat((state.cachedAlbums || []).map(function(a) { return a && a.category; }))), st.cat);
+      adminListSyncToolbar('albums', { search: 'adminAlbumsSearch', cat: 'adminAlbumsCat', clear: 'adminAlbumsClear' });
+    }
+    function adminSongsFillFilters() {
+      const st = adminLists.songs;
+      st.cat = adminListFillSelect(document.getElementById('adminSongsCat'), '全部類別', adminListUnique((state.songCategories || []).concat((state.songs || []).map(function(s) { return s && s.category; }))), st.cat);
+      adminListSyncToolbar('songs', { search: 'adminSongsSearch', cat: 'adminSongsCat', clear: 'adminSongsClear' });
+    }
+
     function renderAdminEventsTable() {
       const container = document.getElementById('adminEventsTableContainer');
       if (!container) return;
+      adminEventsFillFilters();
+      const info = adminListSlice(adminEventsView(state.events, adminLists.events, normalizeDate), adminLists.events);
+      adminLists.events.page = info.page;
+      adminListRenderPager('events', info, (state.events || []).length);
       let html = `
         <table class="w-full text-left text-xs border-collapse">
           <thead>
@@ -8372,7 +8644,7 @@
           </thead>
           <tbody class="divide-y divide-slate-100">
       `;
-      state.events.forEach(ev => {
+      info.rows.forEach(ev => {
         const catMajorStr = ev.categoryMajor || ev['活動類別 (大項)'] || ev.category || '';
         const catMinorStr = ev.categoryMinor || ev['活動類別 (細項)'] || '';
         html += `
@@ -8393,6 +8665,9 @@
           </tr>
         `;
       });
+      if (info.total === 0) {
+        html += '<tr><td colspan="4" class="py-8 text-center text-slate-400">' + ((state.events || []).length === 0 ? '目前沒有活動紀錄' : '沒有符合條件的活動') + '</td></tr>';
+      }
       html += '</tbody></table>';
       container.innerHTML = html;
     }
@@ -8942,22 +9217,26 @@
       const tbody = document.getElementById('adminAlbumsTableBody');
       const countBadge = document.getElementById('adminAlbumsCountBadge');
       if (!tbody) return;
-      const albums = state.cachedAlbums || [];
-      if (countBadge) countBadge.textContent = `共 ${albums.length} 本相簿`;
+      const allAlbums = state.cachedAlbums || [];
+      if (countBadge) countBadge.textContent = `共 ${allAlbums.length} 本相簿`;
       tbody.innerHTML = '';
+      adminAlbumsFillFilters();
+      const info = adminListSlice(adminAlbumsView(allAlbums, adminLists.albums), adminLists.albums);
+      adminLists.albums.page = info.page;
+      adminListRenderPager('albums', info, allAlbums.length);
 
-      if (albums.length === 0) {
+      if (info.total === 0) {
         tbody.innerHTML = `
           <tr>
             <td colspan="5" class="py-8 text-center text-slate-400">
-              目前尚無相簿紀錄，請於上方表單上傳照片建立新相簿！
+              ${allAlbums.length === 0 ? '目前尚無相簿紀錄，請於上方表單上傳照片建立新相簿！' : '沒有符合條件的相簿'}
             </td>
           </tr>
         `;
         return;
       }
 
-      albums.forEach(alb => {
+      info.rows.forEach(alb => {
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-slate-50/80 transition-colors';
         const cover = alb.coverUrl || ALBUM_COVER_PLACEHOLDER;
