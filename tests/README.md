@@ -124,5 +124,7 @@ console.log(await window.__nameMapFrontendTest());   // allPass 應為 true
 - `node tests/textmap.test.js`：自由文字英文 TextMap 後端（掃描、同步不覆蓋、機器草稿只寫 draft、採用草稿、回傳與大型分段快取、`doGet` 唯讀動作，65 項；已納入 `tests/ci.sh`）。
 - `tests/textmap_frontend.js`（瀏覽器）：`tx()` 查表與各顯示位置（活動、菜單、列印、焦點活動、相簿、文件、主題）、退回中文、跳脫、載入與快取（40 項）。
 - `node tests/mapadmin.test.js`：後台英文對照編輯後端（token 驗證、列表、批次儲存、只刪未使用、同步、草稿上限、採用、統計、`doPost` 路由與冪等，60 項；已納入 `tests/ci.sh`）。
+- `node tests/mapsimilar.test.js`：後台「相似文字」分組純函式（和／與、標點、編號數字不同不分組、短文字、串接、`__proto__`、與標準編輯距離隨機對照 4000 組，30 項；從 `index.html` 取出函式執行；已納入 `tests/ci.sh`）。
+- `tests/mapsimilar_frontend.js`（瀏覽器）：相似文字介面（標示、篩選與同組相鄰、只看這組、套用英文的確認與取消、只填入畫面不呼叫後端、儲存、NameMap 無此功能、跳脫，34 項；約 5 秒）。
 - `tests/mapadmin_frontend.js`（瀏覽器）：後台英文對照介面（載入、篩選搜尋分頁、修改追蹤、批次儲存與分段、連續草稿與停止、採用、刪除、手動新增、種類切換、跳脫，61 項；約 20 秒）。
 
