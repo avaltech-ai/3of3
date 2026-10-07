@@ -116,6 +116,7 @@ function onOpen() {
       .addItem('✅ 採用全部英文草稿（核對後公開）', 'menuAdoptTextDrafts')
       .addItem('🖼️ 重建相簿封面候選（每天輪替封面用）', 'menuRebuildCoverCandidates')
       .addItem('⚡ 啟用網頁快取預熱（每 5 分鐘，載入更快）', 'menuSetupWarmCache')
+      .addItem('🔒 同步「不開放下載」歌曲的音樂檔權限', 'menuSyncSongAccess')
       .addItem('💾 立即備份試算表', 'menuBackupNow')
       .addItem('🔓 解除後台登入鎖定', 'menuResetLoginLock')
       .addItem('🚀 一鍵初始化／重設資料庫 (5大工作表與示範資料)', 'menuResetDatabase')
@@ -123,6 +124,22 @@ function onOpen() {
       .addToUi();
   } catch (e) {
     console.warn('onOpen UI menu creation skipped: ' + e);
+  }
+}
+
+/** 試算表選單：讓所有「不開放下載」的歌曲音樂檔都確實是私人（在試算表直接改 noDownload 欄不會動 Drive，用這個補齊） */
+function menuSyncSongAccess() {
+  const ui = SpreadsheetApp.getUi();
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(30000)) { ui.alert('⚠️ 系統目前忙碌，請稍後再試。'); return; }
+  try {
+    const r = syncBlockedSongAccess_();
+    const lines = ['🔒 「不開放下載」歌曲共 ' + r.total + ' 首', '　✅ 檔案已確實是私人：' + r.ok + ' 首', '　（只有 YouTube、沒有音樂檔：' + r.noFile + ' 首）', '　❌ 失敗：' + r.failed.length + ' 首'];
+    r.failed.slice(0, 8).forEach(function(f) { lines.push('　・' + f.title + '：' + f.error); });
+    if (r.failed.length > 8) lines.push('　…還有 ' + (r.failed.length - 8) + ' 首');
+    ui.alert(lines.join('\n'));
+  } finally {
+    lock.releaseLock();
   }
 }
 
@@ -596,6 +613,8 @@ function doPost(e) {
       result = deleteSong(postData.id || postData.songId, postData.password);
     } else if (action === 'adminSongList') {
       result = adminSongList(postData.password);
+    } else if (action === 'adminSongSetAccess') {
+      result = adminSongSetAccess(postData.ids, postData.blocked, postData.password);
     } else if (action === 'batchUpdateSongDurations') {
       result = checkPassword(postData.password)
         ? batchUpdateSongDurations(postData.durationsMap || postData.data || {})
@@ -3574,25 +3593,115 @@ function getSongPrivateFolder_() {
   return f;
 }
 
+/** 診斷資訊：檔案擁有者、目前執行者、檔案所在資料夾（失敗訊息用，讓人看得出是權限還是位置問題） */
+function songFileDiag_(file) {
+  const parts = [];
+  try { parts.push('擁有者 ' + (file.getOwner() ? file.getOwner().getEmail() : '（無）')); } catch (e) { parts.push('擁有者未知'); }
+  try { parts.push('執行者 ' + Session.getEffectiveUser().getEmail()); } catch (e) {}
+  try {
+    const names = [], it = file.getParents();
+    while (it.hasNext()) names.push(it.next().getName());
+    parts.push('所在資料夾 ' + (names.join('、') || '（無）'));
+  } catch (e) {}
+  return parts.join('，');
+}
+
 /**
- * 調整一個音樂檔的存取：blocked＝私人並搬到私人資料夾（唱跳音符資料夾本身是公開的，檔案放在裡面會繼承公開權限，
- * 所以只改檔案權限不夠）；否則搬回唱跳音符資料夾並設為「知道連結者可檢視」。回傳 { ok, error }。
+ * 調整一個音樂檔的存取，並**讀回驗證**（不假設操作成功）：
+ * blocked＝設為私人並搬到私人資料夾（唱跳音符資料夾本身是公開的，檔案放在裡面會繼承公開權限，所以只改檔案權限不夠）；
+ * 否則搬回唱跳音符資料夾並設為「知道連結者可檢視」。每一步各自嘗試（一步失敗不影響其他步），最後確認實際狀態。
+ * 回傳 { ok, error }；ok 只有在讀回的狀態符合目標時才為 true，error 帶失敗的步驟與診斷資訊。
  */
 function applySongFileAccess_(fileId, blocked) {
   if (!fileId) return { ok: true };
+  const problems = [];
+  let file;
   try {
-    const file = DriveApp.getFileById(fileId);
-    if (blocked) {
-      file.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE);
-      file.moveTo(getSongPrivateFolder_());
-    } else {
-      file.moveTo(DriveApp.getFolderById(SONGS_FOLDER_ID));
-      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-    }
-    return { ok: true };
+    file = DriveApp.getFileById(fileId);
   } catch (e) {
-    return { ok: false, error: String(e) };
+    console.error('applySongFileAccess_ getFileById ' + fileId + ': ' + e);
+    return { ok: false, error: '無法開啟檔案（' + e + '）' };
   }
+  if (blocked) {
+    try { file.moveTo(getSongPrivateFolder_()); } catch (e) { problems.push('搬到私人資料夾失敗：' + e); }
+    try { file.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE); } catch (e) { problems.push('設為私人失敗：' + e); }
+  } else {
+    try { file.moveTo(DriveApp.getFolderById(SONGS_FOLDER_ID)); } catch (e) { problems.push('搬回唱跳音符資料夾失敗：' + e); }
+    try { file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) { problems.push('設為知道連結者可檢視失敗：' + e); }
+  }
+  // 讀回實際狀態
+  let inPrivate = false, inSongs = false, access = '';
+  try {
+    const it = file.getParents();
+    while (it.hasNext()) {
+      const par = it.next();
+      if (par.getId() === SONGS_FOLDER_ID) inSongs = true;
+      if (par.getName() === SONG_PRIVATE_FOLDER_NAME) inPrivate = true;
+    }
+    access = String(file.getSharingAccess());
+  } catch (e) { problems.push('讀回檔案狀態失敗：' + e); }
+  const reached = blocked
+    ? (inPrivate && !inSongs && access === String(DriveApp.Access.PRIVATE))
+    : (inSongs && !inPrivate);
+  if (reached) return { ok: true };
+  const msg = (problems.length ? problems.join('；') + '。' : '') + '目前狀態：' + (inPrivate ? '在私人資料夾' : (inSongs ? '在唱跳音符（公開）資料夾' : '在其他位置')) + '、存取 ' + (access || '未知') + '。' + songFileDiag_(file);
+  console.error('applySongFileAccess_ ' + fileId + ' blocked=' + blocked + ': ' + msg);
+  return { ok: false, error: msg };
+}
+
+/**
+ * 後台批次設定：把指定的歌曲設為不開放／開放（需 token）。**一律實際調整 Drive**（不因旗標已經是目標值就略過，
+ * 這樣也能補救「旗標有、檔案還公開」的歌曲）。一次最多 10 首（Drive 搬移每首約 1～2 秒，前端分批呼叫）。
+ * 旗標：設為不開放→一律寫入 TRUE（公開資料立刻不含網址，寧可多擋）；設為開放→只有 Drive 恢復成功才清除旗標（避免前台出現打不開的下載圖示）。
+ */
+function adminSongSetAccess(ids, blocked, password) {
+  if (!checkPassword(password)) return authFail_();
+  try {
+    if (!Array.isArray(ids) || ids.length === 0) return { success: false, error: '沒有選取歌曲' };
+    if (ids.length > 10) return { success: false, error: '一次最多處理 10 首' };
+    const sheet = ensureSongSheetsExist().songSheet;
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0].map(function(h) { return String(h).trim(); });
+    const idCol = headers.indexOf('id'), fileCol = headers.indexOf('driveFileId'), flagCol = headers.indexOf('noDownload'), titleCol = headers.indexOf('title');
+    if (idCol < 0 || flagCol < 0) return { success: false, error: 'Songs 工作表缺少 id 或 noDownload 欄位' };
+    const want = !!blocked;
+    const results = [];
+    ids.forEach(function(rawId) {
+      const id = String(rawId);
+      let r = -1;
+      for (let i = 1; i < data.length; i++) { if (String(data[i][idCol]) === id) { r = i; break; } }
+      if (r < 0) { results.push({ id: id, ok: false, error: '找不到這首歌曲' }); return; }
+      const fileId = fileCol >= 0 ? String(data[r][fileCol] || '').trim() : '';
+      const a = fileId ? applySongFileAccess_(fileId, want) : { ok: true };
+      const keepBlocked = want ? true : !a.ok;     // 設為開放但 Drive 沒恢復成功 → 維持不開放
+      sheet.getRange(r + 1, flagCol + 1).setValue(keepBlocked ? true : '');
+      data[r][flagCol] = keepBlocked ? true : '';
+      results.push({ id: id, title: titleCol >= 0 ? String(data[r][titleCol] || '') : '', ok: a.ok, noFile: !fileId, noDownload: keepBlocked, error: a.ok ? '' : a.error });
+    });
+    clearAppDataCache();
+    return { success: true, blocked: want, results: results };
+  } catch (err) {
+    return { success: false, error: String(err) };
+  }
+}
+
+/** 讓所有「不開放」的歌曲的 Drive 檔案都確實是私人（試算表選單與批次共用；試算表上直接改旗標不會動 Drive，用這個補齊）。 */
+function syncBlockedSongAccess_() {
+  const sheet = ensureSongSheetsExist().songSheet;
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0].map(function(h) { return String(h).trim(); });
+  const idCol = headers.indexOf('id'), fileCol = headers.indexOf('driveFileId'), flagCol = headers.indexOf('noDownload'), titleCol = headers.indexOf('title');
+  const out = { total: 0, ok: 0, noFile: 0, failed: [] };
+  for (let i = 1; i < data.length; i++) {
+    if (!songNoDownload_(data[i][flagCol])) continue;
+    out.total++;
+    const fileId = String(data[i][fileCol] || '').trim();
+    if (!fileId) { out.noFile++; continue; }
+    const a = applySongFileAccess_(fileId, true);
+    if (a.ok) out.ok++; else out.failed.push({ id: String(data[i][idCol]), title: String(data[i][titleCol] || ''), error: a.error });
+  }
+  clearAppDataCache();
+  return out;
 }
 const SONG_DEFAULT_CATEGORIES = ['兒歌', '律動舞蹈', '英文歌曲', '節慶歌曲', '安靜時光'];
 
@@ -3869,7 +3978,7 @@ function saveSong(songData, password, opts) {
     let accessWarning = '';
     const accessDone = !!(opts && opts.accessApplied);
     if (blocked) {
-      if (fileId && !accessDone && (targetRow === -1 || !prevBlocked || prevFileId !== fileId)) {
+      if (fileId && !accessDone) {
         const a = applySongFileAccess_(fileId, true);
         if (!a.ok) accessWarning = a.error;
       }

@@ -1386,11 +1386,29 @@ const htmlContent = `<!DOCTYPE html>
               <select id="adminSongsCat" onchange="adminListOnFilter('songs', 'cat', this.value)" class="px-2.5 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-700 bg-white" aria-label="類別"></select>
               <button type="button" id="adminSongsClear" onclick="adminListClear('songs')" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 tap-bounce cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed" disabled>清除篩選</button>
             </div>
+            <!-- 批次設定：勾選歌曲後，一次設為「不開放下載」或「開放」 -->
+            <div id="songBatchBar" class="flex flex-wrap items-center gap-2 bg-fuchsia-50/60 border border-fuchsia-100 rounded-2xl px-3 py-2">
+              <button type="button" id="songBatchSelAllBtn" onclick="songBatchSelectFiltered()" class="px-3 py-1.5 rounded-xl bg-white border border-fuchsia-200 hover:bg-fuchsia-50 text-xs font-bold text-fuchsia-800 tap-bounce cursor-pointer">☑ 全選目前篩選結果</button>
+              <span id="songBatchCount" class="text-xs font-bold text-slate-600">尚未選取歌曲</span>
+              <span class="flex-1"></span>
+              <button type="button" id="songBatchBlockBtn" onclick="songBatchApply(true)" class="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-xs font-bold text-rose-700 tap-bounce cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed" disabled>🔒 設為不開放下載</button>
+              <button type="button" id="songBatchOpenBtn" onclick="songBatchApply(false)" class="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-xs font-bold text-emerald-700 tap-bounce cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed" disabled>🔓 設為開放下載</button>
+              <button type="button" id="songBatchClearBtn" onclick="songBatchClear()" class="px-3 py-1.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-xs font-bold text-slate-600 tap-bounce cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed" disabled>取消選取</button>
+            </div>
+            <div id="songBatchProgress" class="hidden rounded-2xl bg-slate-50 border border-slate-200 p-3 space-y-1.5" aria-live="polite">
+              <div class="flex items-center justify-between gap-2 text-xs font-bold text-slate-700">
+                <span id="songBatchProgressText"></span>
+                <button type="button" id="songBatchStopBtn" onclick="songBatchStop()" class="px-2 py-0.5 rounded-lg bg-white border border-slate-300 text-[0.6875rem] text-slate-600 cursor-pointer">停止</button>
+              </div>
+              <div class="h-1.5 rounded-full bg-slate-200 overflow-hidden"><div id="songBatchProgressBar" class="h-full bg-fuchsia-500 transition-all duration-200" style="width:0%"></div></div>
+            </div>
+            <div id="songBatchResult" class="hidden rounded-2xl border p-3 text-xs space-y-1"></div>
             <div class="overflow-x-auto">
               <table class="w-full text-left text-xs border-collapse">
                 <thead>
                   <tr class="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
-                    <th class="py-2.5 px-3 rounded-l-xl">縮圖</th>
+                    <th class="py-2.5 px-3 rounded-l-xl w-8"><input type="checkbox" id="songBatchPageAll" onchange="songBatchTogglePage(this.checked)" class="accent-fuchsia-600 w-4 h-4" title="選取／取消這一頁的歌曲" aria-label="選取這一頁的歌曲"></th>
+                    <th class="py-2.5 px-3">縮圖</th>
                     <th class="py-2.5 px-3">類別</th>
                     <th class="py-2.5 px-3">歌名</th>
                     <th class="py-2.5 px-3">音樂檔</th>
@@ -7860,6 +7878,137 @@ const htmlContent = `<!DOCTYPE html>
       }, function() { adminSongInfo.loading = false; });
     }
 
+    // ---------- 批次設定「不開放下載／開放」 ----------
+    // 選取歌曲（可跨頁、可用「全選目前篩選結果」），每 5 首送一次後端（每首要調整 Drive，約 1～2 秒；分批避免逾時並顯示進度）。
+    const SONG_BATCH_CHUNK = 5;
+    const songBatch = { sel: new Set(), pageIds: [], running: false, cancel: false };
+
+    function songBatchFilteredIds() {
+      return adminSongsView(state.songs || [], adminLists.songs).map(function(sg) { return String(sg.id); });
+    }
+    function songBatchToggle(id, on) { if (on) songBatch.sel.add(id); else songBatch.sel.delete(id); songBatchUpdateUI(); }
+    function songBatchSelectFiltered() {
+      if (songBatch.running) return;
+      songBatchFilteredIds().forEach(function(id) { songBatch.sel.add(id); });
+      renderAdminSongsTable();
+    }
+    function songBatchTogglePage(on) {
+      if (songBatch.running) return;
+      songBatch.pageIds.forEach(function(id) { if (on) songBatch.sel.add(id); else songBatch.sel.delete(id); });
+      renderAdminSongsTable();
+    }
+    function songBatchClear() { if (songBatch.running) return; songBatch.sel.clear(); renderAdminSongsTable(); }
+
+    function songBatchUpdateUI() {
+      const n = songBatch.sel.size;
+      const inFilter = new Set(songBatchFilteredIds());
+      let outside = 0;
+      songBatch.sel.forEach(function(id) { if (!inFilter.has(id)) outside++; });
+      const cnt = document.getElementById('songBatchCount');
+      if (cnt) cnt.textContent = n === 0 ? '尚未選取歌曲' : ('已選 ' + n + ' 首' + (outside > 0 ? '（其中 ' + outside + ' 首不在目前篩選範圍內）' : ''));
+      const selAll = document.getElementById('songBatchSelAllBtn');
+      if (selAll) { selAll.textContent = '☑ 全選目前篩選結果（' + inFilter.size + ' 首）'; selAll.disabled = songBatch.running; }
+      ['songBatchBlockBtn', 'songBatchOpenBtn'].forEach(function(id) { const b = document.getElementById(id); if (b) b.disabled = songBatch.running || n === 0; });
+      const clr = document.getElementById('songBatchClearBtn'); if (clr) clr.disabled = songBatch.running || n === 0;
+      const pageAll = document.getElementById('songBatchPageAll');
+      if (pageAll) {
+        const cnt2 = songBatch.pageIds.filter(function(id) { return songBatch.sel.has(id); }).length;
+        pageAll.checked = songBatch.pageIds.length > 0 && cnt2 === songBatch.pageIds.length;
+        pageAll.indeterminate = cnt2 > 0 && cnt2 < songBatch.pageIds.length;
+        pageAll.disabled = songBatch.running;
+      }
+      document.querySelectorAll('.song-batch-cb').forEach(function(cb) { cb.disabled = songBatch.running; });
+    }
+
+    function songBatchStop() { songBatch.cancel = true; }
+
+    function songBatchShowProgress(text, pct) {
+      const box = document.getElementById('songBatchProgress'); if (!box) return;
+      if (text === null) { box.classList.add('hidden'); return; }
+      box.classList.remove('hidden');
+      const t1 = document.getElementById('songBatchProgressText'); if (t1) t1.textContent = text;
+      const bar = document.getElementById('songBatchProgressBar'); if (bar) bar.style.width = Math.max(0, Math.min(100, pct || 0)) + '%';
+    }
+
+    function songBatchShowResult(summary, failures, tone) {
+      const box = document.getElementById('songBatchResult'); if (!box) return;
+      box.textContent = '';
+      box.className = 'rounded-2xl border p-3 text-xs space-y-1 ' + (tone === 'bad' ? 'bg-rose-50 border-rose-200 text-rose-800' : (tone === 'warn' ? 'bg-amber-50 border-amber-200 text-amber-900' : 'bg-emerald-50 border-emerald-200 text-emerald-800'));
+      const head = document.createElement('div'); head.className = 'font-black'; head.textContent = summary; box.appendChild(head);
+      failures.slice(0, 20).forEach(function(f) {
+        const d = document.createElement('div'); d.className = 'break-words';
+        d.textContent = '・' + (f.title || f.id) + '：' + f.error;
+        box.appendChild(d);
+      });
+      if (failures.length > 20) { const m = document.createElement('div'); m.textContent = '…還有 ' + (failures.length - 20) + ' 首失敗'; box.appendChild(m); }
+    }
+
+    // 把後端回報的結果即時反映到本機（公開資料與後台完整資料）；全部完成後還會重新載入一次
+    function songBatchApplyLocal(results) {
+      (results || []).forEach(function(r) {
+        const id = String(r.id);
+        const full = Object.assign({}, adminSongInfo.map[id] || {}, { noDownload: !!r.noDownload });
+        if (adminSongInfo.map[id]) adminSongInfo.map[id] = full;
+        const list = state.songs || [];
+        const idx = list.findIndex(function(sg) { return String(sg.id) === id; });
+        if (idx > -1) list[idx] = songPublicView(Object.assign({}, adminSongFull(list[idx]), { noDownload: !!r.noDownload }));
+      });
+    }
+
+    function songBatchApply(blocked) {
+      if (songBatch.running) return;
+      if (!state.adminPassword) { showToast('請先登入管理後台', '⚠️'); return; }
+      const ids = Array.from(songBatch.sel);
+      if (ids.length === 0) return;
+      const msg = blocked
+        ? '確定要把選取的 ' + ids.length + ' 首歌曲設為「不開放下載」嗎？\\n\\n・前台不再顯示下載圖示，公開資料也不含下載網址\\n・音樂檔會設為私人，並搬到只有您能開的私人資料夾\\n・之後隨時可以改回開放'
+        : '確定要把選取的 ' + ids.length + ' 首歌曲設為「開放下載」嗎？\\n\\n・音樂檔會搬回「唱跳音符」資料夾並設為「知道連結者可檢視」\\n・前台會恢復顯示下載圖示';
+      if (!confirm(msg)) return;
+      songBatch.running = true; songBatch.cancel = false;
+      const box = document.getElementById('songBatchResult'); if (box) box.classList.add('hidden');
+      songBatchUpdateUI();
+      const tally = { ok: 0, noFile: 0, failed: [] };
+      let done = 0, stopped = false, broke = '';
+      const finish = function() {
+        songBatch.running = false;
+        songBatchShowProgress(null);
+        songBatch.sel.clear();
+        const total = ids.length;
+        const word = blocked ? '不開放下載' : '開放下載';
+        let summary = (stopped ? '已停止：' : '') + '設為' + word + '：成功 ' + tally.ok + ' 首' + (tally.noFile ? '（其中 ' + tally.noFile + ' 首只有 YouTube，只更新設定）' : '') + '、失敗 ' + tally.failed.length + ' 首' + ((stopped || broke) ? '、未處理 ' + Math.max(0, total - done) + ' 首' : '') + '。';
+        if (broke) summary += ' ' + broke;
+        if (tally.failed.length && blocked) summary += '（失敗的歌曲仍已從公開資料移除下載網址，但音樂檔可能還是公開；請依下列原因處理後再執行一次。）';
+        songBatchShowResult(summary, tally.failed, (tally.failed.length || broke) ? ((tally.ok > 0) ? 'warn' : 'bad') : 'ok');
+        showToast(summary, tally.failed.length || broke ? '⚠️' : '✅');
+        renderAdminSongsTable();
+        loadAppData(true);
+      };
+      const step = function() {
+        if (songBatch.cancel) { stopped = true; finish(); return; }
+        if (done >= ids.length) { finish(); return; }
+        const chunk = ids.slice(done, done + SONG_BATCH_CHUNK);
+        songBatchShowProgress('處理中… 已完成 ' + done + ' / ' + ids.length + ' 首（每首需調整 Drive，請稍候）', done * 100 / ids.length);
+        callBackend('adminSongSetAccess', { ids: chunk, blocked: !!blocked, password: state.adminPassword }, function(res) {
+          if (!(res && res.success && Array.isArray(res.results))) {
+            if (!(res && res.authExpired)) broke = '後端回報失敗：' + ((res && res.error) || '未知錯誤');
+            else broke = '登入已逾時，請重新登入後再執行。';
+            finish(); return;
+          }
+          res.results.forEach(function(r) {
+            if (r.ok) { tally.ok++; if (r.noFile) tally.noFile++; } else tally.failed.push({ id: r.id, title: r.title, error: r.error || '未知原因' });
+          });
+          songBatchApplyLocal(res.results);
+          done += chunk.length;
+          renderAdminSongsTable();
+          step();
+        }, function(err) {
+          broke = '連線中斷（' + ((err && err.message) || '逾時') + '），這一批的結果不明；請重新整理後確認再決定要不要重做。';
+          finish();
+        });
+      };
+      step();
+    }
+
     function renderAdminSongsTable() {
       ensureAdminSongInfo();
       const tbody = document.getElementById('adminSongsTableBody');
@@ -7874,10 +8023,13 @@ const htmlContent = `<!DOCTYPE html>
       adminListRenderPager('songs', info, allSongs.length);
 
       if (info.total === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-400">' + (allSongs.length === 0 ? '目前尚無歌曲，請於上方表單新增！' : '沒有符合條件的歌曲') + '</td></tr>';
+        songBatch.pageIds = [];
+        songBatchUpdateUI();
+        tbody.innerHTML = '<tr><td colspan="6" class="py-8 text-center text-slate-400">' + (allSongs.length === 0 ? '目前尚無歌曲，請於上方表單新增！' : '沒有符合條件的歌曲') + '</td></tr>';
         return;
       }
 
+      songBatch.pageIds = info.rows.map(function(sg) { return String(sg.id); });
       info.rows.forEach(function(song) {
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-slate-50/80 transition-colors';
@@ -7888,12 +8040,16 @@ const htmlContent = `<!DOCTYPE html>
           ? '<a href="' + (escUrl(fullSong.downloadUrl) || '#') + '" target="_blank" rel="noopener noreferrer" class="text-emerald-700 font-bold hover:underline">✅ ' + songEsc(fullSong.fileName || '已上傳') + '</a>' + (fullSong.fileSize ? '<div class="text-[10px] text-slate-400">' + formatSongBytes(fullSong.fileSize) + '</div>' : '')
           : '<span class="text-slate-400">— 未上傳</span>') + lockBadge;
         tr.innerHTML =
+          '<td class="py-2.5 px-3"><input type="checkbox" class="song-batch-cb accent-fuchsia-600 w-4 h-4" aria-label="選取這首歌曲"></td>' +
           '<td class="py-2.5 px-3">' + (thumb ? '<img src="' + escUrl(thumb) + '" class="w-16 aspect-video object-cover rounded-lg border border-slate-200">' : '') + '</td>' +
           '<td class="py-2.5 px-3 whitespace-nowrap"><span class="' + getSongCategoryBadgeClass(song.category) + ' px-2.5 py-0.5 rounded-full text-[10px] font-extrabold inline-block">' + songEsc(song.category || '未分類') + '</span></td>' +
           '<td class="py-2.5 px-3 font-bold text-slate-800"><div class="line-clamp-2">' + songEsc(song.title) + '</div>' + (song.duration ? '<div class="text-[11px] text-slate-400 font-semibold mt-0.5">⏱️ ' + songEsc(formatSongDuration(song.duration)) + '</div>' : '') + '</td>' +
           '<td class="py-2.5 px-3">' + fileCell + '</td>' +
           '<td class="py-2.5 px-3 text-right whitespace-nowrap space-x-1.5"></td>';
 
+        const batchCb = tr.querySelector('.song-batch-cb');
+        batchCb.checked = songBatch.sel.has(String(song.id));
+        batchCb.addEventListener('change', function() { songBatchToggle(String(song.id), batchCb.checked); });
         const ops = tr.lastElementChild;
         const editBtn = document.createElement('button');
         editBtn.type = 'button';
@@ -7909,6 +8065,7 @@ const htmlContent = `<!DOCTYPE html>
         ops.appendChild(delBtn);
         tbody.appendChild(tr);
       });
+      songBatchUpdateUI();
     }
 
     function onSongYoutubeInput() {
