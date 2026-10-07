@@ -126,6 +126,8 @@ console.log(await window.__nameMapFrontendTest());   // allPass 應為 true
 - `node tests/mapadmin.test.js`：後台英文對照編輯後端（token 驗證、列表、批次儲存、只刪未使用、同步、草稿上限、採用、統計、`doPost` 路由與冪等，60 項；已納入 `tests/ci.sh`）。
 - `tests/spotlight_adminlist.js`（瀏覽器）：後台焦點活動列表搜尋與分頁（預設 10 筆、最新建立在最上、只剩「第 N 順位」下拉且為真實順位、狀態／輪播狀態／關鍵字／排序、分頁列、在排序／篩選／換頁後改順位仍正確、空狀態、跳脫，38 項；約 10 秒）。
 - `tests/spotlight_relist.js`（瀏覽器）：後台焦點活動「再次上架」（按鈕、帶入內容與圖片、新編號、起始日＝今天、結束日留空、不上傳、原本那筆不變、結束日未填提醒、結束日早於開始日擋下、編輯與新增不受影響、跳脫，36 項；約 6 秒）。
+- `node tests/songnodl.test.js`：唱跳音符「不開放下載」後端（公開資料剝除檔案欄位含快取、`adminSongList` 需 token、`saveSong` 的私人資料夾搬移與搬回、換檔案舊檔處理、安全網不清空檔案資訊與沿用旗標、`uploadSong` 直接建在私人資料夾與失敗取消、Drive 失敗警告、`doPost` 路由與 `doGet` 不提供，59 項；已納入 `tests/ci.sh`）。
+- `tests/song_nodownload.js`（瀏覽器）：前台只有開放的歌曲有下載圖示、後台勾選框與「🔒 不開放下載」標籤、編輯與儲存不清空檔案資訊、送出 noDownload、上傳、警告、登出清除完整資料、取完整歌單失敗、跳脫，31 項。
 - `node tests/bareget.test.js`：直接開 GAS `/exec`（沒有 action）只回導向頁（含正式網址、`target="_top"` 連結、不開試算表、不建立工作表、不提供舊版前端；有 action 的唯讀 API 照舊、寫入類動作仍被拒；`.claspignore` 不再放行 `index.html`，21 項；已納入 `tests/ci.sh`）。
 - `node tests/adminlist.test.js`：後台列表搜尋、篩選、排序、分頁純函式（頁碼夾回、全部顯示、多關鍵字 AND、類別大項／細項、對象空白與全形逗號、排序與同日順序、相簿編號數值比較、歌曲反轉、焦點活動輪播狀態與編號時間，82 項；已納入 `tests/ci.sh`）。
 - `tests/adminlist_frontend.js`（瀏覽器）：活動／相簿／歌曲三個後台列表的搜尋與分頁介面（預設 10 筆、最新在最上、圖示按鈕且無文字、20／50／全部與記住選擇、搜尋類別對象排序、清除、符合筆數、無符合與無資料、刪除後頁碼夾回、跳脫、互不影響，69 項；約 15 秒）。

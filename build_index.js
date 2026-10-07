@@ -1343,6 +1343,10 @@ const htmlContent = `<!DOCTYPE html>
                   <div class="text-xs font-bold text-slate-700">點此選取音樂檔（MP3、M4A、WAV…，上限 25 MB）</div>
                 </div>
                 <div id="songForm-fileStatus" class="text-xs text-slate-400 mt-2">尚未上傳音樂檔（選填，上傳後前台才會出現下載圖示）</div>
+                <label class="mt-3 flex items-start gap-2 cursor-pointer select-none bg-slate-50 border border-slate-200 rounded-xl p-3">
+                  <input type="checkbox" id="songForm-noDownload" class="mt-0.5 accent-fuchsia-600 w-4 h-4 shrink-0">
+                  <span class="text-xs text-slate-700 leading-relaxed"><b>🔒 不開放下載</b>：勾選後，前台不顯示下載圖示、公開資料也不含下載網址，音樂檔會移到只有您能開的私人資料夾，只能用 YouTube 播放。取消勾選會恢復開放。</span>
+                </label>
               </div>
 
               <!-- 上傳 / 儲存進度 -->
@@ -4355,6 +4359,7 @@ const htmlContent = `<!DOCTYPE html>
       state.eventCategoriesMajor = data.eventCategoriesMajor || []; state.eventCategoriesMinor = data.eventCategoriesMinor || [];
       state.albumCategories = data.albumCategories || ['班級主題', '全園活動', '親職活動', '節慶活動', '幸福廚房', '健康檢查', '戶外踏訪', '日常生活'];
       state.songs = data.songs || [];
+      adminSongInfo.loaded = false;   // 公開資料已更新：下次畫後台列表時重新取完整歌單
       state.songCategories = data.songCategories || [];
       renderDocCategoriesUI();
       renderAlbumCategoriesUI();
@@ -7820,7 +7825,43 @@ const htmlContent = `<!DOCTYPE html>
     });
 
     // ---------- 後台：歌曲管理 ----------
+    // ---------- 不開放下載：公開資料不含檔案資訊，後台另以登入後的專用動作取得完整資料 ----------
+    // state.songs 是公開資料（不開放的歌曲沒有檔名、大小、檔案 ID、下載網址）；後台列表、編輯、儲存一律用 adminSongFull() 合併完整資料，
+    // 否則編輯不開放的歌曲會把檔案連結存成空白。
+    const adminSongInfo = { map: {}, loaded: false, loading: false };
+
+    function songPublicView(song) {
+      const c = Object.assign({}, song);
+      if (c.noDownload) { ['fileName', 'fileSize', 'driveFileId', 'downloadUrl'].forEach(function(k) { delete c[k]; }); c.noDownload = true; }
+      else delete c.noDownload;
+      return c;
+    }
+
+    function adminSongFull(song) {
+      if (!song) return song;
+      const full = adminSongInfo.map[String(song.id)];
+      return full ? Object.assign({}, song, full) : song;
+    }
+
+    function resetAdminSongInfo() { adminSongInfo.map = {}; adminSongInfo.loaded = false; adminSongInfo.loading = false; }
+
+    // 登入後向後端取完整歌單（需 token）；取得後重畫後台列表。失敗就維持公開資料（儲存時後端也會保留原本的檔案資訊，不會被清空）
+    function ensureAdminSongInfo() {
+      if (!state.adminPassword || adminSongInfo.loaded || adminSongInfo.loading) return;
+      adminSongInfo.loading = true;
+      callBackend('adminSongList', { password: state.adminPassword }, function(res) {
+        adminSongInfo.loading = false;
+        if (res && res.success && Array.isArray(res.songs)) {
+          const m = {};
+          res.songs.forEach(function(sg) { m[String(sg.id)] = sg; });
+          adminSongInfo.map = m; adminSongInfo.loaded = true;
+          renderAdminSongsTable();
+        }
+      }, function() { adminSongInfo.loading = false; });
+    }
+
     function renderAdminSongsTable() {
+      ensureAdminSongInfo();
       const tbody = document.getElementById('adminSongsTableBody');
       const countBadge = document.getElementById('adminSongsCountBadge');
       if (!tbody) return;
@@ -7841,9 +7882,11 @@ const htmlContent = `<!DOCTYPE html>
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-slate-50/80 transition-colors';
         const thumb = getSongThumbUrl(song);
-        const fileCell = song.downloadUrl
-          ? '<a href="' + (escUrl(song.downloadUrl) || '#') + '" target="_blank" rel="noopener noreferrer" class="text-emerald-700 font-bold hover:underline">✅ ' + songEsc(song.fileName || '已上傳') + '</a>' + (song.fileSize ? '<div class="text-[10px] text-slate-400">' + formatSongBytes(song.fileSize) + '</div>' : '')
-          : '<span class="text-slate-400">— 未上傳</span>';
+        const fullSong = adminSongFull(song);
+        const lockBadge = fullSong.noDownload ? ' <span class="admin-song-lock inline-block text-[10px] font-extrabold text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded-full whitespace-nowrap">🔒 不開放下載</span>' : '';
+        const fileCell = (fullSong.downloadUrl
+          ? '<a href="' + (escUrl(fullSong.downloadUrl) || '#') + '" target="_blank" rel="noopener noreferrer" class="text-emerald-700 font-bold hover:underline">✅ ' + songEsc(fullSong.fileName || '已上傳') + '</a>' + (fullSong.fileSize ? '<div class="text-[10px] text-slate-400">' + formatSongBytes(fullSong.fileSize) + '</div>' : '')
+          : '<span class="text-slate-400">— 未上傳</span>') + lockBadge;
         tr.innerHTML =
           '<td class="py-2.5 px-3">' + (thumb ? '<img src="' + escUrl(thumb) + '" class="w-16 aspect-video object-cover rounded-lg border border-slate-200">' : '') + '</td>' +
           '<td class="py-2.5 px-3 whitespace-nowrap"><span class="' + getSongCategoryBadgeClass(song.category) + ' px-2.5 py-0.5 rounded-full text-[10px] font-extrabold inline-block">' + songEsc(song.category || '未分類') + '</span></td>' +
@@ -7930,7 +7973,7 @@ const htmlContent = `<!DOCTYPE html>
           };
         } catch (err) {}
       }
-      const existing = songFormEditingId ? (state.songs || []).find(function(s) { return String(s.id) === String(songFormEditingId); }) : null;
+      const existing = songFormEditingId ? adminSongFull((state.songs || []).find(function(s) { return String(s.id) === String(songFormEditingId); })) : null;
       setSongFormFileStatus(existing);
     }
 
@@ -7941,6 +7984,7 @@ const htmlContent = `<!DOCTYPE html>
       ['songForm-youtube', 'songForm-title', 'songForm-duration'].forEach(function(id) { const el = document.getElementById(id); if (el) el.value = ''; });
       const fi = document.getElementById('songForm-fileInput');
       if (fi) fi.value = '';
+      const ndBox0 = document.getElementById('songForm-noDownload'); if (ndBox0) ndBox0.checked = false;
       const sel = document.getElementById('songForm-category');
       if (sel && sel.options.length > 0) sel.selectedIndex = 0;
       document.getElementById('songFormTitle').textContent = '新增歌曲';
@@ -7952,9 +7996,10 @@ const htmlContent = `<!DOCTYPE html>
     }
 
     function editSongInAdmin(id) {
-      const song = (state.songs || []).find(function(s) { return String(s.id) === String(id); });
+      const song = adminSongFull((state.songs || []).find(function(s) { return String(s.id) === String(id); }));
       if (!song || songSaving) return;
       songFormEditingId = song.id;
+      const ndEl = document.getElementById('songForm-noDownload'); if (ndEl) ndEl.checked = !!song.noDownload;
       songFormSelectedFile = null;
       document.getElementById('songForm-youtube').value = song.youtubeUrl || '';
       document.getElementById('songForm-title').value = song.title || '';
@@ -8029,8 +8074,11 @@ const htmlContent = `<!DOCTYPE html>
     function upsertLocalSong(song) {
       const list = state.songs || [];
       const idx = list.findIndex(function(s) { return String(s.id) === String(song.id); });
-      if (idx > -1) list[idx] = Object.assign({}, list[idx], song);
-      else list.push(song);
+      // 完整資料放後台用的 adminSongInfo；公開的 state.songs 只放公開檢視（不開放下載的歌曲不帶檔案資訊）
+      adminSongInfo.map[String(song.id)] = Object.assign({}, adminSongInfo.map[String(song.id)] || {}, song);
+      const pub = songPublicView(idx > -1 ? Object.assign({}, list[idx], song) : song);
+      if (idx > -1) list[idx] = pub;
+      else list.push(pub);
       state.songs = list;
       applySongFilters();
       renderAdminSongsTable();
@@ -8050,6 +8098,7 @@ const htmlContent = `<!DOCTYPE html>
         upsertLocalSong(merged);
         setSongProgress(100, uploaded ? '✅ 上傳完成，已寫入資料庫！' : '✅ 已儲存！', '');
         showToast(res.message || '歌曲已儲存！', '🎉');
+        if (res.warning) showToast(res.warning, '⚠️');
         setTimeout(function() { clearSongForm(); }, 1200);
         loadAppData(true);
       } else {
@@ -8081,7 +8130,9 @@ const htmlContent = `<!DOCTYPE html>
       if (!title) { showToast('請輸入歌名', '⚠️'); return; }
       if (!category) { showToast('請選擇類別（類別可於試算表 SongCategories 新增）', '⚠️'); return; }
 
-      const existing = songFormEditingId ? (state.songs || []).find(function(s) { return String(s.id) === String(songFormEditingId); }) : null;
+      const existing = songFormEditingId ? adminSongFull((state.songs || []).find(function(s) { return String(s.id) === String(songFormEditingId); })) : null;
+      const ndBox = document.getElementById('songForm-noDownload');
+      const noDownload = !!(ndBox && ndBox.checked);
       const songData = {
         id: songFormEditingId || '',
         category: category,
@@ -8092,7 +8143,8 @@ const htmlContent = `<!DOCTYPE html>
         fileName: existing ? (existing.fileName || '') : '',
         fileSize: existing ? (existing.fileSize || '') : '',
         driveFileId: existing ? (existing.driveFileId || '') : '',
-        downloadUrl: existing ? (existing.downloadUrl || '') : ''
+        downloadUrl: existing ? (existing.downloadUrl || '') : '',
+        noDownload: noDownload
       };
 
       // 已有相同檔案（檔名與大小一致）就沿用原連結，不重複上傳
@@ -8124,7 +8176,7 @@ const htmlContent = `<!DOCTYPE html>
         const base64 = String(ev.target.result).split(',')[1];
         startSongProgressEstimate(file.size);
         callBackend('uploadSong', {
-          meta: { id: songData.id, category: category, title: title, youtubeUrl: youtubeUrl, duration: songData.duration },
+          meta: { id: songData.id, category: category, title: title, youtubeUrl: youtubeUrl, duration: songData.duration, noDownload: noDownload },
           file: { name: file.name, mimeType: file.type || 'audio/mpeg', base64: base64 },
           password: state.adminPassword
         }, function(res) { finishSongSave(res, songData, true); }, failSongSave);
@@ -8195,6 +8247,7 @@ const htmlContent = `<!DOCTYPE html>
     // 清除本機登入狀態並回到登入畫面（不呼叫後端、不顯示登出訊息）
     function clearAdminSession() {
       state.adminPassword = '';
+      resetAdminSongInfo();
       try { sessionStorage.removeItem(ADMIN_TOKEN_KEY); localStorage.removeItem('nobel_a_admin_pwd'); sessionStorage.removeItem('nobel_a_admin_pwd'); } catch (e) {}
       const pwdInput = document.getElementById('adminPasswordInput');
       if (pwdInput) pwdInput.value = '';

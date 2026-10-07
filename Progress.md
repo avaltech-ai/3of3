@@ -5,12 +5,13 @@
 > **新對話接手時請先讀本節與 `TODO.md`**，再視需要讀 `SPECIFICATION.md`（規格正本，v2.5.0，第 5.9～5.12 節為最近新增）與 `tests/README.md`（測試說明）。下方「Critical Technical Lessons Learned」第 1～21 條與其後的條列是**歷史紀錄，依時間排列**：其中第 1、2、19 條已過時（見各條註記）；2026-10-05 起每個項目都有「根因／做法／教訓／未驗證項目」，改相關功能前請先找對應條目。
 
 ### 一、目前狀態（一句話）
-**線上穩定，沒有待部署或待推送的項目。** 後端 GAS 現行部署 **@128「網址導向頁 2」**（2026-10-07 發布；之前 @125「中翻英後台」、@127 為誤先發布的舊內容）（另有不可刪的 `@HEAD`，共 2 個部署）；前端 GitHub Pages 與 `main` 同步（工作區乾淨，GitHub Actions 通過）。**所有已上線功能皆已通過自動化測試，且都已由使用者在實機驗證。**
+**線上穩定；唯一未部署的是「唱跳音符不開放下載」（前後端，需發布後端，見下）。** 後端 GAS 現行部署 **@128「網址導向頁 2」**（2026-10-07 發布；之前 @125「中翻英後台」、@127 為誤先發布的舊內容）（另有不可刪的 `@HEAD`，共 2 個部署）；前端 GitHub Pages 與 `main` 同步（工作區乾淨，GitHub Actions 通過）。**所有已上線功能皆已通過自動化測試，且都已由使用者在實機驗證。**
 - **英文對照已實測（2026-10-06）**：使用者實際操作後台「🌐 英文對照」，回報沒有問題；發現「不同地方重複使用的相同內容，會得到不同的翻譯」。**原因已釐清**：不是逐字相同（例：「社-2-3 …遵守生活規範**和**活動規則」與「…規範**與**活動規則」，同為「主題活動：課程目標」），TextMap 以中文完全相同才共用，所以成兩筆、各翻各的。
 - **2026-10-06 使用者實機驗證通過（皆為僅前端）**：① 後台英文對照「相似文字提示」（commit 1f4596a；中文差 1～2 字的列分組、「套用到相似列」）；② 前台「歷史焦點」（commit 9e37dd1；只列最近一季已結束、非停用、不在輪播的焦點活動；一季＝`SPOTLIGHT_HISTORY_MONTHS`＝3 個月）；③ 後台活動／相簿／歌曲列表搜尋與分頁（commit 007d5db；活動、歌曲的「最新建立」＝試算表列順序倒過來，相簿＝建立或更新日期新到舊；每頁筆數記在 `localStorage`）。細節見 `SPECIFICATION.md` 5.12、2.x 與 6.（後台）。
 - **失敗通知已設定（2026-10-06，使用者確認）**：GAS 觸發條件中，備份 `weeklyBackup`（每週日 03:00）的「錯誤通知設定」＝**立即通知我**；預熱 `warmAppDataCache`（每 5 分鐘，錯誤率約 0.43%）**刻意維持「每天通知我」**（每 5 分鐘一次，偶發失敗很正常，立即通知會變成雜訊）。
 - **2026-10-07 使用者實機驗證通過（皆為僅前端）**：① 後台焦點活動「🔁 再次上架」（commit 98c355c；帶入內容與圖片、新編號、不重新上傳、開始日＝今天、結束日留空、未填結束日儲存前提醒、結束日早於開始日擋下）；② 後台焦點活動列表搜尋與分頁（commit 1d42dfd；關鍵字、狀態、輪播狀態、排序最新建立／輪播順序；▲▼ 已移除，只留「第 N 順位」下拉＝真實輪播順位；「最新建立」由編號 `SP-`＋時間戳記推算）；③ 英文對照頁分頁改用共用分頁元件（commit 555192d；預設每頁 10 筆，可選 20／50／全部，記在 `localStorage`）。細節見 `SPECIFICATION.md`。
 - **裸 `/exec` 網址改為導向正式網站（2026-10-07，後端 @128 已發布並驗證；使用者選方案 ②）**：`doGet` 沒有 `action` 時只回導向頁（`buildFrontendRedirectPage_()`：說明＋「前往諾貝爾 A 班網站」按鈕＋嘗試自動跳轉；不開試算表、不檢查／建立工作表、不寫入），不再提供存在 GAS 內的舊版前端；`.claspignore` 不再放行 `index.html`（GAS 專案只剩 `Code.js`、`appsscript.json`，已用 `clasp pull` 驗證）。有 `action` 的唯讀 API 完全不變。**發布後驗證（curl）**：裸 `/exec` 與帶無關參數（`?x=1`）都回導向頁（約 11KB 的 Google 外框，內含導向文字）；`getAppData`（68,960 位元組）、`getTextMap`、`getCalendarIcs`、`getAlbums` 正常；`listSheetNames` 回「未知動作」；部署仍為 2 個；前端仍指向同一個 `/exec`。發布後約 1 分鐘內裸網址曾仍回舊頁（Google 傳播延遲），之後穩定。測試：`tests/bareget.test.js`（Node，21，已進 CI）。回復：管理部署作業把版本改回 127（程式同 125）。**待使用者目視確認一次導向頁的外觀**（在瀏覽器開 `/exec`）。
+- **唱跳音符「不開放下載」（2026-10-07 完成開發，前後端；**尚未部署，需發布後端**）**：後台歌曲表單新增「🔒 不開放下載」勾選框（`Songs!noDownload` 欄自動補上；既有歌曲全部維持開放）。勾選後前台沒有下載圖示、**公開資料不含檔案名稱／網址／檔案 ID**（只能用 YouTube 播放），音樂檔設為私人並**搬到根目錄私人資料夾「唱跳音符_不開放下載」**（因為「唱跳音符」資料夾本身是公開的，檔案會繼承公開權限，只改檔案權限沒用）；取消勾選則搬回並重新公開。後台改用需登入的 `adminSongList` 取得完整歌單。測試：`tests/songnodl.test.js`（Node，59，已進 CI）、`tests/song_nodownload.js`（瀏覽器 31）。**部署（後端先）**：`clasp push` → GAS「部署 → 管理部署作業 → ✏️ → 新版本 → 部署」→ 再 `git push`；**上線後請用一首測試歌實際驗證**（勾選後用無痕視窗開原下載網址應打不開，見 `TODO.md`）。
 - **需要使用者決定**：兒童照片公開範圍（是否加班級通行碼）、管理員密碼是否改存雜湊（詳見 `TODO.md`）。
 
 ### 二、系統概覽
@@ -28,20 +29,20 @@
 - **後台**：新增「🌐 英文對照」頁籤——網頁編輯 NameMap 與 TextMap（搜尋、篩選、分頁、批次儲存、連續產生草稿、採用、刪除未使用、手動新增、新文字紅點）。（自動化測試通過；**使用者已於 2026-10-06 實機操作，無問題**；相似文字提示見第一節）
 
 ### 四、測試與驗證工具（`tests/`）
-**每次改動前後都要跑**：`bash tests/ci.sh`（語法、`index.html` 與建置一致、內嵌 script 語法、14 套 Node 測試；GitHub Actions 在每次推送與 PR 自動執行同一支腳本）。
+**每次改動前後都要跑**：`bash tests/ci.sh`（語法、`index.html` 與建置一致、內嵌 script 語法、15 套 Node 測試；GitHub Actions 在每次推送與 PR 自動執行同一支腳本）。
 | 檔案 | 類型 | 內容 | 項數 |
 | :-- | :-- | :-- | :-: |
 | `auth` / `idempotency` / `covers` / `namemap` | Node | 登入 token、冪等、封面候選、名稱對照 | 44 / 21 / 48 / 43 |
 | `warmcache` / `albumphotos` | Node | 快取預熱、相簿照片快取與限制資料夾 | 10 / 21 |
 | `pwa` / `ics` | Node | 主畫面設定與圖示不透明、行事曆訂閱 | 30 / 36 |
-| `textmap` / `mapadmin` / `mapsimilar` / `spothistory` / `adminlist` / `bareget` | Node | 自由文字英文對照後端、後台英文對照後端動作、相似文字分組、歷史焦點篩選、後台列表搜尋分頁（含焦點活動） | 65 / 60 / 30 / 21 / 82 / 21 |
+| `textmap` / `mapadmin` / `mapsimilar` / `spothistory` / `adminlist` / `bareget` / `songnodl` | Node | 自由文字英文對照後端、後台英文對照後端動作、相似文字分組、歷史焦點篩選、後台列表搜尋分頁（含焦點活動） | 65 / 60 / 30 / 21 / 82 / 21 / 59 |
 | `xss_harness.js` | 瀏覽器 | 全欄位下毒 XSS 偵測（A～E 必須 0；L 不得雙重跳脫） | — |
 | `songs_selection` / `songs_player` | 瀏覽器 | 歌曲選取連動、連續播放與全螢幕 | 14 / 16 |
 | `covers_frontend` / `namemap_frontend` | 瀏覽器 | 封面輪替、名稱對照前台 | 15 / 25 |
 | `new_badge` / `event_minor` / `small_improvements` | 瀏覽器 | NEW 標籤、活動細項、縮圖／大字／列印 | 17 / 11 / 28 |
 | `standalone` / `sidebar`（視窗需 ≥ 768） | 瀏覽器 | App 模式、側邊欄對齊與觸控展開 | 13 / 18 |
 | `wait_hint` / `retry_frontend` / `albumphotos_frontend` / `subscribe` | 瀏覽器 | 等待提示、讀取重試、相簿瘦身回應、訂閱視窗 | 15 / 3 情境 / — / 15 |
-| `textmap_frontend` / `mapadmin_frontend` / `mapsimilar_frontend` / `spothistory_frontend` / `adminlist_frontend` / `spotlight_adminlist` / `spotlight_relist` | 瀏覽器 | 英文顯示 `tx()`、後台英文對照介面、相似文字介面、歷史焦點介面、後台列表搜尋分頁介面、焦點列表搜尋分頁、再次上架 | 40 / 76 / 34 / 49 / 69 / 38 / 36 |
+| `textmap_frontend` / `mapadmin_frontend` / `mapsimilar_frontend` / `spothistory_frontend` / `adminlist_frontend` / `spotlight_adminlist` / `spotlight_relist` / `song_nodownload` | 瀏覽器 | 英文顯示 `tx()`、後台英文對照介面、相似文字介面、歷史焦點介面、後台列表搜尋分頁介面、焦點列表搜尋分頁、再次上架 | 40 / 76 / 34 / 49 / 69 / 38 / 36 / 31 |
 | `i18n_audit.js`、`safari-checklist.md`、`diag.html` | 稽核／手動 | 英文漏翻譯稽核、實機驗收清單、手機連線診斷 | — |
 - **測試品質做法**：每個新測試都做 2～12 種「故意破壞程式」（變異測試）確認抓得到，曾因此抓出恆真斷言與多個測試盲點。
 - **瀏覽器測試的陷阱**：① 載入測試檔要加 `?v=時間戳` 與 `cache:'no-store'`（瀏覽器會快取）；② `xss_harness` 會執行頁面上每個 `on*` 處理器，新增會導向／重新載入／開列印／改偏好的按鈕要在其「安全閥」換成假函式（已有 `appRefresh`、`print`、`toggleBigText`），且跑完要重新整理再跑其他測試；③ 測試期間要擋住背景更新（`handleDataLoaded`）；④ 一次 `javascript_tool` 執行上限約 45 秒，長測試要拆開；⑤ `sidebar.js` 需視窗寬度 ≥ 768；⑥ 瀏覽器會吃掉 `<input>` 裡的換行，測清理邏輯要直接呼叫函式。

@@ -594,6 +594,8 @@ function doPost(e) {
       result = saveSong(postData.songData || postData.data, postData.password);
     } else if (action === 'deleteSong') {
       result = deleteSong(postData.id || postData.songId, postData.password);
+    } else if (action === 'adminSongList') {
+      result = adminSongList(postData.password);
     } else if (action === 'batchUpdateSongDurations') {
       result = checkPassword(postData.password)
         ? batchUpdateSongDurations(postData.durationsMap || postData.data || {})
@@ -1022,7 +1024,7 @@ function getAppData() {
         docCategories: docCategories || [],
         albumCategories: albumCategories || [],
         albums: albumList || [],
-        songs: songList,
+        songs: songList.map(songPublicView_),
         songCategories: songCategories,
         themes: themeList,
         themeSemesters: themeSemesters,
@@ -3525,7 +3527,73 @@ function deleteDoc(docId, password) {
 // 唱跳音符 (Songs)
 // -------------------------------------------------------------
 
-const SONG_HEADERS = ['id', 'category', 'title', 'youtubeUrl', 'youtubeId', 'duration', 'fileName', 'fileSize', 'driveFileId', 'downloadUrl', 'updatedAt'];
+const SONG_HEADERS = ['id', 'category', 'title', 'youtubeUrl', 'youtubeId', 'duration', 'fileName', 'fileSize', 'driveFileId', 'downloadUrl', 'updatedAt', 'noDownload'];
+// 「不開放下載」的歌曲，音樂檔會搬到這個「只有擁有者能開」的資料夾（建在雲端硬碟根目錄，不在公開的唱跳音符資料夾底下）
+const SONG_PRIVATE_FOLDER_NAME = '唱跳音符_不開放下載';
+const SONG_FILE_FIELDS = ['fileName', 'fileSize', 'driveFileId', 'downloadUrl'];
+
+/** Songs!noDownload 欄是否表示「不開放下載」（勾選框的 TRUE，或 true／是／不開放 等寫法） */
+function songNoDownload_(v) {
+  if (v === true) return true;
+  const t = String(v === undefined || v === null ? '' : v).trim().toLowerCase();
+  return t === 'true' || t === '1' || t === 'yes' || t === 'y' || t === '是' || t === '不開放';
+}
+
+/**
+ * 給「公開」資料（getAppData）用的歌曲：不開放下載的歌曲拿掉檔名、大小、檔案 ID、下載網址（前台就沒有下載圖示、也拿不到網址），
+ * 只保留 noDownload: true；一般歌曲原樣（不帶 noDownload 欄，資料量不變）。不改動傳入的物件。
+ */
+function songPublicView_(song) {
+  if (!song) return song;
+  const c = Object.assign({}, song);
+  if (songNoDownload_(song.noDownload)) {
+    SONG_FILE_FIELDS.forEach(function(k) { delete c[k]; });
+    c.noDownload = true;
+  } else {
+    delete c.noDownload;
+  }
+  return c;
+}
+
+/** 後台專用（需 token）：完整歌單，含不開放下載的歌曲的檔案資訊。公開的 getAppData 看不到這些。 */
+function adminSongList(password) {
+  if (!checkPassword(password)) return authFail_();
+  try {
+    const d = getSongsData();
+    return { success: true, songs: d.songs.map(function(s) { return Object.assign({}, s, { noDownload: songNoDownload_(s.noDownload) }); }), categories: d.categories };
+  } catch (err) {
+    return { success: false, error: err.toString() };
+  }
+}
+
+function getSongPrivateFolder_() {
+  const root = DriveApp.getRootFolder();
+  const it = root.getFoldersByName(SONG_PRIVATE_FOLDER_NAME);
+  const f = it.hasNext() ? it.next() : root.createFolder(SONG_PRIVATE_FOLDER_NAME);
+  try { f.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE); } catch (e) {}
+  return f;
+}
+
+/**
+ * 調整一個音樂檔的存取：blocked＝私人並搬到私人資料夾（唱跳音符資料夾本身是公開的，檔案放在裡面會繼承公開權限，
+ * 所以只改檔案權限不夠）；否則搬回唱跳音符資料夾並設為「知道連結者可檢視」。回傳 { ok, error }。
+ */
+function applySongFileAccess_(fileId, blocked) {
+  if (!fileId) return { ok: true };
+  try {
+    const file = DriveApp.getFileById(fileId);
+    if (blocked) {
+      file.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE);
+      file.moveTo(getSongPrivateFolder_());
+    } else {
+      file.moveTo(DriveApp.getFolderById(SONGS_FOLDER_ID));
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    }
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
+}
 const SONG_DEFAULT_CATEGORIES = ['兒歌', '律動舞蹈', '英文歌曲', '節慶歌曲', '安靜時光'];
 
 /**
@@ -3740,7 +3808,7 @@ function getSongsData() {
 /**
  * 新增 / 更新歌曲紀錄（以 id 為鍵）。未附新檔案時，保留原本的檔案連結。
  */
-function saveSong(songData, password) {
+function saveSong(songData, password, opts) {
   if (!checkPassword(password)) return authFail_();
   try {
     songData = songData || {};
@@ -3769,6 +3837,14 @@ function saveSong(songData, password) {
       if (String(data[i][idIndex]) === String(id)) { targetRow = i + 1; break; }
     }
 
+    // 原本那一列（更新時用來保留檔案資訊、判斷「不開放下載」有沒有改變）
+    const prev = {};
+    if (targetRow > -1) headers.forEach(function(h, ci) { prev[h] = data[targetRow - 1][ci]; });
+    const prevBlocked = songNoDownload_(prev.noDownload);
+    const prevFileId = String(prev.driveFileId || '').trim();
+    // 沒帶 noDownload（例如舊版畫面）→ 沿用原本的設定，不會意外變回開放
+    const blocked = songData.noDownload === undefined ? prevBlocked : songNoDownload_(songData.noDownload);
+
     const fieldMap = {
       id: id,
       category: String(songData.category || '').trim(),
@@ -3780,8 +3856,32 @@ function saveSong(songData, password) {
       fileSize: songData.fileSize || '',
       driveFileId: songData.driveFileId || '',
       downloadUrl: songData.downloadUrl || '',
-      updatedAt: songData.updatedAt || todayStr
+      updatedAt: songData.updatedAt || todayStr,
+      noDownload: blocked ? true : ''
     };
+    // 安全網：更新時若沒帶檔案資訊（例如畫面拿的是公開資料，不開放下載的歌曲沒有這些欄位），保留原本的，絕不清空
+    if (targetRow > -1 && !fieldMap.driveFileId && prevFileId) {
+      SONG_FILE_FIELDS.forEach(function(k) { fieldMap[k] = prev[k] === undefined ? '' : prev[k]; });
+    }
+    const fileId = String(fieldMap.driveFileId || '').trim();
+
+    // Drive 存取：改成不開放 → 檔案設私人並搬到私人資料夾；改回開放 → 搬回公開資料夾；換了檔案且不開放 → 舊檔也一併設私人
+    let accessWarning = '';
+    const accessDone = !!(opts && opts.accessApplied);
+    if (blocked) {
+      if (fileId && !accessDone && (targetRow === -1 || !prevBlocked || prevFileId !== fileId)) {
+        const a = applySongFileAccess_(fileId, true);
+        if (!a.ok) accessWarning = a.error;
+      }
+      if (targetRow > -1 && prevFileId && prevFileId !== fileId) {
+        const a2 = applySongFileAccess_(prevFileId, true);
+        if (!a2.ok && !accessWarning) accessWarning = a2.error;
+      }
+    } else if (targetRow > -1 && prevBlocked && fileId) {
+      const a = applySongFileAccess_(fileId, false);
+      if (!a.ok) accessWarning = a.error;
+    }
+    const warnObj = accessWarning ? { warning: '已設為不開放（前台資料已不含下載網址），但 Google Drive 權限調整失敗：' + accessWarning + '。請到 Drive 手動把該音樂檔設為私人。' } : {};
 
     if (targetRow > -1) {
       headers.forEach(function(h, colIdx) {
@@ -3795,14 +3895,14 @@ function saveSong(songData, password) {
         }
       });
       clearAppDataCache();
-      return { success: true, message: '歌曲資訊已成功更新！', songId: id };
+      return Object.assign({ success: true, message: '歌曲資訊已成功更新！', songId: id, noDownload: blocked }, warnObj);
     }
     sheet.appendRow(headers.map(function(h) { return fieldMap[h] !== undefined ? fieldMap[h] : ''; }));
     if (durIndex > -1) {
       sheet.getRange(sheet.getLastRow(), durIndex + 1).setNumberFormat('@').setValue(String(fieldMap.duration || ''));
     }
     clearAppDataCache();
-    return { success: true, message: '新歌曲已成功加入清單！', songId: id };
+    return Object.assign({ success: true, message: '新歌曲已成功加入清單！', songId: id, noDownload: blocked }, warnObj);
   } catch (err) {
     return { success: false, error: '儲存歌曲失敗: ' + err.toString() };
   }
@@ -3815,13 +3915,22 @@ function uploadSong(songMeta, fileObj, password) {
   if (!checkPassword(password)) return authFail_();
   try {
     if (!fileObj || !fileObj.base64) return { success: false, error: '沒有收到音樂檔內容！' };
-    const rootFolder = DriveApp.getFolderById(SONGS_FOLDER_ID);
+    songMeta = songMeta || {};
+    const blocked = songNoDownload_(songMeta.noDownload);
+    // 不開放下載：直接建立在私人資料夾，不會有「先公開再改私人」的空窗
+    const rootFolder = blocked ? getSongPrivateFolder_() : DriveApp.getFolderById(SONGS_FOLDER_ID);
     const decodedBytes = Utilities.base64Decode(fileObj.base64);
     const blob = Utilities.newBlob(decodedBytes, fileObj.mimeType || 'audio/mpeg', fileObj.name);
     const newFile = rootFolder.createFile(blob);
     try {
-      newFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-    } catch (e) {}
+      if (blocked) newFile.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE);
+      else newFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    } catch (e) {
+      if (blocked) {
+        try { newFile.setTrashed(true); } catch (e2) {}
+        return { success: false, error: '無法把音樂檔設為私人，已取消上傳：' + e };
+      }
+    }
 
     const fileId = newFile.getId();
     const songData = {
@@ -3833,9 +3942,10 @@ function uploadSong(songMeta, fileObj, password) {
       fileName: fileObj.name,
       fileSize: decodedBytes.length,
       driveFileId: fileId,
-      downloadUrl: 'https://drive.google.com/uc?export=download&id=' + fileId
+      downloadUrl: 'https://drive.google.com/uc?export=download&id=' + fileId,
+      noDownload: blocked
     };
-    const saveResult = saveSong(songData, password);
+    const saveResult = saveSong(songData, password, { accessApplied: true });
     if (!saveResult.success) {
       // 紀錄寫入失敗時，移除剛上傳的檔案，避免遺留無人引用的檔案
       try { newFile.setTrashed(true); } catch (e) {}
@@ -3848,7 +3958,9 @@ function uploadSong(songMeta, fileObj, password) {
       fileId: fileId,
       fileName: songData.fileName,
       fileSize: songData.fileSize,
-      downloadUrl: songData.downloadUrl
+      downloadUrl: songData.downloadUrl,
+      noDownload: blocked,
+      warning: saveResult.warning
     };
   } catch (err) {
     return { success: false, error: '上傳音樂檔失敗: ' + err.toString() };
