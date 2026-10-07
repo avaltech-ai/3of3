@@ -124,7 +124,7 @@
 | **前端建置核心** | Node.js (`build_index.js`) | 單一檔案原始碼架構維護，負責將邏輯、樣式、SVG、雙語字典打包產出為靜態 `index.html`。 | **禁止直接手工修改 `index.html`**，所有改動必須在 `build_index.js` 進行並執行 `node build_index.js`（建置只依賴 `logo_b64.txt`）。部署前須驗證內嵌 script 語法（`node --check`）。 |
 | **樣式與排版** | Tailwind CSS 3.4.17 (CDN Play，已固定版本網址 `cdn.tailwindcss.com/3.4.17`) | 現代化實用型 CSS 框架，負責全站 Flexbox / Grid 響應式佈局、色彩調色盤與動畫。 | 預設字型縮放使用 root `17.5px`，任意數值邊距需使用 rem 避免破碎。 網址必須維持固定版本：未固定的網址會先 302 轉址（只快取 4 小時）且版本可能被官方悄悄升級；該 CDN 不回 CORS 標頭，**不可加 `integrity`（SRI），否則瀏覽器會擋掉腳本**。若要升級版本，需改網址並逐頁檢查畫面。 |
 | **應用程式狀態** | Vanilla JS `state` 物件 | 單一真實來源 (Single Source of Truth)，儲存活動、菜單、文件、相簿、歌曲、管理員密碼與語系。 | 掛載於 `window.state` 方便偵錯，具備 `localStorage` 離線容錯機制。 |
-| **後端 API** | Google Apps Script (GAS) | 託管於 Google 雲端，負責 `doGet` (資料查詢) 與 `doPost` (新增、更新、刪除、鑑權驗證)。 | 使用 `@google/clasp` 進行本地與雲端雙向同步。 |
+| **後端 API** | Google Apps Script (GAS) | 託管於 Google 雲端，負責 `doGet` (資料查詢；**沒有 `action` 的 GET（直接開 `/exec`）只回導向正式網站的小頁面**，不開試算表、不寫入、不再提供 GAS 內的前端；2026-10-07 起，待發布) 與 `doPost` (新增、更新、刪除、鑑權驗證)。 | 使用 `@google/clasp` 進行本地與雲端雙向同步。 |
 | **資料庫核心** | Google Sheets | 作為全站關聯與扁平資料儲存庫，共 15 個工作表，支援即時試算表線上編輯與 API 即時讀寫。 | 所有標題列第一列為欄位 Key，嚴禁隨意變更欄位拼寫或合併第一列儲存格。 |
 | **檔案物件儲存** | Google Drive | 儲存相片、公告文件、音訊檔案，提供即時共用連結與縮圖 CDN 服務。 | 資料夾 ID 統一於 `Settings` 試算表設定，權限須開為「知道連結的人均可檢視」。 |
 

@@ -281,7 +281,37 @@ function openWebApp() {
 /**
  * Web App 入口 (支援 HTML 網頁呈現與 REST API JSON 回應)
  */
+// 正式前端（GitHub Pages）。直接開 /exec（沒有 action）時只顯示導向頁，不再提供存在 GAS 專案裡的舊版前端。
+const FRONTEND_URL_ = 'https://avaltech-ai.github.io/3of3/';
+
+/**
+ * 沒有 action 的 GET（直接開 /exec 網址、舊書籤、舊分享連結）：回傳一個導向正式網站的小頁面。
+ * 不碰試算表、不做任何寫入。HtmlService 的頁面在沙箱 iframe 裡，自動跳轉可能被瀏覽器擋下，
+ * 所以同時提供一個 target="_top" 的連結讓使用者點一下。
+ */
+function buildFrontendRedirectPage_() {
+  const url = FRONTEND_URL_;
+  const html = '<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8">' +
+    '<style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#fff7ed;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC","PingFang TC",sans-serif;color:#1e293b}' +
+    '.card{max-width:26rem;margin:1rem;padding:2rem 1.5rem;background:#fff;border-radius:1.5rem;box-shadow:0 8px 30px rgba(0,0,0,.08);text-align:center}' +
+    'h1{font-size:1.15rem;margin:0 0 .75rem}p{font-size:.9rem;line-height:1.6;margin:.4rem 0;color:#475569}' +
+    'a.btn{display:inline-block;margin-top:1rem;padding:.75rem 1.5rem;border-radius:999px;background:#f97316;color:#fff;font-weight:700;text-decoration:none}' +
+    '.url{word-break:break-all;font-size:.75rem;color:#94a3b8}</style></head><body><div class="card">' +
+    '<h1>桃子腳幼兒園 諾貝爾 A 班</h1>' +
+    '<p>網站已移到新的網址，請改用下方連結（也請更新書籤）。</p>' +
+    '<a class="btn" href="' + url + '" target="_top" rel="noopener">前往諾貝爾 A 班網站</a>' +
+    '<p class="url">' + url + '</p></div>' +
+    '<script>try{window.top.location.replace("' + url + '");}catch(e){}</script></body></html>';
+  return HtmlService.createHtmlOutput(html)
+    .setTitle('桃子腳幼兒園 - 諾貝爾 A 班')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1.0');
+}
+
 function doGet(e) {
+  // 沒有 action：只回導向頁（不開試算表、不檢查工作表、不寫入）
+  if (!(e && e.parameter && e.parameter.action)) return buildFrontendRedirectPage_();
+
   // 自動檢查相簿與分類工作表是否已建立。
   // getAppData 不在這裡檢查：快取命中時完全不碰試算表（開試算表偶爾卡 20 秒以上甚至更久，會拖累每位使用者），
   // 快取未命中時 getAppData 自己會呼叫 ensureDatabaseInitialized 做同樣的檢查。
@@ -333,18 +363,6 @@ function doGet(e) {
       .setMimeType(ContentService.MimeType.JSON);
   }
 
-  // 檢查並補齊缺少的相簿工作表（不會自動灌入示範資料）
-  try {
-    ensureDatabaseInitialized();
-  } catch (err) {
-    console.error('Database initialization check failed: ' + err.toString());
-  }
-
-  return HtmlService.createHtmlOutputFromFile('index')
-    .setTitle('桃子腳幼兒園 - 諾貝爾 A 班')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no')
-    .setFaviconUrl('https://img.icons8.com/color/48/school.png');
 }
 
 // -------------------------------------------------------------
