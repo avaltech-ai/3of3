@@ -1,6 +1,6 @@
 # 3of3 Kindergarten Web App Progress & Lessons Learned
 
-## 📌 專案進度摘要（交接用，2026-10-06 更新）
+## 📌 專案進度摘要（交接用，2026-10-07 更新）
 
 > **新對話接手時請先讀本節與 `TODO.md`**，再視需要讀 `SPECIFICATION.md`（規格正本，v2.5.0，第 5.9～5.12 節為最近新增）與 `tests/README.md`（測試說明）。下方「Critical Technical Lessons Learned」第 1～21 條與其後的條列是**歷史紀錄，依時間排列**：其中第 1、2、19 條已過時（見各條註記）；2026-10-05 起每個項目都有「根因／做法／教訓／未驗證項目」，改相關功能前請先找對應條目。
 
@@ -17,7 +17,7 @@
 - **原始碼**：前端只改 `build_index.js`（單一檔案），再執行 `node build_index.js` 產生 `index.html`（**禁止手改 `index.html`**；CI 會檢查兩者一致）；後端為 `Code.js`；`logo_b64.txt` 是建置唯一依賴的資源檔；其他靜態檔：`manifest.webmanifest`、`icons/`（由 `logo-hires.png` 經 `tools/make_icons.py` 產生）、`diag.html`（手機連線診斷頁）。
 - **GitHub**：`avaltech-ai/3of3`（**公開 repo**，任何密碼、金鑰、token 都不得進 repo）。本機以 `gh auth setup-git` 管理憑證，remote 網址不含 token。
 - **環境**：Mac 沒有 Homebrew、沒有完整 Xcode（無法開 iOS 模擬器）；Node 在 `~/.nvm/versions/node/v24.18.0/bin`（指令前要 `export PATH="$HOME/.nvm/versions/node/v24.18.0/bin:$PATH"`）；`clasp` 已登入。管理員密碼存在試算表 `Settings!ADMIN_PASSWORD`，**不在任何文件或程式碼中**。
-- **規模參考**：`getAppData` 約 64KB（`CacheService` 單筆上限 100KB；**菜單會隨學期成長，這是最大的長期風險**，所以英文對照另走 `getTextMap`）；相簿 12 本、照片約 2,700 張；現場列出一本 470 張相簿要 2～27 秒，因此相簿照片清單必須快取（已做）。
+- **規模參考**：`getAppData` 約 67KB（2026-10-07 實測 68,960 位元組；`CacheService` 單筆上限 100KB；**菜單會隨學期成長，這是最大的長期風險**，所以英文對照另走 `getTextMap`）；相簿 12 本、照片約 2,700 張；現場列出一本 470 張相簿要 2～27 秒，因此相簿照片清單必須快取（已做）。
 - **快取與預熱**：`app_data_v4`（10 分鐘）、`albph_<id>`（相簿照片清單，1 小時）、`text_map_v1_*`（英文對照，分段，10 分鐘）；`warmAppDataCache` 每 5 分鐘由觸發器重建（選單「⚡ 啟用網頁快取預熱」建立，**已啟用**）。公開 `doGet` 在快取命中時**完全不碰試算表**。
 
 ### 三、功能總覽（皆已上線；括號為驗證狀態）
@@ -52,6 +52,7 @@
 4. **部署順序：後端先、前端後**（前端相容新舊格式時可顛倒，但仍建議照順序）：
    - 後端：`clasp push` → GAS 編輯器「部署 → 管理部署作業 → 鉛筆 → 版本選**新版本** → 部署」。**絕不能選「新增部署」，也不要用 `clasp deploy -i`**；發布後 `clasp deployments` 確認仍是 2 個。
    - 前端：`git push origin main`，GitHub Pages 約 1～2 分鐘重建，`gh api repos/avaltech-ai/3of3/pages/builds/latest` 確認；`gh run list` 看 CI。
+   - **查版本別用 `clasp version`**（不帶參數會**建立新版本**，2026-10-07 誤建了版本 126：未部署、無影響，但編號已被佔用，下次發布新版本會是 127 以後）；用 `clasp deployments` 看部署、`clasp versions`（複數）列版本。比對 GAS 伺服器內容與本機：把 `.clasp.json`、`appsscript.json` 複製到暫存資料夾 `clasp pull` 再 `cmp`（不要在專案資料夾直接 pull，會覆蓋本機）。
 5. 部署後驗證：`curl` 唯讀檢查 `?action=getAppData`、`?action=listSheetNames`（必須回「未知動作」）與該次新增的動作；管理員動作用**錯誤 token**確認被拒絕（回「登入已逾時或無效」，**這不會累計鎖定次數**；但**不要**用錯誤的登入密碼打 `verifyPassword`）。**不要加 `-X POST`**。發布後約 1 分鐘內 Google 可能讓部分請求仍由舊版處理，等一下再連測。
 6. 瀏覽器驗證時網址加 `?fresh=…` 繞過 GitHub Pages 約 10 分鐘的頁面快取。
 
@@ -76,6 +77,7 @@
 - 相簿候選在 Drive 內直接刪除照片後不會自動更新（封面載入失敗會退回固定封面，按選單重建）。
 - 前端仍有近百處 `innerHTML`（有跳脫工具與偵測器把關）；新程式請優先用 `textContent` 或 `esc()`／`jsq()`／`escUrl()`。
 - `doGet` 是公開匿名入口，**只能放唯讀動作**；任何會寫入、清快取、初始化的動作都不得放進去；全域函式等同公開 API，**每個都要先驗證 token**（管理員動作）。
+- **直接開 GAS `/exec` 網址（不帶 action）會看到存在 GAS 專案裡的舊版 `index.html`**：`.claspignore` 讓 `clasp push` 也會推 `index.html`，而 @125 釘在版本 125，所以那份停在 2026-10-06 的前端（與 GitHub Pages 不同）。正式前端是 `https://avaltech-ai.github.io/3of3/`，家長應只用這個網址；若要避免有人誤開舊版，見 `TODO.md`「待決定：裸 /exec 網址」。
 - App 模式（standalone）沒有重新整理鈕，已用標頭 ↻ 與回前景自動同步補上；之後新增會導向頁面的按鈕要留意。
 
 ### 九、與使用者協作的偏好
