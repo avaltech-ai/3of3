@@ -6,7 +6,7 @@ const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const a = html.indexOf('const ADMIN_LIST_SIZES');
 const b = html.indexOf('// ===== 以下為畫面');
 if (a < 0 || b < 0 || b < a) { console.log('FAIL: 在 index.html 找不到後台列表函式'); process.exit(1); }
-const api = new Function(html.slice(a, b) + '\nreturn { ADMIN_LIST_SIZES, adminListTerms, adminListMatches, adminListKey, adminListSlice, adminEventsView, adminAlbumsView, adminSongsView, adminIdNewerFirst };')();
+const api = new Function(html.slice(a, b) + '\nreturn { ADMIN_LIST_SIZES, adminListTerms, adminListMatches, adminListKey, adminListSlice, adminEventsView, adminAlbumsView, adminSongsView, adminIdNewerFirst, spotlightPlayState, spotlightCreatedKey, adminSpotlightsView };')();
 
 let pass = 0, fail = 0;
 function ok(c, m) { if (c) { pass++; console.log('  ✓ ' + m); } else { fail++; console.log('  ✗ FAIL: ' + m); } }
@@ -108,6 +108,47 @@ ok(ids(api.adminSongsView(S, { query: 'happy', cat: '' })) === 's0', '關鍵字�
 ok(ids(api.adminSongsView(S, { query: '健康過', cat: '' })) === 's1', '關鍵字：音樂檔名');
 ok(ids(api.adminSongsView(S, { query: '釣魚', cat: 'yoyo' })) === 's3', '關鍵字＋類別（沒有檔名也不出錯）');
 ok(api.adminSongsView(null, { query: '', cat: '' }).length === 0, '資料為 null 不出錯');
+
+console.log('F. 焦點活動 spotlightPlayState／spotlightCreatedKey／adminSpotlightsView');
+const T = '2026-10-07';
+const ps = (o) => api.spotlightPlayState(Object.assign({ status: '啟用', startDate: '', endDate: '' }, o), T);
+ok(ps({}) === 'playing' && ps({ startDate: '2026-10-01', endDate: '2026-10-31' }) === 'playing', '沒有日期、或在期間內：播映中');
+ok(ps({ startDate: T }) === 'playing' && ps({ endDate: T }) === 'playing', '開始日或結束日剛好是今天：播映中');
+ok(ps({ startDate: '2026-10-08' }) === 'scheduled', '開始日在明天以後：排程中');
+ok(ps({ endDate: '2026-10-06' }) === 'ended', '結束日早於今天：已下架');
+ok(ps({ status: '停用', startDate: '2026-10-01', endDate: '2026-10-31' }) === 'off' && ps({ status: '停用', endDate: '2026-01-01' }) === 'off' && ps({ status: '停用', startDate: '2027-01-01' }) === 'off', '停用：不論日期都是 off（不算播映中、排程中或已下架）');
+ok(ps({ status: '' }) === 'playing' && ps({ status: undefined }) === 'playing', '狀態空白視為啟用');
+ok(api.spotlightCreatedKey('SP-1791100000000') === 1791100000000 && api.spotlightCreatedKey('1791100000000') === 1791100000000, '編號：13 位毫秒時間戳記（含或不含 SP- 前綴）');
+ok(api.spotlightCreatedKey('SP-20261007120000') === Date.UTC(2026, 9, 7, 12, 0, 0), '編號：14 位 yyyyMMddHHmmss（後端產生）換算成時間');
+ok(api.spotlightCreatedKey('SP-1791100000') === 1791100000000, '編號：10 位秒數換算成毫秒');
+ok(api.spotlightCreatedKey('SP-01') === 1 && api.spotlightCreatedKey('SP-02') === 2 && api.spotlightCreatedKey('sp-3') === 3, '示範資料編號（SP-01…）視為很早，依數字大小');
+ok(api.spotlightCreatedKey('abc') === -1 && api.spotlightCreatedKey('') === -1 && api.spotlightCreatedKey(undefined) === -1 && api.spotlightCreatedKey(null) === -1 && api.spotlightCreatedKey('SP-20269999999999') === -1, '不是數字、空白、無效日期：排最舊（-1）');
+ok(api.spotlightCreatedKey('SP-1791300000000') > api.spotlightCreatedKey('SP-20261006120000') && api.spotlightCreatedKey('SP-20261006120000') > api.spotlightCreatedKey('SP-1791200000000') && api.spotlightCreatedKey('SP-1791200000000') > api.spotlightCreatedKey('SP-01'), '兩種新編號格式與示範編號可以互相比較先後');
+
+const SP = [
+  { id: 'SP-01', title: '舊示範', subtitle: '', bulletPoints: '', status: '啟用', startDate: '2026-01-01', endDate: '2026-01-31' },
+  { id: 'SP-1791200000000', title: '幸福廚房', subtitle: '日期：2026/10/07', bulletPoints: '【注意事項】請帶保鮮盒', tags: '廚房', status: '啟用', startDate: '2026-10-01', endDate: '2026-10-31' },
+  { id: 'SP-1791100000000', title: '牙齒塗氟日', subtitle: '', bulletPoints: '', status: '啟用', startDate: '2026-11-01', endDate: '2026-11-10' },
+  { id: 'SP-1791300000000', title: '健康檢查', subtitle: '', bulletPoints: '', status: '停用', startDate: '2026-10-01', endDate: '2026-10-31' },
+  { id: 'SP-20261006120000', title: '慶生會', subtitle: '', bulletPoints: '', status: '啟用', startDate: '', endDate: '' }
+];
+const sst = (o) => Object.assign({ query: '', status: '', play: '', sort: 'new' }, o);
+const sv = (o) => ids(api.adminSpotlightsView(SP, sst(o), T));
+ok(sv({}) === 'SP-1791300000000,SP-20261006120000,SP-1791200000000,SP-1791100000000,SP-01', '預設「最新建立」：依編號時間由新到舊');
+ok(sv({ sort: 'order' }) === 'SP-01,SP-1791200000000,SP-1791100000000,SP-1791300000000,SP-20261006120000', '「輪播順序」：維持傳入的順位順序');
+ok(sv({ status: '停用' }) === 'SP-1791300000000', '狀態＝停用');
+ok(sv({ status: '啟用' }) === 'SP-20261006120000,SP-1791200000000,SP-1791100000000,SP-01', '狀態＝啟用（不含停用）');
+ok(sv({ play: 'playing' }) === 'SP-20261006120000,SP-1791200000000', '輪播狀態＝播映中（不含停用的）');
+ok(sv({ play: 'scheduled' }) === 'SP-1791100000000', '輪播狀態＝排程中');
+ok(sv({ play: 'ended' }) === 'SP-01', '輪播狀態＝已下架（不含停用的）');
+ok(sv({ status: '停用', play: 'playing' }) === '' && sv({ status: '啟用', play: 'playing' }) === 'SP-20261006120000,SP-1791200000000', '狀態與輪播狀態同時套用');
+ok(sv({ query: '塗氟' }) === 'SP-1791100000000' && sv({ query: '保鮮盒' }) === 'SP-1791200000000' && sv({ query: '2026/10/07' }) === 'SP-1791200000000' && sv({ query: '廚房' }) === 'SP-1791200000000', '關鍵字：標題、副標題、重點、標籤');
+ok(sv({ query: '廚房 保鮮盒', status: '啟用', play: 'playing', sort: 'order' }) === 'SP-1791200000000', '關鍵字＋狀態＋輪播狀態＋排序');
+ok(sv({ query: '沒有' }) === '', '沒有符合：空陣列');
+const tie = [{ id: 'SP-1', title: 'a' }, { id: 'SP-1', title: 'b' }, { id: 'zzz', title: 'c' }, { id: 'yyy', title: 'd' }];
+ok(api.adminSpotlightsView(tie, sst({}), T).map(x => x.title).join('') === 'abcd', '編號時間相同或無法判斷：維持原本的順位順序');
+ok(api.adminSpotlightsView(undefined, sst({}), T).length === 0 && api.adminSpotlightsView([null, SP[0]], sst({}), T).length === 1, '資料為 undefined、含 null 不出錯');
+const orig = SP.slice(); api.adminSpotlightsView(SP, sst({}), T); ok(JSON.stringify(SP.map(x => x.id)) === JSON.stringify(orig.map(x => x.id)), '不會改動傳入的陣列順序（輪播順位來源不被破壞）');
 
 console.log('\n結果：' + pass + ' 通過，' + fail + ' 失敗');
 process.exit(fail ? 1 : 0);

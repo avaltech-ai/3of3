@@ -1472,9 +1472,29 @@
               </h5>
               <span id="spAdminCountBadge" class="text-xs text-slate-400 font-bold">共 0 個活動</span>
             </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <input id="adminSpotlightsSearch" type="search" oninput="adminListOnQuery('spotlights', this.value)" placeholder="搜尋標題、副標題、重點…" class="flex-1 min-w-[10rem] px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-peach-500 focus:outline-none" aria-label="搜尋焦點活動">
+              <select id="adminSpotlightsStatus" onchange="adminListOnFilter('spotlights', 'status', this.value)" class="px-2.5 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-700 bg-white" aria-label="狀態">
+                <option value="">全部狀態</option>
+                <option value="啟用">啟用</option>
+                <option value="停用">停用</option>
+              </select>
+              <select id="adminSpotlightsPlay" onchange="adminListOnFilter('spotlights', 'play', this.value)" class="px-2.5 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-700 bg-white" aria-label="輪播狀態">
+                <option value="">全部輪播狀態</option>
+                <option value="playing">播映中</option>
+                <option value="scheduled">排程中</option>
+                <option value="ended">已下架</option>
+              </select>
+              <select id="adminSpotlightsSort" onchange="adminListOnFilter('spotlights', 'sort', this.value)" class="px-2.5 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-700 bg-white" aria-label="排序">
+                <option value="new">最新建立</option>
+                <option value="order">輪播順序</option>
+              </select>
+              <button type="button" id="adminSpotlightsClear" onclick="adminListClear('spotlights')" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 tap-bounce cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed" disabled>清除篩選</button>
+            </div>
             <div id="spAdminListContainer" class="space-y-2.5">
               <!-- JS 動態生成焦點活動卡片 -->
             </div>
+            <div id="adminSpotlightsPager"></div>
           </div>
 
           <!-- 編輯／新增表單卡片 (預設收合或點選新增/編輯時展開) -->
@@ -8471,6 +8491,41 @@
       list.sort(function(a, b) { return b.i - a.i; });
       return list.map(function(x) { return x.s; });
     }
+    // 焦點活動的輪播狀態：off（停用）、scheduled（排程中：開始日還沒到）、ended（已下架：結束日已過）、playing（播映中）
+    function spotlightPlayState(sp, todayStr) {
+      if (sp.status === '停用') return 'off';
+      if (sp.startDate && sp.startDate > todayStr) return 'scheduled';
+      if (sp.endDate && sp.endDate < todayStr) return 'ended';
+      return 'playing';
+    }
+    // 由編號推算建立先後（數字愈大愈新）：SP-加 13 位毫秒時間戳記（前端新增）、14 位 yyyyMMddHHmmss（後端產生）、
+    // 10 位秒數；其餘（例如示範資料 SP-01）視為很早建立，依數字大小；完全不是數字的排最舊
+    function spotlightCreatedKey(id) {
+      const d = String(id === undefined || id === null ? '' : id).replace(/^SP-?/i, '').trim();
+      if (!/^[0-9]+$/.test(d)) return -1;
+      if (d.length === 14) {
+        const mo = Number(d.slice(4, 6)), da = Number(d.slice(6, 8)), hh = Number(d.slice(8, 10)), mi = Number(d.slice(10, 12)), ss = Number(d.slice(12, 14));
+        if (mo < 1 || mo > 12 || da < 1 || da > 31 || hh > 23 || mi > 59 || ss > 59) return -1;
+        return Date.UTC(Number(d.slice(0, 4)), mo - 1, da, hh, mi, ss);
+      }
+      if (d.length === 10) return Number(d) * 1000;
+      return Number(d);
+    }
+    // 焦點活動：list 為依輪播順位排好的陣列（陣列位置＝真實順位）；st = { query, status（''／啟用／停用）, play（''／playing／scheduled／ended）, sort（new／order）}
+    function adminSpotlightsView(list, st, todayStr) {
+      const terms = adminListTerms(st.query);
+      const out = [];
+      (list || []).forEach(function(sp, i) {
+        if (!sp) return;
+        if (st.status === '停用' && sp.status !== '停用') return;
+        if (st.status === '啟用' && sp.status === '停用') return;
+        if (st.play && spotlightPlayState(sp, todayStr) !== st.play) return;
+        if (terms.length && !adminListMatches([sp.title, sp.subtitle, sp.bulletPoints, sp.tags].join(' '), terms)) return;
+        out.push({ sp: sp, i: i, k: spotlightCreatedKey(sp.id) });
+      });
+      if (st.sort !== 'order') out.sort(function(a, b) { return (b.k - a.k) || (a.i - b.i); });
+      return out.map(function(x) { return x.sp; });
+    }
     // ===== 以下為畫面（需要瀏覽器）=====
     function adminListStoredSize(key) {
       try {
@@ -8483,9 +8538,10 @@
     const adminLists = {
       events: { query: '', cat: '', target: '', sort: 'new', page: 0, size: adminListStoredSize('events') },
       albums: { query: '', cat: '', page: 0, size: adminListStoredSize('albums') },
-      songs: { query: '', cat: '', page: 0, size: adminListStoredSize('songs') }
+      songs: { query: '', cat: '', page: 0, size: adminListStoredSize('songs') },
+      spotlights: { query: '', status: '', play: '', sort: 'new', page: 0, size: adminListStoredSize('spotlights') }
     };
-    const ADMIN_LIST_RENDER = { events: 'renderAdminEventsTable', albums: 'renderAdminAlbumsTable', songs: 'renderAdminSongsTable' };
+    const ADMIN_LIST_RENDER = { events: 'renderAdminEventsTable', albums: 'renderAdminAlbumsTable', songs: 'renderAdminSongsTable', spotlights: 'renderAdminSpotlightsList' };
     function adminListRerender(key) { try { window[ADMIN_LIST_RENDER[key]](); } catch (e) {} }
     function adminListOnQuery(key, v) { adminLists[key].query = v; adminLists[key].page = 0; adminListRerender(key); }
     function adminListOnFilter(key, field, v) { adminLists[key][field] = v; adminLists[key].page = 0; adminListRerender(key); }
@@ -8506,12 +8562,12 @@
     }
     function adminListClear(key) {
       const st = adminLists[key];
-      st.query = ''; st.cat = ''; if ('target' in st) st.target = ''; if ('sort' in st) st.sort = 'new'; st.page = 0;
+      st.query = ''; st.cat = ''; ['target', 'status', 'play'].forEach(function(f) { if (f in st) st[f] = ''; }); if ('sort' in st) st.sort = 'new'; st.page = 0;
       adminListRerender(key);
     }
     function adminListIsFiltered(key) {
       const st = adminLists[key];
-      return !!(st.query || st.cat || st.target || (st.sort && st.sort !== 'new'));
+      return !!(st.query || st.cat || st.target || st.status || st.play || (st.sort && st.sort !== 'new'));
     }
     // 把目前的篩選值同步回搜尋框與下拉，並更新「清除篩選」按鈕
     function adminListSyncToolbar(key, ids) {
@@ -8519,6 +8575,8 @@
       const q = document.getElementById(ids.search); if (q && q.value !== st.query) q.value = st.query;
       const c = document.getElementById(ids.cat); if (c) c.value = st.cat;
       if (ids.target) { const t = document.getElementById(ids.target); if (t) t.value = st.target; }
+      if (ids.status) { const ss = document.getElementById(ids.status); if (ss) ss.value = st.status; }
+      if (ids.play) { const sp = document.getElementById(ids.play); if (sp) sp.value = st.play; }
       if (ids.sort) { const so = document.getElementById(ids.sort); if (so) so.value = st.sort; }
       const b = document.getElementById(ids.clear); if (b) b.disabled = !adminListIsFiltered(key);
     }
@@ -9454,21 +9512,31 @@
 
       const spotlights = state.spotlights || [];
       if (countEl) countEl.textContent = '共 ' + spotlights.length + ' 個活動';
+      const todayStr = getTodayDateStr();
+      adminListSyncToolbar('spotlights', { search: 'adminSpotlightsSearch', status: 'adminSpotlightsStatus', play: 'adminSpotlightsPlay', sort: 'adminSpotlightsSort', clear: 'adminSpotlightsClear' });
+      const info = adminListSlice(adminSpotlightsView(spotlights, adminLists.spotlights, todayStr), adminLists.spotlights);
+      adminLists.spotlights.page = info.page;
+      adminListRenderPager('spotlights', info, spotlights.length);
 
       if (spotlights.length === 0) {
         listEl.innerHTML = '<div class="py-8 text-center text-slate-400 text-xs font-bold bg-slate-50 rounded-2xl border border-dashed border-slate-200">尚無任何焦點活動，請點擊右上角「➕ 新增焦點活動」</div>';
         return;
       }
+      if (info.total === 0) {
+        listEl.innerHTML = '<div class="py-8 text-center text-slate-400 text-xs font-bold bg-slate-50 rounded-2xl border border-dashed border-slate-200">沒有符合條件的焦點活動</div>';
+        return;
+      }
 
-      const todayStr = getTodayDateStr();
-
-      spotlights.forEach(function(sp, index) {
+      info.rows.forEach(function(sp) {
+        // 真實順位＝在 state.spotlights 的位置（與列表目前的排序、篩選、頁碼無關）
+        const index = spotlights.indexOf(sp);
         var statusBadge = '';
-        if (sp.status === '停用') {
+        const playState = spotlightPlayState(sp, todayStr);
+        if (playState === 'off') {
           statusBadge = '<span class="text-[0.625rem] font-bold text-rose-700 bg-rose-100 px-2 py-0.5 rounded-full">🔴 已停用</span>';
-        } else if (sp.startDate && sp.startDate > todayStr) {
+        } else if (playState === 'scheduled') {
           statusBadge = '<span class="text-[0.625rem] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">🟡 尚未上架 (' + esc(sp.startDate) + ')</span>';
-        } else if (sp.endDate && sp.endDate < todayStr) {
+        } else if (playState === 'ended') {
           statusBadge = '<span class="text-[0.625rem] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">⚪ 已過期下架</span>';
         } else {
           statusBadge = '<span class="text-[0.625rem] font-bold text-teal-700 bg-teal-100 px-2 py-0.5 rounded-full">🟢 播映中</span>';
@@ -9478,8 +9546,6 @@
         var durationText = '⏱️ ' + esc(sp.duration || 5) + ' 秒';
         var mediaIcon = sp.mediaType === 'video' ? '🎬' : '🖼️';
 
-        var isFirst = (index === 0);
-        var isLast = (index === spotlights.length - 1);
 
         var optionsHtml = '';
         for (var i = 0; i < spotlights.length; i++) {
@@ -9487,16 +9553,10 @@
           optionsHtml += '<option value="' + (i + 1) + '"' + sel + '>第 ' + (i + 1) + ' 順位</option>';
         }
 
-        var orderWidget = '<div class="flex items-center bg-white border border-indigo-200 rounded-xl p-1 shadow-2xs gap-1">' +
-          '<button type="button" class="sp-up-btn w-6 h-6 flex items-center justify-center rounded-lg bg-slate-50 hover:bg-indigo-50 text-indigo-700 text-xs font-bold transition-all disabled:opacity-20 disabled:cursor-not-allowed" title="往上移"' + (isFirst ? ' disabled' : '') + '>' +
-          '▲' +
-          '</button>' +
+        var orderWidget = '<div class="flex items-center bg-white border border-indigo-200 rounded-xl p-1 shadow-2xs" title="輪播順位（與列表目前的排序無關）">' +
           '<select class="sp-order-select text-xs font-black text-indigo-700 bg-indigo-50/80 border border-indigo-200 rounded-lg px-2 py-0.5 focus:outline-none focus:ring-1 focus:ring-indigo-400 cursor-pointer">' +
           optionsHtml +
           '</select>' +
-          '<button type="button" class="sp-down-btn w-6 h-6 flex items-center justify-center rounded-lg bg-slate-50 hover:bg-indigo-50 text-indigo-700 text-xs font-bold transition-all disabled:opacity-20 disabled:cursor-not-allowed" title="往下移"' + (isLast ? ' disabled' : '') + '>' +
-          '▼' +
-          '</button>' +
           '</div>';
 
         var card = document.createElement('div');
@@ -9531,16 +9591,6 @@
           '<span>🗑️</span> 刪除' +
           '</button>' +
           '</div>';
-
-        var upBtn = card.querySelector('.sp-up-btn');
-        if (upBtn && !isFirst) {
-          upBtn.onclick = function() { moveSpotlightOrder(index, index - 1); };
-        }
-
-        var downBtn = card.querySelector('.sp-down-btn');
-        if (downBtn && !isLast) {
-          downBtn.onclick = function() { moveSpotlightOrder(index, index + 1); };
-        }
 
         var orderSelect = card.querySelector('.sp-order-select');
         if (orderSelect) {
