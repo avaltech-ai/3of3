@@ -124,6 +124,7 @@ console.log(await window.__nameMapFrontendTest());   // allPass 應為 true
 - `node tests/textmap.test.js`：自由文字英文 TextMap 後端（掃描、同步不覆蓋、機器草稿只寫 draft、採用草稿、回傳與大型分段快取、`doGet` 唯讀動作，65 項；已納入 `tests/ci.sh`）。
 - `tests/textmap_frontend.js`（瀏覽器）：`tx()` 查表與各顯示位置（活動、菜單、列印、焦點活動、相簿、文件、主題）、退回中文、跳脫、載入與快取（40 項）。
 - `node tests/mapadmin.test.js`：後台英文對照編輯後端（token 驗證、列表、批次儲存、只刪未使用、同步、草稿上限、採用、統計、`doPost` 路由與冪等，60 項；已納入 `tests/ci.sh`）。
+- `tests/spotlight_relist.js`（瀏覽器）：後台焦點活動「再次上架」（按鈕、帶入內容與圖片、新編號、起始日＝今天、結束日留空、不上傳、原本那筆不變、結束日未填提醒、結束日早於開始日擋下、編輯與新增不受影響、跳脫，36 項；約 6 秒）。
 - `node tests/adminlist.test.js`：後台列表搜尋、篩選、排序、分頁純函式（頁碼夾回、全部顯示、多關鍵字 AND、類別大項／細項、對象空白與全形逗號、排序與同日順序、相簿編號數值比較、歌曲反轉，56 項；已納入 `tests/ci.sh`）。
 - `tests/adminlist_frontend.js`（瀏覽器）：活動／相簿／歌曲三個後台列表的搜尋與分頁介面（預設 10 筆、最新在最上、圖示按鈕且無文字、20／50／全部與記住選擇、搜尋類別對象排序、清除、符合筆數、無符合與無資料、刪除後頁碼夾回、跳脫、互不影響，69 項；約 15 秒）。
 - `node tests/spothistory.test.js`：歷史焦點篩選邏輯（一季＝3 個月與月底／跨年、門檻當天、停用、未開始、無結束日、輪播中不重複、排序、日期推進後消失，21 項；已納入 `tests/ci.sh`）。

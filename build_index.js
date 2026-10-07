@@ -9528,6 +9528,9 @@ const htmlContent = `<!DOCTYPE html>
           '<button type="button" class="sp-edit-btn px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-700 hover:text-peach-600 text-xs font-bold shadow-2xs tap-bounce flex items-center gap-1">' +
           '<span>✏️</span> 編輯' +
           '</button>' +
+          '<button type="button" class="sp-relist-btn px-3 py-1.5 rounded-xl bg-white border border-teal-200 text-teal-700 hover:bg-teal-50 text-xs font-bold shadow-2xs tap-bounce flex items-center gap-1" title="沿用原內容與圖片，建立新的一檔（不重新上傳）">' +
+          '<span>🔁</span> 再次上架' +
+          '</button>' +
           '<button type="button" class="sp-del-btn px-3 py-1.5 rounded-xl bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 text-xs font-bold shadow-2xs tap-bounce flex items-center gap-1">' +
           '<span>🗑️</span> 刪除' +
           '</button>' +
@@ -9554,6 +9557,7 @@ const htmlContent = `<!DOCTYPE html>
         }
 
         card.querySelector('.sp-edit-btn').onclick = function() { openSpotlightEditForm(sp.id); };
+        card.querySelector('.sp-relist-btn').onclick = function() { openSpotlightRelistForm(sp.id); };
         card.querySelector('.sp-del-btn').onclick = function() { confirmDeleteSpotlight(sp.id); };
         listEl.appendChild(card);
       });
@@ -9616,8 +9620,12 @@ const htmlContent = `<!DOCTYPE html>
       });
     }
 
+    // 「再次上架」模式：表單由既有焦點活動帶入（新編號、沿用原圖片），結束日尚未填時儲存前會提醒
+    let spRelistMode = false;
+
     function openSpotlightCreateForm() {
       spPendingUploadFile = null;
+      spRelistMode = false;
       document.getElementById('spAdminFormTitle').innerHTML = '<span>➕</span> 新增焦點活動';
       document.getElementById('spForm-id').value = '';
       document.getElementById('spForm-title').value = '';
@@ -9645,6 +9653,7 @@ const htmlContent = `<!DOCTYPE html>
 
     function openSpotlightEditForm(id) {
       spPendingUploadFile = null;
+      spRelistMode = false;
       const sp = state.spotlights.find(s => String(s.id) === String(id));
       if (!sp) return;
 
@@ -9676,8 +9685,51 @@ const htmlContent = `<!DOCTYPE html>
       formBox.scrollIntoView({ behavior: 'smooth' });
     }
 
+    // 再次上架的預設值：內容、圖片、停留秒數沿用；開始日＝今天、結束日留空（由老師填）、狀態啟用、排在最後
+    function spotlightRelistDefaults(sp, todayStr, count) {
+      return {
+        title: sp.title || '', subtitle: sp.subtitle || '', mediaType: sp.mediaType || 'image', imageUrl: sp.imageUrl || '',
+        startDate: todayStr, endDate: '', duration: Number(sp.duration) || 5, status: '啟用', priority: (Number(count) || 0) + 1,
+        bulletPoints: sp.bulletPoints || ''
+      };
+    }
+
+    function openSpotlightRelistForm(id) {
+      const sp = state.spotlights.find(s => String(s.id) === String(id));
+      if (!sp) return;
+      openSpotlightCreateForm();
+      const d = spotlightRelistDefaults(sp, getTodayDateStr(), state.spotlights.length);
+      document.getElementById('spForm-title').value = d.title;
+      document.getElementById('spForm-subtitle').value = d.subtitle;
+      document.getElementById('spForm-mediaType').value = d.mediaType;
+      document.getElementById('spForm-imageUrl').value = d.imageUrl;
+      document.getElementById('spForm-startDate').value = d.startDate;
+      document.getElementById('spForm-endDate').value = d.endDate;
+      document.getElementById('spForm-duration').value = d.duration;
+      document.getElementById('spForm-status').value = d.status;
+      document.getElementById('spForm-priority').value = d.priority;
+      document.getElementById('spForm-bulletPoints').value = d.bulletPoints;
+      spRelistMode = true;
+
+      const titleEl = document.getElementById('spAdminFormTitle');
+      titleEl.textContent = '';
+      const ico = document.createElement('span'); ico.textContent = '🔁'; titleEl.appendChild(ico);
+      titleEl.appendChild(document.createTextNode(' 再次上架：' + d.title + '（請設定新的起訖日期）'));
+
+      const previewImg = document.getElementById('spImagePreviewImg');
+      if (previewImg && d.imageUrl) previewImg.src = d.imageUrl;
+      const statusEl = document.getElementById('spImageUploadStatus');
+      if (statusEl) statusEl.innerHTML = '<span class="text-teal-700 font-bold">✅ 已帶入原圖片（沿用原檔，不會重新上傳；儲存後是新的一筆，原本那一筆不受影響）</span>';
+
+      handleMediaTypeChange();
+      updateSpPreviewFromUrl();
+      const endEl = document.getElementById('spForm-endDate');
+      if (endEl) { try { endEl.focus({ preventScroll: true }); } catch (e) { endEl.focus(); } }
+    }
+
     function cancelSpotlightEdit() {
       spPendingUploadFile = null;
+      spRelistMode = false;
       document.getElementById('spAdminFormContainer').classList.add('hidden');
     }
 
@@ -9889,6 +9941,18 @@ const htmlContent = `<!DOCTYPE html>
       if (!title) {
         alert('請填寫焦點活動主標題！');
         return;
+      }
+
+      const sDate = document.getElementById('spForm-startDate').value, eDate = document.getElementById('spForm-endDate').value;
+      if (sDate && eDate && eDate < sDate) {
+        alert('結束日期不能早於開始日期，請重新選擇。');
+        return;
+      }
+      if (spRelistMode && !eDate) {
+        if (!confirm('尚未填寫結束日期：這筆會一直播映，不會自動下架（也不會進入歷史焦點），直到您手動停用或刪除。\\n\\n確定要這樣儲存嗎？')) {
+          const endEl = document.getElementById('spForm-endDate'); if (endEl) endEl.focus();
+          return;
+        }
       }
 
       const spId = document.getElementById('spForm-id').value || ('SP-' + Date.now());
