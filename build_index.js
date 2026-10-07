@@ -1739,11 +1739,7 @@ const htmlContent = `<!DOCTYPE html>
               <div id="mapAdminEmpty" class="hidden py-8 text-center text-xs text-slate-400"></div>
             </div>
 
-            <div class="flex items-center justify-between gap-2">
-              <button type="button" id="mapAdminPrev" onclick="mapAdminPage(-1)" class="px-3 py-1 rounded-lg bg-slate-100 text-xs font-bold text-slate-600 cursor-pointer disabled:opacity-40" disabled>‹ 上一頁</button>
-              <span id="mapAdminPageText" class="text-[0.6875rem] font-bold text-slate-500"></span>
-              <button type="button" id="mapAdminNext" onclick="mapAdminPage(1)" class="px-3 py-1 rounded-lg bg-slate-100 text-xs font-bold text-slate-600 cursor-pointer disabled:opacity-40" disabled>下一頁 ›</button>
-            </div>
+            <div id="adminTranslationsPager"></div>
 
             <details class="rounded-2xl bg-slate-50 border border-slate-200 p-3">
               <summary class="text-xs font-bold text-slate-700 cursor-pointer">＋ 手動新增一筆</summary>
@@ -3394,12 +3390,11 @@ const htmlContent = `<!DOCTYPE html>
 
     // ---------- 後台：英文對照（NameMap 名稱／TextMap 自由文字）網頁編輯 ----------
     // 資料仍存在試算表，網頁與試算表編輯並存。英文欄只在「儲存變更」時才批次寫入；機器草稿只放 draft 欄，不會公開。
-    const MAP_ADMIN_PER_PAGE = 50;
     const MAP_ADMIN_SAVE_CHUNK = 500;
     const MAP_ADMIN_DELETE_CHUNK = 100;
     const mapAdmin = {
       kind: 'text', data: { text: null, name: null }, dirty: { text: {}, name: {} }, extra: { text: [], name: [] },
-      sel: {}, filter: 'all', simGroup: null, query: '', page: 0, status: null, busy: false, drafting: false, cancelDraft: false
+      sel: {}, filter: 'all', simGroup: null, query: '', status: null, busy: false, drafting: false, cancelDraft: false
     };
 
     function mapAdminKinds() { return ['text', 'name']; }
@@ -3576,10 +3571,10 @@ const htmlContent = `<!DOCTYPE html>
       const empty = document.getElementById('mapAdminEmpty');
       if (!box) return;
       const rows = mapAdminFilteredRows();
-      const pages = Math.max(1, Math.ceil(rows.length / MAP_ADMIN_PER_PAGE));
-      if (mapAdmin.page >= pages) mapAdmin.page = pages - 1;
-      if (mapAdmin.page < 0) mapAdmin.page = 0;
-      const slice = rows.slice(mapAdmin.page * MAP_ADMIN_PER_PAGE, (mapAdmin.page + 1) * MAP_ADMIN_PER_PAGE);
+      // 分頁與其他後台列表共用（預設每頁 10 筆，可選 20／50／全部，圖示按鈕）
+      const info = adminListSlice(rows, adminLists.translations);
+      adminLists.translations.page = info.page;
+      const slice = info.rows;
       box.textContent = '';
       const unused = mapAdminUnusedLabel();
       const isText = mapAdmin.kind === 'text';
@@ -3639,9 +3634,7 @@ const htmlContent = `<!DOCTYPE html>
         empty.classList.toggle('hidden', slice.length > 0);
         empty.textContent = !mapAdmin.data[mapAdmin.kind] ? '載入中…' : (rows.length === 0 && !mapAdmin.query && mapAdmin.filter === 'all' ? '還沒有資料，請先按「同步新文字」' : '沒有符合條件的項目');
       }
-      const pt = document.getElementById('mapAdminPageText'); if (pt) pt.textContent = '第 ' + (mapAdmin.page + 1) + ' / ' + pages + ' 頁（符合 ' + rows.length + ' 筆）';
-      const pv = document.getElementById('mapAdminPrev'); if (pv) pv.disabled = mapAdmin.page <= 0;
-      const nx = document.getElementById('mapAdminNext'); if (nx) nx.disabled = mapAdmin.page >= pages - 1;
+      adminListRenderPager('translations', info, mapAdminAllRows().length);
       mapAdminRenderSummary();
       mapAdminUpdateControls();
     }
@@ -3658,12 +3651,12 @@ const htmlContent = `<!DOCTYPE html>
       mapAdminUpdateControls();
     }
 
-    function mapAdminOnQuery(v) { mapAdmin.query = v; mapAdmin.page = 0; mapAdminRenderRows(); }
-    function mapAdminOnFilter(v) { mapAdmin.filter = v; mapAdmin.simGroup = null; mapAdmin.page = 0; mapAdminRenderRows(); }
+    function mapAdminOnQuery(v) { mapAdmin.query = v; adminLists.translations.page = 0; mapAdminRenderRows(); }
+    function mapAdminOnFilter(v) { mapAdmin.filter = v; mapAdmin.simGroup = null; adminLists.translations.page = 0; mapAdminRenderRows(); }
 
     // 只看某一組相似文字（清空搜尋，方便並排比對）
     function mapAdminFocusSimilar(gid) {
-      mapAdmin.filter = 'similar'; mapAdmin.simGroup = gid; mapAdmin.query = ''; mapAdmin.page = 0;
+      mapAdmin.filter = 'similar'; mapAdmin.simGroup = gid; mapAdmin.query = ''; adminLists.translations.page = 0;
       const f = document.getElementById('mapAdminFilter'); if (f) f.value = 'similar';
       const q = document.getElementById('mapAdminSearch'); if (q) q.value = '';
       mapAdminRenderRows();
@@ -3691,7 +3684,6 @@ const htmlContent = `<!DOCTYPE html>
       mapAdminRenderRows();
       showToast('已套用到 ' + targets.length + ' 筆，記得按「儲存變更」', '✅');
     }
-    function mapAdminPage(d) { mapAdmin.page += d; mapAdminRenderRows(); }
 
     function mapAdminLoad(kind, done) {
       mapAdminSetBusy(true);
@@ -3743,7 +3735,7 @@ const htmlContent = `<!DOCTYPE html>
 
     function mapAdminSetKind(kind) {
       if (kind === mapAdmin.kind) return;
-      mapAdmin.kind = kind; mapAdmin.page = 0; mapAdmin.sel = {}; if (mapAdmin.filter === 'similar') { mapAdmin.filter = 'all'; const ff = document.getElementById('mapAdminFilter'); if (ff) ff.value = 'all'; } mapAdmin.simGroup = null;
+      mapAdmin.kind = kind; adminLists.translations.page = 0; mapAdmin.sel = {}; if (mapAdmin.filter === 'similar') { mapAdmin.filter = 'all'; const ff = document.getElementById('mapAdminFilter'); if (ff) ff.value = 'all'; } mapAdmin.simGroup = null;
       mapAdminRenderRows();
       if (!mapAdmin.data[kind]) mapAdminLoad(kind);
     }
@@ -8543,9 +8535,10 @@ const htmlContent = `<!DOCTYPE html>
       events: { query: '', cat: '', target: '', sort: 'new', page: 0, size: adminListStoredSize('events') },
       albums: { query: '', cat: '', page: 0, size: adminListStoredSize('albums') },
       songs: { query: '', cat: '', page: 0, size: adminListStoredSize('songs') },
-      spotlights: { query: '', status: '', play: '', sort: 'new', page: 0, size: adminListStoredSize('spotlights') }
+      spotlights: { query: '', status: '', play: '', sort: 'new', page: 0, size: adminListStoredSize('spotlights') },
+      translations: { page: 0, size: adminListStoredSize('translations') }
     };
-    const ADMIN_LIST_RENDER = { events: 'renderAdminEventsTable', albums: 'renderAdminAlbumsTable', songs: 'renderAdminSongsTable', spotlights: 'renderAdminSpotlightsList' };
+    const ADMIN_LIST_RENDER = { events: 'renderAdminEventsTable', albums: 'renderAdminAlbumsTable', songs: 'renderAdminSongsTable', spotlights: 'renderAdminSpotlightsList', translations: 'mapAdminRenderRows' };
     function adminListRerender(key) { try { window[ADMIN_LIST_RENDER[key]](); } catch (e) {} }
     function adminListOnQuery(key, v) { adminLists[key].query = v; adminLists[key].page = 0; adminListRerender(key); }
     function adminListOnFilter(key, field, v) { adminLists[key][field] = v; adminLists[key].page = 0; adminListRerender(key); }

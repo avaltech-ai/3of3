@@ -26,7 +26,7 @@
   handlers.mapStatus = () => statusRes();
   const rowsEl = () => [...document.querySelectorAll('#mapAdminRows .map-admin-row')];
   const inputOf = zh => { const r = rowsEl().find(x => x.getAttribute('data-zh') === zh); return r && r.querySelector('input[type=text]'); };
-  const resetState = () => { mapAdmin.kind = 'text'; mapAdmin.data = { text: null, name: null }; mapAdmin.dirty = { text: {}, name: {} }; mapAdmin.extra = { text: [], name: [] }; mapAdmin.sel = {}; mapAdmin.filter = 'all'; mapAdmin.query = ''; mapAdmin.page = 0; mapAdmin.status = null; mapAdmin.busy = false; mapAdmin.drafting = false; mapAdmin.cancelDraft = false; document.getElementById('mapAdminFilter').value = 'all'; document.getElementById('mapAdminSearch').value = ''; log = []; toasts = []; };
+  const resetState = () => { mapAdmin.kind = 'text'; mapAdmin.data = { text: null, name: null }; mapAdmin.dirty = { text: {}, name: {} }; mapAdmin.extra = { text: [], name: [] }; mapAdmin.sel = {}; mapAdmin.filter = 'all'; mapAdmin.query = ''; adminLists.translations.page = 0; adminLists.translations.size = 50; mapAdmin.status = null; mapAdmin.busy = false; mapAdmin.drafting = false; mapAdmin.cancelDraft = false; document.getElementById('mapAdminFilter').value = 'all'; document.getElementById('mapAdminSearch').value = ''; log = []; toasts = []; };
   resetState();
 
   // A. 頁籤與載入
@@ -49,9 +49,10 @@
   mapAdminOnQuery('文字11'); ok(mapAdminFilteredRows().some(r => r.zh === '文字11') && mapAdminFilteredRows().length >= 1, '搜尋中文');
   mapAdminOnQuery('目前沒有使用'); ok(mapAdminFilteredRows().length === 12, '搜尋也比對出處欄');
   mapAdminOnQuery(''); mapAdminOnFilter('all');
-  ok(document.getElementById('mapAdminPrev').disabled === true && document.getElementById('mapAdminNext').disabled === false && /第 1 \/ 3 頁/.test(document.getElementById('mapAdminPageText').textContent), '分頁：第 1/3 頁、上一頁停用');
-  mapAdminPage(1); mapAdminPage(1); ok(rowsEl().length === 20 && document.getElementById('mapAdminNext').disabled === true && /第 3 \/ 3 頁/.test(document.getElementById('mapAdminPageText').textContent), '最後一頁 20 列、下一頁停用');
-  mapAdminOnFilter('unused'); ok(mapAdmin.page === 0 && rowsEl().length === 12, '換篩選回到第一頁');
+  const pgBtn = w => document.querySelector('#adminTranslationsPager button[data-go="' + w + '"]'), pgTxt = () => document.querySelector('#adminTranslationsPager .admin-pager-page').textContent;
+  ok(pgBtn('first').disabled && pgBtn('prev').disabled && !pgBtn('next').disabled && pgTxt() === '1 / 3', '分頁（每頁 50）：第 1/3 頁、第一頁與上一頁停用');
+  pgBtn('next').click(); pgBtn('next').click(); ok(rowsEl().length === 20 && pgBtn('next').disabled && pgBtn('last').disabled && pgTxt() === '3 / 3', '最後一頁 20 列、下一頁與最末頁停用');
+  mapAdminOnFilter('unused'); ok(adminLists.translations.page === 0 && rowsEl().length === 12, '換篩選回到第一頁');
   ok(rowsEl().every(r => !!r.querySelector('input[type=checkbox]')), '「目前沒有使用」的列才有刪除用的勾選框');
   mapAdminOnFilter('all'); ok(rowsEl().filter(r => r.querySelector('input[type=checkbox]')).length === 5, '一般列表中，只有未使用的列有勾選框（第一頁 5 列）');
   mapAdminOnFilter('all');
@@ -165,6 +166,39 @@
   ok(!window.__mapadminpwn && document.querySelectorAll('#mapAdminRows img, #mapAdminRows script, #mapAdminRows b, #mapAdminRows i').length === 0, '惡意內容（HTML、script）全部以純文字顯示，不會執行或注入元素');
   ok(rowsEl().length === 1 && rowsEl()[0].textContent.indexOf('<img src=x') >= 0 && rowsEl()[0].querySelector('input[type=text]').value.indexOf('<script>') >= 0, '原始字串完整保留（文字節點與輸入框的值）');
   mapAdminOnQuery('');
+
+  // M. 分頁與其他後台列表一致（共用元件）
+  try { localStorage.removeItem('nobel_a_adminlist_size_translations'); } catch (e) {}
+  resetState(); adminLists.translations.size = 10; mapAdminOpen(); await wait(60);
+  const pg = () => document.getElementById('adminTranslationsPager');
+  const cnt = () => (pg().querySelector('.admin-pager-count') || {}).textContent, pgt = () => (pg().querySelector('.admin-pager-page') || {}).textContent;
+  const goBtn = w => pg().querySelector('button[data-go="' + w + '"]');
+  const setSz = v => { const sel = pg().querySelector('.admin-pager-size'); sel.value = v; sel.dispatchEvent(new Event('change', { bubbles: true })); };
+  ok(!document.getElementById('mapAdminPrev') && !document.getElementById('mapAdminNext') && !document.getElementById('mapAdminPageText'), '舊的文字分頁（上一頁／下一頁）已移除');
+  ok(rowsEl().length === 10 && cnt() === '共 120 筆' && pgt() === '1 / 12', '每頁 10 筆（與其他列表一致）：共 120 筆、1 / 12');
+  const navs = [...pg().querySelectorAll('.admin-pager-nav button')];
+  ok(navs.map(b => b.getAttribute('data-go')).join(',') === 'first,prev,next,last' && navs.every(b => b.textContent.trim() === '' && !!b.querySelector('svg')), '分頁列：第一頁、上一頁、下一頁、最末頁，圖示按鈕、沒有文字');
+  ok([...pg().querySelectorAll('.admin-pager-size option')].map(o => o.textContent).join(',') === '10,20,50,全部', '每頁選項：10、20、50、全部');
+  goBtn('last').click(); ok(pgt() === '12 / 12' && rowsEl().length === 10 && goBtn('next').disabled, '最末頁：12 / 12');
+  goBtn('first').click(); goBtn('next').click(); ok(pgt() === '2 / 12' && rowsEl()[0].getAttribute('data-zh') === '文字10', '下一頁：第 2 頁從第 11 筆開始');
+  setSz('50'); ok(rowsEl().length === 50 && pgt() === '1 / 3' && localStorage.getItem('nobel_a_adminlist_size_translations') === '50', '改每頁 50：回到第 1 頁、共 3 頁，並記住');
+  setSz('0'); ok(rowsEl().length === 120 && pg().querySelector('.admin-pager-nav') === null && cnt() === '共 120 筆', '全部：120 筆、不分頁');
+  setSz('10'); mapAdminOnFilter('missing');
+  const expMiss = base.filter(r => r.used_in !== '（目前沒有使用）' && !r.en).length;
+  ok(cnt() === '符合 ' + expMiss + ' 筆（共 120 筆）', '篩選後：「符合 ' + expMiss + ' 筆（共 120 筆）」');
+  mapAdminOnFilter('all'); mapAdminOnQuery('文字119'); ok(pg().querySelector('.admin-pager-nav') === null && rowsEl().length === 1, '搜尋結果不到一頁：不顯示分頁按鈕');
+  mapAdminOnQuery(''); mapAdminOnFilter('all'); goBtn('next').click(); ok(pgt() === '2 / 12', '（準備）移到第 2 頁');
+  mapAdminOnQuery('文字1'); ok(pgt() === '1 / 4' && cnt() === '符合 31 筆（共 120 筆）', '輸入搜尋：回到第 1 頁（「文字1」符合 31 筆、共 4 頁）');
+  mapAdminOnQuery(''); goBtn('last').click(); mapAdmin.filter = 'missing'; mapAdminRenderRows();
+  const missPages = Math.ceil(expMiss / 10);
+  ok(pgt() === missPages + ' / ' + missPages, '資料變少（篩選改變）時頁碼夾回最後一頁（' + missPages + ' / ' + missPages + '）');
+  goBtn('prev').click(); ok(pgt() === (missPages - 1) + ' / ' + missPages, '夾回後按「上一頁」：從最後一頁往前一頁（頁碼已寫回，不會卡住）');
+  mapAdminOnFilter('all');
+  mapAdminOnQuery(''); mapAdminOnFilter('all'); goBtn('last').click(); mapAdminSetKind('name'); await wait(60);
+  ok(adminLists.translations.page === 0 && cnt() === '共 2 筆' && pg().querySelector('.admin-pager-nav') === null, '切到「名稱」：回到第 1 頁、共 2 筆、不分頁');
+  mapAdminSetKind('text'); await wait(60);
+  try { localStorage.removeItem('nobel_a_adminlist_size_translations'); } catch (e) {}
+  adminLists.translations.size = adminListStoredSize('translations');
 
   // L. 登入狀態
   state.adminPassword = ''; log = []; mapAdminRefreshBadge(); ok(calls('mapStatus').length === 0, '沒有登入：不會向後端請求統計');

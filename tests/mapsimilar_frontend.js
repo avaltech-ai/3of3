@@ -43,7 +43,7 @@
   const inputOf = zh => { const r = rowOf(zh); return r && r.querySelector('input[type=text]'); };
   const badgeOf = zh => { const r = rowOf(zh); return r && r.querySelector('.map-sim-badge'); };
   const applyOf = zh => { const r = rowOf(zh); return r && r.querySelector('.map-sim-apply'); };
-  const resetState = () => { mapAdmin.kind = 'text'; mapAdmin.data = { text: null, name: null }; mapAdmin.dirty = { text: {}, name: {} }; mapAdmin.extra = { text: [], name: [] }; mapAdmin.sel = {}; mapAdmin.filter = 'all'; mapAdmin.simGroup = null; mapAdmin.query = ''; mapAdmin.page = 0; mapAdmin.status = null; mapAdmin.busy = false; document.getElementById('mapAdminFilter').value = 'all'; document.getElementById('mapAdminSearch').value = ''; log = []; toasts = []; confirmMsgs = []; confirmAnswer = true; };
+  const resetState = () => { mapAdmin.kind = 'text'; mapAdmin.data = { text: null, name: null }; mapAdmin.dirty = { text: {}, name: {} }; mapAdmin.extra = { text: [], name: [] }; mapAdmin.sel = {}; mapAdmin.filter = 'all'; mapAdmin.simGroup = null; mapAdmin.query = ''; adminLists.translations.page = 0; adminLists.translations.size = 10; mapAdmin.status = null; mapAdmin.busy = false; document.getElementById('mapAdminFilter').value = 'all'; document.getElementById('mapAdminSearch').value = ''; log = []; toasts = []; confirmMsgs = []; confirmAnswer = true; };
   resetState();
   mapAdminOpen(); await wait(80);
 

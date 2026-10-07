@@ -132,5 +132,5 @@ console.log(await window.__nameMapFrontendTest());   // allPass 應為 true
 - `tests/spothistory_frontend.js`（瀏覽器）：歷史焦點介面（按鈕位置、開關、列表分段與排序、卡片內容、搜尋、詳情與返回、影片、英文介面、空狀態、ESC／點背景、跳脫、首頁輪播不受影響，49 項；約 5 秒）。
 - `node tests/mapsimilar.test.js`：後台「相似文字」分組純函式（和／與、標點、編號數字不同不分組、短文字、串接、`__proto__`、與標準編輯距離隨機對照 4000 組，30 項；從 `index.html` 取出函式執行；已納入 `tests/ci.sh`）。
 - `tests/mapsimilar_frontend.js`（瀏覽器）：相似文字介面（標示、篩選與同組相鄰、只看這組、套用英文的確認與取消、只填入畫面不呼叫後端、儲存、NameMap 無此功能、跳脫，34 項；約 5 秒）。
-- `tests/mapadmin_frontend.js`（瀏覽器）：後台英文對照介面（載入、篩選搜尋分頁、修改追蹤、批次儲存與分段、連續草稿與停止、採用、刪除、手動新增、種類切換、跳脫，61 項；約 20 秒）。
+- `tests/mapadmin_frontend.js`（瀏覽器）：後台英文對照介面（載入、篩選搜尋分頁、修改追蹤、批次儲存與分段、連續草稿與停止、採用、刪除、手動新增、種類切換、跳脫，76 項（含與其他列表一致的分頁 15 項）；約 25 秒）。
 
