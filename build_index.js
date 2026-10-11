@@ -462,13 +462,13 @@ const htmlContent = `<!DOCTYPE html>
           <!-- 年月與切換鈕 -->
           <div class="flex items-center gap-2">
             <button onclick="changeMonth(-1)" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-peach-100 hover:text-peach-600 flex items-center justify-center font-bold text-slate-600 transition-colors tap-bounce" title="上個月" data-i18n-title="cal.prevMonth">
-              ‹
+              ❮
             </button>
             <h3 id="calendarCurrentMonthText" class="text-base sm:text-lg font-black text-slate-800 min-w-[130px] text-center tracking-tight">
               2026 年 10 月
             </h3>
             <button onclick="changeMonth(1)" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-peach-100 hover:text-peach-600 flex items-center justify-center font-bold text-slate-600 transition-colors tap-bounce" title="下個月" data-i18n-title="cal.nextMonth">
-              ›
+              ❯
             </button>
             <button onclick="goToToday()" data-i18n="cal.todayBtn" class="px-3 py-1.5 rounded-xl bg-rose-50 text-peach-600 hover:bg-peach-100 text-xs font-bold border border-rose-200/70 tap-bounce ml-1">
               今天
