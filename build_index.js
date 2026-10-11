@@ -2361,8 +2361,8 @@ const htmlContent = `<!DOCTYPE html>
           spotlightModalTitle: "焦點活動攻略圖",
           spotlightModalDesc: "請務必留意焦點活動提醒與須知！",
           spotlightDotTitle: "切換至第 {n} 個焦點活動",
-          spotlightPrev: "上一個焦點活動",
-          spotlightNext: "下一個焦點活動",
+          spotlightPrev: "上一個焦點活動 (鍵盤 ← 鍵)",
+          spotlightNext: "下一個焦點活動 (鍵盤 → 鍵)",
           spotlightImgAlt: "焦點活動",
           spotHistBtn: "歷史焦點",
           spotHistTitle: "歷史焦點",
@@ -2377,8 +2377,8 @@ const htmlContent = `<!DOCTYPE html>
           spotHistNextAria: "下一則（較舊）",
           spotHistMonth: "{y} 年 {m} 月",
           spotHistVideo: "🎬 影片",
-          slidePrev: "上一張",
-          slideNext: "下一張",
+          slidePrev: "上一張 (鍵盤 ← 鍵)",
+          slideNext: "下一張 (鍵盤 → 鍵)",
           guideAlt: "活動攻略",
           close: "關閉",
           closeEsc: "關閉 (Esc)",
@@ -2601,8 +2601,8 @@ const htmlContent = `<!DOCTYPE html>
           spotlightModalTitle: "Highlight Guide",
           spotlightModalDesc: "Please read the highlight reminders and notes carefully!",
           spotlightDotTitle: "Go to highlight {n}",
-          spotlightPrev: "Previous highlight",
-          spotlightNext: "Next highlight",
+          spotlightPrev: "Previous highlight (← key)",
+          spotlightNext: "Next highlight (→ key)",
           spotlightImgAlt: "Highlight",
           spotHistBtn: "Past Highlights",
           spotHistTitle: "Past Highlights",
@@ -2617,8 +2617,8 @@ const htmlContent = `<!DOCTYPE html>
           spotHistNextAria: "Next (older)",
           spotHistMonth: "{mn} {y}",
           spotHistVideo: "🎬 Video",
-          slidePrev: "Previous",
-          slideNext: "Next",
+          slidePrev: "Previous (← key)",
+          slideNext: "Next (→ key)",
           guideAlt: "Highlight guide",
           close: "Close",
           closeEsc: "Close (Esc)",
@@ -5093,6 +5093,45 @@ const htmlContent = `<!DOCTYPE html>
       }
     }
 
+    // ---------- 焦點輪播：鍵盤 ← → 與手機左右滑動 ----------
+    // 有任何彈窗（含相簿檢視器、歌曲播放器、主題選擇）開著時，首頁輪播不回應；
+    // 焦點放大彈窗開著時，← → 切換彈窗內的上一張／下一張。輪播沿用按鈕的行為：頭尾繞回。
+    // 彈窗清單：所有 .modal-backdrop 加上相簿檢視器、歌曲播放器、主題選擇（手機側邊選單的遮罩常駐存在，不算彈窗）
+    function isAnyOverlayOpen() {
+      const els = document.querySelectorAll('.modal-backdrop, #photoViewerModal, #songPlayerModal, #themeModal');
+      for (let i = 0; i < els.length; i++) { if (!els[i].classList.contains('hidden')) return true; }
+      return false;
+    }
+
+    function isSpotlightModalOpen() {
+      const m = document.getElementById('spotlightModal');
+      return !!m && !m.classList.contains('hidden');
+    }
+
+    // 首頁輪播目前可用鍵盤／滑動操作：在首頁分頁、沒有彈窗、有多張，且輪播卡片至少有一部分在畫面內（看不到時按 ← → 不該默默換圖）
+    function isHomeSpotlightControllable() {
+      const home = document.getElementById('tabContent-home'), box = document.getElementById('spotlightContainer');
+      if (!home || !box || home.classList.contains('hidden') || isAnyOverlayOpen()) return false;
+      if (filterActiveSpotlights(state.spotlights).length <= 1) return false;
+      const r = box.getBoundingClientRect();
+      return r.bottom > 0 && r.top < (window.innerHeight || document.documentElement.clientHeight);
+    }
+
+    window.addEventListener('keydown', function(e) {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+      const tg = e.target && e.target.tagName;
+      if (tg === 'INPUT' || tg === 'TEXTAREA' || tg === 'SELECT' || (e.target && e.target.isContentEditable)) return;
+      const dir = e.key === 'ArrowRight' ? 1 : -1;
+      if (isSpotlightModalOpen()) {
+        if (filterActiveSpotlights(state.spotlights).length <= 1) return;
+        if (dir > 0) nextSpotlightModal(); else prevSpotlightModal();
+        return;
+      }
+      if (!isHomeSpotlightControllable()) return;
+      if (dir > 0) nextSpotlightSlide(); else prevSpotlightSlide();
+    });
+
     function pauseSpotlightTimer() {
       isSpotlightHovered = true;
     }
@@ -5320,6 +5359,21 @@ const htmlContent = `<!DOCTYPE html>
       if (!pane || pane.classList.contains('hidden') || !pane.contains(target)) return false;
       return !(target.closest && target.closest('#spotHistDetailVideoBox'));
     }, spotHistStep);
+
+    // 首頁焦點輪播：整張卡片都可左右滑（按鈕與歷史焦點鈕上起手不算）
+    bindSwipeNav(function(target) {
+      const box = document.getElementById('spotlightContainer');
+      if (!box || !box.contains(target) || !isHomeSpotlightControllable()) return false;
+      return !(target.closest && target.closest('button'));
+    }, function(dir) { if (dir > 0) nextSpotlightSlide(); else prevSpotlightSlide(); });
+
+    // 焦點放大彈窗：媒體區左右滑（影片區的觸控由播放器處理，不會傳到這裡）
+    bindSwipeNav(function(target) {
+      const w = document.getElementById('modalSpotlightMediaWrapper');
+      if (!w || !isSpotlightModalOpen() || !w.contains(target)) return false;
+      if (filterActiveSpotlights(state.spotlights).length <= 1) return false;
+      return !(target.closest && target.closest('button'));
+    }, function(dir) { if (dir > 0) nextSpotlightModal(); else prevSpotlightModal(); });
 
     function renderSpotlightHistory() {
       const listPane = document.getElementById('spotHistListPane'), detailPane = document.getElementById('spotHistDetailPane');
