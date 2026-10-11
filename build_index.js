@@ -1879,15 +1879,22 @@ const htmlContent = `<!DOCTYPE html>
         <div id="spotHistEmpty" class="hidden py-10 text-center text-xs text-slate-400"></div>
       </div>
       <div id="spotHistDetailPane" class="hidden flex-1 min-h-0 overflow-y-auto pt-3 space-y-3">
-        <button type="button" onclick="spotHistBack()" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 tap-bounce cursor-pointer" data-i18n="ui.spotHistBack">‹ 返回列表</button>
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="spotHistBack()" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 tap-bounce cursor-pointer" data-i18n="ui.spotHistBack">‹ 返回列表</button>
+          <span id="spotHistDetailPos" class="text-xs font-bold text-slate-500 bg-slate-50 px-2.5 py-1 rounded-full"></span>
+        </div>
         <h4 id="spotHistDetailTitle" class="text-lg sm:text-xl font-black text-slate-800 leading-snug break-words"></h4>
         <p id="spotHistDetailSub" class="text-xs sm:text-sm text-slate-600 font-semibold break-words"></p>
-        <div class="w-full h-[40vh] sm:h-[48vh] min-h-[220px] rounded-2xl overflow-hidden border border-rose-100 bg-rose-50/60 flex items-center justify-center">
+        <div class="relative w-full h-[40vh] sm:h-[48vh] min-h-[220px]">
+        <div class="w-full h-full rounded-2xl overflow-hidden border border-rose-100 bg-rose-50/60 flex items-center justify-center">
           <img id="spotHistDetailImg" src="" alt="" class="w-full h-full object-contain select-none">
           <div id="spotHistDetailVideoBox" class="w-full h-full hidden">
             <iframe id="spotHistDetailIframe" class="w-full h-full border-0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
             <video id="spotHistDetailVideo" class="w-full h-full object-contain hidden" controls playsinline muted loop></video>
           </div>
+        </div>
+        <button type="button" id="spotHistPrevBtn" onclick="spotHistStep(-1)" class="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/80 hover:bg-white text-slate-700 flex items-center justify-center text-lg shadow-md border border-slate-200 tap-bounce cursor-pointer z-10 disabled:opacity-30 disabled:cursor-not-allowed" title="上一則（較新，鍵盤 ← 鍵）" data-i18n-title="ui.spotHistPrev" aria-label="上一則（較新）" data-i18n-aria="ui.spotHistPrevAria">◀</button>
+        <button type="button" id="spotHistNextBtn" onclick="spotHistStep(1)" class="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/80 hover:bg-white text-slate-700 flex items-center justify-center text-lg shadow-md border border-slate-200 tap-bounce cursor-pointer z-10 disabled:opacity-30 disabled:cursor-not-allowed" title="下一則（較舊，鍵盤 → 鍵）" data-i18n-title="ui.spotHistNext" aria-label="下一則（較舊）" data-i18n-aria="ui.spotHistNextAria">▶</button>
         </div>
         <div id="spotHistDetailTags" class="flex flex-wrap gap-1.5"></div>
         <div id="spotHistDetailPoints" class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs"></div>
@@ -2364,6 +2371,10 @@ const htmlContent = `<!DOCTYPE html>
           spotHistEmpty: "目前還沒有歷史焦點",
           spotHistNoMatch: "沒有符合的活動",
           spotHistBack: "‹ 返回列表",
+          spotHistPrev: "上一則（較新，鍵盤 ← 鍵）",
+          spotHistNext: "下一則（較舊，鍵盤 → 鍵）",
+          spotHistPrevAria: "上一則（較新）",
+          spotHistNextAria: "下一則（較舊）",
           spotHistMonth: "{y} 年 {m} 月",
           spotHistVideo: "🎬 影片",
           slidePrev: "上一張",
@@ -2600,6 +2611,10 @@ const htmlContent = `<!DOCTYPE html>
           spotHistEmpty: "No past highlights yet",
           spotHistNoMatch: "No matching activities",
           spotHistBack: "‹ Back to list",
+          spotHistPrev: "Previous (newer, ← key)",
+          spotHistNext: "Next (older, → key)",
+          spotHistPrevAria: "Previous (newer)",
+          spotHistNextAria: "Next (older)",
           spotHistMonth: "{mn} {y}",
           spotHistVideo: "🎬 Video",
           slidePrev: "Previous",
@@ -5248,6 +5263,59 @@ const htmlContent = `<!DOCTYPE html>
     function spotHistOpen(id) { spotHist.openId = id; renderSpotlightHistory(); const d = document.getElementById('spotHistDetailPane'); if (d) d.scrollTop = 0; }
     function spotHistBack() { spotHistStopMedia(); spotHist.openId = null; renderSpotlightHistory(); }
 
+    // 依目前搜尋條件篩出的歷史焦點（列表與上一則／下一則共用，順序＝結束日由新到舊）
+    function spotHistRows() {
+      const q = String(spotHist.query || '').trim().toLowerCase();
+      return getHistorySpotlights(state.spotlights).filter(function(sp) {
+        if (!q) return true;
+        const hay = [sp.title, sp.subtitle, sp.tags, sp.bulletPoints, tx(sp.title), tx(sp.subtitle), tx(sp.tags), tx(sp.bulletPoints)].join(' ').toLowerCase();
+        return hay.indexOf(q) !== -1;
+      });
+    }
+
+    function spotHistIndex(rows) {
+      for (let i = 0; i < rows.length; i++) { if (rows[i].id === spotHist.openId) return i; }
+      return -1;
+    }
+
+    // delta：-1＝上一則（較新）、+1＝下一則（較舊）；到頭就不動（不繞回）
+    function spotHistStep(delta) {
+      if (spotHist.openId === null) return;
+      const rows = spotHistRows(), i = spotHistIndex(rows), n = i + delta;
+      if (i < 0 || n < 0 || n >= rows.length) return;
+      spotHistOpen(rows[n].id);
+    }
+
+    function updateSpotHistNav() {
+      const rows = spotHistRows(), i = spotHistIndex(rows);
+      const pos = document.getElementById('spotHistDetailPos');
+      if (pos) pos.textContent = i < 0 ? '' : (i + 1) + ' / ' + rows.length;
+      const pb = document.getElementById('spotHistPrevBtn'), nb = document.getElementById('spotHistNextBtn');
+      if (pb) pb.disabled = i <= 0;
+      if (nb) nb.disabled = i < 0 || i >= rows.length - 1;
+    }
+
+    // 手機左右滑動：往左滑＝下一則、往右滑＝上一則；影片區不攔截（避免干擾播放器操作）
+    (function() {
+      let sx = 0, sy = 0, tracking = false;
+      document.addEventListener('touchstart', function(e) {
+        tracking = false;
+        const pane = document.getElementById('spotHistDetailPane');
+        if (!pane || pane.classList.contains('hidden') || !pane.contains(e.target)) return;
+        if (e.target.closest && e.target.closest('#spotHistDetailVideoBox')) return;
+        if (e.touches.length !== 1) return;
+        sx = e.touches[0].clientX; sy = e.touches[0].clientY; tracking = true;
+      }, { passive: true });
+      document.addEventListener('touchend', function(e) {
+        if (!tracking) return;
+        tracking = false;
+        const t0 = e.changedTouches[0];
+        const dx = t0.clientX - sx, dy = t0.clientY - sy;
+        if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+        spotHistStep(dx < 0 ? 1 : -1);
+      }, { passive: true });
+    })();
+
     function renderSpotlightHistory() {
       const listPane = document.getElementById('spotHistListPane'), detailPane = document.getElementById('spotHistDetailPane');
       if (!listPane || !detailPane) return;
@@ -5260,12 +5328,7 @@ const htmlContent = `<!DOCTYPE html>
       if (openSp) { renderSpotHistDetail(openSp); return; }
       spotHistStopMedia();
 
-      const q = String(spotHist.query || '').trim().toLowerCase();
-      const rows = all.filter(function(sp) {
-        if (!q) return true;
-        const hay = [sp.title, sp.subtitle, sp.tags, sp.bulletPoints, tx(sp.title), tx(sp.subtitle), tx(sp.tags), tx(sp.bulletPoints)].join(' ').toLowerCase();
-        return hay.indexOf(q) !== -1;
-      });
+      const rows = spotHistRows();
       const box = document.getElementById('spotHistCards'), empty = document.getElementById('spotHistEmpty');
       box.textContent = '';
       let lastMonth = '', grid = null;
@@ -5331,6 +5394,7 @@ const htmlContent = `<!DOCTYPE html>
       const tw = document.getElementById('spotHistDetailTags'); tw.textContent = '';
       spotHistTagList(sp).forEach(function(x) { tw.appendChild(spotHistChip(x)); });
       renderSpotlightPoints(tx(sp.bulletPoints), document.getElementById('spotHistDetailPoints'));
+      updateSpotHistNav();
     }
 
     // ==================== 行事曆邏輯 (週日為第一天) ====================
@@ -6538,7 +6602,16 @@ const htmlContent = `<!DOCTYPE html>
           closeAlbumModal();
           return;
         }
-        if (isSpotlightHistoryOpen() && e.key === 'Escape') closeSpotlightHistory();
+        if (isSpotlightHistoryOpen()) {
+          if (e.key === 'Escape') closeSpotlightHistory();
+          else if (spotHist.openId !== null && !e.altKey && !e.ctrlKey && !e.metaKey) {
+            const tg = e.target && e.target.tagName;
+            if (tg !== 'INPUT' && tg !== 'TEXTAREA' && tg !== 'SELECT') {
+              if (e.key === 'ArrowLeft') spotHistStep(-1);
+              else if (e.key === 'ArrowRight') spotHistStep(1);
+            }
+          }
+        }
       }
     });
 
