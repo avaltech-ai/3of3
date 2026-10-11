@@ -5295,15 +5295,13 @@ const htmlContent = `<!DOCTYPE html>
       if (nb) nb.disabled = i < 0 || i >= rows.length - 1;
     }
 
-    // 手機左右滑動：往左滑＝下一則、往右滑＝上一則；影片區不攔截（避免干擾播放器操作）
-    (function() {
+    // 手機左右滑動共用：shouldTrack(目標元素) 回傳 true 才開始追蹤；往左滑＝+1（下一個）、往右滑＝-1（上一個）。
+    // 水平位移 ≥ 50px 且明顯大於垂直位移（避免與上下捲動衝突）才算；多指（縮放）不算。
+    function bindSwipeNav(shouldTrack, onSwipe) {
       let sx = 0, sy = 0, tracking = false;
       document.addEventListener('touchstart', function(e) {
         tracking = false;
-        const pane = document.getElementById('spotHistDetailPane');
-        if (!pane || pane.classList.contains('hidden') || !pane.contains(e.target)) return;
-        if (e.target.closest && e.target.closest('#spotHistDetailVideoBox')) return;
-        if (e.touches.length !== 1) return;
+        if (e.touches.length !== 1 || !shouldTrack(e.target)) return;
         sx = e.touches[0].clientX; sy = e.touches[0].clientY; tracking = true;
       }, { passive: true });
       document.addEventListener('touchend', function(e) {
@@ -5312,9 +5310,16 @@ const htmlContent = `<!DOCTYPE html>
         const t0 = e.changedTouches[0];
         const dx = t0.clientX - sx, dy = t0.clientY - sy;
         if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
-        spotHistStep(dx < 0 ? 1 : -1);
+        onSwipe(dx < 0 ? 1 : -1);
       }, { passive: true });
-    })();
+    }
+
+    // 歷史焦點詳情：影片區不攔截（避免干擾播放器操作）
+    bindSwipeNav(function(target) {
+      const pane = document.getElementById('spotHistDetailPane');
+      if (!pane || pane.classList.contains('hidden') || !pane.contains(target)) return false;
+      return !(target.closest && target.closest('#spotHistDetailVideoBox'));
+    }, spotHistStep);
 
     function renderSpotlightHistory() {
       const listPane = document.getElementById('spotHistListPane'), detailPane = document.getElementById('spotHistDetailPane');
@@ -6533,6 +6538,13 @@ const htmlContent = `<!DOCTYPE html>
         scheduleNextAutoPlay(); // 手動切換時重新倒數 3 秒
       }
     }
+
+    // 照片檢視器手機左右滑動：往左滑＝下一張、往右滑＝上一張（按鈕上起手不算）
+    bindSwipeNav(function(target) {
+      const m = document.getElementById('photoViewerModal');
+      if (!m || m.classList.contains('hidden') || !m.contains(target)) return false;
+      return !(target.closest && target.closest('button'));
+    }, navigatePhoto);
 
     function openPhotoViewer(url, downloadUrl) {
       const idx = currentAlbumPhotosList.findIndex(p => (p.viewUrl === url || p.thumbnailUrl === url));
