@@ -4337,12 +4337,8 @@
       state.spotlights.forEach(sp => {
         sp.priority = parseSpotlightPriority(sp.priority);
       });
-      state.spotlights.sort((a, b) => {
-        const pA = Number(a.priority) || 999;
-        const pB = Number(b.priority) || 999;
-        if (pA !== pB) return pA - pB;
-        return String(b.id).localeCompare(String(a.id)); // Newer first if same priority
-      });
+      state.spotlights.sort(spotlightOrderCompare);   // 順位小的在前；沒有順位的排最後；相同則新編號在前
+      spotlightOrderChecked = false;                 // 公開資料已更新：管理員下次畫焦點列表前再整理一次順位
       state.docs = data.docs || [];
       state.themes = (data.themes || []).sort(sortThemesDesc);
       state.themeSemesters = data.themeSemesters || [];
@@ -8728,6 +8724,52 @@
       if (st.sort !== 'order') out.sort(function(a, b) { return (b.k - a.k) || (a.i - b.i); });
       return out.map(function(x) { return x.sp; });
     }
+    // ---------- 焦點活動「播放順位」：只有播映中的活動有順位，順位由目前播映中的活動即時算出（永遠是連續的 1～N）----------
+    // 沒有順位＝空白（前端載入後以 999 表示）。排序：順位小的在前，沒有順位的排最後；順位相同依編號新到舊（與前台輪播一致）。
+    function spotlightPriorityOrNone(p) {
+      const n = Number(p);
+      return (isFinite(n) && n > 0 && n < 999) ? Math.floor(n) : '';
+    }
+    function spotlightOrderCompare(a, b) {
+      const pa = spotlightPriorityOrNone(a.priority) || 999, pb = spotlightPriorityOrNone(b.priority) || 999;
+      if (pa !== pb) return pa - pb;
+      return String(b.id).localeCompare(String(a.id));
+    }
+    function spotlightPlayingSorted(list, todayStr) {
+      return (list || []).filter(function(sp) { return sp && spotlightPlayState(sp, todayStr) === 'playing'; }).sort(spotlightOrderCompare);
+    }
+    // { 編號: 順位 }：只含播映中的活動
+    function spotlightRanks(list, todayStr) {
+      const r = Object.create(null);
+      spotlightPlayingSorted(list, todayStr).forEach(function(sp, i) { r[String(sp.id)] = i + 1; });
+      return r;
+    }
+    // 整理後的順位清單 [{ id, priority }]（含所有活動）：播映中 → 1～N；其餘（排程中、已下架、停用）→ ''（沒有順位）。
+    // 帶 moveId、moveRank 時，先把該活動移到指定順位（超出範圍會夾在 1～N）。
+    function spotlightOrderList(list, todayStr, moveId, moveRank) {
+      const playing = spotlightPlayingSorted(list, todayStr);
+      if (moveId !== undefined && moveId !== null) {
+        const from = playing.findIndex(function(sp) { return String(sp.id) === String(moveId); });
+        if (from > -1) {
+          const item = playing.splice(from, 1)[0];
+          const to = Math.max(0, Math.min(playing.length, Math.floor(Number(moveRank) || 1) - 1));
+          playing.splice(to, 0, item);
+        }
+      }
+      const rank = Object.create(null);
+      playing.forEach(function(sp, i) { rank[String(sp.id)] = i + 1; });
+      const out = [];
+      (list || []).forEach(function(sp) { if (sp) out.push({ id: sp.id, priority: rank[String(sp.id)] || '' }); });
+      return out;
+    }
+    // 整理後的順位和目前儲存的是否不同
+    function spotlightOrderChanged(list, orderList) {
+      const cur = Object.create(null);
+      (list || []).forEach(function(sp) { if (sp) cur[String(sp.id)] = spotlightPriorityOrNone(sp.priority); });
+      return (orderList || []).some(function(o) { return String(cur[String(o.id)]) !== String(o.priority); });
+    }
+    // 後台列表預設的篩選（清除篩選會回到這裡）
+    const ADMIN_LIST_DEFAULTS = { spotlights: { play: 'playing', sort: 'order' } };
     // ===== 以下為畫面（需要瀏覽器）=====
     function adminListStoredSize(key) {
       try {
@@ -8741,7 +8783,7 @@
       events: { query: '', cat: '', target: '', sort: 'new', page: 0, size: adminListStoredSize('events') },
       albums: { query: '', cat: '', page: 0, size: adminListStoredSize('albums') },
       songs: { query: '', cat: '', page: 0, size: adminListStoredSize('songs') },
-      spotlights: { query: '', status: '', play: '', sort: 'new', page: 0, size: adminListStoredSize('spotlights') },
+      spotlights: { query: '', status: '', play: ADMIN_LIST_DEFAULTS.spotlights.play, sort: ADMIN_LIST_DEFAULTS.spotlights.sort, page: 0, size: adminListStoredSize('spotlights') },
       translations: { page: 0, size: adminListStoredSize('translations') }
     };
     const ADMIN_LIST_RENDER = { events: 'renderAdminEventsTable', albums: 'renderAdminAlbumsTable', songs: 'renderAdminSongsTable', spotlights: 'renderAdminSpotlightsList', translations: 'mapAdminRenderRows' };
@@ -8765,12 +8807,14 @@
     }
     function adminListClear(key) {
       const st = adminLists[key];
-      st.query = ''; st.cat = ''; ['target', 'status', 'play'].forEach(function(f) { if (f in st) st[f] = ''; }); if ('sort' in st) st.sort = 'new'; st.page = 0;
+      const def = ADMIN_LIST_DEFAULTS[key] || {};
+      st.query = ''; st.cat = ''; ['target', 'status', 'play'].forEach(function(f) { if (f in st) st[f] = def[f] || ''; }); if ('sort' in st) st.sort = def.sort || 'new'; st.page = 0;
       adminListRerender(key);
     }
     function adminListIsFiltered(key) {
       const st = adminLists[key];
-      return !!(st.query || st.cat || st.target || st.status || st.play || (st.sort && st.sort !== 'new'));
+      const def = ADMIN_LIST_DEFAULTS[key] || {};
+      return !!(st.query || st.cat || st.target || st.status || (('play' in st) && st.play !== (def.play || '')) || (st.sort && st.sort !== (def.sort || 'new')));
     }
     // 把目前的篩選值同步回搜尋框與下拉，並更新「清除篩選」按鈕
     function adminListSyncToolbar(key, ids) {
@@ -9707,10 +9751,17 @@
     // Spotlight 管理與多活動排程邏輯
     let spPendingUploadFile = null;
 
+    // 管理員登入後、每次載入資料後的第一次畫列表前，先整理一次順位（只有播映中的有順位、連續 1～N；有變動才寫回試算表）
+    let spotlightOrderChecked = false;
+
     function renderAdminSpotlightsList() {
       const listEl = document.getElementById('spAdminListContainer');
       const countEl = document.getElementById('spAdminCountBadge');
       if (!listEl) return;
+      if (state.adminPassword && !spotlightOrderChecked && (state.spotlights || []).length > 0) {
+        spotlightOrderChecked = true;
+        if (normalizeSpotlightOrder(true).changed) return;   // 有整理就已重畫過
+      }
       listEl.innerHTML = '';
 
       const spotlights = state.spotlights || [];
@@ -9730,9 +9781,10 @@
         return;
       }
 
+      // 順位由「目前播映中」的活動即時算出（與列表目前的排序、篩選、頁碼無關）
+      const ranks = spotlightRanks(spotlights, todayStr);
+      const playingCount = Object.keys(ranks).length;
       info.rows.forEach(function(sp) {
-        // 真實順位＝在 state.spotlights 的位置（與列表目前的排序、篩選、頁碼無關）
-        const index = spotlights.indexOf(sp);
         var statusBadge = '';
         const playState = spotlightPlayState(sp, todayStr);
         if (playState === 'off') {
@@ -9750,13 +9802,17 @@
         var mediaIcon = sp.mediaType === 'video' ? '🎬' : '🖼️';
 
 
+        // 順位只屬於播映中的活動：下拉選項是 1～目前播映中的筆數；其他狀態沒有順位
+        var playingRank = ranks[String(sp.id)];
         var optionsHtml = '';
-        for (var i = 0; i < spotlights.length; i++) {
-          var sel = (i === index) ? ' selected' : '';
-          optionsHtml += '<option value="' + (i + 1) + '"' + sel + '>第 ' + (i + 1) + ' 順位</option>';
+        for (var i = 1; i <= playingCount; i++) {
+          optionsHtml += '<option value="' + i + '"' + (i === playingRank ? ' selected' : '') + '>第 ' + i + ' 順位</option>';
         }
+        var noRankText = playState === 'ended' ? '已取消順位' : (playState === 'scheduled' ? '未排順位（開播後排最後）' : '未排順位');
 
-        var orderWidget = '<div class="flex items-center bg-white border border-indigo-200 rounded-xl p-1 shadow-2xs" title="輪播順位（與列表目前的排序無關）">' +
+        var orderWidget = !playingRank
+          ? '<span class="sp-no-rank text-[0.6875rem] font-bold text-slate-400 bg-slate-100 border border-slate-200 rounded-xl px-2.5 py-1.5 whitespace-nowrap">' + noRankText + '</span>'
+          : '<div class="flex items-center bg-white border border-indigo-200 rounded-xl p-1 shadow-2xs" title="輪播順位（只有播映中的活動有順位，順位會自動保持連續）">' +
           '<select class="sp-order-select text-xs font-black text-indigo-700 bg-indigo-50/80 border border-indigo-200 rounded-lg px-2 py-0.5 focus:outline-none focus:ring-1 focus:ring-indigo-400 cursor-pointer">' +
           optionsHtml +
           '</select>' +
@@ -9798,10 +9854,8 @@
         var orderSelect = card.querySelector('.sp-order-select');
         if (orderSelect) {
           orderSelect.onchange = function(e) {
-            var targetIdx = parseInt(e.target.value, 10) - 1;
-            if (!isNaN(targetIdx) && targetIdx !== index) {
-              moveSpotlightOrder(index, targetIdx);
-            }
+            var rank = parseInt(e.target.value, 10);
+            if (!isNaN(rank) && rank !== playingRank) moveSpotlightToRank(sp.id, rank);
           };
         }
 
@@ -9812,61 +9866,49 @@
       });
     }
 
-    function moveSpotlightOrder(fromIndex, toIndex) {
-      if (fromIndex === toIndex) return;
-      if (!state.spotlights || state.spotlights.length <= 1) return;
-      if (fromIndex < 0 || fromIndex >= state.spotlights.length) return;
-      if (toIndex < 0 || toIndex >= state.spotlights.length) return;
-
-      const list = [...state.spotlights];
-      const movedItem = list.splice(fromIndex, 1)[0];
-      list.splice(toIndex, 0, movedItem);
-
-      list.forEach((item, idx) => {
-        item.priority = idx + 1;
+    // 套用整理後的順位到本機：播映中 → 1～N，其餘清空（本機以 999 表示沒有順位），重新排序並重畫
+    function applySpotlightOrderLocal(orderList) {
+      const map = Object.create(null);
+      orderList.forEach(function(o) { map[String(o.id)] = o.priority; });
+      state.spotlights.forEach(function(sp) {
+        const v = map[String(sp.id)];
+        if (v !== undefined) sp.priority = v === '' ? 999 : v;
       });
-
-      state.spotlights = list;
-
-      try {
-        localStorage.setItem('nobel_a_spotlights_list', JSON.stringify(state.spotlights));
-      } catch (err) {}
-
+      state.spotlights.sort(spotlightOrderCompare);
+      try { localStorage.setItem('nobel_a_spotlights_list', JSON.stringify(state.spotlights)); } catch (err) {}
       currentSpotlightIndex = 0;
       renderSpotlightSection();
       renderAdminSpotlightsList();
+    }
 
-      showToast('已將「' + (movedItem.title || '焦點活動') + '」調為第 ' + (toIndex + 1) + ' 順位', '🔄');
-
-      const orderList = list.map(item => ({
-        id: item.id,
-        priority: item.priority
-      }));
-
-      callBackend('updateSpotlightsOrder', {
-        orderList: orderList,
-        password: state.adminPassword
-      }, res => {
-        if (res && res.success) {
-          showToast(res.message || '輪播順序已成功同步至試算表！', '🎉');
-        } else {
-          syncSpotlightsOrderFallback(list);
-        }
-      }, () => {
-        syncSpotlightsOrderFallback(list);
+    // 把整理後的順位寫回試算表（播映中存 1～N，其餘清空）
+    function persistSpotlightOrder(orderList, doneMsg) {
+      callBackend('updateSpotlightsOrder', { orderList: orderList, password: state.adminPassword }, function(res) {
+        if (res && res.success) { if (doneMsg) showToast(doneMsg, '🔄'); }
+        else if (!(res && res.authExpired)) showToast('順位同步到試算表失敗：' + ((res && res.error) || '未知錯誤') + '（請重新整理確認）', '⚠️');
+      }, function(err) {
+        showToast('順位同步到試算表失敗：' + ((err && err.message) || '連線逾時') + '（請重新整理確認）', '⚠️');
       });
     }
 
-    function syncSpotlightsOrderFallback(list) {
-      let pending = list.length;
-      list.forEach(sp => {
-        callBackend('saveSpotlight', { data: sp, password: state.adminPassword }, () => {
-          pending--;
-          if (pending === 0) {
-            showToast('輪播順序已同步！', '🎉');
-          }
-        });
-      });
+    // 把某個播映中的活動移到指定順位：其他播映中的活動依序讓位，順位永遠連續；已下架等沒有順位的活動不受影響
+    function moveSpotlightToRank(id, rank) {
+      const sp = state.spotlights.find(function(x) { return String(x.id) === String(id); });
+      if (!sp) return;
+      const todayStr = getTodayDateStr();
+      if (spotlightPlayState(sp, todayStr) !== 'playing') { showToast('只有播映中的焦點活動才能設定順位', '⚠️'); return; }
+      const orderList = spotlightOrderList(state.spotlights, todayStr, id, rank);
+      applySpotlightOrderLocal(orderList);
+      persistSpotlightOrder(orderList, '已將「' + (sp.title || '焦點活動') + '」調為第 ' + (spotlightRanks(state.spotlights, todayStr)[String(id)] || rank) + ' 順位');
+    }
+
+    // 新增、編輯、刪除、再次上架之後：重新整理順位（到期、停用、排程中的清空；播映中的補成連續 1～N），有變動才寫回
+    function normalizeSpotlightOrder(thenPersist) {
+      const orderList = spotlightOrderList(state.spotlights, getTodayDateStr());
+      const changed = spotlightOrderChanged(state.spotlights, orderList);
+      if (changed) applySpotlightOrderLocal(orderList);
+      if (changed && thenPersist) persistSpotlightOrder(orderList, '');
+      return { orderList: orderList, changed: changed };
     }
 
     // 「再次上架」模式：表單由既有焦點活動帶入（新編號、沿用原圖片），結束日尚未填時儲存前會提醒
@@ -9885,7 +9927,7 @@
       document.getElementById('spForm-endDate').value = '';
       document.getElementById('spForm-duration').value = '5';
       document.getElementById('spForm-status').value = '啟用';
-      document.getElementById('spForm-priority').value = (state.spotlights.length + 1);
+      document.getElementById('spForm-priority').value = '';
       document.getElementById('spForm-bulletPoints').value = '';
 
       const previewImg = document.getElementById('spImagePreviewImg');
@@ -9916,7 +9958,7 @@
       document.getElementById('spForm-endDate').value = sp.endDate || '';
       document.getElementById('spForm-duration').value = sp.duration || 5;
       document.getElementById('spForm-status').value = sp.status || '啟用';
-      document.getElementById('spForm-priority').value = sp.priority || 1;
+      document.getElementById('spForm-priority').value = spotlightPriorityOrNone(sp.priority);
       document.getElementById('spForm-bulletPoints').value = sp.bulletPoints || '';
 
       const previewImg = document.getElementById('spImagePreviewImg');
@@ -9938,7 +9980,7 @@
     function spotlightRelistDefaults(sp, todayStr, count) {
       return {
         title: sp.title || '', subtitle: sp.subtitle || '', mediaType: sp.mediaType || 'image', imageUrl: sp.imageUrl || '',
-        startDate: todayStr, endDate: '', duration: Number(sp.duration) || 5, status: '啟用', priority: (Number(count) || 0) + 1,
+        startDate: todayStr, endDate: '', duration: Number(sp.duration) || 5, status: '啟用', priority: '',
         bulletPoints: sp.bulletPoints || ''
       };
     }
@@ -10214,7 +10256,7 @@
         startDate: document.getElementById('spForm-startDate').value,
         endDate: document.getElementById('spForm-endDate').value,
         duration: Number(document.getElementById('spForm-duration').value) || 5,
-        priority: Number(document.getElementById('spForm-priority').value) || 1,
+        priority: spotlightPriorityOrNone(document.getElementById('spForm-priority').value),
         status: document.getElementById('spForm-status').value,
         bulletPoints: document.getElementById('spForm-bulletPoints').value.trim()
       };
@@ -10429,12 +10471,13 @@
         state.spotlights.push(spData);
       }
 
-      state.spotlights.sort((a, b) => {
-        const pA = Number(a.priority) || 999;
-        const pB = Number(b.priority) || 999;
-        if (pA !== pB) return pA - pB;
-        return String(b.id).localeCompare(String(a.id));
-      });
+      // 順位只屬於播映中的活動：新增的播映中活動排在最後；到期、停用、排程中的清空；其餘補成連續 1～N
+      spData.priority = spotlightPriorityOrNone(spData.priority);
+      if (spData.priority === '') spData.priority = 999;
+      state.spotlights.sort(spotlightOrderCompare);
+      const norm = normalizeSpotlightOrder(false);
+      const myOrder = norm.orderList.find(function(o) { return String(o.id) === String(spData.id); });
+      spData.priority = myOrder ? myOrder.priority : '';
 
       try {
         localStorage.setItem('nobel_a_spotlights_list', JSON.stringify(state.spotlights));
@@ -10454,6 +10497,7 @@
         setSpSaveButtonState(false);
         if (res && res.success) {
           showToast(res.message || '雲端資料庫已同步更新！', '🎉');
+          if (norm.changed) persistSpotlightOrder(norm.orderList, '');   // 其他活動的順位有變動（補位、清空）也寫回
         } else {
           showToast('雲端同步異常：' + ((res && res.error) || '請重新嘗試'), '⚠️');
         }
@@ -10471,6 +10515,7 @@
       } catch (e) {}
 
       currentSpotlightIndex = 0;
+      const norm = normalizeSpotlightOrder(false);   // 後面的順位自動補位
       renderSpotlightSection();
       renderAdminSpotlightsList();
       showToast('焦點活動已刪除！', '🗑️');
@@ -10478,6 +10523,7 @@
       callBackend('deleteSpotlight', { id: id, password: state.adminPassword }, res => {
         if (res && res.success) {
           showToast('雲端已成功同步刪除！', '✅');
+          if (norm.changed) persistSpotlightOrder(norm.orderList, '');
         }
       });
     }

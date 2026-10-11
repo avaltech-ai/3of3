@@ -25,9 +25,11 @@
   const OFF = { id: 'SP-OFF', title: '已停用的活動', subtitle: '', mediaType: 'video', imageUrl: 'https://www.youtube.com/watch?v=abc123', bulletPoints: '重點', startDate: '2026-07-01', endDate: '2026-07-10', duration: 12, priority: 2, status: '停用' };
   const XSS = { id: 'SP-XSS', title: '<img src=x onerror="window.__rlpwn=1">惡意', subtitle: '', mediaType: 'image', imageUrl: 'https://example.com/x.jpg', bulletPoints: '', startDate: '2026-06-01', endDate: '2026-06-02', duration: 5, priority: 4, status: '啟用' };
   const fresh = () => [OLD, ACT, OFF, XSS].map(x => Object.assign({}, x));
+  // 後台列表預設只顯示「播映中」；測試要操作已過期、停用的活動，所以先切到「全部」
+  const showAll = () => { adminLists.spotlights = { query: '', status: '', play: '', sort: 'order', page: 0, size: 10 }; renderAdminSpotlightsList(); };
   // 讓後台面板可見（隱藏中的欄位無法取得游標）
   { let n = $('spAdminFormContainer').parentElement; while (n && n !== document.body) { n.classList.remove('hidden'); n.style.display = ''; n = n.parentElement; } }
-  state.spotlights = fresh(); renderAdminSpotlightsList();
+  state.spotlights = fresh(); showAll();
 
   // A. 按鈕
   const btns = [...document.querySelectorAll('.sp-relist-btn')];
@@ -46,7 +48,7 @@
   ok($('spForm-duration').value === '8', '停留秒數沿用（8 秒）');
   ok($('spForm-startDate').value === '2026-10-07' && $('spForm-endDate').value === '', '開始日＝今天，結束日留空');
   ok($('spForm-status').value === '啟用', '狀態為啟用');
-  ok($('spForm-priority').value === '5', '輪播順位排在最後（目前 4 筆 → 第 5）');
+  ok($('spForm-priority').value === '', '順位欄留空：順位只屬於播映中的活動，儲存後自動排在播映中的最後');
   ok(/再次上架/.test($('spAdminFormTitle').textContent) && /請設定新的起訖日期/.test($('spAdminFormTitle').textContent) && $('spAdminFormTitle').textContent.indexOf(OLD.title) >= 0, '表單標題：「再次上架：…（請設定新的起訖日期）」');
   ok(/不會重新上傳/.test($('spImageUploadStatus').textContent), '提示：沿用原檔，不會重新上傳');
   ok(spPendingUploadFile === null && spRelistMode === true, '沒有待上傳的檔案；再次上架模式已開啟');
@@ -72,18 +74,18 @@
   const nd = sv[0].payload.data;
   ok(nd.title === OLD.title && nd.imageUrl === OLD.imageUrl && nd.startDate === '2026-10-07' && nd.endDate === '2026-10-14' && nd.duration === 8 && nd.status === '啟用' && nd.bulletPoints === OLD.bulletPoints, '新的一筆：內容與圖片沿用，起訖日為新設定');
   const oldNow = state.spotlights.find(s => s.id === 'SP-OLD');
-  ok(state.spotlights.length === 5 && JSON.stringify(oldNow) === JSON.stringify(OLD), '原本那一筆完全沒變（仍是 2026-08-01～08-08），總數由 4 變 5');
+  ok(state.spotlights.length === 5 && JSON.stringify(Object.assign({}, oldNow, { priority: OLD.priority })) === JSON.stringify(OLD) && spotlightPriorityOrNone(oldNow.priority) === '', '原本那一筆內容沒變（仍是 2026-08-01～08-08；只有順位被清空，因為已下架沒有順位），總數由 4 變 5');
   ok(state.spotlights.filter(s => s.imageUrl === OLD.imageUrl).length === 2, '兩筆共用同一個圖片網址（沒有重複上傳檔案）');
   ok($('spAdminFormContainer').classList.contains('hidden') && spRelistMode === false, '儲存後表單關閉、再次上架模式結束');
 
   // F. 結束日留空但確認要這樣存
-  reset(); state.spotlights = fresh(); renderAdminSpotlightsList();
+  reset(); state.spotlights = fresh(); showAll();
   [...document.querySelectorAll('.sp-relist-btn')].find(b => b.closest('[class*="rounded-2xl"]').textContent.indexOf('牙齒塗氟日') >= 0).click();
   confirmAnswer = true; saveSpotlightSettings(); await wait(40);
   ok(confirms.length === 1 && calls('saveSpotlight').length === 1 && calls('saveSpotlight')[0].payload.data.endDate === '', '確認要永久播映：可以儲存（結束日為空）');
 
   // G. 停用的活動再次上架 → 啟用
-  reset(); state.spotlights = fresh(); renderAdminSpotlightsList();
+  reset(); state.spotlights = fresh(); showAll();
   [...document.querySelectorAll('.sp-relist-btn')].find(b => b.closest('[class*="rounded-2xl"]').textContent.indexOf('已停用的活動') >= 0).click();
   ok($('spForm-status').value === '啟用' && $('spForm-mediaType').value === 'video' && $('spForm-imageUrl').value === OFF.imageUrl && $('spForm-duration').value === '12', '停用的活動再次上架：狀態改為啟用，影片類型、網址、秒數沿用');
   cancelSpotlightEdit(); ok(spRelistMode === false && $('spAdminFormContainer').classList.contains('hidden'), '取消：結束再次上架模式');
@@ -97,16 +99,16 @@
   ok(spRelistMode === false && $('spForm-id').value === '' && $('spForm-title').value === '' && $('spForm-startDate').value === '', '新增：空白表單、不是再次上架模式');
   $('spForm-title').value = '全新的活動'; saveSpotlightSettings(); await wait(40);
   ok(confirms.length === 0 && calls('saveSpotlight').length === 1, '新增：結束日留空不提醒（維持原本行為）');
-  reset(); state.spotlights = fresh(); renderAdminSpotlightsList(); openSpotlightEditForm('SP-OLD'); $('spForm-startDate').value = '2026-10-10'; $('spForm-endDate').value = '2026-10-01'; saveSpotlightSettings();
+  reset(); state.spotlights = fresh(); showAll(); openSpotlightEditForm('SP-OLD'); $('spForm-startDate').value = '2026-10-10'; $('spForm-endDate').value = '2026-10-01'; saveSpotlightSettings();
   ok(alerts.length === 1 && calls('saveSpotlight').length === 0, '編輯時結束日早於開始日：同樣擋下');
   cancelSpotlightEdit();
 
   // I. 預設值函式
   const d = spotlightRelistDefaults({ title: 'a', imageUrl: 'u', duration: 0, status: '停用' }, '2026-10-07', 6);
-  ok(d.startDate === '2026-10-07' && d.endDate === '' && d.duration === 5 && d.status === '啟用' && d.priority === 7 && d.mediaType === 'image' && d.subtitle === '' && d.bulletPoints === '', '預設值函式：缺欄位不出錯（秒數 0 → 5、媒體類型 → image、順位 = 筆數 + 1）');
+  ok(d.startDate === '2026-10-07' && d.endDate === '' && d.duration === 5 && d.status === '啟用' && d.priority === '' && d.mediaType === 'image' && d.subtitle === '' && d.bulletPoints === '', '預設值函式：缺欄位不出錯（秒數 0 → 5、媒體類型 → image、順位留空）');
 
   // J. 跳脫
-  reset(); state.spotlights = fresh(); renderAdminSpotlightsList();
+  reset(); state.spotlights = fresh(); showAll();
   [...document.querySelectorAll('.sp-relist-btn')].find(b => b.closest('[class*="rounded-2xl"]').textContent.indexOf('惡意') >= 0).click();
   ok(!window.__rlpwn && $('spAdminFormTitle').querySelectorAll('img').length === 0 && $('spAdminFormTitle').textContent.indexOf('<img src=x') >= 0 && $('spForm-title').value.indexOf('<img src=x') >= 0, '含標籤的標題：表單標題以純文字顯示、欄位值原樣保留，不會執行或注入元素');
   cancelSpotlightEdit();
@@ -114,6 +116,7 @@
   // 還原
   window.callBackend = realCB; window.confirm = realConfirm; window.alert = realAlert; window.showToast = realToast; window.getTodayDateStr = realToday;
   state.spotlights = savedState.sp; state.adminPassword = savedState.pw; currentSpotlightIndex = savedState.idx; window.handleDataLoaded = realHandle;
+  adminLists.spotlights = { query: '', status: '', play: ADMIN_LIST_DEFAULTS.spotlights.play, sort: ADMIN_LIST_DEFAULTS.spotlights.sort, page: 0, size: adminListStoredSize('spotlights') };
   Object.keys(lsBackup).forEach(k => { try { if (lsBackup[k] === null) localStorage.removeItem(k); else localStorage.setItem(k, lsBackup[k]); } catch (e) {} });
   try { renderSpotlightSection(); renderAdminSpotlightsList(); } catch (e) {}
   console.log(res.join('\n')); return res;

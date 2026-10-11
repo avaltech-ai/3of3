@@ -124,7 +124,8 @@ console.log(await window.__nameMapFrontendTest());   // allPass 應為 true
 - `node tests/textmap.test.js`：自由文字英文 TextMap 後端（掃描、同步不覆蓋、機器草稿只寫 draft、採用草稿、回傳與大型分段快取、`doGet` 唯讀動作，65 項；已納入 `tests/ci.sh`）。
 - `tests/textmap_frontend.js`（瀏覽器）：`tx()` 查表與各顯示位置（活動、菜單、列印、焦點活動、相簿、文件、主題）、退回中文、跳脫、載入與快取（40 項）。
 - `node tests/mapadmin.test.js`：後台英文對照編輯後端（token 驗證、列表、批次儲存、只刪未使用、同步、草稿上限、採用、統計、`doPost` 路由與冪等，60 項；已納入 `tests/ci.sh`）。
-- `tests/spotlight_adminlist.js`（瀏覽器）：後台焦點活動列表搜尋與分頁（預設 10 筆、最新建立在最上、只剩「第 N 順位」下拉且為真實順位、狀態／輪播狀態／關鍵字／排序、分頁列、在排序／篩選／換頁後改順位仍正確、空狀態、跳脫，38 項；約 10 秒）。
+- `node tests/spotlightorder.test.js`：焦點活動播放順位（順位只屬於播映中、即時算出連續 1～N、到期補位、排程中開播排最後、移動順位與夾範圍、整理後的清單、已整理好不重複寫回、預設篩選；後端 `updateSpotlightsOrder`／`saveSpotlight` 可清空順位、空白不變成 1，33 項；已納入 `tests/ci.sh`）。
+- `tests/spotlight_adminlist.js`（瀏覽器）：後台焦點活動列表（預設只顯示播映中且依輪播順序、清除篩選回到預設、順位下拉只給播映中並為 1～N、其他顯示未排／已取消順位、到期自動補位、排程中開播排最後、改順位寫回播映中 1～N 其餘清空、儲存與刪除後整理、登入後第一次畫列表自動整理、搜尋、跳脫，46 項；約 10 秒）。
 - `tests/spotlight_relist.js`（瀏覽器）：後台焦點活動「再次上架」（按鈕、帶入內容與圖片、新編號、起始日＝今天、結束日留空、不上傳、原本那筆不變、結束日未填提醒、結束日早於開始日擋下、編輯與新增不受影響、跳脫，36 項；約 6 秒）。
 - `node tests/songnodl.test.js`：唱跳音符「不開放下載」後端（公開資料剝除檔案欄位含快取、`adminSongList` 需 token、`saveSong` 的私人資料夾搬移與搬回、每次確認的自我修復、讀回驗證與失敗診斷、批次 `adminSongSetAccess`、試算表選單同步、換檔案舊檔處理、安全網不清空檔案資訊與沿用旗標、`uploadSong` 直接建在私人資料夾與失敗取消、`doPost` 路由與 `doGet` 不提供，84 項；已納入 `tests/ci.sh`）。
 - `tests/song_batch.js`（瀏覽器）：批次設定（每列／表頭勾選、全選目前篩選結果跨頁、不在篩選範圍內的提示、確認視窗、每 5 首分批與進度、執行中鎖定、結果摘要與失敗原因、即時反映本機、停止、登入逾時、連線中斷、設為開放、跳脫，36 項）。

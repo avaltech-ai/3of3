@@ -3302,6 +3302,12 @@ function ensureSpotlightSheetHeaders(sheet) {
   }
 }
 
+/** 焦點活動順位寫入試算表的值：正整數＝順位；空白、0、非數字＝沒有順位（空字串，工作表排序時排在最後）。 */
+function spotlightPriorityCell_(v) {
+  const n = Number(v);
+  return (isFinite(n) && n > 0) ? Math.floor(n) : '';
+}
+
 /**
  * 儲存/編輯 Spotlight 重點活動（支援排程、秒數、多活動）
  */
@@ -3329,7 +3335,7 @@ function saveSpotlight(spData, password) {
       startDate: spData.startDate || '',
       endDate: spData.endDate || '',
       duration: Number(spData.duration) || 5,
-      priority: spData.priority || 1,
+      priority: spotlightPriorityCell_(spData.priority),
       status: spData.status || '啟用'
     };
 
@@ -3403,11 +3409,12 @@ function updateSpotlightsOrder(orderList, password) {
       return { success: false, error: '找不到 id 或 priority 欄位' };
     }
 
+    // 順位只屬於「播映中」的活動：空白（或 0、非數字）＝沒有順位，會把該列的 priority 清空
     const orderMap = {};
     if (Array.isArray(orderList)) {
       orderList.forEach(item => {
         if (item && item.id) {
-          orderMap[String(item.id)] = Number(item.priority) || 1;
+          orderMap[String(item.id)] = spotlightPriorityCell_(item.priority);
         }
       });
     }
