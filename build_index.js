@@ -386,11 +386,11 @@ const htmlContent = `<!DOCTYPE html>
           <!-- 焦點視覺/攻略圖或影片卡 -->
           <div class="md:col-span-5 bg-white p-2.5 rounded-2xl shadow-sm border border-rose-100 flex flex-col items-center justify-center group relative">
             <div class="w-full aspect-[16/10] bg-rose-50 rounded-xl overflow-hidden relative flex items-center justify-center group/nav">
-              <button type="button" onclick="event.stopPropagation(); prevSpotlightSlide(event)" class="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/80 hover:bg-white shadow-md flex items-center justify-center text-slate-800 font-bold text-sm sm:text-lg tap-bounce z-10 transition-opacity opacity-80 hover:opacity-100 hidden" id="spotlightOverlayPrevBtn" title="上一個焦點活動" data-i18n-title="ui.spotlightPrev">
-                ◀
+              <button type="button" onclick="event.stopPropagation(); prevSpotlightSlide(event)" class="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 sm:w-11 sm:h-11 text-base sm:text-xl rounded-full bg-black/45 hover:bg-black/60 active:scale-95 text-white flex items-center justify-center font-black backdrop-blur-md shadow-lg transition-all tap-bounce z-10 hidden" id="spotlightOverlayPrevBtn" title="上一個焦點活動" data-i18n-title="ui.spotlightPrev">
+                ❮
               </button>
-              <button type="button" onclick="event.stopPropagation(); nextSpotlightSlide(event)" class="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/80 hover:bg-white shadow-md flex items-center justify-center text-slate-800 font-bold text-sm sm:text-lg tap-bounce z-10 transition-opacity opacity-80 hover:opacity-100 hidden" id="spotlightOverlayNextBtn" title="下一個焦點活動" data-i18n-title="ui.spotlightNext">
-                ▶
+              <button type="button" onclick="event.stopPropagation(); nextSpotlightSlide(event)" class="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 sm:w-11 sm:h-11 text-base sm:text-xl rounded-full bg-black/45 hover:bg-black/60 active:scale-95 text-white flex items-center justify-center font-black backdrop-blur-md shadow-lg transition-all tap-bounce z-10 hidden" id="spotlightOverlayNextBtn" title="下一個焦點活動" data-i18n-title="ui.spotlightNext">
+                ❯
               </button>
               <!-- 圖片模式 -->
               <img id="spotlightImg" src="./spotlight-fluoride.jpg" alt="焦點活動" class="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300 cursor-pointer tap-bounce" onclick="openSpotlightModal()" data-i18n-alt="ui.spotlightImgAlt">
@@ -1842,11 +1842,11 @@ const htmlContent = `<!DOCTYPE html>
         <h3 id="modalSpotlightTitle" class="text-base sm:text-lg font-black text-slate-800 truncate">桃子腳幼兒園 牙齒塗氟日 活動攻略圖</h3>
       </div>
       <div id="modalSpotlightMediaWrapper" class="w-full h-[52vh] sm:h-[62vh] min-h-[340px] max-h-[620px] rounded-2xl overflow-hidden border border-rose-100 bg-rose-50/60 flex items-center justify-center relative group shrink-0">
-        <button onclick="prevSpotlightModal()" class="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/90 hover:bg-white shadow-lg border border-slate-200/80 flex items-center justify-center text-slate-800 hover:text-peach-600 font-bold text-lg tap-bounce z-20 transition-transform active:scale-95 hidden" id="modalSpotlightPrevBtn" title="上一張" data-i18n-title="ui.slidePrev">
-          ◀
+        <button onclick="prevSpotlightModal()" class="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 sm:w-14 sm:h-14 text-xl sm:text-2xl rounded-full bg-black/45 hover:bg-black/60 active:scale-95 text-white flex items-center justify-center font-black backdrop-blur-md shadow-lg transition-all tap-bounce z-20 hidden" id="modalSpotlightPrevBtn" title="上一張" data-i18n-title="ui.slidePrev">
+          ❮
         </button>
-        <button onclick="nextSpotlightModal()" class="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/90 hover:bg-white shadow-lg border border-slate-200/80 flex items-center justify-center text-slate-800 hover:text-peach-600 font-bold text-lg tap-bounce z-20 transition-transform active:scale-95 hidden" id="modalSpotlightNextBtn" title="下一張" data-i18n-title="ui.slideNext">
-          ▶
+        <button onclick="nextSpotlightModal()" class="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 sm:w-14 sm:h-14 text-xl sm:text-2xl rounded-full bg-black/45 hover:bg-black/60 active:scale-95 text-white flex items-center justify-center font-black backdrop-blur-md shadow-lg transition-all tap-bounce z-20 hidden" id="modalSpotlightNextBtn" title="下一張" data-i18n-title="ui.slideNext">
+          ❯
         </button>
         <img id="modalSpotlightImg" src="./spotlight-fluoride.jpg" alt="活動攻略" class="w-full h-full object-contain select-none" data-i18n-alt="ui.guideAlt">
         <div id="modalSpotlightVideoContainer" class="w-full h-full flex items-center justify-center hidden">
@@ -1893,8 +1893,8 @@ const htmlContent = `<!DOCTYPE html>
             <video id="spotHistDetailVideo" class="w-full h-full object-contain hidden" controls playsinline muted loop></video>
           </div>
         </div>
-        <button type="button" id="spotHistPrevBtn" onclick="spotHistStep(-1)" class="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/80 hover:bg-white text-slate-700 flex items-center justify-center text-lg shadow-md border border-slate-200 tap-bounce cursor-pointer z-10 disabled:opacity-30 disabled:cursor-not-allowed" title="上一則（較新，鍵盤 ← 鍵）" data-i18n-title="ui.spotHistPrev" aria-label="上一則（較新）" data-i18n-aria="ui.spotHistPrevAria">◀</button>
-        <button type="button" id="spotHistNextBtn" onclick="spotHistStep(1)" class="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/80 hover:bg-white text-slate-700 flex items-center justify-center text-lg shadow-md border border-slate-200 tap-bounce cursor-pointer z-10 disabled:opacity-30 disabled:cursor-not-allowed" title="下一則（較舊，鍵盤 → 鍵）" data-i18n-title="ui.spotHistNext" aria-label="下一則（較舊）" data-i18n-aria="ui.spotHistNextAria">▶</button>
+        <button type="button" id="spotHistPrevBtn" onclick="spotHistStep(-1)" class="absolute left-2 top-1/2 -translate-y-1/2 w-11 h-11 sm:w-14 sm:h-14 text-xl sm:text-2xl rounded-full bg-black/45 hover:bg-black/60 active:scale-95 text-white flex items-center justify-center font-black backdrop-blur-md shadow-lg transition-all tap-bounce cursor-pointer z-10 disabled:opacity-30 disabled:cursor-not-allowed" title="上一則（較新，鍵盤 ← 鍵）" data-i18n-title="ui.spotHistPrev" aria-label="上一則（較新）" data-i18n-aria="ui.spotHistPrevAria">❮</button>
+        <button type="button" id="spotHistNextBtn" onclick="spotHistStep(1)" class="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 sm:w-14 sm:h-14 text-xl sm:text-2xl rounded-full bg-black/45 hover:bg-black/60 active:scale-95 text-white flex items-center justify-center font-black backdrop-blur-md shadow-lg transition-all tap-bounce cursor-pointer z-10 disabled:opacity-30 disabled:cursor-not-allowed" title="下一則（較舊，鍵盤 → 鍵）" data-i18n-title="ui.spotHistNext" aria-label="下一則（較舊）" data-i18n-aria="ui.spotHistNextAria">❯</button>
         </div>
         <div id="spotHistDetailTags" class="flex flex-wrap gap-1.5"></div>
         <div id="spotHistDetailPoints" class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs"></div>
