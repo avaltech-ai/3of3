@@ -4486,6 +4486,10 @@ const htmlContent = `<!DOCTYPE html>
         }
       });
 
+      // 管理員已登入：行事曆活動列表一律用新資料重畫。原因：重新整理頁面時 initApp() 先用還沒載入的空資料畫過一次，
+      // 之後雲端資料才到；若當時使用者不在後台頁籤（例如在首頁），舊的「目前沒有活動紀錄」就會留著，第一次點進後台看到空清單。
+      if (state.adminPassword) { try { renderAdminEventsTable(); } catch (e) {} }
+
       // 若目前在管理後台，同步刷新當前子面板列表
       if (state.currentTab === 'admin') {
         const subtab = state.currentAdminSubtab || 'events';
@@ -4818,6 +4822,8 @@ const htmlContent = `<!DOCTYPE html>
         applySongFilters();
       }
       updateAdminAuthUI();
+      // 進入後台頁籤：依目前的子面板重畫列表（避免顯示先前用空資料畫的舊清單）
+      if (tabName === 'admin' && state.adminPassword) { try { switchAdminSubtab(state.currentAdminSubtab || 'events'); } catch (e) {} }
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
