@@ -1029,10 +1029,12 @@ function getAppData() {
     // 確保 Themes / ThemeSemesters 工作表存在（主題活動），並讀出資料
     let themeList = [];
     let themeSemesters = [];
+    let themeOverviews = {};
     try {
       const themeData = getThemesData();
       themeList = themeData.themes;
       themeSemesters = themeData.semesters;
+      themeOverviews = themeData.overviews || {};
     } catch (e) {
       console.warn('getThemesData inside getAppData failed: ' + e);
     }
@@ -1051,6 +1053,7 @@ function getAppData() {
         songCategories: songCategories,
         themes: themeList,
         themeSemesters: themeSemesters,
+        themeOverviews: themeOverviews,
         eventTargets: eventTargets || [],
         eventCategoriesMajor: eventCategoriesMajor || [],
         eventCategoriesMinor: eventCategoriesMinor || [],
@@ -4279,6 +4282,13 @@ function ensureThemeSheetsExist() {
     semSheet.getRange(2, 1, THEME_DEFAULT_SEMESTERS.length, 1).setValues(THEME_DEFAULT_SEMESTERS.map(function(c) { return [c]; }));
   }
 
+  // ThemeSemesters 的第二欄 overviewImage：該學期的「主題架構圖」（Drive 圖檔連結或檔案 ID）；缺少時自動補上標題，老師在對應學期那一列貼上連結即可
+  const semLastCol = Math.max(semSheet.getLastColumn(), 1);
+  const semHeaders = semSheet.getRange(1, 1, 1, semLastCol).getValues()[0].map(function(h) { return String(h).trim(); });
+  if (semHeaders.indexOf('overviewImage') === -1) {
+    semSheet.getRange(1, semHeaders.length + 1).setValue('overviewImage').setFontWeight('bold').setBackground('#FEF3C7');
+  }
+
   let themeSheet = ss.getSheetByName('Themes');
   if (!themeSheet) {
     themeSheet = ss.insertSheet('Themes');
@@ -4314,11 +4324,38 @@ function parseThemeJsonArray(raw) {
 }
 
 /**
+ * 從儲存格取出 Drive 檔案 ID：可貼完整連結（.../file/d/<id>/view、open?id=<id>、uc?id=<id>）或直接貼檔案 ID；格式不合回傳空字串。
+ * 回傳的 ID 只含 Drive ID 字元（前端用它組出縮圖網址，所以必須先過濾）。
+ */
+function driveFileIdFromCell_(v) {
+  const str = String(v == null ? '' : v).trim();
+  if (!str) return '';
+  let m = /\/d\/([A-Za-z0-9_-]{10,100})(?:[/?#]|$)/.exec(str) || /[?&]id=([A-Za-z0-9_-]{10,100})(?:[&#]|$)/.exec(str);
+  if (m) return m[1];
+  return /^[A-Za-z0-9_-]{20,100}$/.test(str) ? str : '';
+}
+
+/**
+ * ThemeSemesters 列 → { 學期名稱: 圖檔 ID }；沒有設定或格式不合的學期不列入。
+ */
+function parseThemeOverviews_(rows) {
+  const out = {};
+  (rows || []).forEach(function(r) {
+    const name = String((r && r.semesterName) || '').trim();
+    const id = driveFileIdFromCell_(r && r.overviewImage);
+    if (name && id) out[name] = id;
+  });
+  return out;
+}
+
+/**
  * 讀取每週主題與學期清單
  */
 function getThemesData() {
   const sheets = ensureThemeSheetsExist();
-  const semesters = getSheetDataAsObjects(sheets.semSheet).map(function(r) { return String(r.semesterName || '').trim(); }).filter(Boolean);
+  const semRows = getSheetDataAsObjects(sheets.semSheet);
+  const semesters = semRows.map(function(r) { return String(r.semesterName || '').trim(); }).filter(Boolean);
+  const overviews = parseThemeOverviews_(semRows);
   const themes = getSheetDataAsObjects(sheets.themeSheet).filter(function(t) { return t.id || t.themeName || t.week; });
   themes.forEach(function(t) {
     t.id = String(t.id || '');
@@ -4348,7 +4385,7 @@ function getThemesData() {
     }
     return String(b.id || '').localeCompare(String(a.id || ''));
   });
-  return { themes: themes, semesters: semesters };
+  return { themes: themes, semesters: semesters, overviews: overviews };
 }
 
 /**

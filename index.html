@@ -2297,7 +2297,10 @@
           collapseAll: '全部折疊',
           empty: '目前還沒有主題活動紀錄喔',
           activityGoal: '活動目標',
-          courseGoal: '課程目標'
+          courseGoal: '課程目標',
+          overviewTitle: '{semester} 主題架構圖',
+          overviewOpen: '開啟原圖 ↗',
+          overviewZoom: '點圖放大檢視；小字看不清楚時，請按「開啟原圖」'
         },
         albums: {
           title: '影像記錄',
@@ -2544,7 +2547,10 @@
           collapseAll: 'Collapse All',
           empty: 'No theme records found yet',
           activityGoal: 'Activity Goals',
-          courseGoal: 'Curriculum Goals'
+          courseGoal: 'Curriculum Goals',
+          overviewTitle: '{semester} Theme Overview',
+          overviewOpen: 'Open original ↗',
+          overviewZoom: 'Tap to enlarge. If the text is too small, use "Open original".'
         },
         albums: {
           title: 'Albums',
@@ -4377,6 +4383,7 @@
       state.docs = data.docs || [];
       state.themes = (data.themes || []).sort(sortThemesDesc);
       state.themeSemesters = data.themeSemesters || [];
+      state.themeOverviews = (data.themeOverviews && typeof data.themeOverviews === 'object') ? data.themeOverviews : {};
       initThemeFilters();
       renderThemes();
       renderAdminThemesList();
@@ -10869,6 +10876,38 @@
       return String(b.id || '').localeCompare(String(a.id || ''));
     }
 
+    // 學期「主題架構圖」卡片：顯示在該學期「最早一週」（第一則）貼文下方；設定在試算表 ThemeSemesters 的 overviewImage 欄（後端回傳檔案 ID）。
+    // 只接受 Drive ID 字元（用來組縮圖網址）；沒有設定或格式不合就不顯示。
+    function themeOverviewId(semester) {
+      const id = (state.themeOverviews || {})[semester];
+      return (typeof id === 'string' && /^[A-Za-z0-9_-]{10,100}$/.test(id)) ? id : '';
+    }
+
+    function themeOverviewHtml(semester) {
+      const fid = themeOverviewId(semester);
+      if (!fid) return '';
+      const title = t('themes.overviewTitle', { semester: tx(semester) || semester });
+      return '<div class="theme-overview bg-white border border-amber-200/80 rounded-2xl shadow-sm overflow-hidden" data-semester="' + esc(semester) + '">' +
+        '<div class="px-4 py-3 bg-amber-50/60 flex items-center justify-between gap-2 flex-wrap">' +
+          '<h3 class="font-black text-slate-800 text-base sm:text-lg">📌 ' + esc(title) + '</h3>' +
+          '<a href="' + escUrl('https://drive.google.com/file/d/' + fid + '/view') + '" target="_blank" rel="noopener noreferrer" class="text-xs font-bold text-teal-700 hover:text-teal-800 underline underline-offset-2">' + esc(t('themes.overviewOpen')) + '</a>' +
+        '</div>' +
+        '<button type="button" onclick="openThemeOverview(this)" data-semester="' + esc(semester) + '" class="block w-full p-3 bg-white cursor-zoom-in tap-bounce text-left" aria-label="' + esc(title) + '">' +
+          '<img src="' + escUrl('https://drive.google.com/thumbnail?id=' + fid + '&sz=w1200') + '" alt="' + esc(title) + '" loading="lazy" class="w-full h-auto rounded-xl border border-slate-100 select-none">' +
+          '<span class="block text-center text-[0.6875rem] font-bold text-slate-400 mt-2">' + esc(t('themes.overviewZoom')) + '</span>' +
+        '</button>' +
+      '</div>';
+    }
+
+    // 點圖放大：沿用相簿的照片檢視器（單張）
+    function openThemeOverview(btn) {
+      const sem = btn && btn.getAttribute ? btn.getAttribute('data-semester') : '';
+      const fid = themeOverviewId(sem);
+      if (!fid) return;
+      currentAlbumPhotosList = expandAlbumPhotos([{ id: fid, name: t('themes.overviewTitle', { semester: tx(sem) || sem }), size: 0 }]);
+      openPhotoViewerByIndex(0);
+    }
+
     function renderThemes() {
       initThemeFilters();
       
@@ -10977,6 +11016,9 @@
             </div>
           </div>
         `;
+        // 該學期的最後一張卡片＝最早一週：下方接「主題架構圖」
+        const nextTheme = filtered[index + 1];
+        if (!nextTheme || nextTheme.semester !== theme.semester) html += themeOverviewHtml(theme.semester);
       });
       listEl.innerHTML = html;
       

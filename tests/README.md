@@ -134,6 +134,8 @@ console.log(await window.__nameMapFrontendTest());   // allPass 應為 true
 - `node tests/adminlist.test.js`：後台列表搜尋、篩選、排序、分頁純函式（頁碼夾回、全部顯示、多關鍵字 AND、類別大項／細項、對象空白與全形逗號、排序與同日順序、相簿編號數值比較、歌曲反轉、焦點活動輪播狀態與編號時間，82 項；已納入 `tests/ci.sh`）。
 - `tests/adminlist_frontend.js`（瀏覽器）：活動／相簿／歌曲三個後台列表的搜尋與分頁介面（預設 10 筆、最新在最上、圖示按鈕且無文字、20／50／全部與記住選擇、搜尋類別對象排序、清除、符合筆數、無符合與無資料、刪除後頁碼夾回、跳脫、互不影響，69 項；約 15 秒）。
 - `node tests/spothistory.test.js`：歷史焦點篩選邏輯（一季＝3 個月與月底／跨年、門檻當天、停用、未開始、無結束日、輪播中不重複、排序、日期推進後消失，21 項；已納入 `tests/ci.sh`）。
+- `tests/themeoverview.test.js`（Node，已進 CI，21 項）：學期主題架構圖後端（Drive 連結／ID 解析與惡意字元過濾、學期→圖檔對照、`ThemeSemesters.overviewImage` 欄位自動補上與不重複、`getThemesData`／`getAppData` 帶出）。已做 10 種變異測試全數抓到。
+- `tests/theme_overview.js`（瀏覽器，32 項；約 6 秒）：架構圖卡片顯示在該學期最早一週之後（篩選單一學期／全部學期／兩個學期都有／只有一週）、沒有設定或 ID 不合法不顯示、縮圖與原圖連結、點圖放大、惡意學期名稱（含引號跳出屬性）、英文、舊版後端相容、`handleDataLoaded` 帶入。已做 10 種變異測試全數抓到。
 - `tests/albumcount.test.js`（Node，已進 CI，25 項）：`recountAlbum`（需 token、只處理已登記相簿、照片與影片分開計數、補 `videoCount` 欄、不改 `updatedAt`／封面、只清該相簿清單快取、Drive 失敗不改試算表）與 `getAlbums` 帶出 `videoCount`（含新登記相簿掃描）。已做 12 種變異測試全數抓到。
 - `tests/album_video.js`（瀏覽器）：相簿影片前端（混排清單、▶ 標記與 🎬 備援、數量徽章、檢視器改用 Drive 播放器並隱藏相片／幻燈片鈕、備用連結、切換與關閉時停止、自動播放跳過影片、不合法 ID／惡意檔名、舊版後端相容、英文，46 項（含管理員「重新整理」先清快取再背景逐本重算、失敗不卡住、登入逾時停止、進度與完成提示、連按只啟動一輪、一般使用者不清不算、自動載入不清、封面與後台表格的影片數量）；約 20 秒）。已做 27 種變異測試全數抓到（並因此抓到「幻燈片鈕的樣式被整段重設而洗掉隱藏」的真實 bug）。**不測實際播放**，需實機驗證。
 - `tests/albumphotos.test.js` 另有 52 項後端測試（含影片混排、相機檔名依編號排序（含 `IMG_E`、混入亂碼檔名整本改用建立時間）、建立時間排序、時間相同比檔名、舊格式快取失效、`clearAlbumListCache` 需 token／只清相簿清單／不在 doGet），已做 16 種變異測試全數抓到。
