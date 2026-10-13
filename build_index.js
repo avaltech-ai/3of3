@@ -2302,9 +2302,7 @@ const htmlContent = `<!DOCTYPE html>
           empty: '目前還沒有主題活動紀錄喔',
           activityGoal: '活動目標',
           courseGoal: '課程目標',
-          overviewTitle: '{semester} 主題架構圖',
-          overviewOpen: '開啟原圖 ↗',
-          overviewZoom: '點圖放大檢視；小字看不清楚時，請按「開啟原圖」'
+          overviewTitle: '{semester} 主題架構圖'
         },
         albums: {
           title: '影像記錄',
@@ -2552,9 +2550,7 @@ const htmlContent = `<!DOCTYPE html>
           empty: 'No theme records found yet',
           activityGoal: 'Activity Goals',
           courseGoal: 'Curriculum Goals',
-          overviewTitle: '{semester} Theme Overview',
-          overviewOpen: 'Open original ↗',
-          overviewZoom: 'Tap to enlarge. If the text is too small, use "Open original".'
+          overviewTitle: '{semester} Theme Overview'
         },
         albums: {
           title: 'Albums',
@@ -10892,13 +10888,11 @@ const htmlContent = `<!DOCTYPE html>
       if (!fid) return '';
       const title = t('themes.overviewTitle', { semester: tx(semester) || semester });
       return '<div class="theme-overview bg-white border border-amber-200/80 rounded-2xl shadow-sm overflow-hidden" data-semester="' + esc(semester) + '">' +
-        '<div class="px-4 py-3 bg-amber-50/60 flex items-center justify-between gap-2 flex-wrap">' +
+        '<div class="px-4 py-3 bg-amber-50/60">' +
           '<h3 class="font-black text-slate-800 text-base sm:text-lg">📌 ' + esc(title) + '</h3>' +
-          '<a href="' + escUrl('https://drive.google.com/file/d/' + fid + '/view') + '" target="_blank" rel="noopener noreferrer" class="text-xs font-bold text-teal-700 hover:text-teal-800 underline underline-offset-2">' + esc(t('themes.overviewOpen')) + '</a>' +
         '</div>' +
         '<button type="button" onclick="openThemeOverview(this)" data-semester="' + esc(semester) + '" class="block w-full p-3 bg-white cursor-zoom-in tap-bounce text-left" aria-label="' + esc(title) + '">' +
           '<img src="' + escUrl('https://drive.google.com/thumbnail?id=' + fid + '&sz=w1200') + '" alt="' + esc(title) + '" loading="lazy" class="w-full h-auto rounded-xl border border-slate-100 select-none">' +
-          '<span class="block text-center text-[0.6875rem] font-bold text-slate-400 mt-2">' + esc(t('themes.overviewZoom')) + '</span>' +
         '</button>' +
       '</div>';
     }

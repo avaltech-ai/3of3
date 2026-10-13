@@ -51,9 +51,8 @@
   ok(ov.querySelector('h3').textContent.trim() === '📌 115 學年上學期 主題架構圖', '標題：「📌 115 學年上學期 主題架構圖」');
   const im = ov.querySelector('img');
   ok(im.getAttribute('src') === 'https://drive.google.com/thumbnail?id=' + ID + '&sz=w1200' && im.loading === 'lazy', '預覽圖：Drive 縮圖 w1200、延遲載入');
-  const a = ov.querySelector('a');
-  ok(a.getAttribute('href') === 'https://drive.google.com/file/d/' + ID + '/view' && a.target === '_blank' && /noopener/.test(a.rel) && /開啟原圖/.test(a.textContent), '「開啟原圖 ↗」連到該檔的 Drive 頁面，新分頁、noopener');
-  ok(/點圖放大/.test(ov.textContent), '有「點圖放大」提示');
+  ok(!ov.querySelector('a') && ov.textContent.indexOf('開啟原圖') < 0 && ov.textContent.indexOf('點圖放大') < 0 && ov.textContent.indexOf('小字') < 0, '沒有「開啟原圖 ↗」連結，也沒有任何說明文字（手機與平板本來就能用螢幕縮放檢視；使用者 2026-10-13 要求）');
+  ok(ov.querySelector('h3') && ov.querySelector('button img') && ov.children.length === 2, '卡片只有標題與預覽圖兩部分');
 
   // E. 點圖放大
   ov.querySelector('button').click();
@@ -79,7 +78,7 @@
   // G. 英文
   state.lang = 'en'; state.textMap = null; state.themeOverviews = { [S1]: ID }; show(S1);
   const oe = document.querySelector('.theme-overview');
-  ok(/Theme Overview/.test(oe.querySelector('h3').textContent) && /Open original/.test(oe.querySelector('a').textContent) && /Tap to enlarge/.test(oe.textContent), '英文介面：「Theme Overview」「Open original」「Tap to enlarge」');
+  ok(/Theme Overview/.test(oe.querySelector('h3').textContent) && !oe.querySelector('a') && oe.textContent.indexOf('Open original') < 0 && oe.textContent.indexOf('Tap to enlarge') < 0, '英文介面：標題「Theme Overview」，同樣沒有連結與說明文字');
   state.lang = 'zh-TW';
 
   // H. 既有功能不受影響
@@ -94,7 +93,7 @@
       realHandle(Object.assign({}, d0, { themeOverviews: { [sem0]: ID } }));
       ok(state.themeOverviews && state.themeOverviews[sem0] === ID, '收到後端資料：themeOverviews 放進 state');
       currentThemeSemester = sem0; renderThemes(); ok(document.querySelectorAll('.theme-overview').length === 1 && kids().pop().classList.contains('theme-overview'), '收到後端資料後主題頁：架構圖顯示在該學期最後（最早一週）之後');
-      realHandle(Object.assign({}, d0)); ok(JSON.stringify(state.themeOverviews) === '{}', '後端資料沒有 themeOverviews（舊版後端）：state 退回空物件');
+      const dOld = Object.assign({}, d0); delete dOld.themeOverviews; realHandle(dOld); ok(JSON.stringify(state.themeOverviews) === '{}', '後端資料沒有 themeOverviews（舊版後端）：state 退回空物件');
       realHandle(Object.assign({}, d0, { themeOverviews: 'bad' })); ok(JSON.stringify(state.themeOverviews) === '{}', 'themeOverviews 不是物件：忽略');
     } else { ok(true, '（略過：沒有可用的快取資料）'); }
   } catch (e) { ok(false, '送入後端資料時出錯：' + e.message); }
