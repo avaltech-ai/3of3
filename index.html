@@ -5511,6 +5511,20 @@
       }
     }
 
+    // 回傳某日在日曆格子上要顯示的圖示（依序 🍱、🥐、🎂）。🥐／🎂 由活動（標題、大項、細項）或菜單備註／點心／主餐的文字判定。
+    function calendarDayIcons(dayEvents, dayMenu, isWeekend) {
+      const evs = dayEvents || [];
+      const has = function(word) {
+        return evs.some(function(e) { return String(e.title || '').indexOf(word) !== -1 || String(e.categoryMajor || '').indexOf(word) !== -1 || String(e.categoryMinor || '').indexOf(word) !== -1; }) ||
+          !!(dayMenu && [dayMenu.note, dayMenu.afternoonSnack, dayMenu.lunchMain].some(function(v) { return String(v || '').indexOf(word) !== -1; }));
+      };
+      const icons = [];
+      if (dayMenu && !isWeekend) icons.push('🍱');
+      if (has('幸福廚房')) icons.push('🥐');
+      if (has('慶生') || evs.some(function(e) { return String(e.title || '').indexOf('壽星') !== -1; })) icons.push('🎂'); // 原規則：標題含「壽星」也算
+      return icons;
+    }
+
     function renderCalendar() {
       const year = state.viewYear;
       const month = state.viewMonth;
@@ -5620,20 +5634,12 @@
 
         badgesHtml += '</div>';
 
-        // 判定幸福廚房日與當月慶生日
-        const isKitchen = dayEvents.some(e => (e.title || '').includes('幸福廚房') || (e.categoryMajor || '').includes('幸福廚房') || (e.categoryMinor || '').includes('幸福廚房')) || 
-          (dayMenu && ((dayMenu.note || '').includes('幸福廚房') || (dayMenu.afternoonSnack || '').includes('幸福廚房') || (dayMenu.lunchMain || '').includes('幸福廚房')));
-
-        const isBirthday = dayEvents.some(e => (e.title || '').includes('慶生') || (e.title || '').includes('壽星') || (e.categoryMajor || '').includes('慶生') || (e.categoryMinor || '').includes('慶生')) || 
-          (dayMenu && ((dayMenu.note || '').includes('慶生') || (dayMenu.afternoonSnack || '').includes('慶生') || (dayMenu.lunchMain || '').includes('慶生')));
-
-        // 餐點圖示：🍱，若為幸福廚房日旁加🥐，慶生日旁加🎂（稍微加大圖示間隙，避免視覺擁擠）
+        // 日曆格子的圖示：🍱 每日菜單（有菜單、非週末才有）、🥐 幸福廚房日、🎂 當月慶生日。
+        // 🥐、🎂 只看當天活動與菜單備註，不依賴有沒有菜單（菜單常晚於活動才填；否則活動排好了日曆卻看不到）。
         let menuIcons = '';
-        if (dayMenu && !isWeekend) {
-          const icons = ['🍱'];
-          if (isKitchen) icons.push('🥐');
-          if (isBirthday) icons.push('🎂');
-          menuIcons = `<span class="inline-flex items-center gap-1.5">${icons.map(ic => `<span>${ic}</span>`).join('')}</span>`;
+        const calIcons = calendarDayIcons(dayEvents, dayMenu, isWeekend);
+        if (calIcons.length) {
+          menuIcons = `<span class="inline-flex items-center gap-1.5">${calIcons.map(ic => `<span>${ic}</span>`).join('')}</span>`;
         }
 
         // 格子下方：若有填寫「行事曆提示」則顯示提示標籤；未填寫則不顯示（不另外顯示 [十月壽星..]、[幸福廚房..] 等常用標籤）
