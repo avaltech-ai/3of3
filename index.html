@@ -1062,11 +1062,15 @@
 
         <!-- 子分頁 2: 每日菜單管理 -->
         <div id="adminPanel-menu" class="admin-panel space-y-4 hidden">
-          <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
+          <div id="menuFormCard" class="bg-white p-5 rounded-3xl border-2 border-emerald-200 shadow-sm">
             <h4 class="font-black text-slate-800 text-base mb-3 flex items-center justify-between">
-              <span>編輯每日菜單</span>
-              <button onclick="loadMenuForSelectedDate()" class="text-xs text-amber-600 font-bold hover:underline">載入該日菜單</button>
+              <span>新增／編輯每日菜單</span>
+              <button type="button" onclick="loadMenuForSelectedDate(true)" class="text-xs text-amber-600 font-bold hover:underline">載入該日菜單</button>
             </h4>
+            <!-- 模式橫幅：菜單以「日期」為識別——這天沒有菜單＝新增、已有菜單＝編輯（儲存會覆蓋）、複製＝以某天的菜單為範本存到另一天 -->
+            <div id="menuFormModeBanner" class="mb-3 px-3 py-2 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+              <span id="menuFormModeText">➕ 新增菜單：請先選擇日期</span>
+            </div>
             <form id="menuForm" onsubmit="event.preventDefault(); handleSaveMenu(event)" class="space-y-3">
               <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
@@ -1125,8 +1129,11 @@
                 <button type="button" onclick="handleDeleteMenu()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 font-bold text-xs tap-bounce">
                   刪除此日菜單
                 </button>
-                <button type="submit" id="saveMenuBtn" class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-sm tap-bounce">
-                  儲存菜單
+                <button type="button" id="menuCopyBtn" onclick="copyMenuToAnotherDate()" class="hidden px-4 py-2 rounded-xl border-2 border-sky-400 text-sky-700 bg-white hover:bg-sky-50 font-bold text-xs tap-bounce" title="帶入目前表單的內容，改存到另一個日期（這一天的菜單不會改變）">
+                  📄 複製到其他日期
+                </button>
+                <button type="submit" id="saveMenuBtn" class="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs shadow-sm tap-bounce">
+                  ➕ 新增這天菜單
                 </button>
               </div>
             </form>
@@ -1309,7 +1316,10 @@
 
         <!-- 子分頁: 唱跳音符管理 (Google Drive Songs) -->
         <div id="adminPanel-songs" class="admin-panel space-y-5 hidden">
-          <div id="songFormCard" class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+          <div id="songFormCard" class="bg-white p-5 rounded-3xl border-2 border-emerald-200 shadow-sm space-y-4">
+            <div id="songFormModeBanner" class="px-3 py-2 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+              <span id="songFormModeText">➕ 新增歌曲：儲存後會建立一首新的歌曲</span>
+            </div>
             <div>
               <h4 id="songFormTitle" class="font-black text-slate-800 text-base">新增歌曲</h4>
               <p class="text-xs text-slate-500 mt-0.5">
@@ -1371,9 +1381,9 @@
               </div>
 
               <div class="flex justify-end gap-2 pt-1">
-                <button type="button" id="songFormCancelBtn" onclick="clearSongForm()" class="hidden px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs tap-bounce">取消編輯</button>
-                <button type="button" onclick="clearSongForm()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs tap-bounce">清空表單</button>
-                <button type="submit" id="songFormSaveBtn" class="px-6 py-2 rounded-xl bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-bold text-xs shadow-sm tap-bounce disabled:opacity-50">儲存歌曲</button>
+                <button type="button" id="songFormCancelBtn" onclick="clearSongFormGuarded()" class="hidden px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs tap-bounce">取消編輯</button>
+                <button type="button" onclick="clearSongFormGuarded()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs tap-bounce">清空表單</button>
+                <button type="submit" id="songFormSaveBtn" class="px-6 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs shadow-sm tap-bounce disabled:opacity-50">➕ 新增這首歌曲</button>
               </div>
             </form>
           </div>
@@ -8490,6 +8500,50 @@
       setSongFormFileStatus(existing);
     }
 
+    // ---------- 歌曲表單的模式（新增／編輯既有）----------
+    // 歌曲有音樂檔（「不開放下載」會搬移檔案、改權限），兩首歌不能共用同一個音樂檔，所以這裡**沒有**「另存為新」與「複製」，
+    // 只有：模式橫幅與顏色、更新前列出差異並確認（含「不開放下載」的變更）、沒有變更就不送出、未儲存內容的防呆。
+    const songFormState = { mode: 'new', baseId: '', baseTitle: '', baseline: null };
+    const SONG_FORM_FIELDS = [['youtube', 'YouTube 連結'], ['title', '歌名'], ['category', '類別'], ['duration', '時長'], ['noDownload', '不開放下載'], ['newFile', '音樂檔']];
+    const SONG_FORM_CFG = {
+      card: 'songFormCard', banner: 'songFormModeBanner', text: 'songFormModeText', save: 'songFormSaveBtn',
+      texts: {
+        new: function() { return '➕ 新增歌曲：儲存後會建立一首新的歌曲'; },
+        edit: function(nm) { return '✏️ 正在編輯既有歌曲「' + nm + '」：按「更新原歌曲」會修改這首原本的內容（要新增另一首，請先按「取消編輯」）'; }
+      },
+      saveLabels: { new: '➕ 新增這首歌曲', edit: '💾 更新原歌曲' }
+    };
+
+    function songFormSnapshot() {
+      const v = function(id) { return (document.getElementById(id) || {}).value || ''; };
+      const nd = document.getElementById('songForm-noDownload');
+      return { youtube: v('songForm-youtube').trim(), title: v('songForm-title').trim(), category: v('songForm-category'), duration: v('songForm-duration').trim(), noDownload: (nd && nd.checked) ? '是' : '否', newFile: songFormSelectedFile ? ('已選取：' + songFormSelectedFile.name) : '' };
+    }
+
+    function songFormDirty() {
+      return formFieldDiff(SONG_FORM_FIELDS, songFormState.baseline || { youtube: '', title: '', category: (document.getElementById('songForm-category') || {}).value || '', duration: '', noDownload: '否', newFile: '' }, songFormSnapshot()).length > 0;
+    }
+
+    function confirmDiscardSong() {
+      if (!songFormDirty()) return true;
+      return confirm('目前表單有尚未儲存的內容，確定要放棄嗎？');
+    }
+
+    function setSongFormMode(mode, song) {
+      songFormState.mode = mode;
+      songFormState.baseId = song && song.id !== undefined ? String(song.id) : '';
+      songFormState.baseTitle = song ? String(song.title || '') : '';
+      formModeApply(SONG_FORM_CFG, mode, songFormState.baseTitle);
+      songFormState.baseline = songFormSnapshot();
+    }
+
+    // 使用者按「取消編輯」／「清空」：有未儲存的內容先確認；程式內部（儲存完成後重設表單）改呼叫 clearSongForm()
+    function clearSongFormGuarded() {
+      if (songSaving) return;
+      if (!confirmDiscardSong()) return;
+      clearSongForm();
+    }
+
     function clearSongForm() {
       if (songSaving) return;
       songFormEditingId = '';
@@ -8502,15 +8556,16 @@
       if (sel && sel.options.length > 0) sel.selectedIndex = 0;
       document.getElementById('songFormTitle').textContent = '新增歌曲';
       document.getElementById('songFormCancelBtn').classList.add('hidden');
-      document.getElementById('songFormSaveBtn').textContent = '儲存歌曲';
       onSongYoutubeInput();
       setSongFormFileStatus(null);
       resetSongProgress();
+      setSongFormMode('new');
     }
 
     function editSongInAdmin(id) {
       const song = adminSongFull((state.songs || []).find(function(s) { return String(s.id) === String(id); }));
       if (!song || songSaving) return;
+      if (!confirmDiscardSong()) return;
       songFormEditingId = song.id;
       const ndEl = document.getElementById('songForm-noDownload'); if (ndEl) ndEl.checked = !!song.noDownload;
       songFormSelectedFile = null;
@@ -8532,10 +8587,10 @@
       if (fi) fi.value = '';
       document.getElementById('songFormTitle').textContent = '編輯歌曲：' + (song.title || '');
       document.getElementById('songFormCancelBtn').classList.remove('hidden');
-      document.getElementById('songFormSaveBtn').textContent = '儲存修改';
       onSongYoutubeInput();
       setSongFormFileStatus(song);
       resetSongProgress();
+      setSongFormMode('edit', song);
       const card = document.getElementById('songFormCard');
       if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
@@ -8597,7 +8652,7 @@
       renderAdminSongsTable();
     }
 
-    function finishSongSave(res, songData, uploaded) {
+    function finishSongSave(res, songData, uploaded, isUpdate) {
       if (songUploadTimer) { clearInterval(songUploadTimer); songUploadTimer = null; }
       setSongSaving(false);
       if (res && res.success) {
@@ -8610,7 +8665,7 @@
         }
         upsertLocalSong(merged);
         setSongProgress(100, uploaded ? '✅ 上傳完成，已寫入資料庫！' : '✅ 已儲存！', '');
-        showToast(res.message || '歌曲已儲存！', '🎉');
+        showToast((isUpdate ? '已更新原歌曲「' : '已新增歌曲「') + (songData.title || '') + '」', '🎉');
         if (res.warning) showToast(res.warning, '⚠️');
         setTimeout(function() { clearSongForm(); }, 1200);
         loadAppData(true);
@@ -8660,6 +8715,14 @@
         noDownload: noDownload
       };
 
+      // 編輯既有歌曲：列出將被修改的欄位並確認；沒有任何變更就不送出
+      const isUpdate = !!existing && songFormState.mode === 'edit';
+      if (isUpdate) {
+        const diffs = formFieldDiff(SONG_FORM_FIELDS, songFormState.baseline, songFormSnapshot());
+        if (diffs.length === 0) { showToast('沒有任何變更，原歌曲維持不變', 'ℹ️'); return; }
+        if (!formDiffConfirm('歌曲', songFormState.baseTitle, diffs, '')) return;
+      }
+
       // 已有相同檔案（檔名與大小一致）就沿用原連結，不重複上傳
       let needUpload = false;
       if (songFormSelectedFile) {
@@ -8674,7 +8737,7 @@
       if (!needUpload) {
         setSongProgress(30, '正在寫入資料庫…', '');
         callBackend('saveSong', { songData: songData, password: state.adminPassword },
-          function(res) { finishSongSave(res, songData, false); }, failSongSave);
+          function(res) { finishSongSave(res, songData, false, isUpdate); }, failSongSave);
         return;
       }
 
@@ -8692,7 +8755,7 @@
           meta: { id: songData.id, category: category, title: title, youtubeUrl: youtubeUrl, duration: songData.duration, noDownload: noDownload },
           file: { name: file.name, mimeType: file.type || 'audio/mpeg', base64: base64 },
           password: state.adminPassword
-        }, function(res) { finishSongSave(res, songData, true); }, failSongSave);
+        }, function(res) { finishSongSave(res, songData, true, isUpdate); }, failSongSave);
       };
       reader.readAsDataURL(file);
     }
@@ -9501,36 +9564,89 @@
     }
 
     // 後台菜單管理
-    function loadMenuForSelectedDate() {
-      const d = document.getElementById('menuForm-date').value;
-      if (!d) return;
+    // ---------- 每日菜單表單的模式 ----------
+    // 菜單以「日期」為識別：選到沒有菜單的日期＝新增（預設內容）；選到已有菜單的日期＝編輯該日既有菜單（儲存會覆蓋）；
+    // 「複製到其他日期」＝帶著目前內容改存到另一天（日期清空，原本那天不變；若新日期已有菜單，儲存前會列出將被覆蓋的差異並確認）。
+    const menuFormState = { mode: 'new', baseDate: '', baseline: null };
+    const MENU_FORM_FIELDS = [['morningSnack', '早點'], ['fruit', '當季水果'], ['lunchStaple', '主食'], ['lunchMain', '主菜'], ['lunchSide1', '副菜一'], ['lunchSide2', '副菜二'], ['lunchSoup', '湯品'], ['afternoonSnack', '午點'], ['note', '備註']];
+    const MENU_DEFAULTS = { morningSnack: '', fruit: '當季水果', lunchStaple: '糙白米飯', lunchMain: '', lunchSide1: '', lunchSide2: '有機蔬菜', lunchSoup: '', afternoonSnack: '', note: '' };
+
+    function menuFormSnapshot() {
+      const o = { date: (document.getElementById('menuForm-date') || {}).value || '' };
+      MENU_FORM_FIELDS.forEach(function(p) { o[p[0]] = (document.getElementById('menuForm-' + p[0]) || {}).value || ''; });
+      return o;
+    }
+
+    function menuFormFill(m) {
+      MENU_FORM_FIELDS.forEach(function(p) { const el = document.getElementById('menuForm-' + p[0]); if (el) el.value = (m && m[p[0]] != null ? m[p[0]] : ''); });
+    }
+
+    // 內容有沒有被改過（不含日期；日期另外處理）
+    function menuFormDirty() {
+      const base = menuFormState.baseline;
+      if (!base) return false;
+      return formFieldDiff(MENU_FORM_FIELDS, base, menuFormSnapshot()).length > 0;
+    }
+
+    function menuFormBannerText(mode) {
+      const d = (document.getElementById('menuForm-date') || {}).value || '';
+      const exists = d ? !!getMenuForDate(d) : false;
+      if (mode === 'edit') return '✏️ 正在編輯 ' + d + ' 的既有菜單：按「更新這天菜單」會覆蓋這一天原本的內容';
+      if (mode === 'copy') return '📄 以 ' + menuFormState.baseDate + ' 的菜單為範本新增：請選擇要存到的新日期（' + menuFormState.baseDate + ' 原本的菜單不會改變）' + (exists ? '。⚠️ ' + d + ' 已經有菜單，儲存會覆蓋它' : '');
+      return d ? ('➕ 新增 ' + d + ' 的菜單：這一天目前沒有菜單，儲存後會建立') : '➕ 新增菜單：請先選擇日期';
+    }
+
+    function setMenuFormMode(mode) {
+      menuFormState.mode = mode;
+      const cfg = {
+        card: 'menuFormCard', banner: 'menuFormModeBanner', text: 'menuFormModeText', save: 'saveMenuBtn', asNew: 'menuCopyBtn',
+        texts: { new: function() { return menuFormBannerText('new'); }, edit: function() { return menuFormBannerText('edit'); }, copy: function() { return menuFormBannerText('copy'); } },
+        saveLabels: { new: '➕ 新增這天菜單', edit: '💾 更新這天菜單', copy: '➕ 存成這天的菜單' }
+      };
+      formModeApply(cfg, mode, '');
+      if (mode !== 'copy') menuFormState.baseDate = (document.getElementById('menuForm-date') || {}).value || '';
+      menuFormState.baseline = menuFormSnapshot();
+    }
+
+    function refreshMenuFormBanner() {
+      const t = document.getElementById('menuFormModeText'); if (t) t.textContent = menuFormBannerText(menuFormState.mode);
+    }
+
+    // 選了日期（或按「載入該日菜單」）：載入該日菜單；表單有未儲存的修改時先確認，避免改到一半被另一天的內容蓋掉
+    function loadMenuForSelectedDate(explicitLoad) {
+      const dateEl = document.getElementById('menuForm-date');
+      const d = dateEl.value;
+      if (!d) { setMenuFormMode('new'); return; }
+      if (menuFormState.mode === 'copy' && !explicitLoad) { refreshMenuFormBanner(); return; }   // 複製中：換日期不載入，保留帶過來的內容
+      if (d !== menuFormState.baseDate || explicitLoad) {
+        if (menuFormDirty() && !confirm('目前表單有尚未儲存的內容，確定要放棄、改載入 ' + d + ' 的菜單嗎？')) {
+          if (!explicitLoad) dateEl.value = menuFormState.baseDate;   // 取消：日期還原，內容不動
+          return;
+        }
+      }
       const m = getMenuForDate(d);
       if (m) {
-        document.getElementById('menuForm-morningSnack').value = m.morningSnack || '';
-        document.getElementById('menuForm-fruit').value = m.fruit || '';
-        document.getElementById('menuForm-lunchStaple').value = m.lunchStaple || '';
-        document.getElementById('menuForm-lunchMain').value = m.lunchMain || '';
-        document.getElementById('menuForm-lunchSide1').value = m.lunchSide1 || '';
-        document.getElementById('menuForm-lunchSide2').value = m.lunchSide2 || '';
-        document.getElementById('menuForm-lunchSoup').value = m.lunchSoup || '';
-        document.getElementById('menuForm-afternoonSnack').value = m.afternoonSnack || '';
-        document.getElementById('menuForm-note').value = m.note || '';
+        menuFormFill(m);
+        setMenuFormMode('edit');
         showToast('已載入該日菜單！', '🍱');
       } else {
-        document.getElementById('menuForm-morningSnack').value = '';
-        document.getElementById('menuForm-fruit').value = '當季水果';
-        document.getElementById('menuForm-lunchStaple').value = '糙白米飯';
-        document.getElementById('menuForm-lunchMain').value = '';
-        document.getElementById('menuForm-lunchSide1').value = '';
-        document.getElementById('menuForm-lunchSide2').value = '有機蔬菜';
-        document.getElementById('menuForm-lunchSoup').value = '';
-        document.getElementById('menuForm-afternoonSnack').value = '';
-        document.getElementById('menuForm-note').value = '';
+        menuFormFill(MENU_DEFAULTS);
+        setMenuFormMode('new');
       }
     }
 
+    // 帶著目前表單的內容改存到另一個日期：日期清空（要重選），原本那天不變
+    function copyMenuToAnotherDate() {
+      const src = (document.getElementById('menuForm-date') || {}).value || '';
+      if (!src) { showToast('請先選取要複製的菜單日期！', '⚠️'); return; }
+      menuFormState.baseDate = src;
+      document.getElementById('menuForm-date').value = '';
+      setMenuFormMode('copy');
+      try { document.getElementById('menuForm-date').focus(); } catch (e) {}
+    }
+
     function handleSaveMenu(e) {
-      e.preventDefault();
+      if (e && typeof e.preventDefault === 'function') e.preventDefault();
       const menuData = {
         date: document.getElementById('menuForm-date').value,
         morningSnack: document.getElementById('menuForm-morningSnack').value,
@@ -9544,6 +9660,19 @@
         nutrients: '全穀雜糧類,豆魚蛋肉類,蔬菜類,水果類',
         note: document.getElementById('menuForm-note').value
       };
+      if (!menuData.date) { showToast(menuFormState.mode === 'copy' ? '請先選擇要存到的日期！' : '請先選擇菜單日期！', '⚠️'); return; }
+
+      // 這一天原本就有菜單＝這次儲存是「更新（覆蓋）」；先列出差異讓使用者確認
+      const existingMenu = state.menus.find(x => x.date === menuData.date);
+      const isUpdate = !!existingMenu;
+      if (isUpdate) {
+        const snap = menuFormSnapshot();
+        const diffs = formFieldDiff(MENU_FORM_FIELDS, existingMenu, snap);
+        if (diffs.length === 0) { showToast('沒有任何變更，' + menuData.date + ' 的菜單維持不變', 'ℹ️'); return; }
+        const lines = diffs.map(function(dd) { return '・' + dd.label + '：' + dd.from + ' → ' + dd.to; }).join('\n');
+        const copying = menuFormState.mode === 'copy';
+        if (!confirm((copying ? '⚠️ ' + menuData.date + ' 已經有菜單，儲存會覆蓋它：' : '即將修改 ' + menuData.date + ' 的既有菜單：') + '\n\n' + lines + '\n\n確定要' + (copying ? '覆蓋' : '更新') + '嗎？' + (copying ? '\n（若不想覆蓋，請按「取消」，再改選別的日期）' : ''))) return;
+      }
 
       showToast('儲存菜單中...', '⏳');
 
@@ -9559,10 +9688,11 @@
 
       renderCalendar();
       renderSelectedDayDetails(state.selectedDateStr);
+      setMenuFormMode('edit');   // 這一天現在有菜單了：表單回到「編輯這天」，內容保留
 
       callBackend('saveMenu', { data: menuData, password: state.adminPassword }, res => {
         if (res && res.success) {
-          showToast(res.message || '菜單已成功儲存！', '✅');
+          showToast((isUpdate ? '已更新 ' : '已新增 ') + menuData.date + ' 的菜單', '✅');
           loadAppData();
         } else {
           showToast('菜單已套用於前台！', '✅');
@@ -9584,6 +9714,8 @@
       } catch (err) {}
       renderCalendar();
       renderSelectedDayDetails(state.selectedDateStr);
+      menuFormFill(MENU_DEFAULTS);
+      setMenuFormMode('new');
 
       callBackend('deleteMenu', { date: d, password: state.adminPassword }, res => {
         if (res && res.success) {

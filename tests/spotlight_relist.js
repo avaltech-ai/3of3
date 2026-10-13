@@ -94,7 +94,7 @@
   reset(); openSpotlightEditForm('SP-OLD');
   ok(spRelistMode === false && $('spForm-id').value === 'SP-OLD' && $('spForm-endDate').value === '2026-08-08', '編輯：仍是原編號與原日期，不是再次上架模式');
   $('spForm-endDate').value = ''; saveSpotlightSettings(); await wait(40);
-  ok(confirms.length === 0 && calls('saveSpotlight').length === 1 && calls('saveSpotlight')[0].payload.data.id === 'SP-OLD', '編輯：結束日留空不提醒（維持原本行為），存回同一編號');
+  ok(confirms.length === 1 && /即將修改原焦點活動/.test(confirms[0]) && confirms[0].indexOf('尚未填寫結束日期') < 0 && calls('saveSpotlight').length === 1 && calls('saveSpotlight')[0].payload.data.id === 'SP-OLD', '編輯：結束日留空沒有「結束日未填」提醒（維持原本行為）；只有更新前的差異確認（2026-10-13 起），存回同一編號');
   state.spotlights = fresh(); reset(); openSpotlightCreateForm();
   ok(spRelistMode === false && $('spForm-id').value === '' && $('spForm-title').value === '' && $('spForm-startDate').value === '', '新增：空白表單、不是再次上架模式');
   $('spForm-title').value = '全新的活動'; saveSpotlightSettings(); await wait(40);
