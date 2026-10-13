@@ -136,6 +136,7 @@ console.log(await window.__nameMapFrontendTest());   // allPass 應為 true
 - `node tests/spothistory.test.js`：歷史焦點篩選邏輯（一季＝3 個月與月底／跨年、門檻當天、停用、未開始、無結束日、輪播中不重複、排序、日期推進後消失，21 項；已納入 `tests/ci.sh`）。
 - `tests/themeoverview.test.js`（Node，已進 CI，21 項）：學期主題架構圖後端（Drive 連結／ID 解析與惡意字元過濾、學期→圖檔對照、`ThemeSemesters.overviewImage` 欄位自動補上與不重複、`getThemesData`／`getAppData` 帶出）。已做 10 種變異測試全數抓到。
 - `tests/admin_first_open.js`（瀏覽器，9 項；約 5 秒）：後台活動列表「第一次點進來是空的」的修正（資料到達時使用者在首頁、進入後台頁籤時重畫、依目前子面板重畫、沒登入不呼叫、沒登入時資料到達不出錯）。已做 4 種變異測試全數抓到。
+- `tests/restore_tab.js`（瀏覽器，20 項；約 5 秒）：重新整理後停在原頁（切換時記錄頁籤與後台子面板、各頁籤與子面板還原、未知／惡意值逐一忽略、沒有記錄從首頁開始、`sessionStorage` 被拒絕不出錯、`initApp` 有呼叫 `restoreSavedTab()`）。已做 6 種變異測試全數抓到。
 - `tests/action_icons.js`（瀏覽器，32 項；約 6 秒）：六個列表的列上操作按鈕都是同一款純圖示（無文字／表情符號、統一樣式與尺寸、有 title 與 aria-label、同一功能在所有頁面用同一個向量圖、五種功能各不相同、順序固定刪除最後、點下去呼叫對應處理函式、標題含單雙引號不弄壞屬性、平常中性灰滑過才變色、表單主要按鈕仍保留文字）。已做 9 種變異測試全數抓到（其中一種「刪除圖示與編輯完全相同」一開始因變異做得不夠徹底而漏網，改過後已抓到）。
 - `tests/form_mode_spotlight.js`（24）、`form_mode_theme.js`（24）、`form_mode_doc.js`（21）、`form_mode_menu.js`（28）、`form_mode_song.js`（20）（瀏覽器；各約 6 秒）：其他後台表單的新增／編輯／複製模式（做法同下一條，各表單的差異見 `SPECIFICATION.md` 2.4 活動管理）。**菜單**以日期為識別（沒有菜單＝新增、已有＝編輯、複製到其他日期、換日期防呆、覆蓋前確認）；**歌曲**沒有另存／複製（音樂檔不能共用）。已對這 5 個表單做 27 種變異測試全數抓到。測試期間替換 `confirm`／`alert`／`callBackend`／`showToast`／`loadAppData` 並還原 `localStorage`。
 - `tests/event_form_mode.js`（瀏覽器，44 項；約 6 秒）：後台活動表單的新增／編輯／複製模式（橫幅與顏色、按鈕、更新前的差異確認與「沒有變更」、另存為新活動不動原活動、複製清空日期且存成新的一筆、未儲存內容的切換防呆、列表標示編輯中與複製鈕、惡意標題、儲存提示）。測試期間替換 `confirm`／`callBackend`／`showToast`／`loadAppData` 並還原 `localStorage`。已做 16 種變異測試全數抓到。

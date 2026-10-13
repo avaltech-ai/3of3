@@ -3066,6 +3066,25 @@
       return pwd;
     }
 
+    // ---------- 重新整理頁面時停在原本的頁面 ----------
+    // 目前所在的頁籤（與後台子面板）記在 sessionStorage：重新整理（含 App 模式的 ↻）會回到原本的頁面；
+    // 關掉分頁或 App 後重新開啟則從首頁開始。只接受下列已知的頁籤名稱，其他值一律忽略。
+    const SAVED_TAB_KEY = 'nobel_a_current_tab', SAVED_SUBTAB_KEY = 'nobel_a_admin_subtab';
+    const VALID_TABS = ['home', 'albums', 'songs', 'themes', 'docs', 'admin'];
+    const VALID_ADMIN_SUBTABS = ['events', 'menu', 'uploadPhoto', 'songs', 'uploadDoc', 'themes', 'spotlight', 'translations', 'settings'];
+
+    function saveUiLocation(key, value) {
+      try { sessionStorage.setItem(key, value); } catch (e) {}
+    }
+
+    function restoreSavedTab() {
+      let tab = '', sub = '';
+      try { tab = sessionStorage.getItem(SAVED_TAB_KEY) || ''; sub = sessionStorage.getItem(SAVED_SUBTAB_KEY) || ''; } catch (e) { return; }
+      if (VALID_ADMIN_SUBTABS.indexOf(sub) !== -1) state.currentAdminSubtab = sub;
+      if (VALID_TABS.indexOf(tab) === -1 || tab === 'home') return;
+      try { switchTab(tab); } catch (e) {}
+    }
+
     // 初始化程式
     function initApp() {
       try {
@@ -3122,6 +3141,9 @@
       applyTranslations();
       syncBigTextButton();
       initStandaloneSupport();
+
+      // 回到重新整理前所在的頁面（例如相簿、後台）
+      restoreSavedTab();
 
       // 2. 靜默在背景連線至雲端讀取最新資料庫並自動無縫更新（Stale-While-Revalidate）
       loadAppData(true);
@@ -4749,6 +4771,7 @@
       if (window.innerWidth >= 768) closeSidebarTouch();
       if (tabName === 'admin') { try { mapAdminRefreshBadge(); } catch (e) {} }
       state.currentTab = tabName;
+      if (VALID_TABS.indexOf(tabName) !== -1) saveUiLocation(SAVED_TAB_KEY, tabName);
       ['home', 'albums', 'songs', 'themes', 'docs', 'admin'].forEach(tab => {
         const contentEl = document.getElementById(`tabContent-${tab}`);
         const btnEl = document.getElementById(`tabBtn-${tab}`);
@@ -8866,6 +8889,7 @@
 
     function switchAdminSubtab(subtab) {
       state.currentAdminSubtab = subtab;
+      if (VALID_ADMIN_SUBTABS.indexOf(subtab) !== -1) saveUiLocation(SAVED_SUBTAB_KEY, subtab);
       document.querySelectorAll('.admin-panel').forEach(p => p.classList.add('hidden'));
       document.querySelectorAll('.admin-subtab-btn').forEach(btn => {
         btn.className = 'admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap';

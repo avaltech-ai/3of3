@@ -205,6 +205,10 @@
   1. 繁中 / EN 切換膠囊按鈕 (`btnLangToggle`)。
   2. 管理員狀態晶片：未登入隱藏；已登入時呈現綠色呼吸燈、`管理員已登入` 字樣與 `🚪 登出` 按鈕。
 
+### 2.2b 重新整理後停在原頁（2026-10-13）
+- 目前頁籤記在 `sessionStorage` 的 `nobel_a_current_tab`（值限 `home／albums／songs／themes／docs／admin`），後台子面板記在 `nobel_a_admin_subtab`（限 `events／menu／uploadPhoto／songs／uploadDoc／themes／spotlight／translations／settings`）；寫入點在 `switchTab()`／`switchAdminSubtab()`，還原點在 `initApp()` 的 `restoreSavedTab()`（載入雲端資料之前）。
+- 不在白名單內的值一律忽略（從首頁開始）；`sessionStorage` 不可用時靜默略過。重新整理與 App 模式的 ↻ 都會停在原頁；關掉分頁／App 後重開從首頁開始；未登入停在後台會看到登入畫面。只還原頁籤與後台子面板，不還原打開的相簿、檢視器或詳情。
+
 ### 2.3 側邊導覽欄 (Sidebar Rail vs Pinned)
 
 - **收合模式 (Collapsed Rail)**：寬度 `w-12` (48px)，僅顯示圖示，置中對齊，滑鼠懸停顯示 Tooltip。
