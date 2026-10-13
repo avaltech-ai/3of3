@@ -79,17 +79,55 @@
   openPhotoViewerByIndex(1); ok(/Video won't play/.test(link.textContent), '英文：備用連結文字為英文');
   closePhotoViewer(); state.lang = 'zh-TW'; applyTranslations();
 
-  // G. 「重新整理相簿」：管理員登入時先清掉相簿清單快取，再重讀（直接放進 Drive 的檔案才會立刻出現）
-  const realCB = window.callBackend, realPwd = state.adminPassword, calls = [];
-  window.callBackend = function (action, payload, ok2, err2) { calls.push(action); if (action === 'clearAlbumListCache') { if (window.__clearFail) { if (err2) err2('boom'); } else if (ok2) ok2({ success: true, cleared: 3 }); } else if (action === 'getAlbums') { if (ok2) ok2({ success: true, albums: [] }); } };
+  // G. 「重新整理相簿」：管理員登入時先清相簿清單快取、重讀，再在背景逐本重算照片數與影片數，最後再重讀一次
+  const realCB = window.callBackend, realPwd = state.adminPassword, realToast = window.showToast, realCached = state.cachedAlbums;
+  const calls = [], toasts = [];
+  const IDS = ['a'.repeat(20), 'b'.repeat(20), 'c'.repeat(20)];
+  const albums3 = IDS.map((id, i) => ({ id: id, category: '戶外踏訪', title: '相簿' + i, photoCount: 10 + i, videoCount: 0, coverUrl: '', coverCandidates: [], updatedAt: '2026-04-21' }));
+  let mode = {};
+  window.showToast = function (m, ic) { toasts.push(m + '|' + ic); };
+  window.callBackend = function (action, payload, ok2, err2) {
+    calls.push(action === 'recountAlbum' ? 'recount:' + payload.albumId.charAt(0) : action);
+    if (action === 'clearAlbumListCache') { if (mode.clearFail) { if (err2) err2('boom'); } else if (ok2) ok2({ success: true, cleared: 3 }); }
+    else if (action === 'getAlbums') { if (ok2) ok2({ success: true, albums: albums3 }); }
+    else if (action === 'recountAlbum') {
+      if (mode.hold) return;
+      const k = payload.albumId.charAt(0);
+      if (mode.authExpiredAt === k) { if (ok2) ok2({ success: false, error: 'x', authExpired: true }); }
+      else if (mode.failAt === k) { if (ok2) ok2({ success: false, error: 'Drive 錯誤' }); }
+      else if (ok2) ok2({ success: true, photoCount: 5, videoCount: 2, changed: k === 'a' });
+    }
+  };
+  const reset = m => { calls.length = 0; toasts.length = 0; mode = m || {}; albumRecount.running = false; refreshAlbums._clearing = false; setAlbumRecountStatus(''); };
   state.adminPassword = 'tok'.repeat(15);
-  refreshAlbums(); ok(calls.join() === 'clearAlbumListCache,getAlbums', '管理員按「重新整理」：先清相簿清單快取，再重新讀取相簿（實際：' + calls.join() + '）');
-  calls.length = 0; window.__clearFail = true; refreshAlbums(); ok(calls.join() === 'clearAlbumListCache,getAlbums', '清快取失敗：仍然繼續重新讀取（不會卡住）');
-  calls.length = 0; window.__clearFail = false; state.adminPassword = ''; refreshAlbums(); ok(calls.join() === 'getAlbums', '沒有登入（一般使用者）：不會呼叫清快取，只重新讀取（實際：' + calls.join() + '）');
-  calls.length = 0; state.adminPassword = 'tok'.repeat(15); window.callBackend = function (action, payload, ok2) { calls.push(action); /* 清快取不回應：模擬網路慢 */ };
-  refreshAlbums(); refreshAlbums(); ok(calls.filter(a => a === 'clearAlbumListCache').length === 1, '連按兩次「重新整理」：只送出一次清快取（避免重複）');
-  refreshAlbums._clearing = false;
-  window.callBackend = realCB; state.adminPassword = realPwd; delete window.__clearFail;
+  reset(); refreshAlbums();
+  ok(calls.join() === 'clearAlbumListCache,getAlbums,recount:a,recount:b,recount:c,getAlbums', '管理員按「重新整理」：清快取 → 讀相簿 → 逐本重算（3 本）→ 再讀一次（實際：' + calls.join() + '）');
+  ok(toasts.length === 1 && /3 本相簿/.test(toasts[0]) && /1 本有變動/.test(toasts[0]) && /✅/.test(toasts[0]), '完成提示：「已重新計算 3 本相簿的張數與影片數（1 本有變動）」');
+  ok(albumRecount.running === false && $('albumRecountStatus').classList.contains('hidden'), '結束後狀態文字收起、可以再次執行');
+  reset({ clearFail: true }); refreshAlbums(); ok(calls.join() === 'clearAlbumListCache,getAlbums,recount:a,recount:b,recount:c,getAlbums', '清快取失敗：仍照常重讀與重算（不會卡住）');
+  reset({ failAt: 'b' }); refreshAlbums(); ok(calls.length === 6 && /2 本相簿/.test(toasts[0]) && /1 本失敗/.test(toasts[0]) && /⚠️/.test(toasts[0]), '其中一本重算失敗：其他照常完成，提示「1 本失敗」');
+  reset({ authExpiredAt: 'b' }); refreshAlbums(); ok(calls.join() === 'clearAlbumListCache,getAlbums,recount:a,recount:b' && toasts.length === 0 && albumRecount.running === false, '登入逾時：立即停止，不再重算其他本、不再重讀、不跳完成提示');
+  reset(); state.adminPassword = ''; refreshAlbums(); ok(calls.join() === 'getAlbums', '沒有登入（一般使用者）：只重新讀取，不清快取、不重算（實際：' + calls.join() + '）');
+  reset(); state.adminPassword = ''; recountAlbumsInBackground(albums3); ok(calls.length === 0 && albumRecount.running === false, '沒有登入時直接呼叫重算：什麼都不做（雙重保護）');
+  reset({ hold: true }); state.adminPassword = 'tok'.repeat(15); refreshAlbums();
+  ok(calls.join() === 'clearAlbumListCache,getAlbums,recount:a' && /1\/3/.test($('albumRecountStatus').textContent) && !$('albumRecountStatus').classList.contains('hidden'), '重算進行中：顯示進度「（1/3）」');
+  refreshAlbums(); ok(calls.filter(a => a.indexOf('recount:') === 0).length === 1, '重算進行中再按一次：不會重複啟動第二輪');
+  reset(); refreshAlbums._clearing = false;
+
+  // H. 封面與後台表格的影片數量
+  state.cachedAlbums = [Object.assign({}, albums3[0], { photoCount: 45, videoCount: 19 }), Object.assign({}, albums3[1], { photoCount: 12, videoCount: 0 }), Object.assign({}, albums3[2], { photoCount: 0, videoCount: 3 })];
+  renderAlbumsList(state.cachedAlbums);
+  const cardsT = [...document.querySelectorAll('#albumsGrid > *')].map(c => c.textContent.replace(/\s+/g, ' '));
+  ok(cardsT.length === 3 && /📷 ?45 張.*🎬 ?19 部/.test(cardsT[0]), '封面：「📷 45 張・🎬 19 部」（實際：' + (cardsT[0] || '').trim().slice(0, 60) + '）');
+  ok(/12 張/.test(cardsT[1]) && cardsT[1].indexOf('🎬') < 0, '沒有影片的相簿：只顯示「12 張」，不顯示影片段');
+  ok(/0 張/.test(cardsT[2]) && /🎬 3 部/.test(cardsT[2]), '只有影片的相簿：「0 張・🎬 3 部」');
+  state.lang = 'en'; applyTranslations(); renderAlbumsList(state.cachedAlbums);
+  const cardsEn = [...document.querySelectorAll('#albumsGrid > *')].map(c => c.textContent.replace(/\s+/g, ' '));
+  ok(/45 photos/.test(cardsEn[0]) && /19 videos/.test(cardsEn[0]) && cardsEn[1].indexOf('🎬') < 0, '英文：「45 photos・🎬 19 videos」');
+  state.lang = 'zh-TW'; applyTranslations();
+  try { renderAdminAlbumsTable(); const rows = [...document.querySelectorAll('#adminAlbumsTableBody tr, #adminAlbumsTable tr')].map(r => r.textContent.replace(/\s+/g, ' ')); ok(rows.some(t => /45 張・🎬 19 部/.test(t)) && rows.some(t => /12 張/.test(t) && t.indexOf('🎬') < 0), '後台相簿表格：同樣顯示「45 張・🎬 19 部」，沒影片的不顯示'); } catch (e) { ok(false, '後台表格渲染出錯：' + e.message); }
+  window.callBackend = realCB; state.adminPassword = realPwd; window.showToast = realToast; state.cachedAlbums = realCached; delete window.__clearFail;
+  try { renderAlbumsList(realCached || []); } catch (e) {}
 
   const allJs = Array.from(document.scripts).map(x => x.textContent).join('\n');
   ok(!/cachedAlbums\.length === 0\) refreshAlbums\(\)/.test(allJs) && (allJs.match(/cachedAlbums\.length === 0\) refreshAlbumsNow\(\)/g) || []).length === 2, '切到相簿分頁時的自動載入不清快取（只有使用者按「重新整理」才清）');

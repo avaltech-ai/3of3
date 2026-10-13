@@ -1266,6 +1266,7 @@ const htmlContent = `<!DOCTYPE html>
                 <p class="text-xs text-slate-500 mt-0.5">可在此直接編輯相簿之活動類別與主題名稱，或刪除相簿。</p>
               </div>
               <div class="flex items-center gap-2">
+                <span id="albumRecountStatus" class="hidden text-[0.6875rem] font-bold text-teal-700"></span>
                 <span id="adminAlbumsCountBadge" class="px-2.5 py-1 rounded-full bg-teal-50 text-teal-800 text-xs font-bold border border-teal-200">共 0 本相簿</span>
                 <button type="button" onclick="refreshAlbums()" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold tap-bounce">
                   🔄 重新整理相簿
@@ -2393,6 +2394,10 @@ const htmlContent = `<!DOCTYPE html>
           calDotClass: "班級主題",
           calDotImportant: "重要活動",
           albumPhotoCount: "{n} 張",
+          albumVideoCount: "{n} 部",
+          albumRecounting: "正在重新計算相簿張數與影片數（{i}/{n}）…",
+          albumRecountDone: "已重新計算 {n} 本相簿的張數與影片數（{c} 本有變動）",
+          albumRecountFail: "，{f} 本失敗",
           albumPhotosTotal: "（共 {n} 張）",
           albumPhotosTotalMixed: "（共 {n} 張・{m} 部影片）",
           photoClickPlay: "點擊播放影片",
@@ -2636,6 +2641,10 @@ const htmlContent = `<!DOCTYPE html>
           calDotClass: "Class theme",
           calDotImportant: "Important event",
           albumPhotoCount: "{n} photos",
+          albumVideoCount: "{n} videos",
+          albumRecounting: "Recounting photos and videos ({i}/{n})…",
+          albumRecountDone: "Recounted {n} albums ({c} changed)",
+          albumRecountFail: ", {f} failed",
           albumPhotosTotal: "({n} photos)",
           albumPhotosTotalMixed: "({n} photos, {m} videos)",
           photoClickPlay: "Click to play video",
@@ -3137,6 +3146,7 @@ const htmlContent = `<!DOCTYPE html>
         else if (action === 'mapStatus') runner.adminMapStatus(payload.password);
         else if (action === 'getAlbumPhotos') runner.getAlbumPhotos(payload.albumId);
         else if (action === 'clearAlbumListCache') runner.clearAlbumListCache(payload.password);
+        else if (action === 'recountAlbum') runner.recountAlbum(payload.albumId, payload.password);
         else if (action === 'verifyPassword') runner.verifyPassword(payload.password);
         else if (action === 'logout') runner.adminLogout(payload.password);
         else if (action === 'checkSession') runner.adminCheckSession(payload.password);
@@ -6158,14 +6168,50 @@ const htmlContent = `<!DOCTYPE html>
     function refreshAlbums() {
       if (state.adminPassword && !refreshAlbums._clearing) {
         refreshAlbums._clearing = true;
-        const go = function() { refreshAlbums._clearing = false; refreshAlbumsNow(); };
+        const go = function() { refreshAlbums._clearing = false; refreshAlbumsNow(recountAlbumsInBackground); };
         callBackend('clearAlbumListCache', { password: state.adminPassword }, go, go);
         return;
       }
       refreshAlbumsNow();
     }
 
-    function refreshAlbumsNow() {
+    // 管理員按「重新整理」之後，在背景逐本重新計算相簿的照片數與影片數（封面的數字存在試算表，直接放進 Drive 的檔案不會自動更新）。
+    // 畫面照常使用、不必等；每本單獨呼叫（一次全部會逾時）；完成後再讀一次相簿清單讓封面數字更新。登入逾時就停止。
+    const albumRecount = { running: false };
+
+    function setAlbumRecountStatus(text) {
+      const el = document.getElementById('albumRecountStatus');
+      if (!el) return;
+      el.textContent = text || '';
+      el.classList.toggle('hidden', !text);
+    }
+
+    function recountAlbumsInBackground(albums) {
+      if (!state.adminPassword || albumRecount.running) return;
+      const ids = (Array.isArray(albums) ? albums : []).map(function(a) { return a && a.id; }).filter(function(id) { return typeof id === 'string' && /^[A-Za-z0-9_-]{10,100}$/.test(id); });
+      if (!ids.length) return;
+      albumRecount.running = true;
+      let i = 0, failed = 0, changed = 0, aborted = false;
+      const finish = function() {
+        albumRecount.running = false;
+        setAlbumRecountStatus('');
+        if (aborted) return;
+        showToast(t('ui.albumRecountDone', { n: ids.length - failed, c: changed }) + (failed ? t('ui.albumRecountFail', { f: failed }) : ''), failed ? '⚠️' : '✅');
+        refreshAlbumsNow();
+      };
+      const step = function() {
+        if (i >= ids.length) { finish(); return; }
+        setAlbumRecountStatus(t('ui.albumRecounting', { i: i + 1, n: ids.length }));
+        callBackend('recountAlbum', { albumId: ids[i], password: state.adminPassword }, function(res) {
+          if (res && res.authExpired) { aborted = true; finish(); return; }
+          if (!res || !res.success) failed++; else if (res.changed) changed++;
+          i++; step();
+        }, function() { failed++; i++; step(); });
+      };
+      step();
+    }
+
+    function refreshAlbumsNow(onLoaded) {
       const loading = document.getElementById('albumsLoading');
       const grid = document.getElementById('albumsGrid');
       if (loading) loading.classList.remove('hidden');
@@ -6179,6 +6225,7 @@ const htmlContent = `<!DOCTYPE html>
           state.cachedAlbums = res.albums;
           applyAlbumFilters();
           renderAdminAlbumsTable();
+          if (typeof onLoaded === 'function') onLoaded(res.albums);
         } else {
           renderFallbackAlbums();
         }
@@ -6317,7 +6364,7 @@ const htmlContent = `<!DOCTYPE html>
               
               <!-- 右上角：照片數量 -->
               <div class="absolute top-2 right-2 bg-black/60 text-white text-[0.6875rem] font-bold px-2 py-0.5 rounded-full backdrop-blur-xs flex items-center gap-1 shadow-xs">
-                <span>📷</span> \${esc(t('ui.albumPhotoCount', { n: (alb.photoCount || 0) }))}
+                <span>📷</span> \${esc(t('ui.albumPhotoCount', { n: (alb.photoCount || 0) }))}\${(Number(alb.videoCount) || 0) > 0 ? '<span class="opacity-70">・</span><span>🎬</span> ' + esc(t('ui.albumVideoCount', { n: Number(alb.videoCount) })) : ''}
               </div>
 
               <!-- 左上角：活動類別徽章 -->
@@ -9779,7 +9826,7 @@ const htmlContent = `<!DOCTYPE html>
           </td>
           <td class="py-2.5 px-3 text-center whitespace-nowrap">
             <span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-bold text-[10px]">
-              📷 \${esc(alb.photoCount || 0)} 張
+              📷 \${esc(alb.photoCount || 0)} 張\${(Number(alb.videoCount) || 0) > 0 ? '・🎬 ' + esc(Number(alb.videoCount)) + ' 部' : ''}
             </span>
           </td>
           <td class="py-2.5 px-3 text-right whitespace-nowrap space-x-1.5">

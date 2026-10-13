@@ -583,6 +583,8 @@ function doPost(e) {
       result = updateSpotlightsOrder(postData.orderList, postData.password);
     } else if (action === 'clearAlbumListCache') {
       result = clearAlbumListCache(postData.password);
+    } else if (action === 'recountAlbum') {
+      result = recountAlbum(postData.albumId || postData.id, postData.password);
     } else if (action === 'initAlbumUpload') {
       result = initAlbumUpload(postData, postData.password);
     } else if (action === 'uploadPhotosChunk') {
@@ -2108,22 +2110,28 @@ function getAlbums() {
       let photoCount = existing && existing.photoCount ? parseInt(existing.photoCount, 10) : 0;
       let coverUrl = existing && existing.coverUrl ? existing.coverUrl : '';
 
+      let videoCount = existing && existing.videoCount ? parseInt(existing.videoCount, 10) || 0 : 0;
+
       // 若沒有 coverUrl 或 photoCount 為 0，自 Drive 讀取
       if (!coverUrl || photoCount === 0) {
         const files = subFolder.getFiles();
         let cnt = 0;
+        let vcnt = 0;
         let cUrl = '';
         while (files.hasNext()) {
           const file = files.next();
-          const mimeType = file.getMimeType();
+          const mimeType = String(file.getMimeType() || '');
           if (mimeType.indexOf('image/') === 0) {
             cnt++;
             if (!cUrl) {
               cUrl = 'https://drive.google.com/thumbnail?id=' + file.getId() + '&sz=w600';
             }
+          } else if (mimeType.indexOf('video/') === 0) {
+            vcnt++;
           }
         }
         photoCount = cnt;
+        videoCount = vcnt;
         if (cUrl) coverUrl = cUrl;
       }
 
@@ -2133,6 +2141,7 @@ function getAlbums() {
         title: title,
         folderName: folderName,
         photoCount: photoCount,
+        videoCount: videoCount,
         coverUrl: coverUrl,
         coverCandidates: parseCoverCandidates_(existing && existing.coverCandidates),
         folderUrl: subFolder.getUrl(),
@@ -2153,6 +2162,9 @@ function getAlbums() {
           subFolder.getUrl(),
           new Date().toISOString()
         ]);
+        if (videoCount > 0) {
+          try { albumsSheet.getRange(albumsSheet.getLastRow(), ensureAlbumsVideoCountColumn_(albumsSheet)).setValue(videoCount); } catch (e) {}
+        }
       }
     }
 
@@ -2165,6 +2177,7 @@ function getAlbums() {
           title: sAlb.title || sAlb.folderName || '活動相簿',
           folderName: sAlb.folderName || sAlb.title,
           photoCount: parseInt(sAlb.photoCount || 0, 10),
+          videoCount: parseInt(sAlb.videoCount || 0, 10) || 0,
           coverUrl: sAlb.coverUrl || '',
           coverCandidates: parseCoverCandidates_(sAlb.coverCandidates),
           folderUrl: sAlb.folderUrl || '',
@@ -2274,6 +2287,60 @@ function sortAlbumItems_(items) {
     const ia = String(a.id || ''), ib = String(b.id || '');
     return ia < ib ? -1 : (ia > ib ? 1 : 0);
   });
+}
+
+// 確保 Albums 工作表有 videoCount 欄位（影片數，封面顯示用）；沒有就加在最右邊。回傳該欄的欄號（1 起算）。
+function ensureAlbumsVideoCountColumn_(sheet) {
+  const lastCol = Math.max(sheet.getLastColumn(), 1);
+  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(function(h) { return String(h).trim(); });
+  const idx = headers.indexOf('videoCount');
+  if (idx > -1) return idx + 1;
+  const col = lastCol + 1;
+  sheet.getRange(1, col).setValue('videoCount').setFontWeight('bold').setBackground('#CCFBF1');
+  return col;
+}
+
+/**
+ * 管理員專用：重新計算「一本」相簿的照片數與影片數，寫回 Albums 工作表（photoCount、videoCount）。
+ * 為什麼需要：封面的張數是存在試算表裡的數字，只有「經網站上傳／刪除」或數字為 0 時才會更新；老師直接把檔案放進 Drive 資料夾就不會變。
+ * 前端在管理員按「重新整理」後，逐本呼叫（單本現場列出 Drive 約數秒～十幾秒，一次全部會逾時）。
+ * 只處理「已登記在 Albums 工作表」的相簿；不改 updatedAt（它決定 NEW 標籤）、不改封面。會清掉該相簿的清單快取。
+ */
+function recountAlbum(albumId, password) {
+  if (!checkPassword(password)) return authFail_();
+  const id = String(albumId || '').trim();
+  if (!/^[A-Za-z0-9_-]{10,100}$/.test(id)) return { success: false, error: '相簿編號不正確' };
+  try {
+    const ss = getSpreadsheet();
+    const sheet = ss && ss.getSheetByName('Albums');
+    if (!sheet) return { success: false, error: '找不到 Albums 工作表' };
+    const data = sheet.getDataRange().getValues();
+    const headers = (data[0] || []).map(function(h) { return String(h).trim(); });
+    const idCol = headers.indexOf('id'), countCol = headers.indexOf('photoCount');
+    if (idCol < 0 || countCol < 0) return { success: false, error: 'Albums 工作表缺少 id 或 photoCount 欄位' };
+    let row = -1;
+    for (let r = 1; r < data.length; r++) {
+      if (String(data[r][idCol]).trim() === id) { row = r + 1; break; }
+    }
+    if (row < 0) return { success: false, error: '這本相簿尚未登記' };
+
+    const files = DriveApp.getFolderById(id).getFiles();
+    let photos = 0, videos = 0;
+    while (files.hasNext()) {
+      const mime = String(files.next().getMimeType() || '');
+      if (mime.indexOf('image/') === 0) photos++;
+      else if (mime.indexOf('video/') === 0) videos++;
+    }
+    const oldPhotos = parseInt(data[row - 1][countCol], 10) || 0;
+    const vCol = ensureAlbumsVideoCountColumn_(sheet);
+    const oldVideos = parseInt(data[row - 1][vCol - 1], 10) || 0;
+    sheet.getRange(row, countCol + 1).setValue(photos);
+    sheet.getRange(row, vCol).setValue(videos);
+    try { CacheService.getScriptCache().remove('albph_' + id); } catch (e) {}
+    return { success: true, photoCount: photos, videoCount: videos, changed: oldPhotos !== photos || oldVideos !== videos };
+  } catch (err) {
+    return { success: false, error: String(err) };
+  }
 }
 
 /**
@@ -4456,7 +4523,7 @@ function ensureAlbumSheetsExist() {
   }
 
   // 2. 確保 Albums 工作表存在（相簿資料庫紀錄）
-  const targetHeaders = ['id', 'category', 'title', 'folderName', 'photoCount', 'coverUrl', 'folderUrl', 'updatedAt', 'coverCandidates'];
+  const targetHeaders = ['id', 'category', 'title', 'folderName', 'photoCount', 'coverUrl', 'folderUrl', 'updatedAt', 'coverCandidates', 'videoCount'];
   let albumsSheet = ss.getSheetByName('Albums');
   if (albumsSheet) {
     const data = albumsSheet.getDataRange().getValues();
