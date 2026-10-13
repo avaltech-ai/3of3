@@ -1533,7 +1533,10 @@ const htmlContent = `<!DOCTYPE html>
           </div>
 
           <!-- 編輯／新增表單卡片 (預設收合或點選新增/編輯時展開) -->
-          <div id="spAdminFormContainer" class="bg-white p-5 rounded-3xl border-2 border-peach-200 shadow-sm space-y-4 hidden">
+          <div id="spAdminFormContainer" class="bg-white p-5 rounded-3xl border-2 border-emerald-200 shadow-sm space-y-4 hidden">
+            <div id="spFormModeBanner" class="px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between gap-2 flex-wrap bg-emerald-50 text-emerald-800 border border-emerald-200">
+              <span id="spFormModeText">➕ 新增焦點活動：儲存後會建立一筆新的焦點活動</span>
+            </div>
             <div class="flex items-center justify-between pb-3 border-b border-slate-100">
               <h4 id="spAdminFormTitle" class="font-black text-slate-800 text-base flex items-center gap-1.5">
                 <span>✏️</span> 編輯焦點活動
@@ -1679,8 +1682,11 @@ const htmlContent = `<!DOCTYPE html>
               <button type="button" onclick="cancelSpotlightEdit()" id="spBtnCancel" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs tap-bounce">
                 取消
               </button>
-              <button type="button" onclick="saveSpotlightSettings()" id="spBtnSave" class="px-5 py-2 rounded-xl bg-peach-500 hover:bg-peach-600 text-white font-bold text-xs shadow-sm tap-bounce flex items-center gap-1.5">
-                <span id="spBtnSaveIcon">💾</span> <span id="spBtnSaveLabel">儲存焦點活動</span>
+              <button type="button" onclick="saveSpotlightSettings(true)" id="spBtnSaveAsNew" class="hidden px-4 py-2 rounded-xl border-2 border-emerald-500 text-emerald-700 bg-white hover:bg-emerald-50 font-bold text-xs tap-bounce">
+                ➕ 另存為新焦點活動
+              </button>
+              <button type="button" onclick="saveSpotlightSettings()" id="spBtnSave" class="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs shadow-sm tap-bounce flex items-center gap-1.5">
+                <span id="spBtnSaveIcon">💾</span> <span id="spBtnSaveLabel">新增這筆焦點活動</span>
               </button>
             </div>
           </div>
@@ -8842,6 +8848,49 @@ const htmlContent = `<!DOCTYPE html>
       setEventFormMode('new');
     }
 
+    // ---------- 後台表單模式共用（新增／編輯既有／以舊資料為範本新增）----------
+    // 與「行事曆活動表單」同一套做法：模式橫幅＋顏色、編輯模式的「更新原…」與「另存為新…」、更新前列出差異並確認、未儲存內容的防呆。
+    const FORM_MODE_COLORS = {
+      new: { card: 'border-2 border-emerald-200', banner: 'bg-emerald-50 text-emerald-800 border-emerald-200', btn: 'bg-emerald-500 hover:bg-emerald-600' },
+      edit: { card: 'border-2 border-amber-400', banner: 'bg-amber-50 text-amber-900 border-amber-300', btn: 'bg-amber-500 hover:bg-amber-600' },
+      copy: { card: 'border-2 border-sky-300', banner: 'bg-sky-50 text-sky-900 border-sky-200', btn: 'bg-sky-500 hover:bg-sky-600' }
+    };
+
+    function formModeRestyle(el, strip, add) {
+      if (!el) return;
+      el.className = el.className.replace(strip, '').replace(/\\s+/g, ' ').trim() + ' ' + add;
+    }
+
+    // cfg：{ card, banner, text, cancel, save, saveLabel, asNew, texts:{new,edit,copy}（函式，回傳橫幅文字）, saveLabels:{new,edit,copy} }（值都是元素 id 或文字）
+    function formModeApply(cfg, mode, nm) {
+      const g = function(id) { return id ? document.getElementById(id) : null; };
+      const th = FORM_MODE_COLORS[mode] || FORM_MODE_COLORS.new;
+      formModeRestyle(g(cfg.card), /\\b(border(-2)?|border-(slate|peach|rose|indigo|fuchsia|teal|emerald|amber|sky)-\\d+)\\b/g, th.card);
+      formModeRestyle(g(cfg.banner), /\\b(bg-(emerald|amber|sky)-50|text-(emerald|amber|sky)-(800|900)|border-(emerald|amber|sky)-\\d+)\\b/g, th.banner);
+      formModeRestyle(g(cfg.save), /\\b(bg-[a-z]+-(500|600|700)|hover:bg-[a-z]+-(600|700)|bg-gradient-to-r|from-[a-z]+-\\d+|to-[a-z]+-\\d+|hover:from-[a-z]+-\\d+|hover:to-[a-z]+-\\d+)\\b/g, th.btn);
+      const text = g(cfg.text); if (text) text.textContent = (cfg.texts[mode] || cfg.texts.new)(nm || '');
+      const cancel = g(cfg.cancel); if (cancel) cancel.classList.toggle('hidden', mode === 'new');
+      const asNew = g(cfg.asNew); if (asNew) asNew.classList.toggle('hidden', mode !== 'edit');
+      const lab = g(cfg.saveLabel || cfg.save); if (lab) lab.textContent = cfg.saveLabels[mode] || cfg.saveLabels.new;
+    }
+
+    // 兩份快照（{欄位: 值}）的差異：fields＝[[欄位, 中文名稱, 是否長文字]]
+    function formFieldDiff(fields, a, b) {
+      a = a || {}; b = b || {};
+      const show = function(s) { s = String(s == null ? '' : s); if (!s) return '（空白）'; return s.length > 30 ? s.slice(0, 30) + '…' : s; };
+      const out = [];
+      fields.forEach(function(p) {
+        if (String(a[p[0]] == null ? '' : a[p[0]]) === String(b[p[0]] == null ? '' : b[p[0]])) return;
+        out.push(p[2] ? { label: p[1], from: '（原內容）', to: '（已修改）' } : { label: p[1], from: show(a[p[0]]), to: show(b[p[0]]) });
+      });
+      return out;
+    }
+
+    function formDiffConfirm(what, name, diffs, saveAsNewLabel) {
+      const lines = diffs.map(function(d) { return '・' + d.label + '：' + d.from + ' → ' + d.to; }).join('\\n');
+      return confirm('即將修改原' + what + '「' + name + '」：\\n\\n' + lines + '\\n\\n確定要更新嗎？' + (saveAsNewLabel ? '\\n（若想保留原內容、另存成新的，請按「取消」，再按「' + saveAsNewLabel + '」）' : ''));
+    }
+
     // ---------- 活動表單的模式（新增／編輯既有／以舊活動為範本新增）----------
     // 表單上方有橫幅與顏色標示目前模式；編輯模式有「更新原活動」與「另存為新活動」兩顆鈕；
     // 有未儲存的內容時，切換到別筆或清空前會先確認；更新原活動前會列出將被修改的欄位。
@@ -10304,7 +10353,49 @@ const htmlContent = `<!DOCTYPE html>
     // 「再次上架」模式：表單由既有焦點活動帶入（新編號、沿用原圖片），結束日尚未填時儲存前會提醒
     let spRelistMode = false;
 
-    function openSpotlightCreateForm() {
+    // ---------- 焦點活動表單的模式（新增／編輯既有／再次上架）----------
+    const spFormState = { mode: 'new', baseId: '', baseTitle: '', baseline: null };
+    const SP_FORM_FIELDS = [['title', '主標題'], ['subtitle', '副標題／時間'], ['mediaType', '媒體類型'], ['imageUrl', '圖片／影片網址'], ['newFile', '圖片／影片檔案'], ['startDate', '開始日期'], ['endDate', '結束日期'], ['duration', '停留秒數'], ['status', '狀態'], ['bulletPoints', '重點說明', true]];
+    const SP_FORM_CFG = {
+      card: 'spAdminFormContainer', banner: 'spFormModeBanner', text: 'spFormModeText', save: 'spBtnSave', saveLabel: 'spBtnSaveLabel', asNew: 'spBtnSaveAsNew',
+      texts: {
+        new: function() { return '➕ 新增焦點活動：儲存後會建立一筆新的焦點活動'; },
+        edit: function(nm) { return '✏️ 正在編輯既有焦點活動「' + nm + '」：按「更新原焦點活動」會修改這筆原本的內容'; },
+        copy: function(nm) { return '🔁 再次上架「' + nm + '」：原焦點活動不會改變，儲存後是新的一筆（請設定新的起訖日期）'; }
+      },
+      saveLabels: { new: '新增這筆焦點活動', edit: '更新原焦點活動', copy: '新增這筆焦點活動' }
+    };
+
+    function spSaveLabel() { return SP_FORM_CFG.saveLabels[spFormState.mode] || SP_FORM_CFG.saveLabels.new; }
+
+    function spFormSnapshot() {
+      const v = function(id) { return (document.getElementById(id) || {}).value || ''; };
+      return { title: v('spForm-title'), subtitle: v('spForm-subtitle'), mediaType: v('spForm-mediaType'), imageUrl: v('spForm-imageUrl'), newFile: spPendingUploadFile ? '已選取新檔案' : '',
+        startDate: v('spForm-startDate'), endDate: v('spForm-endDate'), duration: v('spForm-duration'), status: v('spForm-status'), bulletPoints: v('spForm-bulletPoints') };
+    }
+
+    function spFormVisible() { const c = document.getElementById('spAdminFormContainer'); return !!c && !c.classList.contains('hidden'); }
+
+    function spFormDirty() {
+      if (!spFormVisible()) return false;
+      return formFieldDiff(SP_FORM_FIELDS, spFormState.baseline || {}, spFormSnapshot()).length > 0;
+    }
+
+    function confirmDiscardSpotlight() {
+      if (!spFormDirty()) return true;
+      return confirm('目前表單有尚未儲存的內容，確定要放棄嗎？');
+    }
+
+    function setSpotlightFormMode(mode, sp) {
+      spFormState.mode = mode;
+      spFormState.baseId = sp && sp.id !== undefined ? String(sp.id) : '';
+      spFormState.baseTitle = sp ? String(sp.title || '') : '';
+      formModeApply(SP_FORM_CFG, mode, spFormState.baseTitle);
+      spFormState.baseline = spFormSnapshot();
+    }
+
+    function openSpotlightCreateForm(skipGuard) {
+      if (!skipGuard && !confirmDiscardSpotlight()) return;
       spPendingUploadFile = null;
       spRelistMode = false;
       document.getElementById('spAdminFormTitle').innerHTML = '<span>➕</span> 新增焦點活動';
@@ -10329,14 +10420,16 @@ const htmlContent = `<!DOCTYPE html>
 
       const formBox = document.getElementById('spAdminFormContainer');
       formBox.classList.remove('hidden');
+      setSpotlightFormMode('new');
       formBox.scrollIntoView({ behavior: 'smooth' });
     }
 
     function openSpotlightEditForm(id) {
-      spPendingUploadFile = null;
-      spRelistMode = false;
       const sp = state.spotlights.find(s => String(s.id) === String(id));
       if (!sp) return;
+      if (!confirmDiscardSpotlight()) return;
+      spPendingUploadFile = null;
+      spRelistMode = false;
 
       document.getElementById('spAdminFormTitle').innerHTML = '<span>✏️</span> 編輯焦點活動：' + (sp.title || '');
       document.getElementById('spForm-id').value = sp.id || '';
@@ -10363,6 +10456,7 @@ const htmlContent = `<!DOCTYPE html>
 
       const formBox = document.getElementById('spAdminFormContainer');
       formBox.classList.remove('hidden');
+      setSpotlightFormMode('edit', sp);
       formBox.scrollIntoView({ behavior: 'smooth' });
     }
 
@@ -10378,7 +10472,8 @@ const htmlContent = `<!DOCTYPE html>
     function openSpotlightRelistForm(id) {
       const sp = state.spotlights.find(s => String(s.id) === String(id));
       if (!sp) return;
-      openSpotlightCreateForm();
+      if (!confirmDiscardSpotlight()) return;
+      openSpotlightCreateForm(true);
       const d = spotlightRelistDefaults(sp, getTodayDateStr(), state.spotlights.length);
       document.getElementById('spForm-title').value = d.title;
       document.getElementById('spForm-subtitle').value = d.subtitle;
@@ -10404,14 +10499,22 @@ const htmlContent = `<!DOCTYPE html>
 
       handleMediaTypeChange();
       updateSpPreviewFromUrl();
+      setSpotlightFormMode('copy', sp);
       const endEl = document.getElementById('spForm-endDate');
       if (endEl) { try { endEl.focus({ preventScroll: true }); } catch (e) { endEl.focus(); } }
     }
 
+    // 使用者按「取消」：有未儲存的內容先確認；程式內部（儲存完成後關閉表單）改呼叫 closeSpotlightForm()
     function cancelSpotlightEdit() {
+      if (!confirmDiscardSpotlight()) return;
+      closeSpotlightForm();
+    }
+
+    function closeSpotlightForm() {
       spPendingUploadFile = null;
       spRelistMode = false;
       document.getElementById('spAdminFormContainer').classList.add('hidden');
+      setSpotlightFormMode('new');
     }
 
     function handleMediaTypeChange() {
@@ -10617,7 +10720,8 @@ const htmlContent = `<!DOCTYPE html>
       document.getElementById('activityPickerModal').classList.add('hidden');
     }
 
-    function saveSpotlightSettings() {
+    // forceNew＝true（「另存為新焦點活動」）：一律建立新編號，原活動完全不動
+    function saveSpotlightSettings(forceNew) {
       const title = document.getElementById('spForm-title').value.trim();
       if (!title) {
         alert('請填寫焦點活動主標題！');
@@ -10636,7 +10740,13 @@ const htmlContent = `<!DOCTYPE html>
         }
       }
 
-      const spId = document.getElementById('spForm-id').value || ('SP-' + Date.now());
+      const isUpdate = !forceNew && spFormState.mode === 'edit' && !!document.getElementById('spForm-id').value;
+      if (isUpdate) {
+        const diffs = formFieldDiff(SP_FORM_FIELDS, spFormState.baseline, spFormSnapshot());
+        if (diffs.length === 0) { showToast('沒有任何變更，原焦點活動維持不變', 'ℹ️'); return; }
+        if (!formDiffConfirm('焦點活動', spFormState.baseTitle, diffs, '另存為新焦點活動')) return;
+      }
+      const spId = forceNew ? ('SP-' + Date.now()) : (document.getElementById('spForm-id').value || ('SP-' + Date.now()));
       const spData = {
         id: spId,
         title: title,
@@ -10646,7 +10756,7 @@ const htmlContent = `<!DOCTYPE html>
         startDate: document.getElementById('spForm-startDate').value,
         endDate: document.getElementById('spForm-endDate').value,
         duration: Number(document.getElementById('spForm-duration').value) || 5,
-        priority: spotlightPriorityOrNone(document.getElementById('spForm-priority').value),
+        priority: forceNew ? '' : spotlightPriorityOrNone(document.getElementById('spForm-priority').value),   // 另存為新：順位排最後
         status: document.getElementById('spForm-status').value,
         bulletPoints: document.getElementById('spForm-bulletPoints').value.trim()
       };
@@ -10707,7 +10817,7 @@ const htmlContent = `<!DOCTYPE html>
 
           spPendingUploadFile = null;
           setSpSaveButtonState(false);
-          finalizeSaveSpotlight(spData);
+          finalizeSaveSpotlight(spData, isUpdate);
         }, err => {
           const elapsedSec = ((Date.now() - uploadStartTime) / 1000).toFixed(1);
           completeUploadProgress();
@@ -10719,7 +10829,7 @@ const htmlContent = `<!DOCTYPE html>
 
           spPendingUploadFile = null;
           setSpSaveButtonState(false);
-          finalizeSaveSpotlight(spData);
+          finalizeSaveSpotlight(spData, isUpdate);
         });
       } else {
         // 未選新檔：以原檔為主，不重複上傳檔案
@@ -10727,7 +10837,7 @@ const htmlContent = `<!DOCTYPE html>
         if (spData.imageUrl && spData.imageUrl.startsWith('data:')) {
           spData.imageUrl = '';
         }
-        finalizeSaveSpotlight(spData);
+        finalizeSaveSpotlight(spData, isUpdate);
       }
     }
 
@@ -10848,12 +10958,12 @@ const htmlContent = `<!DOCTYPE html>
       } else {
         if (btn) { btn.disabled = false; btn.classList.remove('opacity-60', 'cursor-not-allowed'); }
         if (icon) icon.textContent = '💾';
-        if (label) label.textContent = '儲存焦點活動';
+        if (label) label.textContent = spSaveLabel();
         if (cancelBtn) { cancelBtn.disabled = false; cancelBtn.classList.remove('opacity-60'); }
       }
     }
 
-    function finalizeSaveSpotlight(spData) {
+    function finalizeSaveSpotlight(spData, isUpdate) {
       const idx = state.spotlights.findIndex(s => String(s.id) === String(spData.id));
       if (idx > -1) {
         state.spotlights[idx] = spData;
@@ -10877,9 +10987,9 @@ const htmlContent = `<!DOCTYPE html>
       currentSpotlightIndex = 0;
       renderSpotlightSection();
       renderAdminSpotlightsList();
-      cancelSpotlightEdit();
+      closeSpotlightForm();
 
-      showToast('焦點活動已成功儲存！', '✅');
+      showToast((isUpdate ? '已更新原焦點活動「' : '已新增焦點活動「') + spData.title + '」', '✅');
 
       // 同步寫入 Google Sheets 資料庫
       setSpSaveButtonState(true, '同步中...');
