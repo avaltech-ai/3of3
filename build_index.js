@@ -961,11 +961,16 @@ const htmlContent = `<!DOCTYPE html>
 
         <!-- 子分頁 1: 行事曆活動管理 -->
         <div id="adminPanel-events" class="admin-panel space-y-4">
-          <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
+          <div id="eventFormCard" class="bg-white p-5 rounded-3xl border-2 border-emerald-200 shadow-sm transition-colors">
             <h4 class="font-black text-slate-800 text-base mb-3 flex items-center justify-between">
               <span>新增／編輯行事曆活動</span>
-              <button onclick="clearEventForm()" class="text-xs text-peach-600 font-bold hover:underline">清空表單</button>
+              <button type="button" onclick="clearEventFormGuarded()" class="text-xs text-peach-600 font-bold hover:underline">清空表單</button>
             </h4>
+            <!-- 模式橫幅：清楚標示現在是「新增」、「編輯既有活動」還是「以舊活動為範本新增」 -->
+            <div id="eventFormModeBanner" class="mb-3 px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between gap-2 flex-wrap bg-emerald-50 text-emerald-800 border border-emerald-200">
+              <span id="eventFormModeText">➕ 新增活動：儲存後會建立一筆新活動</span>
+              <button type="button" id="eventFormCancelEditBtn" onclick="cancelEventEdit()" class="hidden px-2.5 py-1 rounded-lg bg-white/80 hover:bg-white border border-current text-[0.6875rem] font-bold tap-bounce">取消編輯</button>
+            </div>
             <form id="eventForm" onsubmit="event.preventDefault(); handleSaveEvent(event)" class="space-y-3">
               <input type="hidden" id="eventForm-id">
               <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -1023,9 +1028,12 @@ const htmlContent = `<!DOCTYPE html>
                 <label class="block text-xs font-bold text-slate-600 mb-1">活動詳細說明 / 攜帶物品注意事項</label>
                 <textarea id="eventForm-description" rows="4" placeholder="詳細說明、講師介紹或請家長配合攜帶之健保卡等..." class="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-peach-500 focus:outline-none min-h-[5.5rem] leading-relaxed resize-y"></textarea>
               </div>
-              <div class="flex justify-end gap-2 pt-1">
-                <button type="submit" id="saveEventBtn" class="px-5 py-2 rounded-xl bg-peach-500 hover:bg-peach-600 text-white font-bold text-xs shadow-sm tap-bounce">
-                  儲存活動
+              <div class="flex justify-end gap-2 pt-1 flex-wrap">
+                <button type="button" id="saveEventAsNewBtn" onclick="handleSaveEvent(null, true)" class="hidden px-5 py-2 rounded-xl border-2 border-emerald-500 text-emerald-700 bg-white hover:bg-emerald-50 font-bold text-xs tap-bounce">
+                  ➕ 另存為新活動
+                </button>
+                <button type="submit" id="saveEventBtn" class="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs shadow-sm tap-bounce">
+                  ➕ 新增這筆活動
                 </button>
               </div>
             </form>
@@ -8738,11 +8746,14 @@ const htmlContent = `<!DOCTYPE html>
     }
 
     // 後台行事曆管理
-    function handleSaveEvent(e) {
+    // forceNew＝true（「另存為新活動」）：一律建立新編號，原活動完全不動
+    function handleSaveEvent(e, forceNew) {
       if (e && typeof e.preventDefault === 'function') e.preventDefault();
-      const evId = document.getElementById('eventForm-id').value;
+      const evId = forceNew ? '' : document.getElementById('eventForm-id').value;
       const existing = evId ? state.events.find(x => x.id === evId) : null;
-      const themeVal = existing && existing.theme ? existing.theme : '主題活動：人與自己／人與他人概念';
+      // 範本（編輯中的原活動，或「複製」的來源）：沿用它的主題欄位
+      const baseEvent = existing || (eventFormState.baseId ? state.events.find(x => x.id === eventFormState.baseId) : null);
+      const themeVal = baseEvent && baseEvent.theme ? baseEvent.theme : '主題活動：人與自己／人與他人概念';
 
       const catMajorInput = (document.getElementById('eventForm-categoryMajor').value || '').trim();
       const catMinorInput = (document.getElementById('eventForm-categoryMinor').value || '').trim();
@@ -8775,6 +8786,18 @@ const htmlContent = `<!DOCTYPE html>
         return;
       }
 
+      // 更新既有活動：先列出「哪些欄位會被改掉」讓使用者確認；沒有任何改動就不送出
+      const isUpdate = !!existing;
+      if (isUpdate) {
+        const diffs = eventFormDiff(eventFormState.baseline, eventFormSnapshot());
+        if (diffs.length === 0) {
+          showToast('沒有任何變更，原活動維持不變', 'ℹ️');
+          return;
+        }
+        const lines = diffs.map(function(d) { return '・' + d.label + '：' + d.from + ' → ' + d.to; }).join('\\n');
+        if (!confirm('即將修改原活動「' + (existing.title || '') + '」：\\n\\n' + lines + '\\n\\n確定要更新嗎？\\n（若想保留原活動、另存成新的，請按「取消」，再按「另存為新活動」）')) return;
+      }
+
       showToast('儲存中...', '⏳');
 
       // 立即更新本機 state 與 localStorage
@@ -8795,7 +8818,7 @@ const htmlContent = `<!DOCTYPE html>
 
       callBackend('saveEvent', { data: eventData, password: state.adminPassword }, res => {
         if (res && res.success) {
-          showToast(res.message || '活動已成功儲存！', '✅');
+          showToast((isUpdate ? '已更新原活動「' : '已新增活動「') + eventData.title + '」', '✅');
           loadAppData();
         } else {
           showToast('活動已套用於前台！', '✅');
@@ -8816,12 +8839,114 @@ const htmlContent = `<!DOCTYPE html>
       document.getElementById('eventForm-categoryMinor').value = '';
       document.getElementById('eventForm-timeLocation').value = '';
       document.getElementById('eventForm-description').value = '';
-      document.getElementById('saveEventBtn').textContent = '儲存活動';
+      setEventFormMode('new');
+    }
+
+    // ---------- 活動表單的模式（新增／編輯既有／以舊活動為範本新增）----------
+    // 表單上方有橫幅與顏色標示目前模式；編輯模式有「更新原活動」與「另存為新活動」兩顆鈕；
+    // 有未儲存的內容時，切換到別筆或清空前會先確認；更新原活動前會列出將被修改的欄位。
+    const eventFormState = { mode: 'new', baseId: '', baseTitle: '', baseDate: '', baseline: null };
+    const EVENT_FORM_FIELDS = [['date', '日期'], ['endDate', '結束日期'], ['title', '活動名稱'], ['calendarPrompt', '行事曆提示'], ['target', '適用對象'], ['categoryMajor', '類別（大項）'], ['categoryMinor', '類別（細項）'], ['timeLocation', '時間／地點'], ['description', '詳細說明']];
+
+    function eventFormSnapshot() {
+      const v = id => (document.getElementById(id) || {}).value || '';
+      return {
+        date: v('eventForm-date'), endDate: v('eventForm-endDate'), title: v('eventForm-title'), calendarPrompt: v('eventForm-calendarPrompt'),
+        target: String(getCheckedValues('eventForm-target') || ''), categoryMajor: v('eventForm-categoryMajor'), categoryMinor: v('eventForm-categoryMinor'),
+        timeLocation: v('eventForm-timeLocation'), description: v('eventForm-description')
+      };
+    }
+
+    function eventFormDiff(a, b) {
+      a = a || {}; b = b || {};
+      const show = function(s) { s = String(s || ''); if (!s) return '（空白）'; return s.length > 30 ? s.slice(0, 30) + '…' : s; };
+      const out = [];
+      EVENT_FORM_FIELDS.forEach(function(p) {
+        const k = p[0];
+        if (String(a[k] || '') === String(b[k] || '')) return;
+        if (k === 'description') out.push({ label: p[1], from: '（原內容）', to: '（已修改）' });
+        else out.push({ label: p[1], from: show(a[k]), to: show(b[k]) });
+      });
+      return out;
+    }
+
+    function eventFormDirty() {
+      const base = eventFormState.baseline || { date: '', endDate: '', title: '', calendarPrompt: '', target: '', categoryMajor: '', categoryMinor: '', timeLocation: '', description: '' };
+      return eventFormDiff(base, eventFormSnapshot()).length > 0;
+    }
+
+    // 目前表單有尚未儲存的內容時，詢問是否放棄；沒有就直接放行
+    function confirmDiscardEventForm() {
+      if (!eventFormDirty()) return true;
+      return confirm('目前表單有尚未儲存的內容，確定要放棄嗎？');
+    }
+
+    function setEventFormMode(mode, ev) {
+      eventFormState.mode = mode;
+      eventFormState.baseId = (ev && ev.id) ? String(ev.id) : '';
+      eventFormState.baseTitle = ev ? String(ev.title || '') : '';
+      eventFormState.baseDate = ev ? normalizeDate(ev.date) : '';
+      const card = document.getElementById('eventFormCard'), banner = document.getElementById('eventFormModeBanner');
+      const text = document.getElementById('eventFormModeText'), cancelBtn = document.getElementById('eventFormCancelEditBtn');
+      const saveBtn = document.getElementById('saveEventBtn'), asNewBtn = document.getElementById('saveEventAsNewBtn');
+      const THEME = {
+        new: { card: 'border-emerald-200', banner: 'bg-emerald-50 text-emerald-800 border-emerald-200', btn: 'bg-emerald-500 hover:bg-emerald-600' },
+        edit: { card: 'border-amber-400', banner: 'bg-amber-50 text-amber-900 border-amber-300', btn: 'bg-amber-500 hover:bg-amber-600' },
+        copy: { card: 'border-sky-300', banner: 'bg-sky-50 text-sky-900 border-sky-200', btn: 'bg-sky-500 hover:bg-sky-600' }
+      };
+      const th = THEME[mode] || THEME.new;
+      const strip = function(el, cls) { if (el) el.className = el.className.replace(/\\b(border-(emerald|amber|sky)-\\d+|bg-(emerald|amber|sky)-(50|500|600)|hover:bg-(emerald|amber|sky)-600|text-(emerald|amber|sky)-(800|900))\\b/g, '').replace(/\\s+/g, ' ').trim() + ' ' + cls; };
+      strip(card, th.card);
+      strip(banner, th.banner);
+      strip(saveBtn, th.btn);
+      if (text) {
+        const nm = '「' + eventFormState.baseTitle + '」' + (eventFormState.baseDate ? '（' + eventFormState.baseDate + '）' : '');
+        text.textContent = mode === 'edit' ? ('✏️ 正在編輯既有活動 ' + nm + '：按「更新原活動」會修改這筆原本的內容')
+          : (mode === 'copy' ? ('📄 以 ' + nm + ' 為範本新增：原活動不會改變，請先選好新的日期')
+          : '➕ 新增活動：儲存後會建立一筆新活動');
+      }
+      if (cancelBtn) cancelBtn.classList.toggle('hidden', mode === 'new');
+      if (asNewBtn) asNewBtn.classList.toggle('hidden', mode !== 'edit');
+      if (saveBtn) saveBtn.textContent = mode === 'edit' ? '💾 更新原活動' : '➕ 新增這筆活動';
+      eventFormState.baseline = eventFormSnapshot();
+      try { renderAdminEventsTable(); } catch (e) {}
+    }
+
+    function cancelEventEdit() {
+      if (!confirmDiscardEventForm()) return;
+      clearEventForm();
+    }
+
+    function clearEventFormGuarded() {
+      if (!confirmDiscardEventForm()) return;
+      clearEventForm();
+    }
+
+    // 以舊活動為範本新增：帶入內容但沒有編號（存檔一定是新的一筆）；日期與結束日期清空，強迫重選
+    function copyEventInAdmin(id) {
+      const ev = state.events.find(x => x.id === id);
+      if (!ev) return;
+      if (!confirmDiscardEventForm()) return;
+      fillEventForm(ev);
+      document.getElementById('eventForm-id').value = '';
+      document.getElementById('eventForm-date').value = '';
+      document.getElementById('eventForm-endDate').value = '';
+      setEventFormMode('copy', ev);
+      window.scrollTo({ top: 100, behavior: 'smooth' });
+      try { document.getElementById('eventForm-date').focus(); } catch (e) {}
     }
 
     function editEventInAdmin(id) {
       const ev = state.events.find(x => x.id === id);
       if (!ev) return;
+      if (!confirmDiscardEventForm()) return;
+      fillEventForm(ev);
+      document.getElementById('eventForm-id').value = ev.id;
+      setEventFormMode('edit', ev);
+      window.scrollTo({ top: 100, behavior: 'smooth' });
+    }
+
+    function fillEventForm(ev) {
 
       // 確保下拉選項完整載入（含大項、細項、對象）
       renderEventOptionsUI();
@@ -8841,8 +8966,6 @@ const htmlContent = `<!DOCTYPE html>
 
       document.getElementById('eventForm-timeLocation').value = ev.timeLocation || ev['時間地點'] || '';
       document.getElementById('eventForm-description').value = ev.description || ev['詳細說明'] || '';
-      document.getElementById('saveEventBtn').textContent = '更新此活動';
-      window.scrollTo({ top: 100, behavior: 'smooth' });
     }
 
     function deleteEventInAdmin(id) {
@@ -9219,7 +9342,7 @@ const htmlContent = `<!DOCTYPE html>
         const catMajorStr = ev.categoryMajor || ev['活動類別 (大項)'] || ev.category || '';
         const catMinorStr = ev.categoryMinor || ev['活動類別 (細項)'] || '';
         html += \`
-          <tr class="hover:bg-slate-50">
+          <tr class="\${(eventFormState.mode === 'edit' && eventFormState.baseId === String(ev.id)) ? 'bg-amber-50 ring-1 ring-amber-300' : 'hover:bg-slate-50'}">
             <td class="py-2 px-2 font-mono">\${esc(normalizeDate(ev.date))}</td>
             <td class="py-2 px-2 font-bold text-slate-800">
               <div class="flex items-center gap-1.5 flex-wrap">
@@ -9231,6 +9354,7 @@ const htmlContent = `<!DOCTYPE html>
             <td class="py-2 px-2"><div class="flex items-center gap-1 flex-wrap">\${renderTargetBadges(ev.target, 'sm')}</div></td>
             <td class="py-2 px-2 text-right space-x-1">
               <button onclick="editEventInAdmin('\${jsq(ev.id)}')" class="text-peach-600 hover:underline font-bold">編輯</button>
+              <button onclick="copyEventInAdmin('\${jsq(ev.id)}')" class="text-sky-600 hover:underline font-bold" title="帶入這筆的內容新增一筆新活動（原活動不會改變）">複製</button>
               <button onclick="deleteEventInAdmin('\${jsq(ev.id)}')" class="text-rose-500 hover:underline">刪除</button>
             </td>
           </tr>
