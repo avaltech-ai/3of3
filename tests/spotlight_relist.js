@@ -33,7 +33,7 @@
 
   // A. 按鈕
   const btns = [...document.querySelectorAll('.sp-relist-btn')];
-  ok(btns.length === 4 && btns.every(b => /再次上架/.test(b.textContent)), '後台焦點列表：每一筆都有「🔁 再次上架」按鈕（共 4 筆）');
+  ok(btns.length === 4 && btns.every(b => b.getAttribute('aria-label') === '再次上架' && /再次上架/.test(b.title) && b.querySelector('svg') && b.textContent.trim() === ''), '後台焦點列表：每一筆都有「再次上架」圖示按鈕（循環箭頭，提示文字與 aria-label 為「再次上架」，共 4 筆；2026-10-13 起改為純圖示）');
   const oldCard = btns.map(b => b.closest('div.p-3\\.5, div[class*="rounded-2xl"]')).find(c => c && c.textContent.indexOf('牙齒塗氟日') >= 0);
   ok(!!oldCard && oldCard.textContent.indexOf('已過期下架') >= 0, '已過期的活動在列表中顯示「已過期下架」且有按鈕');
   ok(!!oldCard.querySelector('.sp-edit-btn') && !!oldCard.querySelector('.sp-del-btn'), '原有的「編輯」「刪除」按鈕仍在');

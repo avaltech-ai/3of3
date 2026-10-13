@@ -38,7 +38,7 @@
   ok($('eventForm-id').value === 'E1' && $('eventForm-title').value === '十月份幸福廚房' && $('eventForm-date').value === '2026-10-07', '表單帶入原活動內容與編號');
   const rows = rowsT(); ok(rows.length === 2 && cls(rows[0], 'bg-amber-50') !== cls(rows[1], 'bg-amber-50'), '列表：只有一筆被標示為編輯中（橘底）');
   ok(rowsT().filter(r => /十月份幸福廚房/.test(r.textContent))[0].className.indexOf('bg-amber-50') >= 0, '被標示的就是 E1（十月份幸福廚房）');
-  ok(rowsT().every(r => [...r.querySelectorAll('button')].map(b => b.textContent.trim()).join() === '編輯,複製,刪除'), '列表每一筆的操作：編輯、複製、刪除');
+  ok(rowsT().every(r => [...r.querySelectorAll('button')].map(b => b.getAttribute('data-act')).join() === 'edit,copy,del'), '列表每一筆的操作（純圖示）：編輯、複製、刪除');
 
   // C. 沒有變更
   handleSaveEvent(null); ok(cbs.length === 0 && confirms.length === 0 && /沒有任何變更/.test(toasts[toasts.length - 1]) && state.events[0].title === '十月份幸福廚房', '編輯後沒改任何東西就按「更新原活動」：提示「沒有任何變更」，不確認、不送出');
