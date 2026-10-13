@@ -2195,6 +2195,7 @@ function getAlbums() {
 /**
  * 取得特定相簿內的所有相片
  */
+const ALBUM_LIST_VERSION = 2;           // 相簿清單格式版本：2＝含影片（v:1）並依建立時間排序；舊快取（沒有 v）視為過期、自動重建
 const ALBUM_PHOTOS_TTL_SEC = 3600;      // 相簿照片清單快取 1 小時（寫入時會清除；預熱觸發器會補建）
 const ALBUM_PHOTOS_CACHE_MAX = 90000;  // CacheService 單筆上限 100KB，超過就不快取（仍可正常回傳）
 
@@ -2221,13 +2222,47 @@ function isRegisteredAlbumId_(id) {
   }
 }
 
+// 檔案建立時間（毫秒）；讀不到就當 0（排最前面，之後仍會用檔名排序）
+function albumFileTime_(file) {
+  try {
+    const d = file.getDateCreated();
+    const t = d && d.getTime ? d.getTime() : Number(d);
+    return isFinite(t) ? t : 0;
+  } catch (e) {
+    return 0;
+  }
+}
+
+// 相簿項目排序：建立時間由舊到新（_t，毫秒）；時間相同再依檔名（不分大小寫、數字依大小：IMG_2 在 IMG_10 前）；仍相同依 id 保持穩定。就地排序並回傳。
+function sortAlbumItems_(items) {
+  return items.sort(function(a, b) {
+    const ta = Number(a._t) || 0, tb = Number(b._t) || 0;
+    if (ta !== tb) return ta < tb ? -1 : 1;
+    const na = String(a.name || '').toLowerCase(), nb = String(b.name || '').toLowerCase();
+    if (na !== nb) {
+      const m = na.split(/(\d+)/), n = nb.split(/(\d+)/);
+      for (let i = 0; i < Math.min(m.length, n.length); i++) {
+        if (m[i] === n[i]) continue;
+        if (i % 2 === 1) { const x = Number(m[i]), y = Number(n[i]); if (x !== y) return x < y ? -1 : 1; }
+        return m[i] < n[i] ? -1 : 1;
+      }
+      return m.length - n.length;
+    }
+    const ia = String(a.id || ''), ib = String(b.id || '');
+    return ia < ib ? -1 : (ia > ib ? 1 : 0);
+  });
+}
+
 function getAlbumPhotos(albumFolderId) {
   const idStr = String(albumFolderId || '').trim();
   const cacheKey = /^[A-Za-z0-9_-]{10,100}$/.test(idStr) ? 'albph_' + idStr : null;
   if (cacheKey) {
     try {
       const hit = CacheService.getScriptCache().get(cacheKey);
-      if (hit) return JSON.parse(hit); // 只有通過下面登記檢查的相簿才會進快取
+      if (hit) {
+        const parsed = JSON.parse(hit); // 只有通過下面登記檢查的相簿才會進快取
+        if (parsed && parsed.v === ALBUM_LIST_VERSION) return parsed; // 舊格式（沒有影片、沒排序）的快取直接略過、重建
+      }
     } catch (e) {}
   }
   if (!cacheKey || !isRegisteredAlbumId_(idStr)) {
@@ -2239,21 +2274,30 @@ function getAlbumPhotos(albumFolderId) {
     const files = folder.getFiles();
     const photos = [];
 
-    // 只回傳 id／name／size（網址由前端用 id 組出；470 張相簿回應由約 227KB 縮到約 45KB，也才放得進快取）
+    // 只回傳 id／name／size（網址由前端用 id 組出；470 張相簿回應由約 227KB 縮到約 45KB，也才放得進快取）。
+    // 照片與影片混在同一份清單：影片多一個 v:1；順序由後端依「檔案建立時間（上傳到 Drive 的時間）」排好，時間相同再比檔名，
+    // 建立時間只用來排序、不放進回應（省空間）。
     while (files.hasNext()) {
       const file = files.next();
-      const mime = file.getMimeType();
-      if (mime.indexOf('image/') === 0) {
-        photos.push({
+      const mime = String(file.getMimeType() || '');
+      const isImg = mime.indexOf('image/') === 0, isVid = mime.indexOf('video/') === 0;
+      if (isImg || isVid) {
+        const item = {
           id: file.getId(),
           name: file.getName(),
-          size: file.getSize()
-        });
+          size: file.getSize(),
+          _t: albumFileTime_(file)
+        };
+        if (isVid) item.v = 1;
+        photos.push(item);
       }
     }
+    sortAlbumItems_(photos);
+    photos.forEach(function(it) { delete it._t; });
 
     const result = {
       success: true,
+      v: ALBUM_LIST_VERSION,
       folderName: folder.getName(),
       photos: photos
     };

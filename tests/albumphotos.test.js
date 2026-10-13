@@ -1,15 +1,16 @@
-// 相簿照片清單快取測試：只回 {id,name,size}、命中快取不碰 Drive、寫入時清除、過大不快取、預熱限量。
+// 相簿照片清單快取測試：只回 {id,name,size}（影片多 v:1）、照片與影片混排並依建立時間排序（相同再比檔名）、命中快取不碰 Drive、舊格式快取失效、寫入時清除、過大不快取、預熱限量。
 // 執行：node tests/albumphotos.test.js
 const fs=require('fs'), vm=require('vm');
 const src=fs.readFileSync(require('path').join(__dirname,'..','Code.js'),'utf8');
 let pass=0, fail=0; const ok=(c,m)=>{ if(c){pass++;console.log('  ✓',m)} else {fail++;console.log('  ✗ FAIL:',m)} };
 
+const TIMING={}; // 測試可覆寫：name(i)、mime(i)、time(i)（毫秒；Error＝讀取失敗）
 function env(photoCounts, registered, sheetRows){ // photoCounts: {folderId: 張數}；registered：登記在 getAppData 快取的相簿 ID（預設＝photoCounts 的所有 ID）；sheetRows：Albums 工作表 id 欄
   const store={}; let driveCalls=0;
   if(registered===undefined) registered=Object.keys(photoCounts);
   if(sheetRows===undefined) sheetRows=Object.keys(photoCounts); // 預設：getAppData 快取與 Albums 工作表都登記了這些相簿
   const cache={get:k=>k in store?store[k]:null,put:(k,v)=>{store[k]=v},remove:k=>{delete store[k]},removeAll:ks=>ks.forEach(k=>delete store[k])};
-  const mkFile=(i)=>({getId:()=>'F'+String(i).padStart(30,'0'),getName:()=>'IMG_'+i+'.jpg',getSize:()=>1234567,getMimeType:()=>i%50===49?'video/mp4':'image/jpeg'});
+  const mkFile=(i)=>({getId:()=>'F'+String(i).padStart(30,'0'),getName:()=>(TIMING.name?TIMING.name(i):'IMG_'+i+'.jpg'),getSize:()=>1234567,getMimeType:()=>(TIMING.mime?TIMING.mime(i):(i%50===49?'video/mp4':'image/jpeg')),getDateCreated:()=>{ const t=TIMING.time?TIMING.time(i):1700000000000+i*1000; if(t===Error) throw new Error('no time'); return new Date(t);}});
   const ctx={console:{log(){},warn(){},error(){}},CacheService:{getScriptCache:()=>cache},
     DriveApp:{getFolderById:id=>{driveCalls++; if(!(id in photoCounts)) throw new Error('Invalid folder'); let i=0;const n=photoCounts[id];
       return {getName:()=>'相簿'+id.slice(0,4),getFiles:()=>({hasNext:()=>i<n,next:()=>mkFile(i++)})};}},
@@ -24,13 +25,16 @@ const A='AAAAAAAAAAAAAAAAAAAA', B='BBBBBBBBBBBBBBBBBBBB', C='CCCCCCCCCCCCCCCCCCC
 
 console.log('A. 回傳內容縮小');
 let e=env({[A]:100}); let r=e.ctx.getAlbumPhotos(A);
-ok(r.success && r.photos.length===98,'只列出圖片（100 個檔案含 2 部影片 → 98 張）');
-ok(Object.keys(r.photos[0]).sort().join()==='id,name,size','每張只含 id／name／size（沒有長網址）');
+ok(r.success && r.photos.length===100,'照片與影片都列出（100 個檔案含 2 部影片 → 100 項）');
+ok(r.photos.filter(x=>x.v===1).length===2 && r.photos.filter(x=>x.v===undefined).length===98,'影片多一個 v:1，照片沒有（98 張＋2 部影片）');
+ok(Object.keys(r.photos[0]).sort().join()==='id,name,size','照片只含 id／name／size（沒有長網址）');
+ok(Object.keys(r.photos.find(x=>x.v)).sort().join()==='id,name,size,v','影片只多 v（沒有長網址）');
+ok(r.photos.every(x=>!('_t' in x)) && r.v===2,'建立時間只用來排序、不放進回應；回應帶版本 v:2');
 
 console.log('B. 快取命中不碰 Drive');
 e.ctx.getAlbumPhotos(A); e.ctx.getAlbumPhotos(A);
 ok(e.drive()===1,'同一本相簿讀三次，只呼叫 Drive 1 次（實際：'+e.drive()+'）');
-ok(e.ctx.getAlbumPhotos(A).photos.length===98,'命中快取的內容與第一次相同');
+ok(e.ctx.getAlbumPhotos(A).photos.length===100,'命中快取的內容與第一次相同');
 
 console.log('C. 寫入（清快取）後重新讀取');
 e.ctx.clearAppDataCache(); e.ctx.getAlbumPhotos(A);
@@ -65,5 +69,26 @@ e=env({[A]:5},null,Error); ok(e.ctx.getAlbumPhotos(A).success===false && e.drive
 const rows=[A]; e=env({[A]:5},[A],rows); e.ctx.getAlbumPhotos(A); rows.length=0; e.ctx.clearAppDataCache();
 ok(e.ctx.getAlbumPhotos(A).success===false,'相簿被刪除並清快取後：不再能列出');
 e=env({[A]:5},[A]); ok(e.ctx.getAlbumPhotos(' '+A+' ').success===true,'ID 前後有空白：照常處理（trim）');
+
+console.log('G. 排序：建立時間由舊到新，相同再比檔名');
+const mk=(arr)=>{ TIMING.name=i=>arr[i].n; TIMING.time=i=>arr[i].t; TIMING.mime=i=>arr[i].m||'image/jpeg'; const e=env({[A]:arr.length}); const r=e.ctx.getAlbumPhotos(A); Object.keys(TIMING).forEach(k=>delete TIMING[k]); return r.photos.map(x=>x.name).join(','); };
+ok(mk([{n:'c.jpg',t:3000},{n:'a.jpg',t:1000},{n:'b.mov',t:2000,m:'video/quicktime'}])==='a.jpg,b.mov,c.jpg','照片與影片混排：依建立時間（a→b.mov→c）');
+ok(mk([{n:'b.jpg',t:5},{n:'a.jpg',t:5},{n:'c.mp4',t:5,m:'video/mp4'}])==='a.jpg,b.jpg,c.mp4','時間相同：依檔名');
+ok(mk([{n:'IMG_10.jpg',t:5},{n:'IMG_2.jpg',t:5},{n:'IMG_1.jpg',t:5}])==='IMG_1.jpg,IMG_2.jpg,IMG_10.jpg','時間相同：檔名中的數字依大小（2 在 10 前）');
+ok(mk([{n:'B.jpg',t:5},{n:'a.jpg',t:5}])==='a.jpg,B.jpg','時間相同：檔名不分大小寫');
+ok(mk([{n:'late.mp4',t:9000,m:'video/mp4'},{n:'p1.jpg',t:1000},{n:'p2.jpg',t:2000}])==='p1.jpg,p2.jpg,late.mp4','後來補放的影片排在較早放的照片後面');
+ok(mk([{n:'x.jpg',t:2000},{n:'y.jpg',t:Error},{n:'a.jpg',t:Error}])==='a.jpg,y.jpg,x.jpg','讀不到建立時間：視為最早、仍依檔名，不出錯');
+ok(mk([{n:'a.pdf',t:1,m:'application/pdf'},{n:'b.jpg',t:2},{n:'c.txt',t:3,m:'text/plain'},{n:'d.mp4',t:4,m:'video/mp4'}])==='b.jpg,d.mp4','其他檔案（PDF、文字）不列入');
+ok(mk([])==='','空相簿：回傳空清單');
+const same=[{n:'same.jpg',t:5},{n:'same.jpg',t:5}]; TIMING.name=i=>same[i].n; TIMING.time=i=>same[i].t;
+{ const ee=env({[A]:2}); const r1=ee.ctx.getAlbumPhotos(A).photos.map(x=>x.id).join(); const ee2=env({[A]:2}); const r2=ee2.ctx.getAlbumPhotos(A).photos.map(x=>x.id).join(); ok(r1===r2 && r1.indexOf('F')===0,'時間與檔名都相同：依 id 排，結果穩定'); }
+Object.keys(TIMING).forEach(k=>delete TIMING[k]);
+
+console.log('H. 舊格式快取失效');
+e=env({[A]:5}); e.store['albph_'+A]=JSON.stringify({success:true,folderName:'舊',photos:[{id:'OLDOLDOLDOLDOLD',name:'old.jpg',size:1}]});
+r=e.ctx.getAlbumPhotos(A);
+ok(r.v===2 && r.photos.length===5 && e.drive()===1,'快取裡是舊格式（沒有 v）：略過、重新向 Drive 讀取（Drive 呼叫：'+e.drive()+'）');
+e.ctx.getAlbumPhotos(A); ok(e.drive()===1,'重建後的新格式快取：命中，不再讀 Drive');
+e=env({[A]:5}); e.store['albph_'+A]='not json'; r=e.ctx.getAlbumPhotos(A); ok(r.success===true && r.v===2,'快取內容損毀：略過、重建');
 
 console.log('\n結果：'+pass+' 通過，'+fail+' 失敗'); process.exit(fail?1:0);

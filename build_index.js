@@ -2072,6 +2072,8 @@ const htmlContent = `<!DOCTYPE html>
 
       <!-- 核心大圖 -->
       <img id="photoViewerImg" src="" alt="相簿照片" class="max-w-full max-h-full object-contain rounded-2xl shadow-2xl transition-opacity duration-200" data-i18n-alt="ui.viewerAlt">
+      <!-- 影片：Google 雲端硬碟內建播放器（內嵌預覽）；一般相片時隱藏 -->
+      <iframe id="photoViewerVideo" src="about:blank" class="hidden w-full max-w-5xl h-full max-h-full rounded-2xl bg-black border-0 shadow-2xl" allow="autoplay; fullscreen" allowfullscreen title="影片"></iframe>
 
       <!-- 下一張按鈕 -->
       <button id="photoViewerNextBtn" onclick="navigatePhoto(1)" class="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-white/20 hover:bg-white/35 active:scale-95 text-white flex items-center justify-center font-black text-xl sm:text-2xl backdrop-blur-md transition-all z-20 shadow-lg tap-bounce" title="下一張 (鍵盤 → 鍵)" data-i18n-title="ui.viewerNext">
@@ -2082,6 +2084,7 @@ const htmlContent = `<!DOCTYPE html>
     <!-- 底部照片標題列 -->
     <div class="w-full max-w-2xl text-center z-20 shrink-0 pt-2 pb-1">
       <div id="photoViewerTitle" class="text-xs sm:text-sm font-medium text-white/80 truncate px-4"></div>
+      <a id="photoViewerDriveLink" href="#" target="_blank" rel="noopener noreferrer" class="hidden inline-block mt-1 text-[0.6875rem] font-bold text-teal-300 hover:text-teal-200 underline underline-offset-2" data-i18n="ui.viewerOpenDrive">影片無法播放？在 Google 雲端硬碟開啟 ↗</a>
     </div>
   </div>
 
@@ -2391,6 +2394,9 @@ const htmlContent = `<!DOCTYPE html>
           calDotImportant: "重要活動",
           albumPhotoCount: "{n} 張",
           albumPhotosTotal: "（共 {n} 張）",
+          albumPhotosTotalMixed: "（共 {n} 張・{m} 部影片）",
+          photoClickPlay: "點擊播放影片",
+          viewerOpenDrive: "影片無法播放？在 Google 雲端硬碟開啟 ↗",
           albumModalDefault: "相簿照片",
           albumDefaultTitle: "活動相簿",
           albumDefaultCategory: "活動記錄",
@@ -2631,6 +2637,9 @@ const htmlContent = `<!DOCTYPE html>
           calDotImportant: "Important event",
           albumPhotoCount: "{n} photos",
           albumPhotosTotal: "({n} photos)",
+          albumPhotosTotalMixed: "({n} photos, {m} videos)",
+          photoClickPlay: "Click to play video",
+          viewerOpenDrive: "Video won't play? Open in Google Drive ↗",
           albumModalDefault: "Album Photos",
           albumDefaultTitle: "Photo Album",
           albumDefaultCategory: "Activities",
@@ -6352,6 +6361,8 @@ const htmlContent = `<!DOCTYPE html>
       }).map(function(p) {
         const id = p.id;
         return Object.assign({}, p, {
+          isVideo: p.v === 1,
+          embedUrl: 'https://drive.google.com/file/d/' + id + '/preview',
           thumbnailUrl: p.thumbnailUrl || ('https://drive.google.com/thumbnail?id=' + id + '&sz=' + THUMB_WIDTH),
           viewUrl: p.viewUrl || ('https://drive.google.com/thumbnail?id=' + id + '&sz=w2048'),
           driveViewUrl: p.driveViewUrl || ('https://drive.google.com/file/d/' + id + '/view'),
@@ -6412,7 +6423,10 @@ const htmlContent = `<!DOCTYPE html>
       }
 
       const countBadge = document.getElementById('modalAlbumCount');
-      if (countBadge) countBadge.textContent = t('ui.albumPhotosTotal', { n: photos.length });
+      if (countBadge) {
+        const vids = photos.filter(function(p) { return p.isVideo; }).length;
+        countBadge.textContent = vids > 0 ? t('ui.albumPhotosTotalMixed', { n: photos.length - vids, m: vids }) : t('ui.albumPhotosTotal', { n: photos.length });
+      }
 
       const ALBUM_FIRST_BATCH = 18; // 第一批縮圖（約第一個畫面）立即載入並顯示真實進度，其餘隨捲動才載入
       const cells = [];
@@ -6420,9 +6434,11 @@ const htmlContent = `<!DOCTYPE html>
         const thumbUrl = getPhotoDisplayUrl(p, false);
         cells.push(\`
           <div class="aspect-square rounded-2xl overflow-hidden bg-slate-100 group relative cursor-pointer tap-bounce border border-slate-200/80 shadow-xs" style="aspect-ratio: 1 / 1;" onclick="openPhotoViewerByIndex(\${idx})">
-            <img src="\${escUrl(thumbUrl)}" alt="\${esc(p.name || t('ui.photoAlt'))}" loading="\${idx < ALBUM_FIRST_BATCH ? 'eager' : 'lazy'}" class="w-full h-full object-cover transition-transform group-hover:scale-105 duration-200">
+            \${p.isVideo ? '<div class="absolute inset-0 flex items-center justify-center text-3xl text-slate-400 select-none">🎬</div>' : ''}
+            <img src="\${escUrl(thumbUrl)}" alt="\${esc(p.name || t('ui.photoAlt'))}" loading="\${idx < ALBUM_FIRST_BATCH ? 'eager' : 'lazy'}" class="relative w-full h-full object-cover transition-transform group-hover:scale-105 duration-200"\${p.isVideo ? ' onerror="this.style.visibility=\\'hidden\\'"' : ''}>
+            \${p.isVideo ? '<div class="absolute bottom-1.5 right-1.5 w-7 h-7 rounded-full bg-black/60 text-white text-[0.625rem] flex items-center justify-center pointer-events-none shadow">▶</div>' : ''}
             <div class="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-xs font-bold gap-1 p-2 text-center">
-              <span>\${esc(t('ui.photoClickEnlarge'))}</span>
+              <span>\${esc(p.isVideo ? t('ui.photoClickPlay') : t('ui.photoClickEnlarge'))}</span>
               <span class="text-[0.625rem] opacity-80 truncate w-full max-w-[90%]">\${esc(p.name || '')}</span>
             </div>
           </div>
@@ -6486,8 +6502,12 @@ const htmlContent = `<!DOCTYPE html>
       const spinnerEl = document.getElementById('photoViewerSpinner');
       if (spinnerEl) spinnerEl.classList.remove('hidden');
 
+      setPhotoViewerVideoMode(p);
+
       const imgEl = document.getElementById('photoViewerImg');
-      if (imgEl) {
+      if (imgEl && p.isVideo) {
+        imgEl.onload = null; imgEl.onerror = null;
+      } else if (imgEl) {
         imgEl.style.opacity = '0';
         imgEl.onload = () => {
           if (spinnerEl) spinnerEl.classList.add('hidden');
@@ -6520,6 +6540,31 @@ const htmlContent = `<!DOCTYPE html>
       document.getElementById('photoViewerModal').classList.remove('hidden');
     }
 
+    // 影片：顯示 Drive 內建播放器、隱藏相片、顯示備用連結、停止幻燈片自動播放（無法得知影片長度）；相片：還原
+    function setPhotoViewerVideoMode(p) {
+      const isVideo = !!(p && p.isVideo);
+      const imgEl = document.getElementById('photoViewerImg'), frame = document.getElementById('photoViewerVideo');
+      const link = document.getElementById('photoViewerDriveLink'), auto = document.getElementById('photoAutoPlayBtn');
+      const spinnerEl = document.getElementById('photoViewerSpinner');
+      if (isVideo) stopPhotoAutoPlay();
+      if (imgEl) imgEl.classList.toggle('hidden', isVideo);
+      if (auto) auto.classList.toggle('hidden', isVideo);
+      if (link) {
+        link.classList.toggle('hidden', !isVideo);
+        if (isVideo) link.href = p.driveViewUrl || ('https://drive.google.com/file/d/' + p.id + '/view');
+      }
+      if (frame) {
+        frame.classList.toggle('hidden', !isVideo);
+        if (isVideo) {
+          frame.onload = function() { if (spinnerEl) spinnerEl.classList.add('hidden'); };
+          frame.src = p.embedUrl || ('https://drive.google.com/file/d/' + p.id + '/preview');
+        } else {
+          frame.onload = null;
+          frame.src = 'about:blank';
+        }
+      }
+    }
+
     function togglePhotoAutoPlay() {
       if (isPhotoAutoPlaying) {
         stopPhotoAutoPlay();
@@ -6530,6 +6575,7 @@ const htmlContent = `<!DOCTYPE html>
 
     function startPhotoAutoPlay() {
       if (!currentAlbumPhotosList || currentAlbumPhotosList.length === 0) return;
+      if ((currentAlbumPhotosList[currentAlbumPhotoIndex] || {}).isVideo) return; // 正在看影片時不啟動
       isPhotoAutoPlaying = true;
       updateAutoPlayButtonUI();
       scheduleNextAutoPlay();
@@ -6559,10 +6605,14 @@ const htmlContent = `<!DOCTYPE html>
           return;
         }
 
-        let nextIndex = currentAlbumPhotoIndex + 1;
-        if (nextIndex >= currentAlbumPhotosList.length) {
-          nextIndex = 0; // 循環播放回到第一張
+        // 下一張（循環）；影片不自動播放，直接跳過；整本都是影片就停止
+        const n = currentAlbumPhotosList.length;
+        let nextIndex = -1;
+        for (let k = 1; k <= n; k++) {
+          const cand = (currentAlbumPhotoIndex + k) % n;
+          if (!currentAlbumPhotosList[cand].isVideo) { nextIndex = cand; break; }
         }
+        if (nextIndex < 0) { stopPhotoAutoPlay(); return; }
         openPhotoViewerByIndex(nextIndex);
         scheduleNextAutoPlay();
       }, PHOTO_AUTO_PLAY_DELAY);
@@ -6583,6 +6633,8 @@ const htmlContent = `<!DOCTYPE html>
         text.textContent = t('ui.autoPlay');
         btn.className = 'text-white text-xs font-bold px-3.5 py-1.5 rounded-full bg-white/15 hover:bg-white/25 flex items-center gap-1.5 backdrop-blur-md tap-bounce transition-all';
       }
+      // 類別整段重設會洗掉「隱藏」：正在看影片時幻燈片鈕要維持隱藏
+      btn.classList.toggle('hidden', !!(currentAlbumPhotosList && (currentAlbumPhotosList[currentAlbumPhotoIndex] || {}).isVideo));
     }
 
     function navigatePhoto(direction) {
@@ -6612,6 +6664,7 @@ const htmlContent = `<!DOCTYPE html>
         openPhotoViewerByIndex(idx);
       } else {
         const dummy = { viewUrl: url, thumbnailUrl: url };
+        setPhotoViewerVideoMode(null);
         const directUrl = getPhotoDisplayUrl(dummy, true);
         const spinnerEl = document.getElementById('photoViewerSpinner');
         if (spinnerEl) spinnerEl.classList.remove('hidden');
@@ -6643,6 +6696,7 @@ const htmlContent = `<!DOCTYPE html>
 
     function closePhotoViewer() {
       stopPhotoAutoPlay();
+      setPhotoViewerVideoMode(null);
       document.getElementById('photoViewerModal').classList.add('hidden');
     }
 
