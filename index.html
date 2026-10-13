@@ -273,7 +273,7 @@
   <!-- ==================== THEME MODAL (主題活動編輯) ==================== -->
   <div id="themeModal" class="fixed inset-0 z-50 hidden items-center justify-center">
     <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeThemeModal()"></div>
-    <div class="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl relative z-10 flex flex-col m-4 border border-rose-100">
+    <div id="themeModalBox" class="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl relative z-10 flex flex-col m-4 border-2 border-emerald-200">
       
       <!-- Modal Header -->
       <div class="px-5 py-4 border-b border-rose-100 flex items-center justify-between bg-slate-50/80">
@@ -285,6 +285,9 @@
       
       <!-- Modal Body -->
       <div class="p-5 overflow-y-auto custom-scrollbar flex-1">
+        <div id="themeFormModeBanner" class="mb-3 px-3 py-2 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+          <span id="themeFormModeText">➕ 新增主題活動：儲存後會建立一筆新的主題活動</span>
+        </div>
         <form id="modalThemeForm" class="space-y-4">
           <input type="hidden" id="modalThemeId">
           
@@ -340,7 +343,8 @@
       <!-- Modal Footer -->
       <div class="p-4 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3">
         <button type="button" onclick="closeThemeModal()" class="px-4 py-2 rounded-xl text-slate-500 font-bold hover:bg-slate-200 transition-colors">取消</button>
-        <button type="button" id="btnSaveTheme" onclick="saveThemeData()" class="px-5 py-2 rounded-xl bg-rose-500 text-white font-bold hover:bg-rose-600 shadow-md transition-colors tap-bounce">確認儲存</button>
+        <button type="button" id="btnSaveThemeAsNew" onclick="saveThemeData(true)" class="hidden px-4 py-2 rounded-xl border-2 border-emerald-500 text-emerald-700 bg-white font-bold hover:bg-emerald-50 transition-colors tap-bounce">➕ 另存為新主題活動</button>
+        <button type="button" id="btnSaveTheme" onclick="saveThemeData()" class="px-5 py-2 rounded-xl bg-emerald-500 text-white font-bold hover:bg-emerald-600 shadow-md transition-colors tap-bounce">➕ 新增這筆主題活動</button>
       </div>
     </div>
   </div>
@@ -2101,13 +2105,17 @@
 
   <!-- ==================== 常用文件編輯/新增彈窗 (DOC MODAL) ==================== -->
   <div id="docEditModal" class="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-3 sm:p-5 hidden">
-    <div class="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-4 relative border border-slate-200 max-h-[90vh] overflow-y-auto">
+    <div id="docModalBox" class="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-4 relative border-2 border-emerald-200 max-h-[90vh] overflow-y-auto">
       <button onclick="closeDocEditModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-base tap-bounce">
         ✕
       </button>
       <div class="flex items-center gap-2">
         <span class="text-xl">📄</span>
         <h3 id="docModalTitle" class="font-black text-slate-800 text-base sm:text-lg">編輯常用文件資訊</h3>
+      </div>
+
+      <div id="docFormModeBanner" class="px-3 py-2 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+        <span id="docFormModeText">➕ 新增文件：儲存後會建立一筆新的常用文件</span>
       </div>
 
       <form id="docEditForm" onsubmit="event.preventDefault(); handleSaveDocModal(event)" class="space-y-3.5">
@@ -2153,8 +2161,11 @@
           <button type="button" onclick="closeDocEditModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold tap-bounce">
             取消
           </button>
-          <button type="submit" id="docModalSaveBtn" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-sm tap-bounce flex items-center gap-1.5">
-            <span>💾</span> 儲存修改
+          <button type="button" id="docModalSaveAsNewBtn" onclick="handleSaveDocModal(null, true)" class="hidden px-4 py-2 rounded-xl border-2 border-emerald-500 text-emerald-700 bg-white hover:bg-emerald-50 text-xs font-bold tap-bounce">
+            ➕ 另存為新文件
+          </button>
+          <button type="submit" id="docModalSaveBtn" class="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold shadow-sm tap-bounce flex items-center gap-1.5">
+            <span>➕</span> 新增這筆文件
           </button>
         </div>
       </form>
@@ -7029,6 +7040,9 @@
           adminBtns = '<button type="button" onclick="openDocEditModal(&quot;' + jsq(doc.id || '') + '&quot;)" class="px-3 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs font-bold flex items-center gap-1 shadow-2xs tap-bounce" title="' + (state.lang === 'en' ? 'Edit Document' : '編輯文件資訊') + '">' +
             '<span>✏️</span> ' + (state.lang === 'en' ? 'Edit' : '編輯') +
             '</button>' +
+            '<button type="button" onclick="copyDocInAdmin(&quot;' + jsq(doc.id || '') + '&quot;)" class="px-3 py-2 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 text-xs font-bold flex items-center gap-1 shadow-2xs tap-bounce" title="' + (state.lang === 'en' ? 'Copy (creates a new document; the original is unchanged)' : '複製（帶入這份的內容新增一份新文件，原文件不會改變）') + '">' +
+            '<span>📄</span> ' + (state.lang === 'en' ? 'Copy' : '複製') +
+            '</button>' +
             '<button type="button" onclick="handleDeleteDocDirect(&quot;' + jsq(doc.id || '') + '&quot;, &quot;' + safeName + '&quot;)" class="px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold flex items-center gap-1 shadow-2xs tap-bounce" title="' + (state.lang === 'en' ? 'Delete Document' : '刪除文件') + '">' +
             '<span>🗑️</span> ' + (state.lang === 'en' ? 'Delete' : '刪除') +
             '</button>';
@@ -7059,7 +7073,62 @@
       });
     }
 
-    function openDocEditModal(id) {
+    // ---------- 文件表單的模式（新增／編輯既有／以舊文件為範本新增）----------
+    const docFormState = { mode: 'new', baseId: '', baseTitle: '', baseline: null };
+    const DOC_FORM_FIELDS = [['fileName', '文件名稱'], ['category', '文件分類'], ['description', '說明描述', true], ['downloadUrl', '下載或雲端連結'], ['newFile', '上傳的檔案']];
+    const DOC_FORM_CFG = {
+      card: 'docModalBox', banner: 'docFormModeBanner', text: 'docFormModeText', save: 'docModalSaveBtn', saveLabel: 'docModalSaveLabel', asNew: 'docModalSaveAsNewBtn',
+      texts: {
+        new: function() { return '➕ 新增文件：儲存後會建立一筆新的常用文件'; },
+        edit: function(nm) { return '✏️ 正在編輯既有文件「' + nm + '」：按「更新原文件」會修改這筆原本的內容'; },
+        copy: function(nm) { return '📄 以「' + nm + '」為範本新增：原文件不會改變；檔案連結沿用原文件（兩筆會指向同一個雲端檔案，要換檔案請按「重新上傳」）'; }
+      },
+      saveLabels: { new: '新增這筆文件', edit: '更新原文件', copy: '新增這筆文件' }
+    };
+
+    function docSaveBtnHtml() {
+      return '<span>' + (docFormState.mode === 'edit' ? '💾' : '➕') + '</span> <span id="docModalSaveLabel">' + (DOC_FORM_CFG.saveLabels[docFormState.mode] || DOC_FORM_CFG.saveLabels.new) + '</span>';
+    }
+
+    function docFormSnapshot() {
+      const v = function(id) { return (document.getElementById(id) || {}).value || ''; };
+      return { fileName: v('docModal-fileName').trim(), category: v('docModal-category'), description: v('docModal-description').trim(), downloadUrl: v('docModal-downloadUrl').trim(), newFile: docModalSelectedFile ? ('已選取：' + docModalSelectedFile.name) : '' };
+    }
+
+    function docModalOpen() { const m = document.getElementById('docEditModal'); return !!m && !m.classList.contains('hidden'); }
+
+    function docFormDirty() {
+      if (!docModalOpen()) return false;
+      return formFieldDiff(DOC_FORM_FIELDS, docFormState.baseline || {}, docFormSnapshot()).length > 0;
+    }
+
+    function confirmDiscardDoc() {
+      if (!docFormDirty()) return true;
+      return confirm('目前表單有尚未儲存的內容，確定要放棄嗎？');
+    }
+
+    function setDocFormMode(mode, doc) {
+      docFormState.mode = mode;
+      docFormState.baseId = doc && doc.id !== undefined ? String(doc.id) : '';
+      docFormState.baseTitle = doc ? String(doc.fileName || '') : '';
+      formModeApply(DOC_FORM_CFG, mode, docFormState.baseTitle);
+      const btn = document.getElementById('docModalSaveBtn'); if (btn && !btn.disabled) btn.innerHTML = docSaveBtnHtml();
+      docFormState.baseline = docFormSnapshot();
+    }
+
+    // 以舊文件為範本新增：帶入名稱、分類、說明與檔案連結，沒有編號（存檔一定是新的一筆）
+    function copyDocInAdmin(id) {
+      const doc = state.docs.find(d => String(d.id) === String(id));
+      if (!doc) return;
+      if (docModalOpen() && !confirmDiscardDoc()) return;
+      openDocEditModal(id, true);
+      document.getElementById('docModal-id').value = '';
+      document.getElementById('docModalTitle').innerHTML = '<span>📄</span> 複製文件';
+      setDocFormMode('copy', doc);
+    }
+
+    function openDocEditModal(id, forCopy) {
+      if (!forCopy && docModalOpen() && !confirmDiscardDoc()) return;
       docModalSelectedFile = null;
       docModalOriginalFileName = '';
       const fileInput = document.getElementById('docModal-fileInput');
@@ -7094,11 +7163,22 @@
 
       const modal = document.getElementById('docEditModal');
       if (modal) modal.classList.remove('hidden');
+      if (!forCopy) {
+        const cur = id ? state.docs.find(d => String(d.id) === String(id)) : null;
+        setDocFormMode(cur ? 'edit' : 'new', cur);
+      }
     }
 
+    // 使用者按 ✕／取消：有未儲存的內容先確認；程式內部（儲存完成後關閉）改呼叫 closeDocEditModalNow()
     function closeDocEditModal() {
+      if (!confirmDiscardDoc()) return;
+      closeDocEditModalNow();
+    }
+
+    function closeDocEditModalNow() {
       const modal = document.getElementById('docEditModal');
       if (modal) modal.classList.add('hidden');
+      docFormState.baseline = null;
     }
 
     function handleDocModalFileChosen(e) {
@@ -7116,10 +7196,11 @@
       }
     }
 
-    function handleSaveDocModal(e) {
-      e.preventDefault();
+    // forceNew＝true（「另存為新文件」）：一律建立新的一筆（上傳新檔案時也是新檔案、新編號），原文件完全不動
+    function handleSaveDocModal(e, forceNew) {
+      if (e && typeof e.preventDefault === 'function') e.preventDefault();
       const saveBtn = document.getElementById('docModalSaveBtn');
-      const id = document.getElementById('docModal-id').value;
+      const id = forceNew ? '' : document.getElementById('docModal-id').value;
       const driveFileId = document.getElementById('docModal-driveFileId').value;
       const fileName = document.getElementById('docModal-fileName').value.trim();
       const category = document.getElementById('docModal-category').value;
@@ -7130,6 +7211,13 @@
       if (!fileName) {
         showToast('請輸入文件名稱！', '⚠️');
         return;
+      }
+
+      const isUpdate = !forceNew && docFormState.mode === 'edit' && !!id;
+      if (isUpdate) {
+        const diffs = formFieldDiff(DOC_FORM_FIELDS, docFormState.baseline, docFormSnapshot());
+        if (diffs.length === 0) { showToast('沒有任何變更，原文件維持不變', 'ℹ️'); return; }
+        if (!formDiffConfirm('文件', docFormState.baseTitle, diffs, '另存為新文件')) return;
       }
 
       let shouldUpload = false;
@@ -7177,7 +7265,7 @@
             file: fileObj,
             password: getAdminPassword()
           }, res => {
-            if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = '<span>💾</span> 儲存修改'; }
+            if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = docSaveBtnHtml(); }
             if (res && res.success) {
               const newDoc = {
                 id: res.docId || id || ('DOC-' + Date.now()),
@@ -7191,14 +7279,14 @@
               };
 
               updateLocalDocState(newDoc);
-              closeDocEditModal();
-              showToast('文件已成功上傳並發佈！', '🎉');
+              closeDocEditModalNow();
+              showToast((isUpdate ? '已更新原文件「' : '已新增文件「') + fileName + '」並上傳檔案', '🎉');
               loadAppData();
             } else {
               showToast('上傳失敗: ' + (res ? res.error : '未知錯誤'), '❌');
             }
           }, err => {
-            if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = '<span>💾</span> 儲存修改'; }
+            if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = docSaveBtnHtml(); }
             showToast('網路連線逾時，已保留修改', '⚠️');
           });
         };
@@ -7228,13 +7316,13 @@
       };
 
       updateLocalDocState(docData);
-      closeDocEditModal();
-      showToast('文件資訊已成功儲存！', '✅');
+      closeDocEditModalNow();
+      showToast((isUpdate ? '已更新原文件「' : '已新增文件「') + fileName + '」', '✅');
 
       const pwd = getAdminPassword();
       if (saveBtn) { saveBtn.disabled = true; saveBtn.innerHTML = '<span>⏳</span> 同步中...'; }
       callBackend('saveDoc', { docData: docData, password: pwd }, res => {
-        if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = '<span>💾</span> 儲存修改'; }
+        if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = docSaveBtnHtml(); }
         if (res && res.success) {
           showToast(res.message || '文件已同步至雲端！', '✅');
           loadAppData();
@@ -7242,7 +7330,7 @@
           showToast((res && res.error) ? ('同步失敗: ' + res.error) : '文件已套用於前台！', (res && res.error) ? '❌' : '✅');
         }
       }, err => {
-        if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = '<span>💾</span> 儲存修改'; }
+        if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = docSaveBtnHtml(); }
         showToast('網路連線逾時，文件已套用於前台', '⚠️');
       });
     }
@@ -11288,6 +11376,7 @@
           <td class="px-4 py-3 text-center">
             <div class="flex items-center justify-center gap-2">
               <button onclick="editTheme('${jsq(t.id)}')" class="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-emerald-100 hover:text-emerald-700 flex items-center justify-center transition-colors tap-bounce" title="編輯">✎</button>
+              <button onclick="copyThemeInAdmin('${jsq(t.id)}')" class="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-sky-100 hover:text-sky-700 flex items-center justify-center transition-colors tap-bounce" title="複製（帶入這筆的內容新增一筆新主題，原本的不會改變）">📄</button>
               <button onclick="confirmDeleteTheme('${jsq(t.id)}')" class="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-rose-100 hover:text-rose-600 flex items-center justify-center transition-colors tap-bounce" title="刪除">🗑️</button>
             </div>
           </td>
@@ -11326,7 +11415,69 @@
       }
     }
 
+    // ---------- 主題活動表單的模式（新增／編輯既有／以舊主題為範本新增）----------
+    const themeFormState = { mode: 'new', baseId: '', baseTitle: '', baseline: null };
+    const THEME_FORM_FIELDS = [['semester', '學期'], ['week', '週別'], ['startDate', '起始日'], ['endDate', '截止日'], ['themeName', '主題名稱'], ['themeConcept', '主題概念', true], ['goals', '活動目標與課程目標', true], ['photos', '成果照片／連結', true]];
+    const THEME_FORM_CFG = {
+      card: 'themeModalBox', banner: 'themeFormModeBanner', text: 'themeFormModeText', save: 'btnSaveTheme', asNew: 'btnSaveThemeAsNew',
+      texts: {
+        new: function() { return '➕ 新增主題活動：儲存後會建立一筆新的主題活動'; },
+        edit: function(nm) { return '✏️ 正在編輯既有主題活動「' + nm + '」：按「更新原主題活動」會修改這筆原本的內容'; },
+        copy: function(nm) { return '📄 以「' + nm + '」為範本新增：原主題活動不會改變，請先填好新的週別與日期'; }
+      },
+      saveLabels: { new: '➕ 新增這筆主題活動', edit: '💾 更新原主題活動', copy: '➕ 新增這筆主題活動' }
+    };
+
+    function themeFormSnapshot() {
+      const v = function(id) { return (document.getElementById(id) || {}).value || ''; };
+      const goals = [];
+      document.querySelectorAll('.theme-goal-row').forEach(function(row) {
+        const a = row.querySelector('.goal-activity').value.trim(), c = row.querySelector('.goal-course').value.trim();
+        if (a || c) goals.push([a, c]);
+      });
+      return { semester: v('modalThemeSemester').trim(), week: v('modalThemeWeek').trim(), startDate: v('modalThemeStartDate'), endDate: v('modalThemeEndDate'),
+        themeName: v('modalThemeName').trim(), themeConcept: v('modalThemeConcept').trim(), goals: goals.length ? JSON.stringify(goals) : '', photos: v('modalThemeResults').trim() };
+    }
+
+    function themeModalOpen() { const m = document.getElementById('themeModal'); return !!m && !m.classList.contains('hidden'); }
+
+    function themeFormDirty() {
+      if (!themeModalOpen()) return false;
+      return formFieldDiff(THEME_FORM_FIELDS, themeFormState.baseline || {}, themeFormSnapshot()).length > 0;
+    }
+
+    function setThemeFormMode(mode, t) {
+      themeFormState.mode = mode;
+      themeFormState.baseId = t && t.id !== undefined ? String(t.id) : '';
+      themeFormState.baseTitle = t ? String(t.themeName || t.name || '') : '';
+      formModeApply(THEME_FORM_CFG, mode, themeFormState.baseTitle);
+      themeFormState.baseline = themeFormSnapshot();
+    }
+
+    function themeSaveLabel() { return THEME_FORM_CFG.saveLabels[themeFormState.mode] || THEME_FORM_CFG.saveLabels.new; }
+
+    // 以舊主題為範本新增：帶入學期、主題名稱、概念、目標；沒有編號；週別與日期清空（要重填）；成果照片清空（那是原本那一週的成果）
+    function copyThemeInAdmin(id) {
+      const t = state.themes.find(x => String(x.id) === String(id));
+      if (!t) return;
+      if (themeModalOpen() && !confirmDiscardTheme()) return;
+      editTheme(id, true);
+      document.getElementById('modalThemeId').value = '';
+      document.getElementById('modalThemeWeek').value = '';
+      document.getElementById('modalThemeStartDate').value = '';
+      document.getElementById('modalThemeEndDate').value = '';
+      document.getElementById('modalThemeResults').value = '';
+      document.getElementById('modalThemeTitle').textContent = '複製主題活動';
+      setThemeFormMode('copy', t);
+    }
+
+    function confirmDiscardTheme() {
+      if (!themeFormDirty()) return true;
+      return confirm('目前表單有尚未儲存的內容，確定要放棄嗎？');
+    }
+
     function openThemeModal() {
+      if (themeModalOpen() && !confirmDiscardTheme()) return;
       document.getElementById('modalThemeForm').reset();
       document.getElementById('modalThemeId').value = '';
       document.getElementById('modalThemeGoalsContainer').innerHTML = '';
@@ -11338,11 +11489,19 @@
 
       document.getElementById('themeModal').classList.remove('hidden');
       document.getElementById('themeModal').classList.add('flex');
+      setThemeFormMode('new');
     }
 
+    // 使用者按 ✕／取消／點背景：有未儲存的內容先確認；程式內部（儲存完成後關閉）改呼叫 closeThemeModalNow()
     function closeThemeModal() {
+      if (!confirmDiscardTheme()) return;
+      closeThemeModalNow();
+    }
+
+    function closeThemeModalNow() {
       document.getElementById('themeModal').classList.add('hidden');
       document.getElementById('themeModal').classList.remove('flex');
+      themeFormState.baseline = null;
     }
 
     function addThemeGoalRow(activity = '', course = '') {
@@ -11357,9 +11516,10 @@
       container.appendChild(row);
     }
 
-    function editTheme(id) {
+    function editTheme(id, forCopy) {
       const t = state.themes.find(x => String(x.id) === String(id));
       if (!t) return;
+      if (!forCopy && themeModalOpen() && !confirmDiscardTheme()) return;
       document.getElementById('modalThemeTitle').textContent = '編輯主題活動';
       document.getElementById('modalThemeId').value = t.id;
       populateModalThemeSemesters(t.semester || '');
@@ -11381,10 +11541,12 @@
       
       document.getElementById('themeModal').classList.remove('hidden');
       document.getElementById('themeModal').classList.add('flex');
+      if (!forCopy) setThemeFormMode('edit', t);
     }
 
-    function saveThemeData() {
-      const id = document.getElementById('modalThemeId').value || new Date().getTime().toString();
+    // forceNew＝true（「另存為新主題活動」）：一律建立新編號，原主題活動完全不動
+    function saveThemeData(forceNew) {
+      const id = forceNew ? new Date().getTime().toString() : (document.getElementById('modalThemeId').value || new Date().getTime().toString());
       const semester = document.getElementById('modalThemeSemester').value.trim();
       const week = document.getElementById('modalThemeWeek').value.trim();
       const startDate = document.getElementById('modalThemeStartDate').value;
@@ -11407,6 +11569,13 @@
       if (!semester || !week || !name) {
         alert('學期、週別與主題名稱為必填項目！');
         return;
+      }
+
+      const isUpdate = !forceNew && themeFormState.mode === 'edit' && !!document.getElementById('modalThemeId').value;
+      if (isUpdate) {
+        const diffs = formFieldDiff(THEME_FORM_FIELDS, themeFormState.baseline, themeFormSnapshot());
+        if (diffs.length === 0) { showToast('沒有任何變更，原主題活動維持不變', 'ℹ️'); return; }
+        if (!formDiffConfirm('主題活動', themeFormState.baseTitle, diffs, '另存為新主題活動')) return;
       }
       
       const themeData = { 
@@ -11432,10 +11601,10 @@
       
       callBackend('saveTheme', { data: themeData, password: state.adminPassword }, res => {
         btn.disabled = false;
-        btn.textContent = '確認儲存';
+        btn.textContent = themeSaveLabel();
         if (res && res.success) {
-          showToast('主題活動已儲存！', '✅');
-          closeThemeModal();
+          showToast((isUpdate ? '已更新原主題活動「' : '已新增主題活動「') + name + '」', '✅');
+          closeThemeModalNow();
           // Update local state optimistically
           const idx = state.themes.findIndex(x => String(x.id) === String(id));
           if (idx >= 0) {
@@ -11457,7 +11626,7 @@
         }
       }, err => {
         btn.disabled = false;
-        btn.textContent = '確認儲存';
+        btn.textContent = themeSaveLabel();
         alert('網路錯誤，請稍後再試！');
       });
     }
