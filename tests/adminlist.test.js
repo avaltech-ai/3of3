@@ -6,7 +6,7 @@ const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const a = html.indexOf('const ADMIN_LIST_SIZES');
 const b = html.indexOf('// ===== 以下為畫面');
 if (a < 0 || b < 0 || b < a) { console.log('FAIL: 在 index.html 找不到後台列表函式'); process.exit(1); }
-const api = new Function(html.slice(a, b) + '\nreturn { ADMIN_LIST_SIZES, adminListTerms, adminListMatches, adminListKey, adminListSlice, adminEventsView, adminAlbumsView, adminSongsView, adminIdNewerFirst, spotlightPlayState, spotlightCreatedKey, adminSpotlightsView };')();
+const api = new Function(html.slice(a, b) + '\nreturn { ADMIN_LIST_SIZES, adminListTerms, adminListMatches, adminListKey, adminListSlice, adminEventsView, adminAlbumsView, adminSongsView, adminIdNewerFirst, adminDocsView, spotlightPlayState, spotlightCreatedKey, adminSpotlightsView };')();
 
 let pass = 0, fail = 0;
 function ok(c, m) { if (c) { pass++; console.log('  ✓ ' + m); } else { fail++; console.log('  ✗ FAIL: ' + m); } }
@@ -108,6 +108,22 @@ ok(ids(api.adminSongsView(S, { query: 'happy', cat: '' })) === 's0', '關鍵字�
 ok(ids(api.adminSongsView(S, { query: '健康過', cat: '' })) === 's1', '關鍵字：音樂檔名');
 ok(ids(api.adminSongsView(S, { query: '釣魚', cat: 'yoyo' })) === 's3', '關鍵字＋類別（沒有檔名也不出錯）');
 ok(api.adminSongsView(null, { query: '', cat: '' }).length === 0, '資料為 null 不出錯');
+
+console.log('E2. 常用文件 adminDocsView');
+const D = [
+  { id: 'd0', fileName: '幼兒用藥委託單.pdf', category: '保健用藥', description: '請家長下載列印' },
+  { id: 'd1', fileName: '學期行事曆', category: '學期行事曆', description: '' },
+  { id: 'd2', fileName: '菜單（10月）', category: '餐飲菜單', description: '當季水果與午餐' },
+  { id: 'd3', fileName: '用藥注意事項', category: '保健用藥' },
+  null
+];
+ok(ids(api.adminDocsView(D, { query: '', cat: '' })) === 'd3,d2,d1,d0', '預設：試算表列順序倒過來（最新在最上面），略過 null');
+ok(ids(api.adminDocsView(D, { query: '', cat: '保健用藥' })) === 'd3,d0', '類別篩選');
+ok(ids(api.adminDocsView(D, { query: '午餐', cat: '' })) === 'd2', '關鍵字：說明');
+ok(ids(api.adminDocsView(D, { query: '用藥', cat: '' })) === 'd3,d0', '關鍵字：名稱（沒有說明欄也不出錯）');
+ok(ids(api.adminDocsView(D, { query: '用藥 委託', cat: '保健用藥' })) === 'd0', '多個關鍵字都要符合＋類別');
+ok(api.adminDocsView(D, { query: '沒有這個', cat: '' }).length === 0 && api.adminDocsView(null, { query: '', cat: '' }).length === 0, '沒有符合、資料為 null：空陣列不出錯');
+const dOrig = D.map(x => x && x.id).join(); api.adminDocsView(D, { query: '', cat: '' }); ok(D.map(x => x && x.id).join() === dOrig, '不會改動傳入的陣列順序');
 
 console.log('F. 焦點活動 spotlightPlayState／spotlightCreatedKey／adminSpotlightsView');
 const T = '2026-10-07';

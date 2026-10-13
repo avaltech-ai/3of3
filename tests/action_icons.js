@@ -66,12 +66,13 @@
   renderAdminThemesList();
   check('主題活動', [...document.querySelectorAll('#adminThemesListBody tr')], 'edit,copy,del', ['editTheme', 'copyThemeInAdmin', 'confirmDeleteTheme']);
 
-  // 常用文件（公開頁的管理員按鈕）
+  // 常用文件（後台「常用文件管理」列表；前台只有下載）
   state.docs = [{ id: 'D1', fileName: '幼兒用藥委託單.pdf', fileExtension: 'pdf', category: '保健用藥', description: '說明', driveFileId: 'F', downloadUrl: 'https://drive.google.com/file/d/D1/view', updatedAt: '2026-10-01' }];
   try { state.docCategory = '全部文件'; } catch (e) {}
-  renderDocsList();
-  const docCards = [...document.querySelectorAll('#docsListContainer > div')].filter(c => c.querySelector('button[data-act]'));
+  renderDocsList(); renderAdminDocsList();
+  const docCards = [...document.querySelectorAll('#docAdminListContainer > div')].filter(c => c.querySelector('button[data-act]'));
   check('常用文件', docCards, 'edit,copy,del', ['openDocEditModal', 'copyDocInAdmin', 'handleDeleteDocDirect']);
+  ok(document.querySelectorAll('#docsListContainer button[data-act]').length === 0, '常用文件：前台頁面（管理員登入時也一樣）沒有任何編輯／複製／刪除按鈕');
 
   // 同一功能＝同一個圖示（跨頁面）
   const same = k => { const vs = Object.values(svgByKind[k] || {}); return vs.length >= 2 && vs.every(v => v === vs[0]); };
@@ -89,6 +90,6 @@
   stubs.forEach(n => { window[n] = realFns[n]; });
   state.events = saved.ev; state.cachedAlbums = saved.al; state.songs = saved.so; state.spotlights = saved.sp; state.themes = saved.th; state.docs = saved.dc; state.adminPassword = saved.pwd; window.handleDataLoaded = realHandle;
   try { adminSongInfo.map = JSON.parse(saved.info); } catch (e) {}
-  try { renderAdminEventsTable(); renderAdminAlbumsTable(); renderAdminSongsTable(); renderAdminSpotlightsList(); renderAdminThemesList(); renderDocsList(); } catch (e) {}
+  try { renderAdminEventsTable(); renderAdminAlbumsTable(); renderAdminSongsTable(); renderAdminSpotlightsList(); renderAdminThemesList(); renderDocsList(); renderAdminDocsList(); } catch (e) {}
   console.log(res.join('\n')); return res;
 })();

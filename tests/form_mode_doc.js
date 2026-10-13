@@ -71,8 +71,8 @@
   // H. 列表按鈕與安全
   reset(); state.docs[0].fileName = '<img src=x onerror=window.__docpwn=1>惡意.pdf'; openDocEditModal('D1');
   ok(!window.__docpwn && !$('docFormModeBanner').querySelector('img') && $('docFormModeText').textContent.indexOf('<img') >= 0, '惡意文件名稱：橫幅以純文字顯示，沒有注入元素');
-  closeDocEditModalNow(); renderDocsList();
-  ok(document.querySelectorAll('button[onclick^="copyDocInAdmin"]').length >= 1 && document.querySelectorAll('button[onclick^="openDocEditModal(&quot;"], button[onclick^="openDocEditModal(\\""]').length >= 0 && !document.querySelector('#docsList img[src="x"], #docsGrid img[src="x"]'), '管理員看到的常用文件列表：每份有「複製」鈕，惡意名稱不注入元素');
+  closeDocEditModalNow(); renderDocsList(); renderAdminDocsList();
+  ok(document.querySelectorAll('#docAdminListContainer button[data-act="copy"]').length >= 1 && !document.querySelector('#docAdminListContainer img[src="x"], #docsListContainer img[src="x"]') && !window.__docpwn, '後台常用文件列表：每份有「複製」鈕，惡意名稱不注入元素');
 
   reset(); window.confirm = real.confirm; window.callBackend = real.cb; window.showToast = real.toast; window.loadAppData = real.load;
   state.docs = saved.docs; state.adminPassword = saved.pwd; window.handleDataLoaded = realHandle;

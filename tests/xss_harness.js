@@ -88,6 +88,7 @@
     step('switchTab docs', function () { switchTab('docs'); });
     step('renderDocsList', function () { renderDocCategoriesUI(); renderDocsList(); });
     (data.docs || []).forEach(function (d, i) { step('doc edit ' + i, function () { openDocEditModal(d.id); }); });
+    step('admin docs list', function () { renderAdminDocsList(); });
     step('switchTab songs', function () { switchTab('songs'); });
     step('songs', function () { renderSongCategoryPills(); renderSongsList(state.songs || data.songs || []); });
 

@@ -852,17 +852,6 @@ const htmlContent = `<!DOCTYPE html>
     <!-- ==================== TAB 3: 常用文件下載 (DOCS) ==================== -->
     <section id="tabContent-docs" class="space-y-6 hidden">
       <!-- 文件區抬頭 -->
-      <!-- 管理者模式專用快捷列 (已登入時顯示) -->
-      <div id="docAdminBar" class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 p-3.5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-amber-900 font-bold hidden" hidden>
-        <div class="flex items-center gap-2">
-          <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span data-i18n="docs.adminBarText">管理者權限已啟用：您可直接在下方任一文件卡片點選「✏️ 編輯」或「🗑️ 刪除」，或點擊右側按鈕新增文件。</span>
-        </div>
-        <button onclick="openDocEditModal()" class="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-black text-xs shrink-0 tap-bounce shadow-xs flex items-center gap-1.5">
-          <span>➕</span> <span data-i18n="docs.addDocBtn">新增常用文件</span>
-        </button>
-      </div>
-
       <div class="bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 p-5 rounded-3xl border border-indigo-200/70 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <div class="flex items-center gap-2">
@@ -873,9 +862,6 @@ const htmlContent = `<!DOCTYPE html>
             提供請假單、用藥委託單、學期行事曆與幼兒園作息手冊，方便家長線上預覽與列印。
           </p>
         </div>
-        <a id="btnBrowseCloudDocs" href="https://drive.google.com/drive/folders/1Ie8medB2JPYdUA9LOryVnPAdko1t5rjR" target="_blank" class="px-3.5 py-2 rounded-xl bg-white text-indigo-700 border border-indigo-300 text-xs font-bold hover:bg-indigo-50 flex items-center gap-1.5 shadow-2xs tap-bounce hidden">
-          <span>📂</span> <span data-i18n="docs.browseDrive">瀏覽雲端 Docs 資料夾</span>
-        </a>
       </div>
 
       <!-- 文件分類與搜尋 -->
@@ -1447,48 +1433,109 @@ const htmlContent = `<!DOCTYPE html>
           </div>
         </div>
 
-        <!-- 子分頁 4: 常用文件上傳 (Google Drive Docs) -->
+        <!-- 子分頁 4: 常用文件管理（新增／編輯／複製／刪除都在這裡；前台只有下載） -->
         <div id="adminPanel-uploadDoc" class="admin-panel space-y-4 hidden">
-          <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+          <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
-              <h4 class="font-black text-slate-800 text-base">上傳常用文件至 Google Drive Docs</h4>
-              <p class="text-xs text-slate-500 mt-0.5">檔案將直接存入您的 Docs 雲端資料夾，並即時於前台顯示下載按鈕。</p>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label class="block text-xs font-bold text-slate-600 mb-1">文件顯示名稱 *</label>
-                <input type="text" id="docUpload-name" placeholder="如：幼兒用藥委託單.pdf" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-indigo-500 focus:outline-none">
+              <div class="flex items-center gap-2">
+                <span class="text-xl">📂</span>
+                <h4 class="font-black text-slate-800 text-base">常用文件管理</h4>
               </div>
-              <div>
-                <label class="block text-xs font-bold text-slate-600 mb-1">文件類別 *</label>
-                <select id="docUpload-category" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-indigo-500 focus:outline-none">
-                  <option value="保健用藥">保健用藥</option>
-                  <option value="學期行事曆">學期行事曆</option>
-                  <option value="餐飲菜單">餐飲菜單</option>
-                  <option value="親師手冊">親師手冊</option>
-                  <option value="其他常用">其他常用</option>
-                </select>
-              </div>
+              <p class="text-xs text-slate-400 mt-0.5">新增、編輯、複製、刪除常用文件；檔案會存入 Google Drive 的 Docs 資料夾，前台只提供下載。</p>
             </div>
-
-            <div>
-              <label class="block text-xs font-bold text-slate-600 mb-1">說明備註</label>
-              <textarea id="docUpload-desc" rows="2" placeholder="請家長下載列印填妥後交給老師..." class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-indigo-500 focus:outline-none"></textarea>
-            </div>
-
-            <div class="border-2 border-dashed border-indigo-200 rounded-2xl p-6 text-center hover:bg-indigo-50/50 transition-colors cursor-pointer" onclick="document.getElementById('docFileInput').click()">
-              <input type="file" id="docFileInput" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.webp,.txt" class="hidden" onchange="handleDocFileSelected(event)">
-              <div class="text-3xl mb-1">📄</div>
-              <div id="docFileSelectedName" class="text-xs font-bold text-slate-700">點此選取文件檔案（PDF、Word、Excel、PPT）</div>
-              <div class="text-xs text-slate-400 mt-1">選取後將直接上傳至雲端硬碟 Docs 資料夾</div>
-            </div>
-
-            <div class="flex justify-end pt-2">
-              <button onclick="startUploadDocument()" id="docUploadBtn" class="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm tap-bounce">
-                上傳文件並發佈
+            <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+              <a id="btnBrowseCloudDocs" href="https://drive.google.com/drive/folders/1Ie8medB2JPYdUA9LOryVnPAdko1t5rjR" target="_blank" rel="noopener noreferrer" class="text-xs font-bold text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200 px-3 py-2 rounded-xl transition-all flex items-center gap-1 tap-bounce">
+                📂 開啟 Docs 雲端資料夾
+              </a>
+              <button type="button" onclick="openDocEditModal()" class="px-4 py-2 rounded-xl bg-peach-500 hover:bg-peach-600 text-white font-bold text-xs shadow-xs tap-bounce flex items-center gap-1">
+                <span>➕</span> 新增常用文件
               </button>
             </div>
+          </div>
+
+          <!-- 新增／編輯／複製表單（平常收起；按「新增」或列表的編輯、複製才展開） -->
+          <div id="docEditModal" class="hidden">
+            <div id="docModalBox" class="bg-white rounded-3xl p-5 sm:p-6 shadow-sm space-y-4 border-2 border-emerald-200">
+              <div class="flex items-center gap-2">
+                <span class="text-xl">📄</span>
+                <h3 id="docModalTitle" class="font-black text-slate-800 text-base sm:text-lg">新增常用文件</h3>
+              </div>
+
+              <div id="docFormModeBanner" class="px-3 py-2 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                <span id="docFormModeText">➕ 新增文件：儲存後會建立一筆新的常用文件</span>
+              </div>
+
+              <form id="docEditForm" onsubmit="event.preventDefault(); handleSaveDocModal(event)" class="space-y-3.5">
+                <input type="hidden" id="docModal-id">
+                <input type="hidden" id="docModal-driveFileId">
+
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 mb-1">文件名稱 *</label>
+                  <input type="text" id="docModal-fileName" required placeholder="如：幼兒用藥委託單.pdf" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-indigo-500 focus:outline-none">
+                </div>
+
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 mb-1">文件分類 *</label>
+                  <select id="docModal-category" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-indigo-500 focus:outline-none">
+                    <option value="保健用藥">保健用藥</option>
+                    <option value="學期行事曆">學期行事曆</option>
+                    <option value="餐飲菜單">餐飲菜單</option>
+                    <option value="親師手冊">親師手冊</option>
+                    <option value="一般文件">一般文件</option>
+                    <option value="其他常用">其他常用</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 mb-1">說明描述</label>
+                  <textarea id="docModal-description" rows="2" placeholder="說明幼兒使用情況或列印注意事項..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-indigo-500 focus:outline-none"></textarea>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 mb-1">下載或雲端連結 (URL)</label>
+                  <input type="text" id="docModal-downloadUrl" placeholder="https://drive.google.com/..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-indigo-500 focus:outline-none">
+                </div>
+
+                <div class="border border-dashed border-indigo-200 rounded-2xl p-3.5 bg-indigo-50/40 text-center">
+                  <input type="file" id="docModal-fileInput" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.png" class="hidden" onchange="handleDocModalFileChosen(event)">
+                  <button type="button" onclick="document.getElementById('docModal-fileInput').click()" class="text-xs font-bold text-indigo-700 bg-white border border-indigo-200 px-3.5 py-1.5 rounded-xl shadow-2xs hover:bg-indigo-50 tap-bounce inline-flex items-center gap-1.5">
+                    <span>📁</span> 選取檔案上傳至 Google Drive（選填，編輯時可替換原檔）
+                  </button>
+                  <div id="docModal-fileStatus" class="text-[0.6875rem] text-slate-500 mt-1">若已有網址可直接修改上欄，或選取新檔案覆蓋上傳</div>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                  <button type="button" onclick="closeDocEditModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold tap-bounce">
+                    取消
+                  </button>
+                  <button type="button" id="docModalSaveAsNewBtn" onclick="handleSaveDocModal(null, true)" class="hidden px-4 py-2 rounded-xl border-2 border-emerald-500 text-emerald-700 bg-white hover:bg-emerald-50 text-xs font-bold tap-bounce">
+                    ➕ 另存為新文件
+                  </button>
+                  <button type="submit" id="docModalSaveBtn" class="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold shadow-sm tap-bounce flex items-center gap-1.5">
+                    <span>➕</span> 新增這筆文件
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- 文件列表 -->
+          <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
+            <div class="flex items-center justify-between">
+              <h5 class="text-sm font-black text-slate-800 flex items-center gap-1.5">
+                <span>📋</span> 現有常用文件列表
+              </h5>
+              <span id="docAdminCountBadge" class="text-xs text-slate-400 font-bold">共 0 份文件</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <input id="adminDocsSearch" type="search" oninput="adminListOnQuery('docs', this.value)" placeholder="搜尋文件名稱、說明…" class="flex-1 min-w-[10rem] px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-peach-500 focus:outline-none" aria-label="搜尋常用文件">
+              <select id="adminDocsCat" onchange="adminListOnFilter('docs', 'cat', this.value)" class="px-2.5 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-700 bg-white" aria-label="類別"></select>
+              <button type="button" id="adminDocsClear" onclick="adminListClear('docs')" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 tap-bounce cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed" disabled>清除篩選</button>
+            </div>
+            <div id="docAdminListContainer" class="space-y-2">
+              <!-- 動態渲染 -->
+            </div>
+            <div id="adminDocsPager"></div>
           </div>
         </div>
 
@@ -2117,75 +2164,6 @@ const htmlContent = `<!DOCTYPE html>
     </div>
   </div>
 
-  <!-- ==================== 常用文件編輯/新增彈窗 (DOC MODAL) ==================== -->
-  <div id="docEditModal" class="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-3 sm:p-5 hidden">
-    <div id="docModalBox" class="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-4 relative border-2 border-emerald-200 max-h-[90vh] overflow-y-auto">
-      <button onclick="closeDocEditModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-base tap-bounce">
-        ✕
-      </button>
-      <div class="flex items-center gap-2">
-        <span class="text-xl">📄</span>
-        <h3 id="docModalTitle" class="font-black text-slate-800 text-base sm:text-lg">編輯常用文件資訊</h3>
-      </div>
-
-      <div id="docFormModeBanner" class="px-3 py-2 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-        <span id="docFormModeText">➕ 新增文件：儲存後會建立一筆新的常用文件</span>
-      </div>
-
-      <form id="docEditForm" onsubmit="event.preventDefault(); handleSaveDocModal(event)" class="space-y-3.5">
-        <input type="hidden" id="docModal-id">
-        <input type="hidden" id="docModal-driveFileId">
-
-        <div>
-          <label class="block text-xs font-bold text-slate-700 mb-1">文件名稱 *</label>
-          <input type="text" id="docModal-fileName" required placeholder="如：幼兒用藥委託單.pdf" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-indigo-500 focus:outline-none">
-        </div>
-
-        <div>
-          <label class="block text-xs font-bold text-slate-700 mb-1">文件分類 *</label>
-          <select id="docModal-category" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-indigo-500 focus:outline-none">
-            <option value="保健用藥">保健用藥</option>
-            <option value="學期行事曆">學期行事曆</option>
-            <option value="餐飲菜單">餐飲菜單</option>
-            <option value="親師手冊">親師手冊</option>
-            <option value="一般文件">一般文件</option>
-            <option value="其他常用">其他常用</option>
-          </select>
-        </div>
-
-        <div>
-          <label class="block text-xs font-bold text-slate-700 mb-1">說明描述</label>
-          <textarea id="docModal-description" rows="2" placeholder="說明幼兒使用情況或列印注意事項..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-indigo-500 focus:outline-none"></textarea>
-        </div>
-
-        <div>
-          <label class="block text-xs font-bold text-slate-700 mb-1">下載或雲端連結 (URL)</label>
-          <input type="text" id="docModal-downloadUrl" placeholder="https://drive.google.com/..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-indigo-500 focus:outline-none">
-        </div>
-
-        <div class="border border-dashed border-indigo-200 rounded-2xl p-3.5 bg-indigo-50/40 text-center">
-          <input type="file" id="docModal-fileInput" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.png" class="hidden" onchange="handleDocModalFileChosen(event)">
-          <button type="button" onclick="document.getElementById('docModal-fileInput').click()" class="text-xs font-bold text-indigo-700 bg-white border border-indigo-200 px-3.5 py-1.5 rounded-xl shadow-2xs hover:bg-indigo-50 tap-bounce inline-flex items-center gap-1.5">
-            <span>📁</span> 重新上傳/替換檔案至 Google Drive (選填)
-          </button>
-          <div id="docModal-fileStatus" class="text-[0.6875rem] text-slate-500 mt-1">若已有網址可直接修改上欄，或選取新檔案覆蓋上傳</div>
-        </div>
-
-        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
-          <button type="button" onclick="closeDocEditModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold tap-bounce">
-            取消
-          </button>
-          <button type="button" id="docModalSaveAsNewBtn" onclick="handleSaveDocModal(null, true)" class="hidden px-4 py-2 rounded-xl border-2 border-emerald-500 text-emerald-700 bg-white hover:bg-emerald-50 text-xs font-bold tap-bounce">
-            ➕ 另存為新文件
-          </button>
-          <button type="submit" id="docModalSaveBtn" class="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold shadow-sm tap-bounce flex items-center gap-1.5">
-            <span>➕</span> 新增這筆文件
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-
   <!-- ==================== 編輯相簿 Modal (ALBUM MODAL) ==================== -->
   <div id="editAlbumModal" class="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-3 sm:p-5 hidden">
     <div class="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-4 relative border border-slate-200">
@@ -2364,9 +2342,6 @@ const htmlContent = `<!DOCTYPE html>
         docs: {
           title: '常用文件',
           subtitle: '提供請假單、用藥委託單、學期行事曆與幼兒園作息手冊，方便家長線上預覽與列印。',
-          adminBarText: '管理者權限已啟用：您可直接在下方任一文件卡片點選「✏️ 編輯」或「🗑️ 刪除」，或點擊右側按鈕新增文件。',
-          addDocBtn: '新增常用文件',
-          browseDrive: '瀏覽雲端 Docs 資料夾',
           clickToPreview: '點擊可立即下載或直接預覽',
           allDocs: '全部文件',
           downloadBtn: '下載文件'
@@ -2381,7 +2356,7 @@ const htmlContent = `<!DOCTYPE html>
           tabMenu: '🍱 每日菜單管理',
           tabUploadPhoto: '📸 相簿批次上傳',
           tabSongs: '🎵 唱跳音符管理',
-          tabUploadDoc: '📂 文件檔案上傳',
+          tabUploadDoc: '📂 常用文件管理',
           tabThemes: '📚 主題活動',
           tabSpotlight: '🌟 焦點活動管理',
           tabTranslations: '🌐 英文對照',
@@ -2612,9 +2587,6 @@ const htmlContent = `<!DOCTYPE html>
         docs: {
           title: 'Documents',
           subtitle: 'Leave requests, medication forms, calendar, and parent handbooks.',
-          adminBarText: 'Admin mode active: Edit or delete docs directly below, or add new files.',
-          addDocBtn: 'Add New Document',
-          browseDrive: 'Browse Google Drive Docs',
           clickToPreview: 'Click to download or preview directly',
           allDocs: 'All Docs',
           downloadBtn: 'Download'
@@ -2629,7 +2601,7 @@ const htmlContent = `<!DOCTYPE html>
           tabMenu: '🍱 Daily Menus',
           tabUploadPhoto: '📸 Upload Photos',
           tabSongs: '🎵 Manage Songs',
-          tabUploadDoc: '📂 Upload Docs',
+          tabUploadDoc: '📂 Manage Docs',
           tabThemes: '📚 Weekly Themes',
           tabSpotlight: '🌟 Highlights',
           tabTranslations: '🌐 Translations',
@@ -2887,7 +2859,6 @@ const htmlContent = `<!DOCTYPE html>
       settings: {},
       adminPassword: '',
       selectedAlbumFiles: [],
-      selectedDocFile: null,
       cachedAlbums: [],
       albumCategories: ['班級主題', '全園活動', '親職活動', '節慶活動', '幸福廚房', '健康檢查', '戶外踏訪', '日常生活'],
       selectedAlbumCategories: new Set(),
@@ -4382,16 +4353,6 @@ const htmlContent = `<!DOCTYPE html>
             pillsContainer.innerHTML += '<button onclick="filterDocs(\\'全部\\')" class="doc-cat-btn px-3 py-1 rounded-xl text-xs font-bold bg-indigo-600 text-white shadow-xs">' + (state.lang === 'en' ? 'All Docs' : '全部文件') + '</button>';
           } else {
             pillsContainer.innerHTML += '<button onclick="filterDocs(\\'' + jsq(cat) + '\\')" class="doc-cat-btn px-3 py-1 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">' + esc(tn(cat)) + '</button>';
-          }
-        });
-      }
-
-      const uploadCat = document.getElementById('docUpload-category');
-      if (uploadCat) {
-        uploadCat.innerHTML = '';
-        categories.forEach(cat => {
-          if (cat !== '全部文件' && cat !== '全部') {
-            uploadCat.innerHTML += '<option value="' + esc(cat) + '">' + esc(cat) + '</option>';
           }
         });
       }
@@ -7049,16 +7010,9 @@ const htmlContent = `<!DOCTYPE html>
       }
       const isAdmin = !!pwd;
 
-      const adminBar = document.getElementById('docAdminBar');
-      const browseBtn = document.getElementById('btnBrowseCloudDocs');
-      if (adminBar) {
-        if (isAdmin) { adminBar.classList.remove('hidden'); adminBar.removeAttribute('hidden'); }
-        else { adminBar.classList.add('hidden'); adminBar.setAttribute('hidden', ''); }
-      }
-      if (browseBtn) {
-        if (isAdmin) { browseBtn.classList.remove('hidden'); browseBtn.removeAttribute('hidden'); }
-        else { browseBtn.classList.add('hidden'); browseBtn.setAttribute('hidden', ''); }
-      }
+      // 常用文件的新增、編輯、複製、刪除都在「後台 → 常用文件管理」；這裡（前台）只有下載。順手重畫後台列表，讓兩邊永遠一致。
+      try { renderAdminDocsList(); } catch (e) {}
+
       const browseAlbumsBtn = document.getElementById('btnBrowseCloudAlbums');
       if (browseAlbumsBtn) {
         if (isAdmin) { browseAlbumsBtn.classList.remove('hidden'); browseAlbumsBtn.removeAttribute('hidden'); }
@@ -7077,14 +7031,6 @@ const htmlContent = `<!DOCTYPE html>
       filtered.forEach(doc => {
         const url = doc.downloadUrl || 'https://drive.google.com/drive/folders/1Ie8medB2JPYdUA9LOryVnPAdko1t5rjR';
         
-        let adminBtns = '';
-        if (isAdmin) {
-          const safeName = jsq(doc.fileName || '');
-          adminBtns = actBtnHtml('edit', "openDocEditModal('" + jsq(doc.id || '') + "')", { label: state.lang === 'en' ? 'Edit' : '編輯', title: state.lang === 'en' ? 'Edit Document' : '編輯文件資訊' }) +
-            actBtnHtml('copy', "copyDocInAdmin('" + jsq(doc.id || '') + "')", { label: state.lang === 'en' ? 'Copy' : '複製', title: state.lang === 'en' ? 'Copy (creates a new document; the original is unchanged)' : '複製（帶入這份的內容新增一份新文件，原文件不會改變）' }) +
-            actBtnHtml('del', "handleDeleteDocDirect('" + jsq(doc.id || '') + "', '" + safeName + "')", { label: state.lang === 'en' ? 'Delete' : '刪除', title: state.lang === 'en' ? 'Delete Document' : '刪除文件' });
-        }
-
         const card = document.createElement('div');
         card.className = 'p-4 rounded-3xl bg-white border border-slate-200/90 shadow-2xs hover:shadow-md transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 group';
         card.innerHTML = '<div class="flex items-start gap-3">' +
@@ -7100,13 +7046,58 @@ const htmlContent = `<!DOCTYPE html>
           '</div>' +
           '</div>' +
           '<div class="flex items-center gap-2 w-full sm:w-auto justify-end shrink-0 pt-2 sm:pt-0">' +
-          adminBtns +
           '<a href="' + (escUrl(url) || '#') + '" target="_blank" rel="noopener noreferrer" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm flex items-center gap-1.5 tap-bounce">' +
           '<span>⬇️</span> ' + (state.lang === 'en' ? 'Download' : '下載文件') +
           '</a>' +
           '</div>';
 
         container.appendChild(card);
+      });
+    }
+
+    // ---------- 後台「常用文件管理」列表 ----------
+    function adminDocsFillFilters() {
+      const cats = adminListUnique((state.docCategories || []).filter(function(c) { return c !== '全部文件' && c !== '全部'; }).concat((state.docs || []).map(function(d) { return d && d.category; })));
+      adminLists.docs.cat = adminListFillSelect(document.getElementById('adminDocsCat'), '全部類別', cats, adminLists.docs.cat);
+    }
+
+    function renderAdminDocsList() {
+      const listEl = document.getElementById('docAdminListContainer');
+      if (!listEl) return;
+      const all = state.docs || [];
+      const countEl = document.getElementById('docAdminCountBadge');
+      if (countEl) countEl.textContent = '共 ' + all.length + ' 份文件';
+      adminDocsFillFilters();
+      adminListSyncToolbar('docs', { search: 'adminDocsSearch', cat: 'adminDocsCat', clear: 'adminDocsClear' });
+      const info = adminListSlice(adminDocsView(all, adminLists.docs), adminLists.docs);
+      adminLists.docs.page = info.page;
+      adminListRenderPager('docs', info, all.length);
+      listEl.innerHTML = '';
+      if (info.total === 0) {
+        listEl.innerHTML = '<div class="py-8 text-center text-slate-400 text-xs font-bold bg-slate-50 rounded-2xl border border-dashed border-slate-200">' + (all.length === 0 ? '尚無任何常用文件，請點擊右上角「➕ 新增常用文件」' : '沒有符合條件的文件') + '</div>';
+        return;
+      }
+      info.rows.forEach(function(doc) {
+        const url = doc.downloadUrl || '';
+        const title = esc(doc.fileName || '') || '未命名文件';
+        const row = document.createElement('div');
+        row.className = 'p-3.5 rounded-2xl bg-white border border-slate-200 hover:shadow-sm transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3';
+        row.innerHTML = '<div class="flex items-start gap-3 min-w-0">' + getDocFileIconHtml(doc) +
+          '<div class="min-w-0">' +
+          '<div class="flex items-center gap-2 flex-wrap">' +
+          (url ? '<a href="' + (escUrl(url) || '#') + '" target="_blank" rel="noopener noreferrer" class="font-black text-slate-800 text-sm hover:underline">' + title + '</a>' : '<span class="font-black text-slate-800 text-sm">' + title + '</span>') +
+          '<span class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-indigo-100 text-indigo-800">' + (esc(doc.category) || '一般') + '</span>' +
+          newBadgeHtml(doc.updatedAt) +
+          '</div>' +
+          (doc.description ? '<p class="text-xs text-slate-500 mt-1 line-clamp-2">' + esc(doc.description) + '</p>' : '') +
+          '<div class="text-[0.6875rem] text-slate-400 mt-1">更新日期：' + esc(doc.updatedAt || '') + '</div>' +
+          '</div></div>' +
+          '<div class="doc-admin-ops flex items-center gap-1.5 shrink-0 self-end sm:self-center"></div>';
+        const ops = row.querySelector('.doc-admin-ops');
+        ops.appendChild(actBtnEl('edit', function() { openDocEditModal(doc.id); }, { title: '編輯文件資訊' }));
+        ops.appendChild(actBtnEl('copy', function() { copyDocInAdmin(doc.id); }, { title: '複製（帶入這份的內容新增一份新文件，原文件不會改變）' }));
+        ops.appendChild(actBtnEl('del', function() { handleDeleteDocDirect(doc.id, doc.fileName || ''); }, { title: '刪除文件' }));
+        listEl.appendChild(row);
       });
     }
 
@@ -7204,6 +7195,7 @@ const htmlContent = `<!DOCTYPE html>
         const cur = id ? state.docs.find(d => String(d.id) === String(id)) : null;
         setDocFormMode(cur ? 'edit' : 'new', cur);
       }
+      if (modal && typeof modal.scrollIntoView === 'function') { try { modal.scrollIntoView({ behavior: 'smooth' }); } catch (e) {} }
     }
 
     // 使用者按 ✕／取消：有未儲存的內容先確認；程式內部（儲存完成後關閉）改呼叫 closeDocEditModalNow()
@@ -8906,6 +8898,7 @@ const htmlContent = `<!DOCTYPE html>
 
       if (subtab === 'events') renderAdminEventsTable();
       if (subtab === 'spotlight') renderAdminSpotlightsList();
+      if (subtab === 'uploadDoc') renderAdminDocsList();
       if (subtab === 'uploadPhoto') {
         if (state.cachedAlbums.length === 0) refreshAlbumsNow();
         else renderAdminAlbumsTable();
@@ -9343,6 +9336,20 @@ const htmlContent = `<!DOCTYPE html>
       list.sort(function(a, b) { return b.i - a.i; });
       return list.map(function(x) { return x.s; });
     }
+    // 常用文件：st = { query, cat }；搜尋名稱、分類、說明；排序＝試算表列順序倒過來（最新建立在最上面）
+    function adminDocsView(docs, st) {
+      const terms = adminListTerms(st.query);
+      const catKey = adminListKey(st.cat);
+      const list = [];
+      (docs || []).forEach(function(d, i) {
+        if (!d) return;
+        if (catKey && adminListKey(d.category) !== catKey) return;
+        if (terms.length && !adminListMatches([d.fileName, d.category, d.description].join(' '), terms)) return;
+        list.push({ d: d, i: i });
+      });
+      list.sort(function(a, b) { return b.i - a.i; });
+      return list.map(function(x) { return x.d; });
+    }
     // 焦點活動的輪播狀態：off（停用）、scheduled（排程中：開始日還沒到）、ended（已下架：結束日已過）、playing（播映中）
     function spotlightPlayState(sp, todayStr) {
       if (sp.status === '停用') return 'off';
@@ -9437,10 +9444,11 @@ const htmlContent = `<!DOCTYPE html>
       events: { query: '', cat: '', target: '', sort: 'new', page: 0, size: adminListStoredSize('events') },
       albums: { query: '', cat: '', page: 0, size: adminListStoredSize('albums') },
       songs: { query: '', cat: '', page: 0, size: adminListStoredSize('songs') },
+      docs: { query: '', cat: '', page: 0, size: adminListStoredSize('docs') },
       spotlights: { query: '', status: '', play: ADMIN_LIST_DEFAULTS.spotlights.play, sort: ADMIN_LIST_DEFAULTS.spotlights.sort, page: 0, size: adminListStoredSize('spotlights') },
       translations: { page: 0, size: adminListStoredSize('translations') }
     };
-    const ADMIN_LIST_RENDER = { events: 'renderAdminEventsTable', albums: 'renderAdminAlbumsTable', songs: 'renderAdminSongsTable', spotlights: 'renderAdminSpotlightsList', translations: 'mapAdminRenderRows' };
+    const ADMIN_LIST_RENDER = { events: 'renderAdminEventsTable', albums: 'renderAdminAlbumsTable', songs: 'renderAdminSongsTable', docs: 'renderAdminDocsList', spotlights: 'renderAdminSpotlightsList', translations: 'mapAdminRenderRows' };
     function adminListRerender(key) { try { window[ADMIN_LIST_RENDER[key]](); } catch (e) {} }
     function adminListOnQuery(key, v) { adminLists[key].query = v; adminLists[key].page = 0; adminListRerender(key); }
     function adminListOnFilter(key, field, v) { adminLists[key][field] = v; adminLists[key].page = 0; adminListRerender(key); }
@@ -10398,76 +10406,6 @@ const htmlContent = `<!DOCTYPE html>
           showToast(res.message || '雲端相簿已成功刪除！', '✅');
         }
       });
-    }
-
-    // 後台文件上傳 (Docs)
-    function handleDocFileSelected(e) {
-      const f = e.target.files[0];
-      if (!f) return;
-      state.selectedDocFile = f;
-      document.getElementById('docFileSelectedName').textContent = \`已選取：\${f.name} (\${(f.size/1024).toFixed(1)} KB)\`;
-      if (!document.getElementById('docUpload-name').value) {
-        document.getElementById('docUpload-name').value = f.name;
-      }
-    }
-
-    function startUploadDocument() {
-      const fileName = document.getElementById('docUpload-name').value.trim();
-      const cat = document.getElementById('docUpload-category').value;
-      const desc = document.getElementById('docUpload-desc').value.trim();
-
-      if (!fileName || !state.selectedDocFile) {
-        return showToast('請填寫文件名稱並選取檔案！', '⚠️');
-      }
-
-      showToast('正在上傳文件至 Google Drive Docs...', '⏳');
-      const btn = document.getElementById('docUploadBtn');
-      btn.disabled = true;
-
-      const reader = new FileReader();
-      reader.onload = () => {
-        const base64 = reader.result.split(',')[1];
-        let ext = '';
-        if (state.selectedDocFile && state.selectedDocFile.name) {
-          const m = String(state.selectedDocFile.name).match(/\.([a-zA-Z0-9]+)$/);
-          if (m) ext = m[1].toLowerCase();
-        }
-        if (!ext && fileName) {
-          const m = String(fileName).match(/\.([a-zA-Z0-9]+)$/);
-          if (m) ext = m[1].toLowerCase();
-        }
-
-        const fileObj = {
-          name: state.selectedDocFile.name || fileName,
-          mimeType: state.selectedDocFile.type,
-          base64: base64
-        };
-
-        const docMeta = {
-          fileName: fileName,
-          fileExtension: ext || 'pdf',
-          category: cat,
-          description: desc
-        };
-
-        callBackend('uploadDocument', {
-          meta: docMeta,
-          file: fileObj,
-          password: getAdminPassword()
-        }, res => {
-          btn.disabled = false;
-          if (res && res.success) {
-            showToast(res.message || '文件已成功發佈！', '🎉');
-            loadAppData();
-          } else {
-            showToast('文件已加入列表！', '🎉');
-          }
-        }, err => {
-          btn.disabled = false;
-          showToast('文件已加入列表！', '🎉');
-        });
-      };
-      reader.readAsDataURL(state.selectedDocFile);
     }
 
     // Spotlight 管理與多活動排程邏輯

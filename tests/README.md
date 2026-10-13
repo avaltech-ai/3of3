@@ -152,4 +152,4 @@ console.log(await window.__nameMapFrontendTest());   // allPass 應為 true
 - `node tests/mapsimilar.test.js`：後台「相似文字」分組純函式（和／與、標點、編號數字不同不分組、短文字、串接、`__proto__`、與標準編輯距離隨機對照 4000 組，30 項；從 `index.html` 取出函式執行；已納入 `tests/ci.sh`）。
 - `tests/mapsimilar_frontend.js`（瀏覽器）：相似文字介面（標示、篩選與同組相鄰、只看這組、套用英文的確認與取消、只填入畫面不呼叫後端、儲存、NameMap 無此功能、跳脫，34 項；約 5 秒）。
 - `tests/mapadmin_frontend.js`（瀏覽器）：後台英文對照介面（載入、篩選搜尋分頁、修改追蹤、批次儲存與分段、連續草稿與停止、採用、刪除、手動新增、種類切換、跳脫，76 項（含與其他列表一致的分頁 15 項）；約 25 秒）。
-
+- `tests/docs_admin.js`（瀏覽器）：常用文件管理全在後台（前台沒有任何管理按鈕、後台表單＋列表、搜尋／類別／分頁、編輯／複製／刪除／新增、進入頁籤即有列表、空清單與無結果、跳脫，24 項；約 5 秒）。
