@@ -84,6 +84,34 @@ const same=[{n:'same.jpg',t:5},{n:'same.jpg',t:5}]; TIMING.name=i=>same[i].n; TI
 { const ee=env({[A]:2}); const r1=ee.ctx.getAlbumPhotos(A).photos.map(x=>x.id).join(); const ee2=env({[A]:2}); const r2=ee2.ctx.getAlbumPhotos(A).photos.map(x=>x.id).join(); ok(r1===r2 && r1.indexOf('F')===0,'時間與檔名都相同：依 id 排，結果穩定'); }
 Object.keys(TIMING).forEach(k=>delete TIMING[k]);
 
+console.log('G2. 手機相機檔名：整本都是 IMG_數字 時依拍攝編號排序（不看上傳時間）');
+ok(mk([{n:'IMG_1544.jpg',t:1000},{n:'IMG_1532.jpg',t:5000},{n:'IMG_1599.jpg',t:3000}])==='IMG_1532.jpg,IMG_1544.jpg,IMG_1599.jpg','IMG 檔名：依數字（上傳時間相反也一樣）');
+ok(mk([{n:'IMG_1534.jpeg',t:9},{n:'IMG_1533.MOV',t:99,m:'video/quicktime'},{n:'IMG_1532.jpeg',t:5}])==='IMG_1532.jpeg,IMG_1533.MOV,IMG_1534.jpeg','照片與影片共用編號：混排依拍攝順序（影片上傳較晚也不會排到最後）');
+ok(mk([{n:'IMG_1235.jpg',t:1},{n:'IMG_E1234.jpg',t:2},{n:'IMG_1234.jpg',t:3}])==='IMG_1234.jpg,IMG_E1234.jpg,IMG_1235.jpg','iPhone 編輯過的 IMG_E1234：緊接在原圖 IMG_1234 之後');
+ok(mk([{n:'IMG_10.HEIC',t:2},{n:'img_9.jpg',t:1}])==='img_9.jpg,IMG_10.HEIC','大小寫與 .HEIC 副檔名都算相機檔名');
+ok(mk([{n:'IMG_1.jpg',t:5}])==='IMG_1.jpg','只有一個相機檔：正常');
+ok(mk([{n:'IMG_1544.jpg',t:1000},{n:'09CD6EE0-BFB2-4F01.jpg',t:2000},{n:'IMG_1532.jpg',t:3000}])==='IMG_1544.jpg,09CD6EE0-BFB2-4F01.jpg,IMG_1532.jpg','混了亂碼檔名：整本改依建立時間（不是每個檔各自判斷）');
+ok(mk([{n:'IMG_1544 copy.jpg',t:1000},{n:'IMG_1532.jpg',t:2000},{n:'IMG_1500.jpg',t:3000}])==='IMG_1544 copy.jpg,IMG_1532.jpg,IMG_1500.jpg','有一個不符合 IMG_數字 格式：整本依建立時間');
+ok(mk([{n:'DSC_0002.jpg',t:2000},{n:'DSC_0001.jpg',t:1000}])==='DSC_0001.jpg,DSC_0002.jpg','其他相機命名（DSC_）：依建立時間');
+
+console.log('G3. 管理員清除相簿清單快取（clearAlbumListCache）');
+{
+  const ee=env({[A]:5,[B]:5,[C]:5}); ee.ctx.getAlbumPhotos(A); ee.ctx.getAlbumPhotos(B);
+  ee.store['app_data_v4']='APPDATA'; ee.store['text_map_v1_0']='TEXTMAP';
+  ee.ctx.checkPassword=t=>t==='good-token';
+  let r=ee.ctx.clearAlbumListCache('bad-token');
+  ok(r.success===false && r.authExpired===true && !!ee.store['albph_'+A] && !!ee.store['albph_'+B],'沒有有效 token：拒絕，相簿快取不動');
+  r=ee.ctx.clearAlbumListCache(undefined); ok(r.success===false && !!ee.store['albph_'+A],'沒帶 token：拒絕');
+  r=ee.ctx.clearAlbumListCache('good-token');
+  ok(r.success===true && r.cleared===2 && !ee.store['albph_'+A] && !ee.store['albph_'+B] && !ee.store['albph_keys'],'有效 token：清掉 2 本相簿的快取與索引（回報 cleared=2）');
+  ok(ee.store['app_data_v4']==='APPDATA' && ee.store['text_map_v1_0']==='TEXTMAP','只清相簿清單：getAppData 與英文對照快取不受影響');
+  const d0=ee.drive(); ee.ctx.getAlbumPhotos(A); ok(ee.drive()===d0+1,'清除後下一次讀取才重新向 Drive 列出');
+  r=ee.ctx.clearAlbumListCache('good-token'); ok(r.success===true,'沒有任何快取時也不出錯');
+  ok(/action === 'clearAlbumListCache'/.test(src) && /clearAlbumListCache\(postData\.password\)/.test(src),'doPost 已註冊此動作且傳入 token（寫入類動作不開放給 doGet）');
+  const gi=src.indexOf('function doGet('), pi=src.indexOf('function doPost(');
+  ok(gi>=0 && pi>gi && src.slice(gi,pi).indexOf('clearAlbumListCache')===-1 && src.slice(pi,pi+20000).indexOf('clearAlbumListCache')>0,'未放進公開的 doGet（只在 doPost 內，驗證 token）');
+}
+
 console.log('H. 舊格式快取失效');
 e=env({[A]:5}); e.store['albph_'+A]=JSON.stringify({success:true,folderName:'舊',photos:[{id:'OLDOLDOLDOLDOLD',name:'old.jpg',size:1}]});
 r=e.ctx.getAlbumPhotos(A);

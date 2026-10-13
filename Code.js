@@ -581,6 +581,8 @@ function doPost(e) {
       result = deleteSpotlight(postData.id, postData.password);
     } else if (action === 'updateSpotlightsOrder') {
       result = updateSpotlightsOrder(postData.orderList, postData.password);
+    } else if (action === 'clearAlbumListCache') {
+      result = clearAlbumListCache(postData.password);
     } else if (action === 'initAlbumUpload') {
       result = initAlbumUpload(postData, postData.password);
     } else if (action === 'uploadPhotosChunk') {
@@ -2233,24 +2235,63 @@ function albumFileTime_(file) {
   }
 }
 
-// 相簿項目排序：建立時間由舊到新（_t，毫秒）；時間相同再依檔名（不分大小寫、數字依大小：IMG_2 在 IMG_10 前）；仍相同依 id 保持穩定。就地排序並回傳。
+// 檔名自然比較（不分大小寫、數字依大小：IMG_2 在 IMG_10 前）；回傳 -1／0／1
+function albumNameCompare_(na, nb) {
+  na = String(na || '').toLowerCase(); nb = String(nb || '').toLowerCase();
+  if (na === nb) return 0;
+  const m = na.split(/(\d+)/), n = nb.split(/(\d+)/);
+  for (let i = 0; i < Math.min(m.length, n.length); i++) {
+    if (m[i] === n[i]) continue;
+    if (i % 2 === 1) { const x = Number(m[i]), y = Number(n[i]); if (x !== y) return x < y ? -1 : 1; }
+    return m[i] < n[i] ? -1 : 1;
+  }
+  return m.length === n.length ? 0 : (m.length < n.length ? -1 : 1);
+}
+
+// 手機相機檔名：IMG_1234.jpeg／IMG_E1234.jpg（iPhone 編輯過的版本）／IMG_1234.MOV；回傳數字，不符合回傳 null
+function albumCameraNumber_(name) {
+  const m = /^IMG_E?(\d+)\.[A-Za-z0-9]+$/i.exec(String(name || ''));
+  return m ? Number(m[1]) : null;
+}
+
+// 相簿項目排序（就地排序並回傳）：
+// 1. 整本相簿的檔名都是手機相機檔名（IMG_數字）：依檔名裡的數字由小到大（＝拍攝順序；照片與影片共用同一組編號，混排也正確），相同再比檔名。
+//    原因：照片若是從網站上傳，「上傳時間」是各檔上傳的先後、與拍攝順序無關；直接丟進 Drive 時則是各檔上傳完成的先後。
+// 2. 否則（例如檔名是亂碼 UUID）：依建立時間（_t，毫秒，＝上傳到 Drive 的時間）由舊到新，相同再依檔名。
+// 兩種情況最後都以 id 保持穩定。
 function sortAlbumItems_(items) {
+  const allCamera = items.length > 0 && items.every(function(it) { return albumCameraNumber_(it.name) !== null; });
   return items.sort(function(a, b) {
-    const ta = Number(a._t) || 0, tb = Number(b._t) || 0;
-    if (ta !== tb) return ta < tb ? -1 : 1;
-    const na = String(a.name || '').toLowerCase(), nb = String(b.name || '').toLowerCase();
-    if (na !== nb) {
-      const m = na.split(/(\d+)/), n = nb.split(/(\d+)/);
-      for (let i = 0; i < Math.min(m.length, n.length); i++) {
-        if (m[i] === n[i]) continue;
-        if (i % 2 === 1) { const x = Number(m[i]), y = Number(n[i]); if (x !== y) return x < y ? -1 : 1; }
-        return m[i] < n[i] ? -1 : 1;
-      }
-      return m.length - n.length;
+    if (allCamera) {
+      const xa = albumCameraNumber_(a.name), xb = albumCameraNumber_(b.name);
+      if (xa !== xb) return xa < xb ? -1 : 1;
+    } else {
+      const ta = Number(a._t) || 0, tb = Number(b._t) || 0;
+      if (ta !== tb) return ta < tb ? -1 : 1;
     }
+    const c = albumNameCompare_(a.name, b.name);
+    if (c !== 0) return c;
     const ia = String(a.id || ''), ib = String(b.id || '');
     return ia < ib ? -1 : (ia > ib ? 1 : 0);
   });
+}
+
+/**
+ * 管理員專用：清除所有相簿照片清單的快取（老師直接把檔案放進 Drive 資料夾後，按後台「重新整理相簿」立即看到，不必等快取到期）。
+ * 只清相簿清單（albph_*），不動 getAppData 等其他快取，所以不會讓其他頁面變慢。需要有效的登入 token。
+ */
+function clearAlbumListCache(password) {
+  if (!checkPassword(password)) return authFail_();
+  try {
+    const cache = CacheService.getScriptCache();
+    let ids = [];
+    try { ids = JSON.parse(cache.get('albph_keys') || '[]'); } catch (e) {}
+    if (ids.length) cache.removeAll(ids.map(function(id) { return 'albph_' + id; }));
+    cache.remove('albph_keys');
+    return { success: true, cleared: ids.length };
+  } catch (err) {
+    return { success: false, error: String(err) };
+  }
 }
 
 function getAlbumPhotos(albumFolderId) {

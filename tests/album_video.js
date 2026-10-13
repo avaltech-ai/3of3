@@ -79,6 +79,21 @@
   openPhotoViewerByIndex(1); ok(/Video won't play/.test(link.textContent), '英文：備用連結文字為英文');
   closePhotoViewer(); state.lang = 'zh-TW'; applyTranslations();
 
+  // G. 「重新整理相簿」：管理員登入時先清掉相簿清單快取，再重讀（直接放進 Drive 的檔案才會立刻出現）
+  const realCB = window.callBackend, realPwd = state.adminPassword, calls = [];
+  window.callBackend = function (action, payload, ok2, err2) { calls.push(action); if (action === 'clearAlbumListCache') { if (window.__clearFail) { if (err2) err2('boom'); } else if (ok2) ok2({ success: true, cleared: 3 }); } else if (action === 'getAlbums') { if (ok2) ok2({ success: true, albums: [] }); } };
+  state.adminPassword = 'tok'.repeat(15);
+  refreshAlbums(); ok(calls.join() === 'clearAlbumListCache,getAlbums', '管理員按「重新整理」：先清相簿清單快取，再重新讀取相簿（實際：' + calls.join() + '）');
+  calls.length = 0; window.__clearFail = true; refreshAlbums(); ok(calls.join() === 'clearAlbumListCache,getAlbums', '清快取失敗：仍然繼續重新讀取（不會卡住）');
+  calls.length = 0; window.__clearFail = false; state.adminPassword = ''; refreshAlbums(); ok(calls.join() === 'getAlbums', '沒有登入（一般使用者）：不會呼叫清快取，只重新讀取（實際：' + calls.join() + '）');
+  calls.length = 0; state.adminPassword = 'tok'.repeat(15); window.callBackend = function (action, payload, ok2) { calls.push(action); /* 清快取不回應：模擬網路慢 */ };
+  refreshAlbums(); refreshAlbums(); ok(calls.filter(a => a === 'clearAlbumListCache').length === 1, '連按兩次「重新整理」：只送出一次清快取（避免重複）');
+  refreshAlbums._clearing = false;
+  window.callBackend = realCB; state.adminPassword = realPwd; delete window.__clearFail;
+
+  const allJs = Array.from(document.scripts).map(x => x.textContent).join('\n');
+  ok(!/cachedAlbums\.length === 0\) refreshAlbums\(\)/.test(allJs) && (allJs.match(/cachedAlbums\.length === 0\) refreshAlbumsNow\(\)/g) || []).length === 2, '切到相簿分頁時的自動載入不清快取（只有使用者按「重新整理」才清）');
+
   try { closeAlbumModal(); } catch (e) {}
   window.fetch = realFetch; currentAlbumPhotosList = saved.list; currentAlbumPhotoIndex = saved.idx; state.lang = saved.lang; window.handleDataLoaded = realHandle;
   console.log(res.join('\n')); return res;

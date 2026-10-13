@@ -3132,6 +3132,7 @@
         else if (action === 'textAdopt') runner.adminTextAdopt(payload.zhList, payload.password);
         else if (action === 'mapStatus') runner.adminMapStatus(payload.password);
         else if (action === 'getAlbumPhotos') runner.getAlbumPhotos(payload.albumId);
+        else if (action === 'clearAlbumListCache') runner.clearAlbumListCache(payload.password);
         else if (action === 'verifyPassword') runner.verifyPassword(payload.password);
         else if (action === 'logout') runner.adminLogout(payload.password);
         else if (action === 'checkSession') runner.adminCheckSession(payload.password);
@@ -4753,7 +4754,7 @@
       }
       if (tabName === 'albums') {
         renderAlbumCategoriesUI();
-        if (state.cachedAlbums.length === 0) refreshAlbums();
+        if (state.cachedAlbums.length === 0) refreshAlbumsNow();
         else applyAlbumFilters();
       }
       if (tabName === 'docs') {
@@ -6148,7 +6149,19 @@
       }
     }
 
+    // 管理員登入時，「重新整理」先清掉相簿照片清單的快取：老師直接把照片或影片放進 Drive 資料夾後，立即在相簿裡看到
+    // （後端為了速度會快取各相簿清單 1 小時；經網站上傳或刪除時會自動清，直接放進 Drive 則不會）。失敗不影響重新整理。
     function refreshAlbums() {
+      if (state.adminPassword && !refreshAlbums._clearing) {
+        refreshAlbums._clearing = true;
+        const go = function() { refreshAlbums._clearing = false; refreshAlbumsNow(); };
+        callBackend('clearAlbumListCache', { password: state.adminPassword }, go, go);
+        return;
+      }
+      refreshAlbumsNow();
+    }
+
+    function refreshAlbumsNow() {
       const loading = document.getElementById('albumsLoading');
       const grid = document.getElementById('albumsGrid');
       if (loading) loading.classList.remove('hidden');
@@ -8656,7 +8669,7 @@
       if (subtab === 'events') renderAdminEventsTable();
       if (subtab === 'spotlight') renderAdminSpotlightsList();
       if (subtab === 'uploadPhoto') {
-        if (state.cachedAlbums.length === 0) refreshAlbums();
+        if (state.cachedAlbums.length === 0) refreshAlbumsNow();
         else renderAdminAlbumsTable();
       }
       if (subtab === 'settings') loadSettingsToForm();
