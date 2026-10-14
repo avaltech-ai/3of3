@@ -1643,9 +1643,9 @@
               <h5 class="text-sm font-black text-slate-800 flex items-center gap-1.5"><span>📋</span> 新學期：整批複製上學期</h5>
               <p class="text-xs text-slate-500">把某個學期的所有任務複製到另一個學期，之後再逐筆修改。目標學期必須還沒有任何任務（避免重複）。學期清單在試算表 ThemeSemesters 工作表。</p>
               <div class="flex flex-wrap items-center gap-2">
-                <select id="taskCopyFrom" class="px-2.5 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-700 bg-white" aria-label="來源學期"></select>
+                <select id="taskCopyFrom" onchange="this.dataset.touched='1'" class="px-2.5 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-700 bg-white" aria-label="來源學期"></select>
                 <span class="text-xs font-bold text-slate-500">複製到</span>
-                <select id="taskCopyTo" class="px-2.5 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-700 bg-white" aria-label="目標學期"></select>
+                <select id="taskCopyTo" onchange="this.dataset.touched='1'" class="px-2.5 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-700 bg-white" aria-label="目標學期"></select>
                 <button type="button" id="taskCopyBtn" onclick="copyTaskSemester()" class="px-3 py-1.5 rounded-xl bg-sky-50 hover:bg-sky-100 border border-sky-200 text-xs font-bold text-sky-800 tap-bounce">複製整個學期</button>
               </div>
             </div>
@@ -7487,8 +7487,18 @@
       st.semester = adminListFillSelect(document.getElementById('adminTasksSemester'), '全部學期', sems, st.semester);
       st.cat = adminListFillSelect(document.getElementById('adminTasksCat'), '全部類別', TASK_GROUP_LIST, st.cat);
       const copyFrom = document.getElementById('taskCopyFrom'), copyTo = document.getElementById('taskCopyTo'), ovSem = document.getElementById('taskOverviewSemester');
-      if (copyFrom) taskFillSemesterSelect(copyFrom, copyFrom.value || sems[0] || '', false);
-      if (copyTo) taskFillSemesterSelect(copyTo, copyTo.value || (taskSemesterOptions()[0] || ''), false);
+      // 整批複製：來源只列「有任務」的學期（預設最新的）；目標預設是「還沒有任務」的最新學期。使用者自己選過就不再自動改。
+      if (copyFrom) {
+        const keepFrom = (copyFrom.dataset.touched && sems.indexOf(copyFrom.value) !== -1) ? copyFrom.value : (sems[0] || '');
+        copyFrom.innerHTML = '';
+        sems.forEach(function(v) { const o = document.createElement('option'); o.value = v; o.textContent = v; copyFrom.appendChild(o); });
+        copyFrom.value = keepFrom;
+      }
+      if (copyTo) {
+        const opts = taskSemesterOptions();
+        const freshTarget = opts.filter(function(v) { return sems.indexOf(v) === -1; })[0] || opts[0] || '';
+        taskFillSemesterSelect(copyTo, (copyTo.dataset.touched && opts.indexOf(copyTo.value) !== -1) ? copyTo.value : freshTarget, false);
+      }
       if (ovSem) taskFillSemesterSelect(ovSem, ovSem.value || (taskSemesterOptions()[0] || ''), false);
       renderTaskOverviewTool();
       adminListSyncToolbar('tasks', { search: 'adminTasksSearch', cat: 'adminTasksCat', semester: 'adminTasksSemester', clear: 'adminTasksClear' });

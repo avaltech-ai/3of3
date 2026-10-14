@@ -158,9 +158,16 @@
   // K. 整學期複製
   reset(); switchAdminSubtab('tasks');
   const setSel = (id, v) => { $(id).value = v; };
+  // 預設值：來源只列有任務的學期；目標預設是還沒有任務的最新學期；自己選過就不再自動改
+  delete $('taskCopyFrom').dataset.touched; delete $('taskCopyTo').dataset.touched; renderAdminTasksList();
+  ok([...$('taskCopyFrom').options].map(o => o.value).join() === SEM2 + ',' + SEM1 && $('taskCopyFrom').value === SEM2, '整批複製的來源：只列有任務的學期（不含還沒任務的 115 學年下學期），預設最新的');
+  ok($('taskCopyTo').value === SEM3, '整批複製的目標：預設是「還沒有任務」的最新學期（115 學年下學期）');
+  $('taskCopyTo').value = SEM1; $('taskCopyTo').dispatchEvent(new Event('change')); $('taskCopyFrom').value = SEM1; $('taskCopyFrom').dispatchEvent(new Event('change')); renderAdminTasksList();
+  ok($('taskCopyTo').value === SEM1 && $('taskCopyFrom').value === SEM1, '使用者自己選過：重畫列表（搜尋、換頁）不會把選擇改掉');
+  delete $('taskCopyFrom').dataset.touched; delete $('taskCopyTo').dataset.touched; renderAdminTasksList();
   setSel('taskCopyFrom', SEM2); setSel('taskCopyTo', SEM2); copyTaskSemester(); ok(cbs.length === 0 && /不能相同/.test(toasts[toasts.length - 1]), '來源等於目標：提示，不送出');
   setSel('taskCopyTo', SEM1); copyTaskSemester(); ok(cbs.length === 0 && /已經有任務/.test(toasts[toasts.length - 1]), '目標學期已有任務：前端先擋下（不送出）');
-  setSel('taskCopyFrom', SEM3); setSel('taskCopyTo', SEM2); copyTaskSemester(); ok(cbs.length === 0 && /沒有任何任務可以複製/.test(toasts[toasts.length - 1]), '來源學期沒有任務：提示');
+  setSel('taskCopyFrom', SEM3); setSel('taskCopyTo', SEM2); copyTaskSemester(); ok(cbs.length === 0 && $('taskCopyFrom').value === '' && /請選擇/.test(toasts[toasts.length - 1]), '沒有任務的學期不在來源選項裡（選不到）；來源空白按複製：提示請選擇，不送出');
   setSel('taskCopyFrom', SEM2); setSel('taskCopyTo', SEM3); answer = false; copyTaskSemester(); ok(cbs.length === 0 && confirms.length === 1 && /5 筆任務/.test(confirms[0]), '複製前確認（說明筆數），按取消不送出');
   answer = true; copyTaskSemester();
   ok(cbs.length === 1 && cbs[0].a === 'copySemesterTasks' && cbs[0].p.fromSemester === SEM2 && cbs[0].p.toSemester === SEM3 && adminLists.tasks.semester === SEM3, '確定：呼叫 copySemesterTasks（來源、目標），列表切到目標學期');
