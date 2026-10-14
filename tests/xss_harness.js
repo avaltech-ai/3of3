@@ -48,6 +48,15 @@
     // 確保相簿資料帶有 coverCandidates 欄位，這樣候選照片的路徑也會被下毒測試（即使後端尚未提供該欄位）
     var rawClone = JSON.parse(JSON.stringify(raw));
     (rawClone.albums || []).forEach(function (a) { if (!a.coverCandidates) a.coverCandidates = ['PLACEHOLDERCANDIDATE0001', 'PLACEHOLDERCANDIDATE0002']; });
+    // 學期任務：線上資料還沒有時，補幾筆假資料讓這兩個畫面也被下毒測試
+    if (!rawClone.semesterTasks || !rawClone.semesterTasks.length) {
+      rawClone.semesterTasks = [
+        { id: 'T1', semester: '115 學年上學期', group: '班級小任務', order: 1, icon: '📖', title: '標題一', description: '說明一', updatedAt: '2026-10-01' },
+        { id: 'T2', semester: '115 學年上學期', group: '家長配合事項', order: 1, icon: '📚', title: '標題二', description: '說明二', updatedAt: '2026-10-01' },
+        { id: 'T3', semester: '114 學年下學期', group: '班級小任務', order: 1, icon: '🧩', title: '標題三', description: '', updatedAt: '2026-10-01' }
+      ];
+      rawClone.taskOverviews = { '115 學年上學期': 'PLACEHOLDEROVERVIEWID0000000001' };
+    }
     var data = poison(rawClone, pass, '');
     // 名稱對照表：以「被下毒後的名稱」當鍵、攻擊字串當英文值（需在英文介面下執行才會被顯示出來）
     var nm = {}, ni = 0;
@@ -78,6 +87,8 @@
     // 主題活動、相簿、文件、歌曲
     step('switchTab themes', function () { switchTab('themes'); });
     step('renderThemes', function () { renderThemes(); toggleAllThemeCards(); });
+    step('switchTab tasks', function () { switchTab('tasks'); });
+    step('renderSemesterTasks', function () { renderSemesterTasks(); filterSemesterTasks(); });
     step('switchTab albums', function () { switchTab('albums'); });
     step('albums', function () { renderAlbumCategoryPills(); applyAlbumFilters(); renderAlbumsList(state.cachedAlbums || data.albums || []); });
     step('album photos', function () {
@@ -97,6 +108,8 @@
     step('admin spotlights', function () { renderAdminSpotlightsList(); });
     step('admin albums', function () { renderAdminAlbumsTable(); });
     step('admin themes', function () { renderAdminThemesList(); });
+    step('admin tasks', function () { renderAdminTasksList(); });
+    (data.semesterTasks || []).forEach(function (tk, i) { step('task edit ' + i, function () { openTaskForm(tk.id); }); });
     step('admin songs', function () { renderAdminSongsTable(); });
     step('admin drive links', function () { renderFullDriveMonthlyLinks(); });
     step('admin settings', function () { loadSettingsToForm(); });

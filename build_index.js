@@ -190,6 +190,10 @@ const htmlContent = `<!DOCTYPE html>
           <span class="text-base w-6 text-center shrink-0">📚</span>
           <span class="font-bold text-xs whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1" data-i18n="nav.themes">主題活動</span>
         </button>
+        <button onclick="switchTab('tasks')" id="tabBtn-tasks" class="tab-btn flex items-center px-1.5 py-1.5 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
+          <span class="text-base w-6 text-center shrink-0">🎯</span>
+          <span class="font-bold text-xs whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1" data-i18n="nav.tasks">學期任務</span>
+        </button>
         <button onclick="switchTab('albums')" id="tabBtn-albums" class="tab-btn flex items-center px-1.5 py-1.5 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
           <span class="text-base w-6 text-center shrink-0">📸</span>
           <span class="font-bold text-xs whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1" data-i18n="nav.albums">影像記錄</span>
@@ -849,6 +853,33 @@ const htmlContent = `<!DOCTYPE html>
       </div>
     </section>
 
+    <!-- ==================== TAB: 學期任務 (TASKS) ==================== -->
+    <section id="tabContent-tasks" class="hidden space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight flex items-center gap-2">
+            <span class="text-rose-500">🎯</span>
+            <span data-i18n="tasks.title">學期任務</span>
+            <span id="taskSemesterBadge" class="hidden text-xs sm:text-sm font-bold text-rose-600 bg-rose-50 border border-rose-200 px-3 py-0.5 rounded-full"></span>
+          </h2>
+          <p data-i18n="tasks.subtitle" class="text-sm text-slate-500 font-medium mt-1">
+            這學期，我們和孩子一起努力的小目標
+          </p>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <select id="taskSemesterFilter" onchange="filterSemesterTasks()" class="hidden bg-white border border-slate-200 text-slate-700 text-sm font-bold rounded-xl px-3 py-2 outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100 transition-all cursor-pointer shadow-sm" aria-label="學期"></select>
+        </div>
+      </div>
+
+      <div id="tasksOverview"></div>
+      <div id="tasksGroups" class="space-y-6"></div>
+
+      <div id="tasksEmptyState" class="hidden flex flex-col items-center justify-center py-16 bg-white/50 backdrop-blur rounded-3xl border border-slate-200 border-dashed">
+        <div class="text-5xl mb-3 opacity-50 grayscale">🎯</div>
+        <p data-i18n="tasks.empty" class="text-slate-500 font-bold">這學期的任務還在準備中，請稍後再來看看</p>
+      </div>
+    </section>
+
     <!-- ==================== TAB 3: 常用文件下載 (DOCS) ==================== -->
     <section id="tabContent-docs" class="space-y-6 hidden">
       <!-- 文件區抬頭 -->
@@ -936,6 +967,9 @@ const htmlContent = `<!DOCTYPE html>
           </button>
           <button onclick="switchAdminSubtab('themes')" id="adminSubtabBtn-themes" data-i18n="admin.tabThemes" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
             📚 主題活動
+          </button>
+          <button onclick="switchAdminSubtab('tasks')" id="adminSubtabBtn-tasks" data-i18n="admin.tabTasks" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
+            🎯 學期任務
           </button>
           <button onclick="switchAdminSubtab('spotlight')" id="adminSubtabBtn-spotlight" data-i18n="admin.tabSpotlight" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
             🌟 焦點活動管理
@@ -1536,6 +1570,115 @@ const htmlContent = `<!DOCTYPE html>
               <!-- 動態渲染 -->
             </div>
             <div id="adminDocsPager"></div>
+          </div>
+        </div>
+
+        <!-- 子分頁：學期任務管理（班級小任務、家長配合事項；每學期開始時更新一次） -->
+        <div id="adminPanel-tasks" class="admin-panel space-y-4 hidden">
+          <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="text-xl">🎯</span>
+                <h4 class="font-black text-slate-800 text-base">學期任務管理</h4>
+              </div>
+              <p class="text-xs text-slate-400 mt-0.5">每學期開始時整理一次：「班級小任務」與「家長配合事項」，前台用圖示卡片呈現；新學期可先整批複製上學期，再逐筆修改。</p>
+            </div>
+            <button type="button" onclick="openTaskForm()" class="px-4 py-2 rounded-xl bg-peach-500 hover:bg-peach-600 text-white font-bold text-xs shadow-xs tap-bounce flex items-center gap-1 shrink-0">
+              <span>➕</span> 新增學期任務
+            </button>
+          </div>
+
+          <div id="taskFormWrap" class="hidden">
+            <div id="taskFormBox" class="bg-white rounded-3xl p-5 sm:p-6 shadow-sm space-y-4 border-2 border-emerald-200">
+              <div class="flex items-center gap-2">
+                <span class="text-xl">🎯</span>
+                <h3 id="taskFormTitle" class="font-black text-slate-800 text-base sm:text-lg">新增學期任務</h3>
+              </div>
+              <div id="taskFormModeBanner" class="px-3 py-2 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                <span id="taskFormModeText">➕ 新增學期任務：儲存後會建立一筆新的任務</span>
+              </div>
+              <form id="taskForm" onsubmit="event.preventDefault(); handleSaveTask(event)" class="space-y-3.5">
+                <input type="hidden" id="taskForm-id">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">學期 *</label>
+                    <select id="taskForm-semester" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-indigo-500 focus:outline-none"></select>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">類別 *</label>
+                    <select id="taskForm-group" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-indigo-500 focus:outline-none">
+                      <option value="班級小任務">班級小任務</option>
+                      <option value="家長配合事項">家長配合事項</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">順序</label>
+                    <input type="number" id="taskForm-order" min="1" max="999" step="1" placeholder="留白＝接在最後" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-indigo-500 focus:outline-none">
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 mb-1">圖示（一個表情符號，留白會用 ⭐）</label>
+                  <div class="flex items-center gap-2">
+                    <input type="text" id="taskForm-icon" maxlength="8" placeholder="📖" class="w-20 px-3 py-2 rounded-xl border border-slate-300 text-xl text-center focus:border-indigo-500 focus:outline-none" aria-label="圖示">
+                    <div id="taskEmojiPicks" class="flex flex-wrap gap-1"></div>
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 mb-1">標題 *</label>
+                  <input type="text" id="taskForm-title" required maxlength="100" placeholder="如：每天共讀一本繪本" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-indigo-500 focus:outline-none">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 mb-1">說明（選填，一兩句話）</label>
+                  <textarea id="taskForm-description" rows="2" maxlength="500" placeholder="如：請孩子看圖敘述故事及說出故事情節中的感受。" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-indigo-500 focus:outline-none"></textarea>
+                </div>
+                <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                  <button type="button" onclick="closeTaskForm()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold tap-bounce">取消</button>
+                  <button type="button" id="taskFormSaveAsNewBtn" onclick="handleSaveTask(null, true)" class="hidden px-4 py-2 rounded-xl border-2 border-emerald-500 text-emerald-700 bg-white hover:bg-emerald-50 text-xs font-bold tap-bounce">➕ 另存為新任務</button>
+                  <button type="submit" id="taskFormSaveBtn" class="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold shadow-sm tap-bounce flex items-center gap-1.5">
+                    <span>➕</span> <span id="taskFormSaveLabel">新增這筆任務</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
+              <h5 class="text-sm font-black text-slate-800 flex items-center gap-1.5"><span>📋</span> 新學期：整批複製上學期</h5>
+              <p class="text-xs text-slate-500">把某個學期的所有任務複製到另一個學期，之後再逐筆修改。目標學期必須還沒有任何任務（避免重複）。學期清單在試算表 ThemeSemesters 工作表。</p>
+              <div class="flex flex-wrap items-center gap-2">
+                <select id="taskCopyFrom" class="px-2.5 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-700 bg-white" aria-label="來源學期"></select>
+                <span class="text-xs font-bold text-slate-500">複製到</span>
+                <select id="taskCopyTo" class="px-2.5 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-700 bg-white" aria-label="目標學期"></select>
+                <button type="button" id="taskCopyBtn" onclick="copyTaskSemester()" class="px-3 py-1.5 rounded-xl bg-sky-50 hover:bg-sky-100 border border-sky-200 text-xs font-bold text-sky-800 tap-bounce">複製整個學期</button>
+              </div>
+            </div>
+            <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
+              <h5 class="text-sm font-black text-slate-800 flex items-center gap-1.5"><span>🖼️</span> 學期總覽圖（選填）</h5>
+              <p class="text-xs text-slate-500">在前台「學期任務」頁最上方多放一張你做好的資訊圖表。把圖檔放進 Google Drive（設為「知道連結的人可檢視」），貼上共用連結；留白再儲存＝清除。</p>
+              <div class="flex flex-wrap items-center gap-2">
+                <select id="taskOverviewSemester" onchange="renderTaskOverviewTool()" class="px-2.5 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-700 bg-white" aria-label="學期"></select>
+                <input type="text" id="taskOverviewLink" placeholder="https://drive.google.com/file/d/…" class="flex-1 min-w-[10rem] px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-indigo-500 focus:outline-none" aria-label="總覽圖連結">
+                <button type="button" id="taskOverviewSaveBtn" onclick="saveTaskOverviewLink()" class="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold tap-bounce">儲存</button>
+              </div>
+              <div id="taskOverviewStatus" class="text-[0.6875rem] text-slate-500"></div>
+              <img id="taskOverviewPreview" alt="" class="hidden w-40 h-auto rounded-xl border border-slate-200">
+            </div>
+          </div>
+
+          <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
+            <div class="flex items-center justify-between">
+              <h5 class="text-sm font-black text-slate-800 flex items-center gap-1.5"><span>📋</span> 現有學期任務列表</h5>
+              <span id="taskAdminCountBadge" class="text-xs text-slate-400 font-bold">共 0 筆任務</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <input id="adminTasksSearch" type="search" oninput="adminListOnQuery('tasks', this.value)" placeholder="搜尋標題、說明…" class="flex-1 min-w-[10rem] px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-peach-500 focus:outline-none" aria-label="搜尋學期任務">
+              <select id="adminTasksSemester" onchange="adminListOnFilter('tasks', 'semester', this.value)" class="px-2.5 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-700 bg-white" aria-label="學期"></select>
+              <select id="adminTasksCat" onchange="adminListOnFilter('tasks', 'cat', this.value)" class="px-2.5 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-700 bg-white" aria-label="類別"></select>
+              <button type="button" id="adminTasksClear" onclick="adminListClear('tasks')" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 tap-bounce cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed" disabled>清除篩選</button>
+            </div>
+            <div id="taskAdminListContainer" class="space-y-2"></div>
+            <div id="adminTasksPager"></div>
           </div>
         </div>
 
@@ -2232,6 +2375,7 @@ const htmlContent = `<!DOCTYPE html>
           pin: '釘選選單',
           daily: '班級日常',
           themes: '主題活動',
+          tasks: '學期任務',
           albums: '影像記錄',
           songs: '唱跳音符',
           docs: '常用文件',
@@ -2317,6 +2461,17 @@ const htmlContent = `<!DOCTYPE html>
           courseGoal: '課程目標',
           overviewTitle: '{semester} 主題架構圖'
         },
+        tasks: {
+          title: '學期任務',
+          subtitle: '這學期，我們和孩子一起努力的小目標',
+          empty: '這學期的任務還在準備中，請稍後再來看看',
+          overviewTitle: '{semester} 學期任務總覽',
+          groupClass: '班級小任務',
+          groupParent: '家長配合事項',
+          groupClassSub: '孩子在班上一起練習的 {n} 件事',
+          groupParentSub: '在家一起做的 {n} 件事',
+          semesterLabel: '學期'
+        },
         albums: {
           title: '影像記錄',
           subtitle: '紀錄寶貝在幼兒園成長探索的點滴歡笑！',
@@ -2358,6 +2513,7 @@ const htmlContent = `<!DOCTYPE html>
           tabSongs: '🎵 唱跳音符管理',
           tabUploadDoc: '📂 常用文件管理',
           tabThemes: '📚 主題活動',
+          tabTasks: '🎯 學期任務',
           tabSpotlight: '🌟 焦點活動管理',
           tabTranslations: '🌐 英文對照',
           tabSettings: '⚙️ 密碼與設定'
@@ -2477,6 +2633,7 @@ const htmlContent = `<!DOCTYPE html>
           pin: 'Pin Menu',
           daily: 'Daily',
           themes: 'Themes',
+          tasks: 'Term Tasks',
           albums: 'Albums',
           songs: 'Songs',
           docs: 'Docs',
@@ -2562,6 +2719,17 @@ const htmlContent = `<!DOCTYPE html>
           courseGoal: 'Curriculum Goals',
           overviewTitle: '{semester} Theme Overview'
         },
+        tasks: {
+          title: 'Term Tasks',
+          subtitle: 'Our little goals for this semester, working on them together with your child',
+          empty: 'The tasks for this semester are still being prepared. Please check back soon.',
+          overviewTitle: '{semester} Term Tasks Overview',
+          groupClass: 'Class Mini Missions',
+          groupParent: 'How Parents Can Help',
+          groupClassSub: '{n} things the children practice together in class',
+          groupParentSub: '{n} things to do together at home',
+          semesterLabel: 'Semester'
+        },
         albums: {
           title: 'Albums',
           subtitle: 'Capturing precious moments and class growth',
@@ -2603,6 +2771,7 @@ const htmlContent = `<!DOCTYPE html>
           tabSongs: '🎵 Manage Songs',
           tabUploadDoc: '📂 Manage Docs',
           tabThemes: '📚 Weekly Themes',
+          tabTasks: '🎯 Term Tasks',
           tabSpotlight: '🌟 Highlights',
           tabTranslations: '🌐 Translations',
           tabSettings: '⚙️ Settings'
@@ -2810,6 +2979,7 @@ const htmlContent = `<!DOCTYPE html>
       }
       initThemeFilters();
       renderThemes();
+      try { renderSemesterTasks(); } catch (e) {}
       renderAlbumCategoriesUI();
       applyAlbumFilters();
       renderSongCategoriesUI();
@@ -3045,8 +3215,8 @@ const htmlContent = `<!DOCTYPE html>
     // 目前所在的頁籤（與後台子面板）記在 sessionStorage：重新整理（含 App 模式的 ↻）會回到原本的頁面；
     // 關掉分頁或 App 後重新開啟則從首頁開始。只接受下列已知的頁籤名稱，其他值一律忽略。
     const SAVED_TAB_KEY = 'nobel_a_current_tab', SAVED_SUBTAB_KEY = 'nobel_a_admin_subtab';
-    const VALID_TABS = ['home', 'albums', 'songs', 'themes', 'docs', 'admin'];
-    const VALID_ADMIN_SUBTABS = ['events', 'menu', 'uploadPhoto', 'songs', 'uploadDoc', 'themes', 'spotlight', 'translations', 'settings'];
+    const VALID_TABS = ['home', 'albums', 'songs', 'themes', 'tasks', 'docs', 'admin'];
+    const VALID_ADMIN_SUBTABS = ['events', 'menu', 'uploadPhoto', 'songs', 'uploadDoc', 'themes', 'tasks', 'spotlight', 'translations', 'settings'];
 
     function saveUiLocation(key, value) {
       try { sessionStorage.setItem(key, value); } catch (e) {}
@@ -4402,9 +4572,12 @@ const htmlContent = `<!DOCTYPE html>
       state.themes = (data.themes || []).sort(sortThemesDesc);
       state.themeSemesters = data.themeSemesters || [];
       state.themeOverviews = (data.themeOverviews && typeof data.themeOverviews === 'object') ? data.themeOverviews : {};
+      state.semesterTasks = Array.isArray(data.semesterTasks) ? data.semesterTasks : [];
+      state.taskOverviews = (data.taskOverviews && typeof data.taskOverviews === 'object') ? data.taskOverviews : {};
       initThemeFilters();
       renderThemes();
       renderAdminThemesList();
+      try { renderSemesterTasks(); renderAdminTasksList(); } catch (e) {}
       state.settings = data.settings || {};
 
       
@@ -4458,7 +4631,7 @@ const htmlContent = `<!DOCTYPE html>
 
       // 嚴格依據目前頁籤 (state.currentTab) 保持顯示狀態，絕不私自開啟或混雜 home 內容
       const current = state.currentTab || 'home';
-      ['home', 'themes', 'albums', 'songs', 'docs', 'admin'].forEach(tab => {
+      ['home', 'themes', 'tasks', 'albums', 'songs', 'docs', 'admin'].forEach(tab => {
         const contentEl = document.getElementById('tabContent-' + tab);
         if (contentEl) {
           if (tab === current) {
@@ -4479,6 +4652,7 @@ const htmlContent = `<!DOCTYPE html>
         if (subtab === 'events') renderAdminEventsTable();
       if (subtab === 'themes') renderAdminThemesList();
         if (subtab === 'spotlight') renderAdminSpotlightsList();
+        if (subtab === 'tasks') renderAdminTasksList();
         if (subtab === 'uploadPhoto') renderAdminAlbumsTable();
       }
     }
@@ -4737,7 +4911,7 @@ const htmlContent = `<!DOCTYPE html>
       if (tabName === 'admin') { try { mapAdminRefreshBadge(); } catch (e) {} }
       state.currentTab = tabName;
       if (VALID_TABS.indexOf(tabName) !== -1) saveUiLocation(SAVED_TAB_KEY, tabName);
-      ['home', 'albums', 'songs', 'themes', 'docs', 'admin'].forEach(tab => {
+      ['home', 'albums', 'songs', 'themes', 'tasks', 'docs', 'admin'].forEach(tab => {
         const contentEl = document.getElementById(\`tabContent-\${tab}\`);
         const btnEl = document.getElementById(\`tabBtn-\${tab}\`);
         const mBtnEl = document.getElementById(\`mTabBtn-\${tab}\`);
@@ -4791,6 +4965,9 @@ const htmlContent = `<!DOCTYPE html>
 
       if (tabName === 'themes') {
         renderThemes();
+      }
+      if (tabName === 'tasks') {
+        renderSemesterTasks();
       }
       if (tabName === 'albums') {
         renderAlbumCategoriesUI();
@@ -7055,6 +7232,303 @@ const htmlContent = `<!DOCTYPE html>
       });
     }
 
+    // ==================== 後台「學期任務管理」====================
+    const TASK_EMOJI_CHOICES = ['📖', '📚', '🔤', '🚦', '🎲', '🧩', '📅', '⏰', '📏', '⚖️', '🎒', '👕', '👖', '🧸', '🥰', '💬', '🎨', '🎵', '🏃', '🍎', '🌱', '🤝', '🧼', '⭐'];
+    const TASK_GROUP_LIST = ['班級小任務', '家長配合事項'];
+    const taskFormState = { mode: 'new', baseId: '', baseTitle: '', baseline: null };
+    const TASK_FORM_FIELDS = [['semester', '學期'], ['group', '類別'], ['order', '順序'], ['icon', '圖示'], ['title', '標題'], ['description', '說明', true]];
+    const TASK_FORM_CFG = {
+      card: 'taskFormBox', banner: 'taskFormModeBanner', text: 'taskFormModeText', save: 'taskFormSaveBtn', saveLabel: 'taskFormSaveLabel', asNew: 'taskFormSaveAsNewBtn',
+      texts: {
+        new: function() { return '➕ 新增學期任務：儲存後會建立一筆新的任務'; },
+        edit: function(nm) { return '✏️ 正在編輯既有任務「' + nm + '」：按「更新原任務」會修改這筆原本的內容'; },
+        copy: function(nm) { return '📄 以「' + nm + '」為範本新增：原任務不會改變，儲存後多一筆新任務（可先改學期、類別或內容）'; }
+      },
+      saveLabels: { new: '新增這筆任務', edit: '更新原任務', copy: '新增這筆任務' }
+    };
+
+    // 學期選項：試算表 ThemeSemesters 的學期＋已有任務用到的學期，新到舊
+    function taskSemesterOptions() {
+      const out = [];
+      (state.themeSemesters || []).concat((state.semesterTasks || []).map(function(tk) { return tk && tk.semester; })).forEach(function(sm) {
+        const v = String(sm || '').trim();
+        if (v && out.indexOf(v) === -1) out.push(v);
+      });
+      const idx = {}; out.forEach(function(v, i) { idx[v] = i; });
+      out.sort(function(a, b) { return (semesterSortKey(b) - semesterSortKey(a)) || (idx[b] - idx[a]); });
+      return out;
+    }
+
+    function taskFillSemesterSelect(sel, selected, withAll) {
+      if (!sel) return;
+      const opts = taskSemesterOptions();
+      if (selected && opts.indexOf(selected) === -1) opts.unshift(selected);
+      sel.innerHTML = '';
+      if (withAll) { const o0 = document.createElement('option'); o0.value = ''; o0.textContent = '全部學期'; sel.appendChild(o0); }
+      opts.forEach(function(v) { const o = document.createElement('option'); o.value = v; o.textContent = v; sel.appendChild(o); });
+      sel.value = selected && (opts.indexOf(selected) !== -1) ? selected : (withAll ? '' : (opts[0] || ''));
+    }
+
+    function taskFormSnapshot() {
+      const v = function(id) { return (document.getElementById(id) || {}).value || ''; };
+      return { semester: v('taskForm-semester'), group: v('taskForm-group'), order: String(v('taskForm-order')).trim(), icon: v('taskForm-icon').trim(), title: v('taskForm-title').trim(), description: v('taskForm-description').trim() };
+    }
+    function taskFormOpen() { const w = document.getElementById('taskFormWrap'); return !!w && !w.classList.contains('hidden'); }
+    function taskFormDirty() {
+      if (!taskFormOpen()) return false;
+      return formFieldDiff(TASK_FORM_FIELDS, taskFormState.baseline || {}, taskFormSnapshot()).length > 0;
+    }
+    function confirmDiscardTask() {
+      if (!taskFormDirty()) return true;
+      return confirm('目前表單有尚未儲存的內容，確定要放棄嗎？');
+    }
+    function setTaskFormMode(mode, task) {
+      taskFormState.mode = mode;
+      taskFormState.baseId = task && task.id !== undefined ? String(task.id) : '';
+      taskFormState.baseTitle = task ? String(task.title || '') : '';
+      formModeApply(TASK_FORM_CFG, mode, taskFormState.baseTitle);
+      taskFormState.baseline = taskFormSnapshot();
+    }
+    function renderTaskEmojiPicks() {
+      const box = document.getElementById('taskEmojiPicks');
+      if (!box || box.childElementCount) return;
+      TASK_EMOJI_CHOICES.forEach(function(em) {
+        const b = document.createElement('button');
+        b.type = 'button'; b.textContent = em; b.title = '使用 ' + em;
+        b.className = 'w-8 h-8 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-lg flex items-center justify-center tap-bounce';
+        b.onclick = function() { const inp = document.getElementById('taskForm-icon'); if (inp) inp.value = em; };
+        box.appendChild(b);
+      });
+    }
+
+    function fillTaskForm(task) {
+      renderTaskEmojiPicks();
+      const sem = task ? task.semester : (adminLists.tasks.semester || (taskSemesterOptions()[0] || ''));
+      taskFillSemesterSelect(document.getElementById('taskForm-semester'), sem, false);
+      document.getElementById('taskForm-id').value = task && task.id ? task.id : '';
+      document.getElementById('taskForm-group').value = task && task.group ? task.group : (adminLists.tasks.cat || TASK_GROUP_LIST[0]);
+      document.getElementById('taskForm-order').value = task && task.order && task.order <= 999 ? task.order : '';
+      document.getElementById('taskForm-icon').value = task ? (task.icon || '') : '';
+      document.getElementById('taskForm-title').value = task ? (task.title || '') : '';
+      document.getElementById('taskForm-description').value = task ? (task.description || '') : '';
+    }
+
+    function showTaskForm() {
+      const w = document.getElementById('taskFormWrap');
+      if (w) { w.classList.remove('hidden'); if (typeof w.scrollIntoView === 'function') { try { w.scrollIntoView({ behavior: 'smooth' }); } catch (e) {} } }
+    }
+
+    function openTaskForm(id, forCopy) {
+      if (!forCopy && taskFormOpen() && !confirmDiscardTask()) return;
+      const task = id ? (state.semesterTasks || []).find(function(x) { return String(x.id) === String(id); }) : null;
+      if (id && !task) return;
+      fillTaskForm(task);
+      document.getElementById('taskFormTitle').textContent = task ? ('編輯學期任務：' + (task.title || '')) : '新增學期任務';
+      showTaskForm();
+      if (!forCopy) setTaskFormMode(task ? 'edit' : 'new', task);
+    }
+
+    // 以舊任務為範本新增：帶入內容，沒有編號、順序留白（存檔一定是新的一筆，接在同類別最後）
+    function copyTaskInAdmin(id) {
+      const task = (state.semesterTasks || []).find(function(x) { return String(x.id) === String(id); });
+      if (!task) return;
+      if (taskFormOpen() && !confirmDiscardTask()) return;
+      openTaskForm(id, true);
+      document.getElementById('taskForm-id').value = '';
+      document.getElementById('taskForm-order').value = '';
+      document.getElementById('taskFormTitle').textContent = '複製學期任務';
+      setTaskFormMode('copy', task);
+    }
+
+    function closeTaskForm() {
+      if (!confirmDiscardTask()) return;
+      closeTaskFormNow();
+    }
+    function closeTaskFormNow() {
+      const w = document.getElementById('taskFormWrap');
+      if (w) w.classList.add('hidden');
+      taskFormState.baseline = null;
+    }
+
+    // forceNew＝true（「另存為新任務」）：一律建立新的一筆，原任務完全不動
+    function handleSaveTask(e, forceNew) {
+      if (e && typeof e.preventDefault === 'function') e.preventDefault();
+      const snap = taskFormSnapshot();
+      const id = forceNew ? '' : document.getElementById('taskForm-id').value;
+      if (!snap.semester) { showToast('請選擇學期！', '⚠️'); return; }
+      if (!snap.title) { showToast('請輸入標題！', '⚠️'); return; }
+      if (snap.order !== '' && !(Number(snap.order) >= 1 && Number(snap.order) <= 999)) { showToast('順序請填 1～999 的整數，或留白', '⚠️'); return; }
+      const isUpdate = !forceNew && taskFormState.mode === 'edit' && !!id;
+      if (isUpdate) {
+        const diffs = formFieldDiff(TASK_FORM_FIELDS, taskFormState.baseline, snap);
+        if (diffs.length === 0) { showToast('沒有任何變更，原任務維持不變', 'ℹ️'); return; }
+        if (!formDiffConfirm('任務', taskFormState.baseTitle, diffs, '另存為新任務')) return;
+      }
+      const saveBtn = document.getElementById('taskFormSaveBtn');
+      const labelEl = document.getElementById('taskFormSaveLabel');
+      const idleLabel = labelEl ? labelEl.textContent : '';
+      if (saveBtn) saveBtn.disabled = true;
+      if (labelEl) labelEl.textContent = '儲存中…';
+      const restore = function() { if (saveBtn) saveBtn.disabled = false; if (labelEl) labelEl.textContent = idleLabel; };
+      const data = { id: id, semester: snap.semester, group: snap.group, order: snap.order === '' ? '' : Number(snap.order), icon: snap.icon, title: snap.title, description: snap.description };
+      callBackend('saveSemesterTask', { data: data, password: getAdminPassword() }, function(res) {
+        restore();
+        if (res && res.success) {
+          const row = { id: res.taskId || id, semester: snap.semester, group: snap.group, order: Number(res.order) || (snap.order === '' ? 1000 : Number(snap.order)), icon: snap.icon, title: snap.title, description: snap.description, updatedAt: (typeof getTodayDateStr === 'function') ? getTodayDateStr() : '' };
+          const list = state.semesterTasks || (state.semesterTasks = []);
+          const idx = list.findIndex(function(x) { return String(x.id) === String(row.id); });
+          if (idx >= 0) list[idx] = row; else list.push(row);
+          list.sort(function(a, b) { return (TASK_GROUP_LIST.indexOf(a.group) - TASK_GROUP_LIST.indexOf(b.group)) || (a.order - b.order); });
+          closeTaskFormNow();
+          renderAdminTasksList(); renderSemesterTasks();
+          showToast((isUpdate ? '已更新原任務「' : '已新增任務「') + snap.title + '」', '✅');
+          loadAppData();
+        } else {
+          showToast('儲存失敗：' + ((res && res.error) || '未知錯誤'), '❌');
+        }
+      }, function(err) {
+        restore();
+        showToast('網路連線逾時，請稍後再試（內容仍保留在表單）', '⚠️');
+      });
+    }
+
+    function deleteTaskInAdmin(id, title) {
+      if (!confirm('確定要刪除任務「' + title + '」嗎？\\n（這會從試算表移除該筆資料）')) return;
+      callBackend('deleteSemesterTask', { id: id, password: getAdminPassword() }, function(res) {
+        const gone = res && (res.success || (res.error && String(res.error).indexOf('找不到該任務編號') !== -1));
+        if (gone) {
+          state.semesterTasks = (state.semesterTasks || []).filter(function(x) { return String(x.id) !== String(id); });
+          renderAdminTasksList(); renderSemesterTasks();
+          showToast(res.success ? '任務已刪除' : '這筆任務已不存在，已更新清單', res.success ? '🗑️' : 'ℹ️');
+          loadAppData(true);
+        } else {
+          showToast('刪除失敗：' + ((res && res.error) || '未知錯誤'), '❌');
+        }
+      }, function(err) {
+        showToast('刪除失敗：連線逾時', '❌');
+      });
+    }
+
+    function copyTaskSemester() {
+      const from = (document.getElementById('taskCopyFrom') || {}).value || '';
+      const to = (document.getElementById('taskCopyTo') || {}).value || '';
+      if (!from || !to) { showToast('請選擇要複製的學期與目標學期', '⚠️'); return; }
+      if (from === to) { showToast('來源與目標學期不能相同', '⚠️'); return; }
+      const n = (state.semesterTasks || []).filter(function(x) { return x.semester === from; }).length;
+      if (n === 0) { showToast('「' + from + '」沒有任何任務可以複製', '⚠️'); return; }
+      if ((state.semesterTasks || []).some(function(x) { return x.semester === to; })) { showToast('「' + to + '」已經有任務，為避免重複不會覆蓋', '⚠️'); return; }
+      if (!confirm('要把「' + from + '」的 ' + n + ' 筆任務複製到「' + to + '」嗎？\\n（複製後可再逐筆修改；原學期不會改變）')) return;
+      const btn = document.getElementById('taskCopyBtn'); if (btn) btn.disabled = true;
+      callBackend('copySemesterTasks', { fromSemester: from, toSemester: to, password: getAdminPassword() }, function(res) {
+        if (btn) btn.disabled = false;
+        if (res && res.success) {
+          showToast(res.message || '已複製', '✅');
+          adminLists.tasks.semester = to;
+          loadAppData(true);
+        } else {
+          showToast('複製失敗：' + ((res && res.error) || '未知錯誤'), '❌');
+        }
+      }, function(err) {
+        if (btn) btn.disabled = false;
+        showToast('複製失敗：連線逾時（請重新整理確認是否已複製）', '⚠️');
+      });
+    }
+
+    // 總覽圖設定：目前學期的圖（或空）顯示在狀態列與縮圖
+    function renderTaskOverviewTool() {
+      const sel = document.getElementById('taskOverviewSemester');
+      const status = document.getElementById('taskOverviewStatus');
+      const img = document.getElementById('taskOverviewPreview');
+      if (!sel || !status || !img) return;
+      const fid = taskOverviewId(sel.value);
+      if (fid) {
+        status.textContent = '目前已設定總覽圖（顯示在前台「學期任務」頁最上方）。';
+        img.src = 'https://drive.google.com/thumbnail?id=' + fid + '&sz=w400';
+        img.classList.remove('hidden');
+      } else {
+        status.textContent = '這個學期目前沒有總覽圖。';
+        img.removeAttribute('src');
+        img.classList.add('hidden');
+      }
+    }
+
+    function saveTaskOverviewLink() {
+      const sem = (document.getElementById('taskOverviewSemester') || {}).value || '';
+      const link = ((document.getElementById('taskOverviewLink') || {}).value || '').trim();
+      if (!sem) { showToast('請選擇學期', '⚠️'); return; }
+      if (!link && !taskOverviewId(sem)) { showToast('請貼上圖檔連結', '⚠️'); return; }
+      if (!link && !confirm('連結是空白的，要清除「' + sem + '」的總覽圖嗎？')) return;
+      const btn = document.getElementById('taskOverviewSaveBtn'); if (btn) btn.disabled = true;
+      callBackend('saveTaskOverview', { semester: sem, link: link, password: getAdminPassword() }, function(res) {
+        if (btn) btn.disabled = false;
+        if (res && res.success) {
+          if (!state.taskOverviews) state.taskOverviews = {};
+          if (res.fileId) state.taskOverviews[sem] = res.fileId; else delete state.taskOverviews[sem];
+          const inp = document.getElementById('taskOverviewLink'); if (inp) inp.value = '';
+          renderTaskOverviewTool(); renderSemesterTasks();
+          showToast(res.message || '已儲存', '✅');
+          loadAppData();
+        } else {
+          showToast('儲存失敗：' + ((res && res.error) || '未知錯誤'), '❌');
+        }
+      }, function(err) {
+        if (btn) btn.disabled = false;
+        showToast('網路連線逾時，請稍後再試', '⚠️');
+      });
+    }
+
+    function renderAdminTasksList() {
+      const listEl = document.getElementById('taskAdminListContainer');
+      if (!listEl) return;
+      const all = state.semesterTasks || [];
+      const countEl = document.getElementById('taskAdminCountBadge');
+      if (countEl) countEl.textContent = '共 ' + all.length + ' 筆任務';
+
+      // 篩選下拉與工具區的選項
+      const st = adminLists.tasks;
+      const sems = adminListUnique(all.map(function(tk) { return tk && tk.semester; }));
+      sems.sort(function(a, b) { return semesterSortKey(b) - semesterSortKey(a); });
+      st.semester = adminListFillSelect(document.getElementById('adminTasksSemester'), '全部學期', sems, st.semester);
+      st.cat = adminListFillSelect(document.getElementById('adminTasksCat'), '全部類別', TASK_GROUP_LIST, st.cat);
+      const copyFrom = document.getElementById('taskCopyFrom'), copyTo = document.getElementById('taskCopyTo'), ovSem = document.getElementById('taskOverviewSemester');
+      if (copyFrom) taskFillSemesterSelect(copyFrom, copyFrom.value || sems[0] || '', false);
+      if (copyTo) taskFillSemesterSelect(copyTo, copyTo.value || (taskSemesterOptions()[0] || ''), false);
+      if (ovSem) taskFillSemesterSelect(ovSem, ovSem.value || (taskSemesterOptions()[0] || ''), false);
+      renderTaskOverviewTool();
+      adminListSyncToolbar('tasks', { search: 'adminTasksSearch', cat: 'adminTasksCat', semester: 'adminTasksSemester', clear: 'adminTasksClear' });
+
+      const info = adminListSlice(adminTasksView(all, st), st);
+      st.page = info.page;
+      adminListRenderPager('tasks', info, all.length);
+      listEl.innerHTML = '';
+      if (info.total === 0) {
+        listEl.innerHTML = '<div class="py-8 text-center text-slate-400 text-xs font-bold bg-slate-50 rounded-2xl border border-dashed border-slate-200">' + (all.length === 0 ? '尚無任何學期任務，請點擊右上角「➕ 新增學期任務」' : '沒有符合條件的任務') + '</div>';
+        return;
+      }
+      info.rows.forEach(function(tk) {
+        const row = document.createElement('div');
+        row.className = 'p-3 rounded-2xl bg-white border border-slate-200 hover:shadow-sm transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3';
+        const isClass = tk.group === TASK_GROUP_LIST[0];
+        row.innerHTML = '<div class="flex items-start gap-3 min-w-0">' +
+          '<div class="w-10 h-10 rounded-full flex items-center justify-center text-xl shrink-0 ' + (isClass ? 'bg-emerald-100' : 'bg-amber-100') + '" aria-hidden="true">' + esc(tk.icon || '⭐') + '</div>' +
+          '<div class="min-w-0">' +
+          '<div class="flex items-center gap-2 flex-wrap">' +
+          '<span class="font-black text-slate-800 text-sm">' + esc(tk.title) + '</span>' +
+          '<span class="text-xs px-2.5 py-0.5 rounded-full font-bold ' + (isClass ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800') + '">' + esc(tk.group) + '</span>' +
+          '<span class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-slate-100 text-slate-600">' + esc(tk.semester) + '</span>' +
+          '<span class="text-[0.6875rem] text-slate-400 font-bold">順序 ' + esc(tk.order && tk.order <= 999 ? tk.order : '—') + '</span>' +
+          '</div>' +
+          (tk.description ? '<p class="text-xs text-slate-500 mt-1 line-clamp-2">' + esc(tk.description) + '</p>' : '') +
+          '</div></div>' +
+          '<div class="task-admin-ops flex items-center gap-1.5 shrink-0 self-end sm:self-center"></div>';
+        const ops = row.querySelector('.task-admin-ops');
+        ops.appendChild(actBtnEl('edit', function() { openTaskForm(tk.id); }, { title: '編輯學期任務' }));
+        ops.appendChild(actBtnEl('copy', function() { copyTaskInAdmin(tk.id); }, { title: '複製（帶入這筆的內容新增一筆新任務，原任務不會改變）' }));
+        ops.appendChild(actBtnEl('del', function() { deleteTaskInAdmin(tk.id, tk.title); }, { title: '刪除學期任務' }));
+        listEl.appendChild(row);
+      });
+    }
+
     // ---------- 後台「常用文件管理」列表 ----------
     function adminDocsFillFilters() {
       const cats = adminListUnique((state.docCategories || []).filter(function(c) { return c !== '全部文件' && c !== '全部'; }).concat((state.docs || []).map(function(d) { return d && d.category; })));
@@ -8899,6 +9373,7 @@ const htmlContent = `<!DOCTYPE html>
       if (subtab === 'events') renderAdminEventsTable();
       if (subtab === 'spotlight') renderAdminSpotlightsList();
       if (subtab === 'uploadDoc') renderAdminDocsList();
+      if (subtab === 'tasks') renderAdminTasksList();
       if (subtab === 'uploadPhoto') {
         if (state.cachedAlbums.length === 0) refreshAlbumsNow();
         else renderAdminAlbumsTable();
@@ -9350,6 +9825,31 @@ const htmlContent = `<!DOCTYPE html>
       list.sort(function(a, b) { return b.i - a.i; });
       return list.map(function(x) { return x.d; });
     }
+    // 學期新舊的比較值：名稱裡第一組數字（學年）× 10 ＋ 上學期 1／下學期 2；看不出來的當 0（排最舊）
+    function semesterSortKey(name) {
+      const str = String(name || '');
+      const m = str.match(/\\d+/);
+      const year = m ? parseInt(m[0], 10) : 0;
+      const term = str.indexOf('下') !== -1 ? 2 : (str.indexOf('上') !== -1 ? 1 : 0);
+      return year * 10 + term;
+    }
+    // 學期任務：st = { query, cat（類別）, semester }；排序＝學期新到舊 → 類別（班級小任務在前）→ 順序 → 原列順序
+    function adminTasksView(tasks, st) {
+      const terms = adminListTerms(st.query);
+      const catKey = adminListKey(st.cat);
+      const semKey = adminListKey(st.semester);
+      const GROUPS = ['班級小任務', '家長配合事項'];
+      const list = [];
+      (tasks || []).forEach(function(tk, i) {
+        if (!tk) return;
+        if (catKey && adminListKey(tk.group) !== catKey) return;
+        if (semKey && adminListKey(tk.semester) !== semKey) return;
+        if (terms.length && !adminListMatches([tk.title, tk.description, tk.semester, tk.group].join(' '), terms)) return;
+        list.push({ t: tk, i: i, k: semesterSortKey(tk.semester), g: GROUPS.indexOf(tk.group), o: Number(tk.order) || 1000 });
+      });
+      list.sort(function(a, b) { return (b.k - a.k) || (a.t.semester === b.t.semester ? 0 : (a.t.semester < b.t.semester ? 1 : -1)) || (a.g - b.g) || (a.o - b.o) || (a.i - b.i); });
+      return list.map(function(x) { return x.t; });
+    }
     // 焦點活動的輪播狀態：off（停用）、scheduled（排程中：開始日還沒到）、ended（已下架：結束日已過）、playing（播映中）
     function spotlightPlayState(sp, todayStr) {
       if (sp.status === '停用') return 'off';
@@ -9445,10 +9945,11 @@ const htmlContent = `<!DOCTYPE html>
       albums: { query: '', cat: '', page: 0, size: adminListStoredSize('albums') },
       songs: { query: '', cat: '', page: 0, size: adminListStoredSize('songs') },
       docs: { query: '', cat: '', page: 0, size: adminListStoredSize('docs') },
+      tasks: { query: '', cat: '', semester: '', page: 0, size: adminListStoredSize('tasks') },
       spotlights: { query: '', status: '', play: ADMIN_LIST_DEFAULTS.spotlights.play, sort: ADMIN_LIST_DEFAULTS.spotlights.sort, page: 0, size: adminListStoredSize('spotlights') },
       translations: { page: 0, size: adminListStoredSize('translations') }
     };
-    const ADMIN_LIST_RENDER = { events: 'renderAdminEventsTable', albums: 'renderAdminAlbumsTable', songs: 'renderAdminSongsTable', docs: 'renderAdminDocsList', spotlights: 'renderAdminSpotlightsList', translations: 'mapAdminRenderRows' };
+    const ADMIN_LIST_RENDER = { events: 'renderAdminEventsTable', albums: 'renderAdminAlbumsTable', songs: 'renderAdminSongsTable', docs: 'renderAdminDocsList', tasks: 'renderAdminTasksList', spotlights: 'renderAdminSpotlightsList', translations: 'mapAdminRenderRows' };
     function adminListRerender(key) { try { window[ADMIN_LIST_RENDER[key]](); } catch (e) {} }
     function adminListOnQuery(key, v) { adminLists[key].query = v; adminLists[key].page = 0; adminListRerender(key); }
     function adminListOnFilter(key, field, v) { adminLists[key][field] = v; adminLists[key].page = 0; adminListRerender(key); }
@@ -9470,13 +9971,13 @@ const htmlContent = `<!DOCTYPE html>
     function adminListClear(key) {
       const st = adminLists[key];
       const def = ADMIN_LIST_DEFAULTS[key] || {};
-      st.query = ''; st.cat = ''; ['target', 'status', 'play'].forEach(function(f) { if (f in st) st[f] = def[f] || ''; }); if ('sort' in st) st.sort = def.sort || 'new'; st.page = 0;
+      st.query = ''; st.cat = ''; ['target', 'status', 'play', 'semester'].forEach(function(f) { if (f in st) st[f] = def[f] || ''; }); if ('sort' in st) st.sort = def.sort || 'new'; st.page = 0;
       adminListRerender(key);
     }
     function adminListIsFiltered(key) {
       const st = adminLists[key];
       const def = ADMIN_LIST_DEFAULTS[key] || {};
-      return !!(st.query || st.cat || st.target || st.status || (('play' in st) && st.play !== (def.play || '')) || (st.sort && st.sort !== (def.sort || 'new')));
+      return !!(st.query || st.cat || st.target || st.status || st.semester || (('play' in st) && st.play !== (def.play || '')) || (st.sort && st.sort !== (def.sort || 'new')));
     }
     // 把目前的篩選值同步回搜尋框與下拉，並更新「清除篩選」按鈕
     function adminListSyncToolbar(key, ids) {
@@ -9485,6 +9986,7 @@ const htmlContent = `<!DOCTYPE html>
       const c = document.getElementById(ids.cat); if (c) c.value = st.cat;
       if (ids.target) { const t = document.getElementById(ids.target); if (t) t.value = st.target; }
       if (ids.status) { const ss = document.getElementById(ids.status); if (ss) ss.value = st.status; }
+      if (ids.semester) { const sm = document.getElementById(ids.semester); if (sm) sm.value = st.semester; }
       if (ids.play) { const sp = document.getElementById(ids.play); if (sp) sp.value = st.play; }
       if (ids.sort) { const so = document.getElementById(ids.sort); if (so) so.value = st.sort; }
       const b = document.getElementById(ids.clear); if (b) b.disabled = !adminListIsFiltered(key);
@@ -11353,6 +11855,112 @@ const htmlContent = `<!DOCTYPE html>
       if (!fid) return;
       currentAlbumPhotosList = expandAlbumPhotos([{ id: fid, name: t('themes.overviewTitle', { semester: tx(sem) || sem }), size: 0 }]);
       openPhotoViewerByIndex(0);
+    }
+
+    // ==================== 學期任務（前台）====================
+    // 資料：state.semesterTasks（後端已依類別、順序排好）、state.taskOverviews（學期 → 總覽圖檔 ID）。
+    // 學期新舊：名稱裡的第一組數字（學年）＋上學期＝1、下學期＝2；看不出來的排最舊，同分依清單順序（後面較新）。
+    const TASK_GROUPS = [
+      { key: '班級小任務', i18n: 'tasks.groupClass', sub: 'tasks.groupClassSub', icon: '🏫', box: 'bg-emerald-50/70 border-emerald-200', head: 'text-emerald-800', chip: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-100' },
+      { key: '家長配合事項', i18n: 'tasks.groupParent', sub: 'tasks.groupParentSub', icon: '🏡', box: 'bg-amber-50/70 border-amber-200', head: 'text-amber-800', chip: 'bg-amber-100 text-amber-700', dot: 'bg-amber-100' }
+    ];
+    let currentTaskSemester = '';
+
+    // 有任務的學期，新到舊
+    function taskSemestersNewestFirst(tasks) {
+      const seen = Object.create(null), list = [];
+      (tasks || []).forEach(function(tk) { if (tk && tk.semester && !seen[tk.semester]) { seen[tk.semester] = true; list.push(tk.semester); } });
+      const rank = list.map(function(sem, i) { return { sem: sem, k: semesterSortKey(sem), i: i }; });
+      rank.sort(function(a, b) { return (b.k - a.k) || (b.i - a.i); });
+      return rank.map(function(x) { return x.sem; });
+    }
+
+    function taskOverviewId(semester) {
+      const id = (state.taskOverviews || {})[semester];
+      return (typeof id === 'string' && /^[A-Za-z0-9_-]{10,100}$/.test(id)) ? id : '';
+    }
+
+    function taskOverviewTitle(semester) {
+      return t('tasks.overviewTitle', { semester: tn(semester) || semester });
+    }
+
+    function openTaskOverview(btn) {
+      const sem = btn && btn.getAttribute ? btn.getAttribute('data-semester') : '';
+      const fid = taskOverviewId(sem);
+      if (!fid) return;
+      currentAlbumPhotosList = expandAlbumPhotos([{ id: fid, name: taskOverviewTitle(sem), size: 0 }]);
+      openPhotoViewerByIndex(0);
+    }
+
+    function filterSemesterTasks() {
+      const sel = document.getElementById('taskSemesterFilter');
+      currentTaskSemester = sel ? sel.value : '';
+      renderSemesterTasks();
+    }
+
+    function renderSemesterTasks() {
+      const groupsEl = document.getElementById('tasksGroups');
+      const emptyEl = document.getElementById('tasksEmptyState');
+      const overviewEl = document.getElementById('tasksOverview');
+      const sel = document.getElementById('taskSemesterFilter');
+      const badge = document.getElementById('taskSemesterBadge');
+      if (!groupsEl || !emptyEl || !overviewEl) return;
+      const all = state.semesterTasks || [];
+      const sems = taskSemestersNewestFirst(all);
+      if (sems.indexOf(currentTaskSemester) === -1) currentTaskSemester = sems[0] || '';
+
+      if (sel) {
+        sel.innerHTML = '';
+        sems.forEach(function(sem) { const o = document.createElement('option'); o.value = sem; o.textContent = tn(sem); sel.appendChild(o); });
+        sel.value = currentTaskSemester;
+        sel.classList.toggle('hidden', sems.length < 2);
+      }
+      if (badge) {
+        badge.textContent = currentTaskSemester ? tn(currentTaskSemester) : '';
+        badge.classList.toggle('hidden', !(sems.length === 1 && currentTaskSemester));
+      }
+
+      groupsEl.innerHTML = '';
+      overviewEl.innerHTML = '';
+      if (!currentTaskSemester) {
+        groupsEl.classList.add('hidden');
+        emptyEl.classList.remove('hidden');
+        return;
+      }
+      groupsEl.classList.remove('hidden');
+      emptyEl.classList.add('hidden');
+
+      const fid = taskOverviewId(currentTaskSemester);
+      if (fid) {
+        const title = taskOverviewTitle(currentTaskSemester);
+        overviewEl.innerHTML = '<div class="task-overview bg-white border border-rose-200/80 rounded-2xl shadow-sm overflow-hidden" data-semester="' + esc(currentTaskSemester) + '">' +
+          '<button type="button" onclick="openTaskOverview(this)" data-semester="' + esc(currentTaskSemester) + '" class="block w-full p-3 bg-white cursor-zoom-in tap-bounce text-left" aria-label="' + esc(title) + '">' +
+            '<img src="' + escUrl('https://drive.google.com/thumbnail?id=' + fid + '&sz=w1200') + '" alt="' + esc(title) + '" loading="lazy" class="w-full h-auto rounded-xl border border-slate-100 select-none">' +
+          '</button></div>';
+      }
+
+      TASK_GROUPS.forEach(function(g) {
+        const items = all.filter(function(tk) { return tk.semester === currentTaskSemester && tk.group === g.key; });
+        if (!items.length) return;
+        const sec = document.createElement('div');
+        sec.className = 'task-group rounded-3xl border p-4 sm:p-5 ' + g.box;
+        sec.setAttribute('data-group', g.key);
+        let html = '<h3 class="text-lg sm:text-xl font-black flex items-center gap-2 ' + g.head + '"><span aria-hidden="true">' + g.icon + '</span><span>' + esc(t(g.i18n)) + '</span></h3>' +
+          '<p class="text-xs sm:text-sm text-slate-500 font-medium mt-0.5 mb-3">' + esc(t(g.sub, { n: items.length })) + '</p>' +
+          '<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">';
+        items.forEach(function(tk) {
+          const desc = tx(tk.description);
+          html += '<div class="task-card bg-white rounded-2xl border border-slate-200/80 shadow-2xs p-3.5 flex items-start gap-3">' +
+            '<div class="w-11 h-11 rounded-full flex items-center justify-center text-2xl shrink-0 ' + g.dot + '" aria-hidden="true">' + esc(tk.icon || '⭐') + '</div>' +
+            '<div class="min-w-0">' +
+              '<h4 class="font-black text-slate-800 text-sm sm:text-base leading-snug">' + esc(tx(tk.title)) + '</h4>' +
+              (desc ? '<p class="text-xs sm:text-sm text-slate-500 mt-1 leading-relaxed">' + esc(desc) + '</p>' : '') +
+            '</div></div>';
+        });
+        html += '</div>';
+        sec.innerHTML = html;
+        groupsEl.appendChild(sec);
+      });
     }
 
     function renderThemes() {

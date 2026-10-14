@@ -32,6 +32,17 @@
     const realFetch = window.fetch;
     window.fetch = function () { return Promise.resolve({ ok: true, json: function () { return Promise.resolve({ success: true }); }, text: function () { return Promise.resolve(''); } }); };
     window.confirm = function () { return true; }; window.alert = function () {}; window.prompt = function () { return ''; }; window.open = function () { return null; };
+    // 學期任務：線上資料還沒有時補幾筆假資料（標題等是「使用者輸入的內容」，會被當資料剔除；介面標籤才會被檢查）
+    if (!raw.semesterTasks || !raw.semesterTasks.length) {
+      raw = Object.assign({}, raw, {
+        semesterTasks: [
+          { id: 'T1', semester: '115 學年上學期', group: '班級小任務', order: 1, icon: '📖', title: '注重閱讀的品質', description: '同時學習保護書籍。', updatedAt: '2026-10-01' },
+          { id: 'T2', semester: '115 學年上學期', group: '家長配合事項', order: 1, icon: '📚', title: '每天共讀一本繪本', description: '請孩子看圖敘述故事。', updatedAt: '2026-10-01' },
+          { id: 'T3', semester: '114 學年下學期', group: '班級小任務', order: 1, icon: '🧩', title: '舊學期任務', description: '', updatedAt: '2026-10-01' }
+        ],
+        taskOverviews: { '115 學年上學期': 'PLACEHOLDEROVERVIEWID0000000001' }
+      });
+    }
     const dataList = collectDataStrings(raw);
     const errors = [];
     const step = function (name, fn) { try { fn(); } catch (e) { errors.push(name + ': ' + (e && e.message)); } };
@@ -94,11 +105,12 @@
     step('albums', function () { switchTab('albums'); renderAlbumCategoryPills(); applyAlbumFilters(); scanNow('albums'); });
     step('album photos', function () { renderAlbumPhotosGrid([{ id: 'p1', name: 'x.jpg', url: 'https://x/y.jpg' }]); currentAlbumPhotosList = [{ id: 'p1', name: 'x.jpg', url: 'https://x/y.jpg' }]; openPhotoViewerByIndex(0); scanNow('photo-viewer'); });
     step('docs', function () { switchTab('docs'); renderDocCategoriesUI(); renderDocsList(); scanNow('docs'); });
+    step('tasks', function () { switchTab('tasks'); renderSemesterTasks(); scanNow('tasks'); });
     step('songs', function () { switchTab('songs'); renderSongCategoryPills(); renderSongsList(state.songs || []); scanNow('songs'); });
     step('songs selected', function () { (state.songs || []).slice(0, 2).forEach(function (s) { toggleSelectSong(s.id); }); updateSongsBottomBarUI(); scanNow('songs-selected'); });
 
     // ── 管理後台（靜態 HTML 也一併掃描）──
-    step('admin tabs', function () { switchTab('admin'); showAdminDashboard(); ['events', 'spotlight', 'upload', 'docs', 'songs', 'themes', 'settings'].forEach(function (s) { try { switchAdminSubtab(s); } catch (e) {} }); scanNow('admin'); });
+    step('admin tabs', function () { switchTab('admin'); showAdminDashboard(); ['events', 'spotlight', 'upload', 'docs', 'songs', 'themes', 'uploadDoc', 'settings'].forEach(function (s) { try { switchAdminSubtab(s); } catch (e) {} }); try { switchAdminSubtab('tasks'); openTaskForm(); scanNow('admin-tasks'); closeTaskFormNow(); } catch (e) {} scanNow('admin'); });
 
     window.fetch = realFetch;
     const list = Object.keys(found).map(function (k) { return { text: k, count: found[k].count, where: Array.from(found[k].where).slice(0, 4) }; })

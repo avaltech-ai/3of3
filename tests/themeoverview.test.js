@@ -46,10 +46,10 @@ ok(JSON.stringify(e.ctx.parseThemeOverviews_([])) === '{}' && JSON.stringify(e.c
 
 console.log('C. 欄位標題自動補上');
 e = env([['semesterName'], ['115 學年上學期'], ['115 學年下學期']], [THEME_H]); e.ctx.ensureThemeSheetsExist();
-ok(e.sems[0].join() === 'semesterName,overviewImage' && e.sems[1][0] === '115 學年上學期' && e.sems[2].length === 1, 'ThemeSemesters 只有一欄：在右邊補上 overviewImage 標題，原有資料不動');
-e.ctx.ensureThemeSheetsExist(); ok(e.sems[0].length === 2, '再執行一次：不會重複新增欄位');
-e = env([['semesterName', 'overviewImage'], ['115 學年上學期', ID]], [THEME_H]); e.ctx.ensureThemeSheetsExist(); ok(e.sems[0].length === 2 && e.sems[1][1] === ID, '已有 overviewImage 欄：沿用，已貼的連結不動');
-e = env([['overviewImage', 'semesterName'], [ID, 'x']], [THEME_H]); e.ctx.ensureThemeSheetsExist(); ok(e.sems[0].length === 2, '欄位順序不同也認得（以標題名稱判斷）');
+ok(e.sems[0].join() === 'semesterName,overviewImage,tasksOverviewImage' && e.sems[1][0] === '115 學年上學期' && e.sems[2].length === 1, 'ThemeSemesters 只有一欄：在右邊補上 overviewImage（與學期任務的 tasksOverviewImage）標題，原有資料不動');
+e.ctx.ensureThemeSheetsExist(); ok(e.sems[0].length === 3, '再執行一次：不會重複新增欄位');
+e = env([['semesterName', 'overviewImage'], ['115 學年上學期', ID]], [THEME_H]); e.ctx.ensureThemeSheetsExist(); ok(e.sems[0].length === 3 && e.sems[1][1] === ID, '已有 overviewImage 欄：沿用，已貼的連結不動');
+e = env([['overviewImage', 'semesterName'], [ID, 'x']], [THEME_H]); e.ctx.ensureThemeSheetsExist(); ok(e.sems[0].length === 3 && e.sems[0].indexOf('overviewImage') === 0, '欄位順序不同也認得（以標題名稱判斷）');
 
 console.log('D. getThemesData / getAppData');
 e = env([['semesterName', 'overviewImage'], ['115 學年上學期', 'https://drive.google.com/file/d/' + ID + '/view?usp=sharing'], ['115 學年下學期', '']], [THEME_H, ['T1', '115 學年上學期', '第一週', '2026-08-03', '2026-08-07', '我的班級新生活', '', '[]', '[]', '2026-08-01']]);

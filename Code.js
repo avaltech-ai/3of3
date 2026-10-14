@@ -641,6 +641,14 @@ function doPost(e) {
       result = saveTheme(postData.themeData || postData.data, postData.password);
     } else if (action === 'deleteTheme') {
       result = deleteTheme(postData.id || postData.themeId, postData.password);
+    } else if (action === 'saveSemesterTask') {
+      result = saveSemesterTask(postData.data || postData.taskData, postData.password);
+    } else if (action === 'deleteSemesterTask') {
+      result = deleteSemesterTask(postData.id || postData.taskId, postData.password);
+    } else if (action === 'copySemesterTasks') {
+      result = copySemesterTasks(postData.fromSemester, postData.toSemester, postData.password);
+    } else if (action === 'saveTaskOverview') {
+      result = saveTaskOverview(postData.semester, postData.link, postData.password);
     }
 
     // 只記錄「成功」的結果（失敗的操作重試時仍應重新執行）；保留 10 分鐘，涵蓋逾時重送與上傳區塊重試
@@ -1039,6 +1047,17 @@ function getAppData() {
       console.warn('getThemesData inside getAppData failed: ' + e);
     }
 
+    // 學期任務（班級小任務、家長配合事項）與各學期的選填總覽圖
+    let semesterTasks = [];
+    let taskOverviews = {};
+    try {
+      const taskData = getSemesterTasksData_();
+      semesterTasks = taskData.tasks;
+      taskOverviews = taskData.overviews;
+    } catch (e) {
+      console.warn('getSemesterTasksData_ inside getAppData failed: ' + e);
+    }
+
     const result = {
       success: true,
       data: {
@@ -1054,6 +1073,8 @@ function getAppData() {
         themes: themeList,
         themeSemesters: themeSemesters,
         themeOverviews: themeOverviews,
+        semesterTasks: semesterTasks,
+        taskOverviews: taskOverviews,
         eventTargets: eventTargets || [],
         eventCategoriesMajor: eventCategoriesMajor || [],
         eventCategoriesMinor: eventCategoriesMinor || [],
@@ -1109,7 +1130,8 @@ const NAME_USAGES_ = [
   ['Albums', 'category', false, '相簿類別'],
   ['Docs', 'category', false, '文件類別'],
   ['Songs', 'category', false, '歌曲類別'],
-  ['Themes', 'semester', false, '學期']
+  ['Themes', 'semester', false, '學期'],
+  ['SemesterTasks', 'semester', false, '學期']
 ];
 // 程式內建、不在任何字典裡但前台會顯示的名稱
 const NAME_BUILTINS_ = [['全園', '程式內建（活動對象留白時的預設名稱）']];
@@ -1349,7 +1371,8 @@ const TEXT_SOURCES_ = [
   ['themes', ['themeName', 'name', 'themeConcept', 'concept'], '主題活動'],
   ['spotlights', ['title', 'subtitle', 'tags', 'bulletPoints'], '焦點活動'],
   ['albums', ['title'], '相簿標題'],
-  ['docs', ['fileName', 'description'], '常用文件']
+  ['docs', ['fileName', 'description'], '常用文件'],
+  ['semesterTasks', ['title', 'description'], '學期任務']
 ];
 const TEXT_FIELD_LABELS_ = {
   title: '標題', description: '說明', timeLocation: '時間地點', theme: '學期主題', calendarPrompt: '日曆提示',
@@ -4287,6 +4310,13 @@ function ensureThemeSheetsExist() {
   const semHeaders = semSheet.getRange(1, 1, 1, semLastCol).getValues()[0].map(function(h) { return String(h).trim(); });
   if (semHeaders.indexOf('overviewImage') === -1) {
     semSheet.getRange(1, semHeaders.length + 1).setValue('overviewImage').setFontWeight('bold').setBackground('#FEF3C7');
+    semHeaders.push('overviewImage');
+  }
+
+  // tasksOverviewImage：該學期「學期任務」頁的選填總覽圖（Drive 圖檔連結或檔案 ID；後台「學期任務管理」可設定，也可直接在試算表貼）
+  if (semHeaders.indexOf(TASK_OVERVIEW_HEADER) === -1) {
+    semSheet.getRange(1, semHeaders.length + 1).setValue(TASK_OVERVIEW_HEADER).setFontWeight('bold').setBackground('#FEF3C7');
+    semHeaders.push(TASK_OVERVIEW_HEADER);
   }
 
   let themeSheet = ss.getSheetByName('Themes');
@@ -4467,6 +4497,276 @@ function deleteTheme(themeId, password) {
     return { success: false, error: '找不到該主題編號' };
   } catch (err) {
     return { success: false, error: err.toString() };
+  }
+}
+
+// -------------------------------------------------------------
+// 學期任務（班級小任務、家長配合事項）：每學期開始時更新一次的條列式內容，前台以「圖示卡片」呈現。
+// SemesterTasks 工作表：id、semester（學期，沿用 ThemeSemesters 的名稱）、group（類別，只能是下列兩種）、
+// order（同學期同類別內的順序）、icon（一個表情符號）、title（標題）、description（選填的一行說明）、updatedAt。
+// 各學期的選填總覽圖放在 ThemeSemesters 的 tasksOverviewImage 欄。
+// -------------------------------------------------------------
+const SEM_TASK_SHEET = 'SemesterTasks';
+const SEM_TASK_HEADERS = ['id', 'semester', 'group', 'order', 'icon', 'title', 'description', 'updatedAt'];
+const SEM_TASK_GROUPS = ['班級小任務', '家長配合事項'];
+const SEM_TASK_SEMESTER_MAX = 60;
+const SEM_TASK_TITLE_MAX = 100;
+const SEM_TASK_DESC_MAX = 500;
+const SEM_TASK_ICON_MAX = 16;      // 一個表情符號可能由多個字元組成（膚色、組合字），留寬一點
+const SEM_TASK_ORDER_MAX = 999;
+const SEM_TASK_MAX_ROWS = 300;
+const TASK_OVERVIEW_HEADER = 'tasksOverviewImage';
+
+function ensureSemesterTasksSheet_() {
+  const ss = getSpreadsheet();
+  if (!ss) throw new Error('無法開啟 Google 試算表');
+  let sheet = ss.getSheetByName(SEM_TASK_SHEET);
+  if (!sheet) {
+    sheet = ss.insertSheet(SEM_TASK_SHEET);
+    sheet.appendRow(SEM_TASK_HEADERS);
+    sheet.getRange(1, 1, 1, SEM_TASK_HEADERS.length).setFontWeight('bold').setBackground('#FEF3C7');
+    sheet.setFrozenRows(1);
+  } else {
+    const lastCol = Math.max(sheet.getLastColumn(), 1);
+    const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(function(h) { return String(h).trim(); });
+    SEM_TASK_HEADERS.forEach(function(h) {
+      if (headers.indexOf(h) === -1) {
+        sheet.getRange(1, headers.length + 1).setValue(h).setFontWeight('bold').setBackground('#FEF3C7');
+        headers.push(h);
+      }
+    });
+  }
+  return sheet;
+}
+
+/** 順序：1～999 的整數；其他一律視為沒有（排最後）。 */
+function semTaskOrderOf_(v) {
+  const n = Math.floor(Number(v));
+  return (isFinite(n) && n >= 1 && n <= SEM_TASK_ORDER_MAX) ? n : SEM_TASK_ORDER_MAX + 1;
+}
+
+/** 試算表列 → 前台用的任務清單：略過沒有學期、沒有標題、類別不合法的列；依類別（班級小任務在前）、順序、原列順序排列。 */
+function parseSemesterTasks_(rows) {
+  const list = [];
+  (rows || []).forEach(function(r, i) {
+    if (!r) return;
+    const group = String(r.group || '').trim();
+    const semester = String(r.semester || '').trim();
+    const title = String(r.title === undefined || r.title === null ? '' : r.title).trim();
+    if (SEM_TASK_GROUPS.indexOf(group) === -1 || !semester || !title) return;
+    list.push({
+      id: String(r.id || ''),
+      semester: semester,
+      group: group,
+      order: semTaskOrderOf_(r.order),
+      icon: String(r.icon === undefined || r.icon === null ? '' : r.icon).trim().slice(0, SEM_TASK_ICON_MAX),
+      title: title.slice(0, SEM_TASK_TITLE_MAX),
+      description: String(r.description === undefined || r.description === null ? '' : r.description).trim().slice(0, SEM_TASK_DESC_MAX),
+      updatedAt: String(r.updatedAt || '').trim(),
+      _i: i
+    });
+  });
+  list.sort(function(a, b) {
+    const g = SEM_TASK_GROUPS.indexOf(a.group) - SEM_TASK_GROUPS.indexOf(b.group);
+    return g || (a.order - b.order) || (a._i - b._i);
+  });
+  list.forEach(function(t) { delete t._i; });
+  return list;
+}
+
+/** ThemeSemesters 列 → { 學期: 總覽圖檔 ID }（沒有設定或格式不合的學期不列入）。 */
+function parseTaskOverviews_(rows) {
+  const out = {};
+  (rows || []).forEach(function(r) {
+    const name = String((r && r.semesterName) || '').trim();
+    const id = driveFileIdFromCell_(r && r[TASK_OVERVIEW_HEADER]);
+    if (name && id) out[name] = id;
+  });
+  return out;
+}
+
+function getSemesterTasksData_() {
+  const sheet = ensureSemesterTasksSheet_();
+  const semSheet = ensureThemeSheetsExist().semSheet;
+  return {
+    tasks: parseSemesterTasks_(getSheetDataAsObjects(sheet)),
+    overviews: parseTaskOverviews_(getSheetDataAsObjects(semSheet))
+  };
+}
+
+/** 檢查並整理要儲存的欄位。回傳 { error } 或 { value }。 */
+function validateSemesterTask_(d) {
+  d = d || {};
+  const semester = String(d.semester || '').trim();
+  const group = String(d.group || '').trim();
+  const title = String(d.title === undefined || d.title === null ? '' : d.title).trim();
+  const description = String(d.description === undefined || d.description === null ? '' : d.description).trim();
+  const icon = String(d.icon === undefined || d.icon === null ? '' : d.icon).trim();
+  if (!semester) return { error: '請選擇學期！' };
+  if (semester.length > SEM_TASK_SEMESTER_MAX) return { error: '學期名稱太長。' };
+  if (SEM_TASK_GROUPS.indexOf(group) === -1) return { error: '請選擇類別（' + SEM_TASK_GROUPS.join('或') + '）！' };
+  if (!title) return { error: '請輸入標題！' };
+  if (title.length > SEM_TASK_TITLE_MAX) return { error: '標題最多 ' + SEM_TASK_TITLE_MAX + ' 字。' };
+  if (description.length > SEM_TASK_DESC_MAX) return { error: '說明最多 ' + SEM_TASK_DESC_MAX + ' 字。' };
+  if (icon.length > SEM_TASK_ICON_MAX) return { error: '圖示請只放一個表情符號。' };
+  let order = null;
+  if (d.order !== undefined && d.order !== null && String(d.order).trim() !== '') {
+    order = Math.floor(Number(d.order));
+    if (!isFinite(order) || order < 1 || order > SEM_TASK_ORDER_MAX) return { error: '順序請填 1～' + SEM_TASK_ORDER_MAX + ' 的整數。' };
+  }
+  return { value: { semester: semester, group: group, title: title, description: description, icon: icon, order: order } };
+}
+
+function semTaskNewId_() {
+  return 'TASK-' + Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyyMMddHHmmss') + '-' + Utilities.getUuid().replace(/-/g, '').slice(0, 4);
+}
+
+/** 把一筆資料寫進指定列（targetRow）。文字欄一律設為純文字格式，避免「=」開頭的內容被當成公式。 */
+function semTaskWriteRow_(sheet, headers, targetRow, fieldMap) {
+  const textCols = ['id', 'semester', 'group', 'icon', 'title', 'description', 'updatedAt'];
+  headers.forEach(function(h, colIdx) {
+    if (fieldMap[h] === undefined) return;
+    const cell = sheet.getRange(targetRow, colIdx + 1);
+    if (textCols.indexOf(h) > -1) cell.setNumberFormat('@');
+    cell.setValue(fieldMap[h]);
+  });
+}
+
+/** 新增 / 更新一筆學期任務（以 id 為鍵）。 */
+function saveSemesterTask(taskData, password) {
+  if (!checkPassword(password)) return authFail_();
+  try {
+    const v = validateSemesterTask_(taskData);
+    if (v.error) return { success: false, error: v.error };
+    const t = v.value;
+    const sheet = ensureSemesterTasksSheet_();
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0].map(function(h) { return String(h).trim(); });
+    const idIndex = headers.indexOf('id'), semIndex = headers.indexOf('semester'), grpIndex = headers.indexOf('group'), ordIndex = headers.indexOf('order');
+    const wantedId = String((taskData && taskData.id) || '').trim();
+    let targetRow = -1;
+    if (wantedId) {
+      for (let i = 1; i < data.length; i++) {
+        if (String(data[i][idIndex]) === wantedId) { targetRow = i + 1; break; }
+      }
+    }
+    if (targetRow === -1 && data.length - 1 >= SEM_TASK_MAX_ROWS) return { success: false, error: '學期任務已達上限（' + SEM_TASK_MAX_ROWS + ' 筆），請先刪除不用的舊資料。' };
+    // 沒填順序：編輯既有的（學期與類別沒變）維持原順序；其餘接在同學期同類別的最後面
+    let order = t.order;
+    if (order === null && targetRow !== -1 && String(data[targetRow - 1][semIndex]).trim() === t.semester && String(data[targetRow - 1][grpIndex]).trim() === t.group) {
+      const keep = semTaskOrderOf_(data[targetRow - 1][ordIndex]);
+      if (keep <= SEM_TASK_ORDER_MAX) order = keep;
+    }
+    if (order === null) {
+      let max = 0;
+      for (let i = 1; i < data.length; i++) {
+        if (String(data[i][semIndex]).trim() === t.semester && String(data[i][grpIndex]).trim() === t.group && i + 1 !== targetRow) {
+          const o = semTaskOrderOf_(data[i][ordIndex]);
+          if (o <= SEM_TASK_ORDER_MAX && o > max) max = o;
+        }
+      }
+      order = Math.min(max + 1, SEM_TASK_ORDER_MAX);
+    }
+    const id = targetRow === -1 ? semTaskNewId_() : wantedId;
+    if (targetRow === -1) targetRow = sheet.getLastRow() + 1;
+    semTaskWriteRow_(sheet, headers, targetRow, {
+      id: id, semester: t.semester, group: t.group, order: order, icon: t.icon, title: t.title, description: t.description,
+      updatedAt: Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd')
+    });
+    clearAppDataCache();
+    return { success: true, message: '學期任務已儲存！', taskId: id, order: order };
+  } catch (err) {
+    return { success: false, error: '儲存學期任務失敗: ' + err.toString() };
+  }
+}
+
+/** 刪除一筆學期任務。 */
+function deleteSemesterTask(taskId, password) {
+  if (!checkPassword(password)) return authFail_();
+  try {
+    const id = String(taskId === undefined || taskId === null ? '' : taskId).trim();
+    if (!id) return { success: false, error: '缺少任務編號' };
+    const sheet = ensureSemesterTasksSheet_();
+    const data = sheet.getDataRange().getValues();
+    const idIndex = data[0].map(function(h) { return String(h).trim(); }).indexOf('id');
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][idIndex]) === id) {
+        sheet.deleteRow(i + 1);
+        clearAppDataCache();
+        return { success: true, message: '學期任務已刪除！' };
+      }
+    }
+    return { success: false, error: '找不到該任務編號' };
+  } catch (err) {
+    return { success: false, error: err.toString() };
+  }
+}
+
+/** 把某學期的任務整批複製到另一個學期（新學期開始時用；目標學期必須還沒有任何任務，避免重複）。 */
+function copySemesterTasks(fromSemester, toSemester, password) {
+  if (!checkPassword(password)) return authFail_();
+  try {
+    const from = String(fromSemester === undefined || fromSemester === null ? '' : fromSemester).trim();
+    const to = String(toSemester === undefined || toSemester === null ? '' : toSemester).trim();
+    if (!from || !to) return { success: false, error: '請選擇要複製的學期與目標學期！' };
+    if (to.length > SEM_TASK_SEMESTER_MAX) return { success: false, error: '學期名稱太長。' };
+    if (from === to) return { success: false, error: '來源與目標學期不能相同！' };
+    const sheet = ensureSemesterTasksSheet_();
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0].map(function(h) { return String(h).trim(); });
+    const semIndex = headers.indexOf('semester');
+    const rows = getSheetDataAsObjects(sheet);
+    const sources = parseSemesterTasks_(rows.filter(function(r) { return String(r.semester || '').trim() === from; }));
+    if (sources.length === 0) return { success: false, error: '「' + from + '」沒有任何學期任務可以複製。' };
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][semIndex]).trim() === to) return { success: false, error: '「' + to + '」已經有學期任務，為避免重複不會覆蓋；請先刪除，或逐筆新增。' };
+    }
+    if (data.length - 1 + sources.length > SEM_TASK_MAX_ROWS) return { success: false, error: '學期任務已達上限（' + SEM_TASK_MAX_ROWS + ' 筆），請先刪除不用的舊資料。' };
+    const today = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd');
+    const stamp = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyyMMddHHmmss');
+    let row = sheet.getLastRow() + 1;
+    sources.forEach(function(t, i) {
+      semTaskWriteRow_(sheet, headers, row++, {
+        id: 'TASK-' + stamp + '-' + ('0' + (i + 1)).slice(-2) + Utilities.getUuid().replace(/-/g, '').slice(0, 3),
+        semester: to, group: t.group, order: t.order, icon: t.icon, title: t.title, description: t.description, updatedAt: today
+      });
+    });
+    clearAppDataCache();
+    return { success: true, message: '已把「' + from + '」的 ' + sources.length + ' 筆學期任務複製到「' + to + '」！', count: sources.length };
+  } catch (err) {
+    return { success: false, error: '複製學期任務失敗: ' + err.toString() };
+  }
+}
+
+/** 設定（或清除）某學期「學期任務」頁的選填總覽圖。link 空白＝清除；只接受 Drive 連結或檔案 ID，存進試算表的是純檔案 ID。 */
+function saveTaskOverview(semester, link, password) {
+  if (!checkPassword(password)) return authFail_();
+  try {
+    const sem = String(semester === undefined || semester === null ? '' : semester).trim();
+    if (!sem) return { success: false, error: '請選擇學期！' };
+    const raw = String(link === undefined || link === null ? '' : link).trim();
+    let fileId = '';
+    if (raw) {
+      fileId = driveFileIdFromCell_(raw);
+      if (!fileId) return { success: false, error: '連結格式不對：請貼 Google Drive 圖檔的共用連結或檔案 ID。' };
+    }
+    const semSheet = ensureThemeSheetsExist().semSheet;
+    const data = semSheet.getDataRange().getValues();
+    const headers = data[0].map(function(h) { return String(h).trim(); });
+    const nameIdx = headers.indexOf('semesterName'), colIdx = headers.indexOf(TASK_OVERVIEW_HEADER);
+    if (nameIdx === -1 || colIdx === -1) return { success: false, error: 'ThemeSemesters 工作表欄位不完整' };
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][nameIdx]).trim() === sem) {
+        const cell = semSheet.getRange(i + 1, colIdx + 1);
+        cell.setNumberFormat('@');
+        cell.setValue(fileId);
+        clearAppDataCache();
+        return { success: true, message: fileId ? '總覽圖已設定！' : '已清除總覽圖。', fileId: fileId };
+      }
+    }
+    return { success: false, error: '找不到學期「' + sem + '」（學期清單在試算表 ThemeSemesters 工作表）。' };
+  } catch (err) {
+    return { success: false, error: '儲存總覽圖失敗: ' + err.toString() };
   }
 }
 
