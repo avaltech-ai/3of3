@@ -46,7 +46,7 @@
 
   // A. 側邊欄與頁籤
   const navIds = [...document.querySelectorAll('nav .tab-btn')].map(b => b.id);
-  ok(navIds.indexOf('tabBtn-tasks') === navIds.indexOf('tabBtn-themes') + 1 && navIds.indexOf('tabBtn-albums') === navIds.indexOf('tabBtn-tasks') + 1, '側邊欄：「學期任務」在「主題活動」與「影像記錄」之間');
+  ok(navIds.indexOf('tabBtn-tasks') === navIds.indexOf('tabBtn-themes') + 1 && navIds.indexOf('tabBtn-albums') > navIds.indexOf('tabBtn-tasks'), '側邊欄：「學期任務」緊接在「主題活動」之後、在「影像記錄」之前（中間另有「幼小銜接」）');
   ok(/學期任務/.test($('tabBtn-tasks').textContent) && /🎯/.test($('tabBtn-tasks').textContent) && VALID_TABS.indexOf('tasks') >= 0, '按鈕文字「🎯 學期任務」；頁籤在重新整理還原的白名單內');
   switchTab('tasks');
   ok(!$('tabContent-tasks').classList.contains('hidden') && ['home', 'albums', 'songs', 'themes', 'docs', 'admin'].every(t => $('tabContent-' + t).classList.contains('hidden')) && /bg-peach-50/.test($('tabBtn-tasks').className), '切到「學期任務」：只顯示這一頁，側邊欄按鈕變成選取樣式');

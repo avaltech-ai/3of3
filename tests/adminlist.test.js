@@ -6,7 +6,7 @@ const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const a = html.indexOf('const ADMIN_LIST_SIZES');
 const b = html.indexOf('// ===== 以下為畫面');
 if (a < 0 || b < 0 || b < a) { console.log('FAIL: 在 index.html 找不到後台列表函式'); process.exit(1); }
-const api = new Function(html.slice(a, b) + '\nreturn { ADMIN_LIST_SIZES, adminListTerms, adminListMatches, adminListKey, adminListSlice, adminEventsView, adminAlbumsView, adminSongsView, adminIdNewerFirst, adminDocsView, spotlightPlayState, spotlightCreatedKey, adminSpotlightsView };')();
+const api = new Function(html.slice(a, b) + '\nreturn { ADMIN_LIST_SIZES, adminListTerms, adminListMatches, adminListKey, adminListSlice, adminEventsView, adminAlbumsView, adminSongsView, adminIdNewerFirst, adminDocsView, adminTransitionView, rocSchoolYearOf, spotlightPlayState, spotlightCreatedKey, adminSpotlightsView };')();
 
 let pass = 0, fail = 0;
 function ok(c, m) { if (c) { pass++; console.log('  ✓ ' + m); } else { fail++; console.log('  ✗ FAIL: ' + m); } }
@@ -124,6 +124,22 @@ ok(ids(api.adminDocsView(D, { query: '用藥', cat: '' })) === 'd3,d0', '關鍵�
 ok(ids(api.adminDocsView(D, { query: '用藥 委託', cat: '保健用藥' })) === 'd0', '多個關鍵字都要符合＋類別');
 ok(api.adminDocsView(D, { query: '沒有這個', cat: '' }).length === 0 && api.adminDocsView(null, { query: '', cat: '' }).length === 0, '沒有符合、資料為 null：空陣列不出錯');
 const dOrig = D.map(x => x && x.id).join(); api.adminDocsView(D, { query: '', cat: '' }); ok(D.map(x => x && x.id).join() === dOrig, '不會改動傳入的陣列順序');
+
+console.log('E3. 幼小銜接 adminTransitionView／rocSchoolYearOf');
+const TP = [
+  { id: 't1', year: '115 學年度', category: '規律生活', kind: '在園', text: '8:20-8:40 前入學' },
+  { id: 't2', year: '115 學年度', category: '規律生活', kind: '在家', text: '21:00-21:30 前上床睡覺' },
+  { id: 't3', year: '115 學年度', category: '語文能力', kind: '一起', text: '能完整表達自己的需求' },
+  { id: 'o1', year: '114 學年度', category: '規律生活', kind: '在家', text: '去年的' },
+  { id: 'n1', year: '116 學年度', category: '社會能力', kind: '一起', text: '明年的' },
+  null
+];
+const tv = st => ids(api.adminTransitionView(TP, Object.assign({ query: '', year: '', cat: '', kind: '' }, st)));
+ok(tv({}) === 'n1,t1,t2,t3,o1', '預設：學年度新到舊，同學年度維持原本順序（類別、順序）；略過 null');
+ok(tv({ year: '115 學年度' }) === 't1,t2,t3' && tv({ cat: '規律生活' }) === 't1,t2,o1' && tv({ kind: '在家' }) === 't2,o1', '學年度、類別、誰來做 各自篩選');
+ok(tv({ query: '睡覺' }) === 't2' && tv({ query: '規律 去年' }) === 'o1' && tv({ year: '115 學年度', kind: '一起', query: '表達' }) === 't3', '關鍵字（內容、類別）＋多條件');
+ok(api.adminTransitionView(null, { query: '' }).length === 0, '資料為 null：空陣列');
+ok(api.rocSchoolYearOf(new Date(2026, 9, 17)) === '115 學年度' && api.rocSchoolYearOf(new Date(2026, 7, 1)) === '115 學年度' && api.rocSchoolYearOf(new Date(2026, 6, 31)) === '114 學年度' && api.rocSchoolYearOf(new Date(2027, 0, 5)) === '115 學年度', '學年度：8 月 1 日起算新學年（2026/10、2026/8/1、2027/1 → 115；2026/7/31 → 114）');
 
 console.log('F. 焦點活動 spotlightPlayState／spotlightCreatedKey／adminSpotlightsView');
 const T = '2026-10-07';

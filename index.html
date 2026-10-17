@@ -80,10 +80,21 @@
       #pinSidebarBtn { opacity: 1; }
     }
     /* 列印本週菜單：螢幕上隱藏列印區；列印時只輸出列印區（#printMenuArea 必須是 body 的直接子元素） */
-    #printMenuArea { display: none; }
+    #printMenuArea, #printTransitionArea { display: none; }
     @media print {
       @page { size: A4 landscape; margin: 12mm; }
-      body > *:not(#printMenuArea) { display: none !important; }
+      body:not(.printing-transition) > *:not(#printMenuArea) { display: none !important; }
+      body.printing-transition > *:not(#printTransitionArea) { display: none !important; }
+      body.printing-transition #printTransitionArea { display: block !important; color: #000; background: #fff; font-family: 'Noto Sans TC', sans-serif; }
+      #printTransitionArea h1 { font-size: 18pt; font-weight: 900; margin: 0 0 1mm; }
+      #printTransitionArea .print-sub { font-size: 10pt; color: #444; margin-bottom: 3mm; }
+      #printTransitionArea h2 { font-size: 12pt; font-weight: 800; margin: 3mm 0 1mm; page-break-after: avoid; }
+      #printTransitionArea table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 1mm; }
+      #printTransitionArea td { border: 1px solid #555; padding: 1.6mm 2mm; font-size: 10.5pt; vertical-align: middle; word-break: break-word; }
+      #printTransitionArea td.box { width: 9mm; text-align: center; font-size: 14pt; }
+      #printTransitionArea td.kind { width: 18mm; text-align: center; font-size: 9pt; color: #333; }
+      #printTransitionArea tr { page-break-inside: avoid; }
+      #printTransitionArea .print-note { margin-top: 3mm; font-size: 9pt; color: #444; }
       #printMenuArea { display: block !important; color: #000; background: #fff; font-family: 'Noto Sans TC', sans-serif; }
       #printMenuArea h1 { font-size: 20pt; font-weight: 900; margin: 0 0 2mm; }
       #printMenuArea .print-sub { font-size: 11pt; color: #444; margin-bottom: 4mm; }
@@ -189,6 +200,10 @@
         <button onclick="switchTab('tasks')" id="tabBtn-tasks" class="tab-btn flex items-center px-1.5 py-1.5 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
           <span class="text-base w-6 text-center shrink-0">🎯</span>
           <span class="font-bold text-xs whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1" data-i18n="nav.tasks">學期任務</span>
+        </button>
+        <button onclick="switchTab('transition')" id="tabBtn-transition" class="tab-btn flex items-center px-1.5 py-1.5 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
+          <span class="text-base w-6 text-center shrink-0">🎒</span>
+          <span class="font-bold text-xs whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1" data-i18n="nav.transition">幼小銜接</span>
         </button>
         <button onclick="switchTab('albums')" id="tabBtn-albums" class="tab-btn flex items-center px-1.5 py-1.5 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800">
           <span class="text-base w-6 text-center shrink-0">📸</span>
@@ -876,6 +891,60 @@
       </div>
     </section>
 
+    <!-- ==================== TAB: 幼小銜接 (TRANSITION) ==================== -->
+    <section id="tabContent-transition" class="hidden space-y-5">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight flex items-center gap-2 flex-wrap">
+            <span class="text-rose-500">🎒</span>
+            <span data-i18n="transition.title">幼小銜接</span>
+            <span id="trYearBadge" class="hidden text-xs sm:text-sm font-bold text-sky-700 bg-sky-50 border border-sky-200 px-3 py-0.5 rounded-full"></span>
+          </h2>
+          <p data-i18n="transition.subtitle" class="text-sm text-slate-500 font-medium mt-1">陪孩子從幼兒園，穩穩走進小學一年級</p>
+        </div>
+        <select id="trYearFilter" onchange="filterTransitionYear()" class="hidden bg-white border border-slate-200 text-slate-700 text-sm font-bold rounded-xl px-3 py-2 outline-none focus:border-sky-300 focus:ring-2 focus:ring-sky-100 transition-all cursor-pointer shadow-sm shrink-0" aria-label="學年度" data-i18n-aria="transition.yearLabel"></select>
+      </div>
+
+      <div class="inline-flex p-1 rounded-2xl bg-white border border-slate-200 shadow-2xs gap-1" role="tablist">
+        <button type="button" id="trViewBtn-plan" onclick="switchTransitionView('plan')" role="tab" class="tr-view-btn px-4 py-2 rounded-xl text-sm font-black transition-all tap-bounce"><span aria-hidden="true">📋</span> <span data-i18n="transition.viewPlan">銜接計畫</span></button>
+        <button type="button" id="trViewBtn-article" onclick="switchTransitionView('article')" role="tab" class="tr-view-btn px-4 py-2 rounded-xl text-sm font-black transition-all tap-bounce"><span aria-hidden="true">📖</span> <span data-i18n="transition.viewArticle">為什麼重要</span></button>
+      </div>
+
+      <div id="trPlanView" class="space-y-4">
+        <div id="trPlanToolbar" class="bg-white rounded-3xl border border-slate-200 shadow-2xs p-4 space-y-3">
+          <p class="text-xs sm:text-sm text-slate-600 leading-relaxed" data-i18n="transition.planIntro">這是園方今年為大班孩子安排的銜接計畫。標示「在家」和「一起」的項目可以勾選，勾選只記在這台手機或電腦上，也能列印成 PDF 貼在家裡。</p>
+          <div class="flex flex-wrap items-center gap-2 justify-between">
+            <div id="trFilterChips" class="flex flex-wrap gap-1.5" role="group"></div>
+            <div class="flex flex-wrap items-center gap-1.5">
+              <button type="button" onclick="printTransitionPlan(true)" class="px-3 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold tap-bounce"><span aria-hidden="true">🖨️</span> <span data-i18n="transition.printMine">列印（含我的勾選）</span></button>
+              <button type="button" onclick="printTransitionPlan(false)" class="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold tap-bounce" data-i18n="transition.printBlank">列印空白版</button>
+              <button type="button" onclick="clearTransitionChecks()" class="px-3 py-1.5 rounded-xl bg-white hover:bg-rose-50 border border-slate-200 text-slate-500 hover:text-rose-600 text-xs font-bold tap-bounce" data-i18n="transition.clearChecks">清除勾選</button>
+            </div>
+          </div>
+          <div>
+            <div class="flex items-center justify-between text-xs font-bold text-slate-600 mb-1">
+              <span data-i18n="transition.progressLabel">我們家的進度</span>
+              <span id="trProgressText" class="text-emerald-700">0 / 0</span>
+            </div>
+            <div class="h-2.5 rounded-full bg-slate-100 overflow-hidden"><div id="trProgressFill" class="h-full rounded-full bg-gradient-to-r from-emerald-400 to-sky-400 transition-all" style="width:0%"></div></div>
+          </div>
+        </div>
+        <div id="trPlanCards" class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start"></div>
+        <div id="trPlanEmpty" class="hidden flex flex-col items-center justify-center py-16 bg-white/50 rounded-3xl border border-slate-200 border-dashed">
+          <div class="text-5xl mb-3 opacity-50 grayscale">🎒</div>
+          <p data-i18n="transition.planEmpty" class="text-slate-500 font-bold">銜接計畫還在準備中，請稍後再來看看</p>
+        </div>
+      </div>
+
+      <div id="trArticleView" class="hidden space-y-5">
+        <div id="trArticleList" class="space-y-5"></div>
+        <div id="trArticleEmpty" class="hidden flex flex-col items-center justify-center py-16 bg-white/50 rounded-3xl border border-slate-200 border-dashed">
+          <div class="text-5xl mb-3 opacity-50 grayscale">📖</div>
+          <p data-i18n="transition.articleEmpty" class="text-slate-500 font-bold">文章整理中，請稍後再來看看</p>
+        </div>
+      </div>
+    </section>
+
     <!-- ==================== TAB 3: 常用文件下載 (DOCS) ==================== -->
     <section id="tabContent-docs" class="space-y-6 hidden">
       <!-- 文件區抬頭 -->
@@ -966,6 +1035,9 @@
           </button>
           <button onclick="switchAdminSubtab('tasks')" id="adminSubtabBtn-tasks" data-i18n="admin.tabTasks" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
             🎯 學期任務
+          </button>
+          <button onclick="switchAdminSubtab('transition')" id="adminSubtabBtn-transition" data-i18n="admin.tabTransition" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
+            🎒 幼小銜接
           </button>
           <button onclick="switchAdminSubtab('spotlight')" id="adminSubtabBtn-spotlight" data-i18n="admin.tabSpotlight" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
             🌟 焦點活動管理
@@ -1678,6 +1750,106 @@
           </div>
         </div>
 
+        <!-- 子分頁：幼小銜接管理（銜接計畫項目、銜接文章；一年整理一次） -->
+        <div id="adminPanel-transition" class="admin-panel space-y-4 hidden">
+          <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+              <div class="flex items-center gap-2"><span class="text-xl">🎒</span><h4 class="font-black text-slate-800 text-base">幼小銜接管理</h4></div>
+              <p class="text-xs text-slate-400 mt-0.5">「銜接計畫」逐項管理（在園／在家／一起），家長可在前台勾選、列印；「銜接文章」放自己寫的摘要、重點與短引言，並附原文連結（不要貼整篇他人文章）。</p>
+            </div>
+            <div class="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+              <button type="button" onclick="openTrItemForm()" class="px-4 py-2 rounded-xl bg-peach-500 hover:bg-peach-600 text-white font-bold text-xs shadow-xs tap-bounce flex items-center gap-1"><span>➕</span> 新增計畫項目</button>
+              <button type="button" onclick="openTrArtForm()" class="px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs shadow-xs tap-bounce flex items-center gap-1"><span>➕</span> 新增文章</button>
+            </div>
+          </div>
+
+          <div id="trItemFormWrap" class="hidden">
+            <div id="trItemFormBox" class="bg-white rounded-3xl p-5 sm:p-6 shadow-sm space-y-4 border-2 border-emerald-200">
+              <div class="flex items-center gap-2"><span class="text-xl">📋</span><h3 id="trItemFormTitle" class="font-black text-slate-800 text-base sm:text-lg">新增計畫項目</h3></div>
+              <div id="trItemFormModeBanner" class="px-3 py-2 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200"><span id="trItemFormModeText">➕ 新增計畫項目：儲存後會建立一筆新的項目</span></div>
+              <form id="trItemForm" onsubmit="event.preventDefault(); handleSaveTrItem(event)" class="space-y-3.5">
+                <input type="hidden" id="trItemForm-id">
+                <datalist id="trYearOptions"></datalist>
+                <datalist id="trCategoryOptions"></datalist>
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                  <div><label class="block text-xs font-bold text-slate-700 mb-1">學年度 *</label><input type="text" id="trItemForm-year" list="trYearOptions" maxlength="30" placeholder="115 學年度" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-indigo-500 focus:outline-none"></div>
+                  <div><label class="block text-xs font-bold text-slate-700 mb-1">能力類別 *</label><input type="text" id="trItemForm-category" list="trCategoryOptions" maxlength="30" placeholder="生活自理能力" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-indigo-500 focus:outline-none"></div>
+                  <div><label class="block text-xs font-bold text-slate-700 mb-1">誰來做 *</label>
+                    <select id="trItemForm-kind" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-indigo-500 focus:outline-none">
+                      <option value="一起">🤝 一起（園所與家庭共同培養）</option>
+                      <option value="在家">🏡 在家（家庭參與）</option>
+                      <option value="在園">🏫 在園（幼兒園安排）</option>
+                    </select></div>
+                  <div><label class="block text-xs font-bold text-slate-700 mb-1">順序</label><input type="number" id="trItemForm-order" min="1" max="999" step="1" placeholder="留白＝接在最後" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-indigo-500 focus:outline-none"></div>
+                </div>
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">項目內容 *</label><input type="text" id="trItemForm-text" maxlength="200" placeholder="如：每日 10-15 分鐘親子共讀時間" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-indigo-500 focus:outline-none"></div>
+                <p class="text-[0.6875rem] text-slate-500">「在家」與「一起」的項目，家長可以在前台勾選；「在園」只顯示，讓家長知道園方在做什麼。</p>
+                <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                  <button type="button" onclick="closeTrItemForm()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold tap-bounce">取消</button>
+                  <button type="button" id="trItemFormSaveAsNewBtn" onclick="handleSaveTrItem(null, true)" class="hidden px-4 py-2 rounded-xl border-2 border-emerald-500 text-emerald-700 bg-white hover:bg-emerald-50 text-xs font-bold tap-bounce">➕ 另存為新項目</button>
+                  <button type="submit" id="trItemFormSaveBtn" class="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold shadow-sm tap-bounce flex items-center gap-1.5"><span>➕</span> <span id="trItemFormSaveLabel">新增這個項目</span></button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
+            <h5 class="text-sm font-black text-slate-800 flex items-center gap-1.5"><span>📋</span> 新學年度：整批複製去年的計畫</h5>
+            <p class="text-xs text-slate-500">把某個學年度的所有計畫項目複製到新的學年度，之後再逐項修改。目標學年度必須還沒有任何項目（避免重複）。</p>
+            <div class="flex flex-wrap items-center gap-2">
+              <select id="trCopyFrom" onchange="this.dataset.touched='1'" class="px-2.5 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-700 bg-white" aria-label="來源學年度"></select>
+              <span class="text-xs font-bold text-slate-500">複製到</span>
+              <input type="text" id="trCopyTo" list="trYearOptions" maxlength="30" oninput="this.dataset.touched='1'" placeholder="116 學年度" class="w-32 px-2.5 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-700" aria-label="目標學年度">
+              <button type="button" id="trCopyBtn" onclick="copyTrYear()" class="px-3 py-1.5 rounded-xl bg-sky-50 hover:bg-sky-100 border border-sky-200 text-xs font-bold text-sky-800 tap-bounce">複製整個學年度</button>
+            </div>
+          </div>
+
+          <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
+            <div class="flex items-center justify-between"><h5 class="text-sm font-black text-slate-800 flex items-center gap-1.5"><span>📋</span> 銜接計畫項目</h5><span id="trItemCountBadge" class="text-xs text-slate-400 font-bold">共 0 個項目</span></div>
+            <div class="flex flex-wrap items-center gap-2">
+              <input id="adminTrItemsSearch" type="search" oninput="adminListOnQuery('trItems', this.value)" placeholder="搜尋項目內容、類別…" class="flex-1 min-w-[10rem] px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-peach-500 focus:outline-none" aria-label="搜尋銜接計畫項目">
+              <select id="adminTrItemsYear" onchange="adminListOnFilter('trItems', 'year', this.value)" class="px-2.5 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-700 bg-white" aria-label="學年度"></select>
+              <select id="adminTrItemsCat" onchange="adminListOnFilter('trItems', 'cat', this.value)" class="px-2.5 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-700 bg-white" aria-label="能力類別"></select>
+              <select id="adminTrItemsKind" onchange="adminListOnFilter('trItems', 'kind', this.value)" class="px-2.5 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-700 bg-white" aria-label="誰來做"></select>
+              <button type="button" id="adminTrItemsClear" onclick="adminListClear('trItems')" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 tap-bounce cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed" disabled>清除篩選</button>
+            </div>
+            <div id="trItemListContainer" class="space-y-2"></div>
+            <div id="adminTrItemsPager"></div>
+          </div>
+
+          <div id="trArtFormWrap" class="hidden">
+            <div id="trArtFormBox" class="bg-white rounded-3xl p-5 sm:p-6 shadow-sm space-y-4 border-2 border-emerald-200">
+              <div class="flex items-center gap-2"><span class="text-xl">📖</span><h3 id="trArtFormTitle" class="font-black text-slate-800 text-base sm:text-lg">新增銜接文章</h3></div>
+              <div id="trArtFormModeBanner" class="px-3 py-2 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200"><span id="trArtFormModeText">➕ 新增文章：儲存後會建立一篇新的文章重點</span></div>
+              <form id="trArtForm" onsubmit="event.preventDefault(); handleSaveTrArt(event)" class="space-y-3.5">
+                <input type="hidden" id="trArtForm-id">
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                  <div class="sm:col-span-3"><label class="block text-xs font-bold text-slate-700 mb-1">標題 *</label><input type="text" id="trArtForm-title" maxlength="100" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-indigo-500 focus:outline-none"></div>
+                  <div><label class="block text-xs font-bold text-slate-700 mb-1">順序</label><input type="number" id="trArtForm-order" min="1" max="999" step="1" placeholder="留白＝排最後" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-indigo-500 focus:outline-none"></div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div><label class="block text-xs font-bold text-slate-700 mb-1">出處（作者、書名、刊登網站）</label><input type="text" id="trArtForm-source" maxlength="100" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-indigo-500 focus:outline-none"></div>
+                  <div><label class="block text-xs font-bold text-slate-700 mb-1">原文連結（https://…）</label><input type="text" id="trArtForm-url" maxlength="500" placeholder="https://" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-indigo-500 focus:outline-none"></div>
+                </div>
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">摘要（請用自己的話寫；一行一段）</label><textarea id="trArtForm-summary" rows="4" maxlength="3000" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-indigo-500 focus:outline-none"></textarea></div>
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">文章重點（一行一點；行首可放一個表情符號當圖示）</label><textarea id="trArtForm-points" rows="4" maxlength="1500" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-indigo-500 focus:outline-none"></textarea></div>
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">孩子心裡的聲音（一行一句，會顯示成對話泡泡）</label><textarea id="trArtForm-bubbles" rows="3" maxlength="1000" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-indigo-500 focus:outline-none"></textarea></div>
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">金句（一句話）</label><input type="text" id="trArtForm-quote" maxlength="200" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-indigo-500 focus:outline-none"></div>
+                <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                  <button type="button" onclick="closeTrArtForm()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold tap-bounce">取消</button>
+                  <button type="button" id="trArtFormSaveAsNewBtn" onclick="handleSaveTrArt(null, true)" class="hidden px-4 py-2 rounded-xl border-2 border-emerald-500 text-emerald-700 bg-white hover:bg-emerald-50 text-xs font-bold tap-bounce">➕ 另存為新文章</button>
+                  <button type="submit" id="trArtFormSaveBtn" class="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold shadow-sm tap-bounce flex items-center gap-1.5"><span>➕</span> <span id="trArtFormSaveLabel">新增這篇文章</span></button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
+            <div class="flex items-center justify-between"><h5 class="text-sm font-black text-slate-800 flex items-center gap-1.5"><span>📖</span> 銜接文章</h5><span id="trArtCountBadge" class="text-xs text-slate-400 font-bold">共 0 篇</span></div>
+            <div id="trArtListContainer" class="space-y-2"></div>
+          </div>
+        </div>
+
         <!-- 子分頁 5: Spotlight 管理 -->
         <div id="adminPanel-spotlight" class="admin-panel space-y-4 hidden">
           <!-- 頂部標題與快捷按鈕列 -->
@@ -2360,6 +2532,7 @@
 
   <!-- 列印本週菜單用的容器（螢幕隱藏；列印時只輸出這一塊） -->
   <div id="printMenuArea" aria-hidden="true"></div>
+  <div id="printTransitionArea" aria-hidden="true"></div>
 
   <!-- ==================== 前端邏輯 JS SCRIPT ==================== -->
   <script>
@@ -2372,6 +2545,7 @@
           daily: '班級日常',
           themes: '主題活動',
           tasks: '學期任務',
+          transition: '幼小銜接',
           albums: '影像記錄',
           songs: '唱跳音符',
           docs: '常用文件',
@@ -2468,6 +2642,40 @@
           groupParentSub: '在家一起做的 {n} 件事',
           semesterLabel: '學期'
         },
+        transition: {
+          title: '幼小銜接',
+          subtitle: '陪孩子從幼兒園，穩穩走進小學一年級',
+          yearLabel: '學年度',
+          viewPlan: '銜接計畫',
+          viewArticle: '為什麼重要',
+          planIntro: '這是園方今年為大班孩子安排的銜接計畫。標示「在家」和「一起」的項目可以勾選，勾選只記在這台手機或電腦上，也能列印成 PDF 貼在家裡。',
+          filterAll: '全部',
+          filterHome: '🏡 在家陪伴',
+          filterSchool: '🏫 在園練習',
+          kindSchool: '在園',
+          kindHome: '在家',
+          kindBoth: '一起',
+          kindSchoolTitle: '幼兒園安排的練習',
+          kindHomeTitle: '家長可以在家陪伴的事',
+          kindBothTitle: '園所與家庭一起陪孩子培養的能力',
+          progressLabel: '我們家的進度',
+          printMine: '列印（含我的勾選）',
+          printBlank: '列印空白版',
+          clearChecks: '清除勾選',
+          clearConfirm: '要清除這台裝置上的所有勾選嗎？',
+          cleared: '已清除勾選',
+          checkAria: '完成：{text}',
+          planEmpty: '銜接計畫還在準備中，請稍後再來看看',
+          articleEmpty: '文章整理中，請稍後再來看看',
+          printTitle: '幼小銜接計畫',
+          printSub: '方框可打勾（✓＝已完成）；「在園」為幼兒園安排的練習，僅供參考。',
+          printNote: '新北市桃子腳非營利幼兒園・諾貝爾 A 班',
+          printEmpty: '目前沒有可以列印的計畫項目',
+          source: '出處',
+          readOriginal: '閱讀原文',
+          pointsTitle: '文章重點',
+          bubblesTitle: '孩子心裡的聲音'
+        },
         albums: {
           title: '影像記錄',
           subtitle: '紀錄寶貝在幼兒園成長探索的點滴歡笑！',
@@ -2510,6 +2718,7 @@
           tabUploadDoc: '📂 常用文件管理',
           tabThemes: '📚 主題活動',
           tabTasks: '🎯 學期任務',
+          tabTransition: '🎒 幼小銜接',
           tabSpotlight: '🌟 焦點活動管理',
           tabTranslations: '🌐 英文對照',
           tabSettings: '⚙️ 密碼與設定'
@@ -2630,6 +2839,7 @@
           daily: 'Daily',
           themes: 'Themes',
           tasks: 'Term Tasks',
+          transition: 'Off to Grade 1',
           albums: 'Albums',
           songs: 'Songs',
           docs: 'Docs',
@@ -2726,6 +2936,40 @@
           groupParentSub: '{n} things to do together at home',
           semesterLabel: 'Semester'
         },
+        transition: {
+          title: 'Off to Grade 1',
+          subtitle: 'Helping your child step confidently from kindergarten into first grade',
+          yearLabel: 'School year',
+          viewPlan: 'Transition plan',
+          viewArticle: 'Why it matters',
+          planIntro: 'This is this year’s transition plan for our senior class. Items marked Home or Together can be checked off. Your checks are saved only on this phone or computer, and you can print the list as a PDF to keep at home.',
+          filterAll: 'All',
+          filterHome: '🏡 At home',
+          filterSchool: '🏫 At school',
+          kindSchool: 'School',
+          kindHome: 'Home',
+          kindBoth: 'Together',
+          kindSchoolTitle: 'Practice arranged by the kindergarten',
+          kindHomeTitle: 'Things parents can do at home',
+          kindBothTitle: 'Skills school and family build together',
+          progressLabel: 'Our progress',
+          printMine: 'Print (with my checks)',
+          printBlank: 'Print blank copy',
+          clearChecks: 'Clear checks',
+          clearConfirm: 'Clear all checks saved on this device?',
+          cleared: 'Checks cleared',
+          checkAria: 'Done: {text}',
+          planEmpty: 'The transition plan is still being prepared. Please check back soon.',
+          articleEmpty: 'Articles are being prepared. Please check back soon.',
+          printTitle: 'Transition plan',
+          printSub: 'Tick the boxes (✓ = done). School items are practice arranged by the kindergarten, for reference.',
+          printNote: 'Taozijiao Public Kindergarten · Nobel A Class',
+          printEmpty: 'There are no plan items to print yet',
+          source: 'Source',
+          readOriginal: 'Read the original',
+          pointsTitle: 'Key points',
+          bubblesTitle: 'What children are wondering'
+        },
         albums: {
           title: 'Albums',
           subtitle: 'Capturing precious moments and class growth',
@@ -2768,6 +3012,7 @@
           tabUploadDoc: '📂 Manage Docs',
           tabThemes: '📚 Weekly Themes',
           tabTasks: '🎯 Term Tasks',
+          tabTransition: '🎒 Off to Grade 1',
           tabSpotlight: '🌟 Highlights',
           tabTranslations: '🌐 Translations',
           tabSettings: '⚙️ Settings'
@@ -2976,6 +3221,7 @@
       initThemeFilters();
       renderThemes();
       try { renderSemesterTasks(); } catch (e) {}
+      try { renderTransition(); } catch (e) {}
       renderAlbumCategoriesUI();
       applyAlbumFilters();
       renderSongCategoriesUI();
@@ -3211,8 +3457,8 @@
     // 目前所在的頁籤（與後台子面板）記在 sessionStorage：重新整理（含 App 模式的 ↻）會回到原本的頁面；
     // 關掉分頁或 App 後重新開啟則從首頁開始。只接受下列已知的頁籤名稱，其他值一律忽略。
     const SAVED_TAB_KEY = 'nobel_a_current_tab', SAVED_SUBTAB_KEY = 'nobel_a_admin_subtab';
-    const VALID_TABS = ['home', 'albums', 'songs', 'themes', 'tasks', 'docs', 'admin'];
-    const VALID_ADMIN_SUBTABS = ['events', 'menu', 'uploadPhoto', 'songs', 'uploadDoc', 'themes', 'tasks', 'spotlight', 'translations', 'settings'];
+    const VALID_TABS = ['home', 'albums', 'songs', 'themes', 'tasks', 'transition', 'docs', 'admin'];
+    const VALID_ADMIN_SUBTABS = ['events', 'menu', 'uploadPhoto', 'songs', 'uploadDoc', 'themes', 'tasks', 'transition', 'spotlight', 'translations', 'settings'];
 
     function saveUiLocation(key, value) {
       try { sessionStorage.setItem(key, value); } catch (e) {}
@@ -4574,6 +4820,9 @@
       renderThemes();
       renderAdminThemesList();
       try { renderSemesterTasks(); renderAdminTasksList(); } catch (e) {}
+      state.transitionPlan = Array.isArray(data.transitionPlan) ? data.transitionPlan : [];
+      state.transitionArticles = Array.isArray(data.transitionArticles) ? data.transitionArticles : [];
+      try { renderTransition(); renderAdminTransition(); } catch (e) {}
       state.settings = data.settings || {};
 
       
@@ -4627,7 +4876,7 @@
 
       // 嚴格依據目前頁籤 (state.currentTab) 保持顯示狀態，絕不私自開啟或混雜 home 內容
       const current = state.currentTab || 'home';
-      ['home', 'themes', 'tasks', 'albums', 'songs', 'docs', 'admin'].forEach(tab => {
+      ['home', 'themes', 'tasks', 'transition', 'albums', 'songs', 'docs', 'admin'].forEach(tab => {
         const contentEl = document.getElementById('tabContent-' + tab);
         if (contentEl) {
           if (tab === current) {
@@ -4649,6 +4898,7 @@
       if (subtab === 'themes') renderAdminThemesList();
         if (subtab === 'spotlight') renderAdminSpotlightsList();
         if (subtab === 'tasks') renderAdminTasksList();
+        if (subtab === 'transition') renderAdminTransition();
         if (subtab === 'uploadPhoto') renderAdminAlbumsTable();
       }
     }
@@ -4907,7 +5157,7 @@
       if (tabName === 'admin') { try { mapAdminRefreshBadge(); } catch (e) {} }
       state.currentTab = tabName;
       if (VALID_TABS.indexOf(tabName) !== -1) saveUiLocation(SAVED_TAB_KEY, tabName);
-      ['home', 'albums', 'songs', 'themes', 'tasks', 'docs', 'admin'].forEach(tab => {
+      ['home', 'albums', 'songs', 'themes', 'tasks', 'transition', 'docs', 'admin'].forEach(tab => {
         const contentEl = document.getElementById(`tabContent-${tab}`);
         const btnEl = document.getElementById(`tabBtn-${tab}`);
         const mBtnEl = document.getElementById(`mTabBtn-${tab}`);
@@ -4964,6 +5214,9 @@
       }
       if (tabName === 'tasks') {
         renderSemesterTasks();
+      }
+      if (tabName === 'transition') {
+        renderTransition();
       }
       if (tabName === 'albums') {
         renderAlbumCategoriesUI();
@@ -7228,6 +7481,307 @@
       });
     }
 
+    // ==================== 後台「幼小銜接管理」====================
+    const TR_DEFAULT_CATEGORIES = ['生活自理能力', '規律生活', '語文能力', '大小肌肉能力', '視覺動作整合能力', '專注力能力', '人際互動情緒管理', '社會能力'];
+    const trItemFormState = { mode: 'new', baseId: '', baseTitle: '', baseline: null };
+    const TR_ITEM_FIELDS = [['year', '學年度'], ['category', '能力類別'], ['kind', '誰來做'], ['order', '順序'], ['text', '項目內容']];
+    const TR_ITEM_CFG = {
+      card: 'trItemFormBox', banner: 'trItemFormModeBanner', text: 'trItemFormModeText', save: 'trItemFormSaveBtn', saveLabel: 'trItemFormSaveLabel', asNew: 'trItemFormSaveAsNewBtn',
+      texts: {
+        new: function() { return '➕ 新增計畫項目：儲存後會建立一筆新的項目'; },
+        edit: function(nm) { return '✏️ 正在編輯既有項目「' + nm + '」：按「更新原項目」會修改這筆原本的內容'; },
+        copy: function(nm) { return '📄 以「' + nm + '」為範本新增：原項目不會改變，儲存後多一筆新項目'; }
+      },
+      saveLabels: { new: '新增這個項目', edit: '更新原項目', copy: '新增這個項目' }
+    };
+    const trArtFormState = { mode: 'new', baseId: '', baseTitle: '', baseline: null };
+    const TR_ART_FIELDS = [['title', '標題'], ['order', '順序'], ['source', '出處'], ['url', '原文連結'], ['summary', '摘要', true], ['points', '文章重點', true], ['bubbles', '孩子心裡的聲音', true], ['quote', '金句']];
+    const TR_ART_CFG = {
+      card: 'trArtFormBox', banner: 'trArtFormModeBanner', text: 'trArtFormModeText', save: 'trArtFormSaveBtn', saveLabel: 'trArtFormSaveLabel', asNew: 'trArtFormSaveAsNewBtn',
+      texts: {
+        new: function() { return '➕ 新增文章：儲存後會建立一篇新的文章重點'; },
+        edit: function(nm) { return '✏️ 正在編輯既有文章「' + nm + '」：按「更新原文章」會修改這篇原本的內容'; },
+        copy: function(nm) { return '📄 以「' + nm + '」為範本新增：原文章不會改變，儲存後多一篇新文章'; }
+      },
+      saveLabels: { new: '新增這篇文章', edit: '更新原文章', copy: '新增這篇文章' }
+    };
+    const trVal = function(id) { return (document.getElementById(id) || {}).value || ''; };
+
+    function trItemSnapshot() {
+      return { year: trVal('trItemForm-year').trim(), category: trVal('trItemForm-category').trim(), kind: trVal('trItemForm-kind'), order: String(trVal('trItemForm-order')).trim(), text: trVal('trItemForm-text').trim() };
+    }
+    function trArtSnapshot() {
+      const o = {};
+      ['title', 'order', 'source', 'url', 'summary', 'points', 'bubbles', 'quote'].forEach(function(k) { o[k] = String(trVal('trArtForm-' + k)).trim(); });
+      return o;
+    }
+    function trFormOpen(wrapId) { const w = document.getElementById(wrapId); return !!w && !w.classList.contains('hidden'); }
+    function trConfirmDiscard(wrapId, fields, st, snap) {
+      if (!trFormOpen(wrapId)) return true;
+      if (formFieldDiff(fields, st.baseline || {}, snap()).length === 0) return true;
+      return confirm('目前表單有尚未儲存的內容，確定要放棄嗎？');
+    }
+    function trShowForm(wrapId) {
+      const w = document.getElementById(wrapId);
+      if (w) { w.classList.remove('hidden'); if (typeof w.scrollIntoView === 'function') { try { w.scrollIntoView({ behavior: 'smooth' }); } catch (e) {} } }
+    }
+    function trSetMode(cfg, st, mode, base, titleField, snap) {
+      st.mode = mode;
+      st.baseId = base && base.id !== undefined ? String(base.id) : '';
+      st.baseTitle = base ? String(base[titleField] || '') : '';
+      formModeApply(cfg, mode, st.baseTitle);
+      st.baseline = snap();
+    }
+    function trYearsAll() {
+      const ys = trYearsNewestFirst(state.transitionPlan || []);
+      const now = rocSchoolYearOf(new Date());
+      if (ys.indexOf(now) === -1) ys.push(now);
+      return ys.sort(function(a, b) { return semesterSortKey(b) - semesterSortKey(a); });
+    }
+    function trFillDatalists() {
+      const yl = document.getElementById('trYearOptions'), cl = document.getElementById('trCategoryOptions');
+      const fill = function(el, vals) { if (!el) return; el.innerHTML = ''; vals.forEach(function(v) { const o = document.createElement('option'); o.value = v; el.appendChild(o); }); };
+      fill(yl, trYearsAll());
+      fill(cl, adminListUnique(TR_DEFAULT_CATEGORIES.concat((state.transitionPlan || []).map(function(it) { return it && it.category; }))));
+    }
+
+    // ----- 計畫項目表單 -----
+    function fillTrItemForm(it) {
+      trFillDatalists();
+      document.getElementById('trItemForm-id').value = it && it.id ? it.id : '';
+      document.getElementById('trItemForm-year').value = it ? it.year : (adminLists.trItems.year || trYearsNewestFirst(state.transitionPlan || [])[0] || rocSchoolYearOf(new Date()));
+      document.getElementById('trItemForm-category').value = it ? it.category : (adminLists.trItems.cat || '');
+      document.getElementById('trItemForm-kind').value = it ? it.kind : (adminLists.trItems.kind || '一起');
+      document.getElementById('trItemForm-order').value = it && it.order && it.order <= 999 ? it.order : '';
+      document.getElementById('trItemForm-text').value = it ? it.text : '';
+    }
+    function openTrItemForm(id, forCopy) {
+      if (!forCopy && !trConfirmDiscard('trItemFormWrap', TR_ITEM_FIELDS, trItemFormState, trItemSnapshot)) return;
+      const it = id ? (state.transitionPlan || []).find(function(x) { return String(x.id) === String(id); }) : null;
+      if (id && !it) return;
+      fillTrItemForm(it);
+      document.getElementById('trItemFormTitle').textContent = it ? ('編輯計畫項目：' + it.text) : '新增計畫項目';
+      trShowForm('trItemFormWrap');
+      if (!forCopy) trSetMode(TR_ITEM_CFG, trItemFormState, it ? 'edit' : 'new', it, 'text', trItemSnapshot);
+    }
+    function copyTrItemInAdmin(id) {
+      const it = (state.transitionPlan || []).find(function(x) { return String(x.id) === String(id); });
+      if (!it) return;
+      if (!trConfirmDiscard('trItemFormWrap', TR_ITEM_FIELDS, trItemFormState, trItemSnapshot)) return;
+      openTrItemForm(id, true);
+      document.getElementById('trItemForm-id').value = '';
+      document.getElementById('trItemForm-order').value = '';
+      document.getElementById('trItemFormTitle').textContent = '複製計畫項目';
+      trSetMode(TR_ITEM_CFG, trItemFormState, 'copy', it, 'text', trItemSnapshot);
+    }
+    function closeTrItemForm() { if (!trConfirmDiscard('trItemFormWrap', TR_ITEM_FIELDS, trItemFormState, trItemSnapshot)) return; closeTrItemFormNow(); }
+    function closeTrItemFormNow() { const w = document.getElementById('trItemFormWrap'); if (w) w.classList.add('hidden'); trItemFormState.baseline = null; }
+
+    function trSaving(btnId, labelId) {
+      const btn = document.getElementById(btnId), lab = document.getElementById(labelId);
+      const idle = lab ? lab.textContent : '';
+      if (btn) btn.disabled = true; if (lab) lab.textContent = '儲存中…';
+      return function() { if (btn) btn.disabled = false; if (lab) lab.textContent = idle; };
+    }
+
+    function handleSaveTrItem(e, forceNew) {
+      if (e && typeof e.preventDefault === 'function') e.preventDefault();
+      const snap = trItemSnapshot();
+      const id = forceNew ? '' : document.getElementById('trItemForm-id').value;
+      if (!snap.year) { showToast('請輸入學年度！', '⚠️'); return; }
+      if (!snap.category) { showToast('請輸入能力類別！', '⚠️'); return; }
+      if (!snap.text) { showToast('請輸入項目內容！', '⚠️'); return; }
+      if (snap.order !== '' && !(Number(snap.order) >= 1 && Number(snap.order) <= 999)) { showToast('順序請填 1～999 的整數，或留白', '⚠️'); return; }
+      const isUpdate = !forceNew && trItemFormState.mode === 'edit' && !!id;
+      if (isUpdate) {
+        const diffs = formFieldDiff(TR_ITEM_FIELDS, trItemFormState.baseline, snap);
+        if (diffs.length === 0) { showToast('沒有任何變更，原項目維持不變', 'ℹ️'); return; }
+        if (!formDiffConfirm('項目', trItemFormState.baseTitle, diffs, '另存為新項目')) return;
+      }
+      const restore = trSaving('trItemFormSaveBtn', 'trItemFormSaveLabel');
+      const data = { id: id, year: snap.year, category: snap.category, kind: snap.kind, order: snap.order === '' ? '' : Number(snap.order), text: snap.text };
+      callBackend('saveTransitionItem', { data: data, password: getAdminPassword() }, function(res) {
+        restore();
+        if (res && res.success) {
+          const row = { id: res.itemId || id, year: snap.year, category: snap.category, kind: snap.kind, order: Number(res.order) || 1000, text: snap.text, updatedAt: (typeof getTodayDateStr === 'function') ? getTodayDateStr() : '' };
+          const list = state.transitionPlan || (state.transitionPlan = []);
+          const idx = list.findIndex(function(x) { return String(x.id) === String(row.id); });
+          if (idx >= 0) list[idx] = row; else list.push(row);
+          closeTrItemFormNow();
+          renderAdminTransition(); renderTransition();
+          showToast((isUpdate ? '已更新原項目「' : '已新增項目「') + snap.text + '」', '✅');
+          loadAppData();
+        } else {
+          showToast('儲存失敗：' + ((res && res.error) || '未知錯誤'), '❌');
+        }
+      }, function() { restore(); showToast('網路連線逾時，請稍後再試（內容仍保留在表單）', '⚠️'); });
+    }
+
+    function trDeleteInAdmin(action, id, label, listKey) {
+      if (!confirm('確定要刪除「' + label + '」嗎？\n（這會從試算表移除該筆資料）')) return;
+      callBackend(action, { id: id, password: getAdminPassword() }, function(res) {
+        const gone = res && (res.success || (res.error && String(res.error).indexOf('找不到') !== -1));
+        if (gone) {
+          state[listKey] = (state[listKey] || []).filter(function(x) { return String(x.id) !== String(id); });
+          renderAdminTransition(); renderTransition();
+          showToast(res.success ? '已刪除' : '這筆已不存在，已更新清單', res.success ? '🗑️' : 'ℹ️');
+          loadAppData(true);
+        } else {
+          showToast('刪除失敗：' + ((res && res.error) || '未知錯誤'), '❌');
+        }
+      }, function() { showToast('刪除失敗：連線逾時', '❌'); });
+    }
+    function deleteTrItemInAdmin(id, text) { trDeleteInAdmin('deleteTransitionItem', id, text, 'transitionPlan'); }
+
+    function copyTrYear() {
+      const from = trVal('trCopyFrom'), to = trVal('trCopyTo').trim();
+      if (!from || !to) { showToast('請選擇來源學年度並輸入目標學年度', '⚠️'); return; }
+      if (from === to) { showToast('來源與目標學年度不能相同', '⚠️'); return; }
+      const n = (state.transitionPlan || []).filter(function(x) { return x.year === from; }).length;
+      if (n === 0) { showToast('「' + from + '」沒有任何項目可以複製', '⚠️'); return; }
+      if ((state.transitionPlan || []).some(function(x) { return x.year === to; })) { showToast('「' + to + '」已經有項目，為避免重複不會覆蓋', '⚠️'); return; }
+      if (!confirm('要把「' + from + '」的 ' + n + ' 個項目複製到「' + to + '」嗎？\n（複製後可再逐項修改；原學年度不會改變）')) return;
+      const btn = document.getElementById('trCopyBtn'); if (btn) btn.disabled = true;
+      callBackend('copyTransitionYear', { fromYear: from, toYear: to, password: getAdminPassword() }, function(res) {
+        if (btn) btn.disabled = false;
+        if (res && res.success) { showToast(res.message || '已複製', '✅'); adminLists.trItems.year = to; loadAppData(true); }
+        else showToast('複製失敗：' + ((res && res.error) || '未知錯誤'), '❌');
+      }, function() { if (btn) btn.disabled = false; showToast('複製失敗：連線逾時（請重新整理確認是否已複製）', '⚠️'); });
+    }
+
+    // ----- 文章表單 -----
+    function fillTrArtForm(a) {
+      ['title', 'source', 'url', 'summary', 'points', 'bubbles', 'quote'].forEach(function(k) { document.getElementById('trArtForm-' + k).value = a ? (a[k] || '') : ''; });
+      document.getElementById('trArtForm-order').value = a && a.order && a.order <= 999 ? a.order : '';
+      document.getElementById('trArtForm-id').value = a && a.id ? a.id : '';
+    }
+    function openTrArtForm(id, forCopy) {
+      if (!forCopy && !trConfirmDiscard('trArtFormWrap', TR_ART_FIELDS, trArtFormState, trArtSnapshot)) return;
+      const a = id ? (state.transitionArticles || []).find(function(x) { return String(x.id) === String(id); }) : null;
+      if (id && !a) return;
+      fillTrArtForm(a);
+      document.getElementById('trArtFormTitle').textContent = a ? ('編輯銜接文章：' + a.title) : '新增銜接文章';
+      trShowForm('trArtFormWrap');
+      if (!forCopy) trSetMode(TR_ART_CFG, trArtFormState, a ? 'edit' : 'new', a, 'title', trArtSnapshot);
+    }
+    function copyTrArtInAdmin(id) {
+      const a = (state.transitionArticles || []).find(function(x) { return String(x.id) === String(id); });
+      if (!a) return;
+      if (!trConfirmDiscard('trArtFormWrap', TR_ART_FIELDS, trArtFormState, trArtSnapshot)) return;
+      openTrArtForm(id, true);
+      document.getElementById('trArtForm-id').value = '';
+      document.getElementById('trArtForm-order').value = '';
+      document.getElementById('trArtFormTitle').textContent = '複製銜接文章';
+      trSetMode(TR_ART_CFG, trArtFormState, 'copy', a, 'title', trArtSnapshot);
+    }
+    function closeTrArtForm() { if (!trConfirmDiscard('trArtFormWrap', TR_ART_FIELDS, trArtFormState, trArtSnapshot)) return; closeTrArtFormNow(); }
+    function closeTrArtFormNow() { const w = document.getElementById('trArtFormWrap'); if (w) w.classList.add('hidden'); trArtFormState.baseline = null; }
+
+    function handleSaveTrArt(e, forceNew) {
+      if (e && typeof e.preventDefault === 'function') e.preventDefault();
+      const snap = trArtSnapshot();
+      const id = forceNew ? '' : document.getElementById('trArtForm-id').value;
+      if (!snap.title) { showToast('請輸入文章標題！', '⚠️'); return; }
+      if (snap.url && !/^https?:\/\//i.test(snap.url)) { showToast('原文連結請貼 http:// 或 https:// 開頭的網址', '⚠️'); return; }
+      if (snap.order !== '' && !(Number(snap.order) >= 1 && Number(snap.order) <= 999)) { showToast('順序請填 1～999 的整數，或留白', '⚠️'); return; }
+      const isUpdate = !forceNew && trArtFormState.mode === 'edit' && !!id;
+      if (isUpdate) {
+        const diffs = formFieldDiff(TR_ART_FIELDS, trArtFormState.baseline, snap);
+        if (diffs.length === 0) { showToast('沒有任何變更，原文章維持不變', 'ℹ️'); return; }
+        if (!formDiffConfirm('文章', trArtFormState.baseTitle, diffs, '另存為新文章')) return;
+      }
+      const restore = trSaving('trArtFormSaveBtn', 'trArtFormSaveLabel');
+      const data = Object.assign({}, snap, { id: id, order: snap.order === '' ? '' : Number(snap.order) });
+      callBackend('saveTransitionArticle', { data: data, password: getAdminPassword() }, function(res) {
+        restore();
+        if (res && res.success) {
+          const row = Object.assign({}, snap, { id: res.articleId || id, order: Number(res.order) || 1000 });
+          const list = state.transitionArticles || (state.transitionArticles = []);
+          const idx = list.findIndex(function(x) { return String(x.id) === String(row.id); });
+          if (idx >= 0) list[idx] = row; else list.push(row);
+          list.sort(function(a, b) { return a.order - b.order; });
+          closeTrArtFormNow();
+          renderAdminTransition(); renderTransition();
+          showToast((isUpdate ? '已更新原文章「' : '已新增文章「') + snap.title + '」', '✅');
+          loadAppData();
+        } else {
+          showToast('儲存失敗：' + ((res && res.error) || '未知錯誤'), '❌');
+        }
+      }, function() { restore(); showToast('網路連線逾時，請稍後再試（內容仍保留在表單）', '⚠️'); });
+    }
+    function deleteTrArtInAdmin(id, title) { trDeleteInAdmin('deleteTransitionArticle', id, title, 'transitionArticles'); }
+
+    // ----- 列表 -----
+    function renderAdminTransition() {
+      const listEl = document.getElementById('trItemListContainer');
+      if (!listEl) return;
+      const all = state.transitionPlan || [];
+      const countEl = document.getElementById('trItemCountBadge'); if (countEl) countEl.textContent = '共 ' + all.length + ' 個項目';
+      const st = adminLists.trItems;
+      const years = trYearsNewestFirst(all);
+      st.year = adminListFillSelect(document.getElementById('adminTrItemsYear'), '全部學年度', years, st.year);
+      st.cat = adminListFillSelect(document.getElementById('adminTrItemsCat'), '全部類別', adminListUnique(all.map(function(it) { return it && it.category; })), st.cat);
+      st.kind = adminListFillSelect(document.getElementById('adminTrItemsKind'), '在園／在家／一起', ['在園', '在家', '一起'], st.kind);
+      trFillDatalists();
+      const cf = document.getElementById('trCopyFrom'), ct = document.getElementById('trCopyTo');
+      if (cf) {
+        const keep = (cf.dataset.touched && years.indexOf(cf.value) !== -1) ? cf.value : (years[0] || '');
+        cf.innerHTML = '';
+        years.forEach(function(v) { const o = document.createElement('option'); o.value = v; o.textContent = v; cf.appendChild(o); });
+        cf.value = keep;
+      }
+      if (ct && !ct.dataset.touched) {
+        const top = years[0] ? semesterSortKey(years[0]) : 0;
+        ct.value = top ? (Math.floor(top / 10) + 1) + ' 學年度' : '';
+      }
+      adminListSyncToolbar('trItems', { search: 'adminTrItemsSearch', cat: 'adminTrItemsCat', year: 'adminTrItemsYear', kind: 'adminTrItemsKind', clear: 'adminTrItemsClear' });
+      const info = adminListSlice(adminTransitionView(all, st), st);
+      st.page = info.page;
+      adminListRenderPager('trItems', info, all.length);
+      listEl.innerHTML = '';
+      if (info.total === 0) {
+        listEl.innerHTML = '<div class="py-8 text-center text-slate-400 text-xs font-bold bg-slate-50 rounded-2xl border border-dashed border-slate-200">' + (all.length === 0 ? '尚無任何計畫項目，請點擊右上角「➕ 新增計畫項目」' : '沒有符合條件的項目') + '</div>';
+      } else {
+        info.rows.forEach(function(it) {
+          const meta = TR_KIND_META[it.kind] || TR_KIND_META['一起'];
+          const row = document.createElement('div');
+          row.className = 'p-3 rounded-2xl bg-white border border-slate-200 hover:shadow-sm transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3';
+          row.innerHTML = '<div class="min-w-0"><div class="flex items-center gap-2 flex-wrap">' +
+            '<span class="font-black text-slate-800 text-sm">' + esc(it.text) + '</span>' +
+            '<span class="text-xs px-2.5 py-0.5 rounded-full font-bold ' + meta.chip + '">' + esc(meta.icon + ' ' + it.kind) + '</span>' +
+            '<span class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-slate-100 text-slate-600">' + esc(trCategoryStyle(it.category).icon + ' ' + it.category) + '</span>' +
+            '<span class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-slate-100 text-slate-600">' + esc(it.year) + '</span>' +
+            '<span class="text-[0.6875rem] text-slate-400 font-bold">順序 ' + esc(it.order && it.order <= 999 ? it.order : '—') + '</span>' +
+            '</div></div><div class="tr-admin-ops flex items-center gap-1.5 shrink-0 self-end sm:self-center"></div>';
+          const ops = row.querySelector('.tr-admin-ops');
+          ops.appendChild(actBtnEl('edit', function() { openTrItemForm(it.id); }, { title: '編輯計畫項目' }));
+          ops.appendChild(actBtnEl('copy', function() { copyTrItemInAdmin(it.id); }, { title: '複製（帶入這個項目的內容新增一筆，原項目不會改變）' }));
+          ops.appendChild(actBtnEl('del', function() { deleteTrItemInAdmin(it.id, it.text); }, { title: '刪除計畫項目' }));
+          listEl.appendChild(row);
+        });
+      }
+
+      const artEl = document.getElementById('trArtListContainer');
+      if (!artEl) return;
+      const arts = state.transitionArticles || [];
+      const ac = document.getElementById('trArtCountBadge'); if (ac) ac.textContent = '共 ' + arts.length + ' 篇';
+      artEl.innerHTML = '';
+      if (!arts.length) { artEl.innerHTML = '<div class="py-8 text-center text-slate-400 text-xs font-bold bg-slate-50 rounded-2xl border border-dashed border-slate-200">尚無任何文章，請點擊右上角「➕ 新增文章」</div>'; return; }
+      arts.forEach(function(a) {
+        const row = document.createElement('div');
+        row.className = 'p-3 rounded-2xl bg-white border border-slate-200 hover:shadow-sm transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3';
+        row.innerHTML = '<div class="min-w-0"><div class="flex items-center gap-2 flex-wrap"><span class="font-black text-slate-800 text-sm">' + esc(a.title) + '</span>' +
+          '<span class="text-[0.6875rem] text-slate-400 font-bold">順序 ' + esc(a.order && a.order <= 999 ? a.order : '—') + '</span></div>' +
+          (a.source ? '<p class="text-xs text-slate-500 mt-1 line-clamp-1">' + esc(a.source) + '</p>' : '') +
+          '</div><div class="tr-admin-ops flex items-center gap-1.5 shrink-0 self-end sm:self-center"></div>';
+        const ops = row.querySelector('.tr-admin-ops');
+        ops.appendChild(actBtnEl('edit', function() { openTrArtForm(a.id); }, { title: '編輯文章' }));
+        ops.appendChild(actBtnEl('copy', function() { copyTrArtInAdmin(a.id); }, { title: '複製（帶入這篇的內容新增一篇，原文章不會改變）' }));
+        ops.appendChild(actBtnEl('del', function() { deleteTrArtInAdmin(a.id, a.title); }, { title: '刪除文章' }));
+        artEl.appendChild(row);
+      });
+    }
+
     // ==================== 後台「學期任務管理」====================
     const TASK_EMOJI_CHOICES = ['📖', '📚', '🔤', '🚦', '🎲', '🧩', '📅', '⏰', '📏', '⚖️', '🎒', '👕', '👖', '🧸', '🥰', '💬', '🎨', '🎵', '🏃', '🍎', '🌱', '🤝', '🧼', '⭐'];
     const TASK_GROUP_LIST = ['班級小任務', '家長配合事項'];
@@ -9380,6 +9934,7 @@
       if (subtab === 'spotlight') renderAdminSpotlightsList();
       if (subtab === 'uploadDoc') renderAdminDocsList();
       if (subtab === 'tasks') renderAdminTasksList();
+      if (subtab === 'transition') renderAdminTransition();
       if (subtab === 'uploadPhoto') {
         if (state.cachedAlbums.length === 0) refreshAlbumsNow();
         else renderAdminAlbumsTable();
@@ -9856,6 +10411,27 @@
       list.sort(function(a, b) { return (b.k - a.k) || (a.t.semester === b.t.semester ? 0 : (a.t.semester < b.t.semester ? 1 : -1)) || (a.g - b.g) || (a.o - b.o) || (a.i - b.i); });
       return list.map(function(x) { return x.t; });
     }
+    // 幼小銜接計畫項目：st = { query, year, cat（能力類別）, kind }；排序＝學年度新到舊 → 原本順序（後端已依類別、順序排好）
+    function adminTransitionView(items, st) {
+      const terms = adminListTerms(st.query);
+      const yKey = adminListKey(st.year), cKey = adminListKey(st.cat), kKey = adminListKey(st.kind);
+      const list = [];
+      (items || []).forEach(function(it, i) {
+        if (!it) return;
+        if (yKey && adminListKey(it.year) !== yKey) return;
+        if (cKey && adminListKey(it.category) !== cKey) return;
+        if (kKey && adminListKey(it.kind) !== kKey) return;
+        if (terms.length && !adminListMatches([it.text, it.category, it.year, it.kind].join(' '), terms)) return;
+        list.push({ t: it, i: i, k: semesterSortKey(it.year) });
+      });
+      list.sort(function(a, b) { return (b.k - a.k) || (a.t.year === b.t.year ? 0 : (a.t.year < b.t.year ? 1 : -1)) || (a.i - b.i); });
+      return list.map(function(x) { return x.t; });
+    }
+    // 民國學年度（8 月起算新學年），例如 2026 年 10 月 → 115 學年度
+    function rocSchoolYearOf(d) {
+      const y = d.getFullYear() - 1911;
+      return (d.getMonth() >= 7 ? y : y - 1) + ' 學年度';
+    }
     // 焦點活動的輪播狀態：off（停用）、scheduled（排程中：開始日還沒到）、ended（已下架：結束日已過）、playing（播映中）
     function spotlightPlayState(sp, todayStr) {
       if (sp.status === '停用') return 'off';
@@ -9952,10 +10528,11 @@
       songs: { query: '', cat: '', page: 0, size: adminListStoredSize('songs') },
       docs: { query: '', cat: '', page: 0, size: adminListStoredSize('docs') },
       tasks: { query: '', cat: '', semester: '', page: 0, size: adminListStoredSize('tasks') },
+      trItems: { query: '', year: '', cat: '', kind: '', page: 0, size: adminListStoredSize('trItems') },
       spotlights: { query: '', status: '', play: ADMIN_LIST_DEFAULTS.spotlights.play, sort: ADMIN_LIST_DEFAULTS.spotlights.sort, page: 0, size: adminListStoredSize('spotlights') },
       translations: { page: 0, size: adminListStoredSize('translations') }
     };
-    const ADMIN_LIST_RENDER = { events: 'renderAdminEventsTable', albums: 'renderAdminAlbumsTable', songs: 'renderAdminSongsTable', docs: 'renderAdminDocsList', tasks: 'renderAdminTasksList', spotlights: 'renderAdminSpotlightsList', translations: 'mapAdminRenderRows' };
+    const ADMIN_LIST_RENDER = { events: 'renderAdminEventsTable', albums: 'renderAdminAlbumsTable', songs: 'renderAdminSongsTable', docs: 'renderAdminDocsList', tasks: 'renderAdminTasksList', trItems: 'renderAdminTransition', spotlights: 'renderAdminSpotlightsList', translations: 'mapAdminRenderRows' };
     function adminListRerender(key) { try { window[ADMIN_LIST_RENDER[key]](); } catch (e) {} }
     function adminListOnQuery(key, v) { adminLists[key].query = v; adminLists[key].page = 0; adminListRerender(key); }
     function adminListOnFilter(key, field, v) { adminLists[key][field] = v; adminLists[key].page = 0; adminListRerender(key); }
@@ -9977,13 +10554,13 @@
     function adminListClear(key) {
       const st = adminLists[key];
       const def = ADMIN_LIST_DEFAULTS[key] || {};
-      st.query = ''; st.cat = ''; ['target', 'status', 'play', 'semester'].forEach(function(f) { if (f in st) st[f] = def[f] || ''; }); if ('sort' in st) st.sort = def.sort || 'new'; st.page = 0;
+      st.query = ''; st.cat = ''; ['target', 'status', 'play', 'semester', 'year', 'kind'].forEach(function(f) { if (f in st) st[f] = def[f] || ''; }); if ('sort' in st) st.sort = def.sort || 'new'; st.page = 0;
       adminListRerender(key);
     }
     function adminListIsFiltered(key) {
       const st = adminLists[key];
       const def = ADMIN_LIST_DEFAULTS[key] || {};
-      return !!(st.query || st.cat || st.target || st.status || st.semester || (('play' in st) && st.play !== (def.play || '')) || (st.sort && st.sort !== (def.sort || 'new')));
+      return !!(st.query || st.cat || st.target || st.status || st.semester || st.year || st.kind || (('play' in st) && st.play !== (def.play || '')) || (st.sort && st.sort !== (def.sort || 'new')));
     }
     // 把目前的篩選值同步回搜尋框與下拉，並更新「清除篩選」按鈕
     function adminListSyncToolbar(key, ids) {
@@ -9993,6 +10570,8 @@
       if (ids.target) { const t = document.getElementById(ids.target); if (t) t.value = st.target; }
       if (ids.status) { const ss = document.getElementById(ids.status); if (ss) ss.value = st.status; }
       if (ids.semester) { const sm = document.getElementById(ids.semester); if (sm) sm.value = st.semester; }
+      if (ids.year) { const yr = document.getElementById(ids.year); if (yr) yr.value = st.year; }
+      if (ids.kind) { const kd = document.getElementById(ids.kind); if (kd) kd.value = st.kind; }
       if (ids.play) { const sp = document.getElementById(ids.play); if (sp) sp.value = st.play; }
       if (ids.sort) { const so = document.getElementById(ids.sort); if (so) so.value = st.sort; }
       const b = document.getElementById(ids.clear); if (b) b.disabled = !adminListIsFiltered(key);
@@ -11861,6 +12440,269 @@
       if (!fid) return;
       currentAlbumPhotosList = expandAlbumPhotos([{ id: fid, name: t('themes.overviewTitle', { semester: tx(sem) || sem }), size: 0 }]);
       openPhotoViewerByIndex(0);
+    }
+
+    // ==================== 幼小銜接（前台）====================
+    // 資料：state.transitionPlan（後端依學年度、類別、順序排好）、state.transitionArticles。
+    // 勾選只存在這台裝置的 localStorage（不會上傳，所以沒有孩子個資外流的問題）；以項目編號為鍵。
+    const TR_CHECK_KEY = 'nobel_a_transition_checks';
+    const TR_KIND_META = {
+      '在園': { label: 'transition.kindSchool', title: 'transition.kindSchoolTitle', icon: '🏫', chip: 'bg-emerald-100 text-emerald-800', checkable: false },
+      '在家': { label: 'transition.kindHome', title: 'transition.kindHomeTitle', icon: '🏡', chip: 'bg-amber-100 text-amber-800', checkable: true },
+      '一起': { label: 'transition.kindBoth', title: 'transition.kindBothTitle', icon: '🤝', chip: 'bg-sky-100 text-sky-800', checkable: true }
+    };
+    // 常見能力類別的圖示與顏色；其他類別用預設
+    const TR_CATEGORY_STYLE = {
+      '生活自理能力': { icon: '🧹', tone: 'emerald' }, '規律生活': { icon: '⏰', tone: 'sky' }, '語文能力': { icon: '💬', tone: 'violet' },
+      '大小肌肉能力': { icon: '🤸', tone: 'orange' }, '視覺動作整合能力': { icon: '🧩', tone: 'teal' }, '專注力能力': { icon: '🔍', tone: 'indigo' },
+      '人際互動情緒管理': { icon: '💞', tone: 'rose' }, '社會能力': { icon: '🌏', tone: 'lime' }
+    };
+    const TR_TONES = {
+      emerald: 'border-emerald-200 bg-emerald-50/60', sky: 'border-sky-200 bg-sky-50/60', violet: 'border-violet-200 bg-violet-50/60', orange: 'border-orange-200 bg-orange-50/60',
+      teal: 'border-teal-200 bg-teal-50/60', indigo: 'border-indigo-200 bg-indigo-50/60', rose: 'border-rose-200 bg-rose-50/60', lime: 'border-lime-200 bg-lime-50/60', slate: 'border-slate-200 bg-slate-50/60'
+    };
+    let currentTransitionYear = '';
+    let currentTransitionView = 'plan';
+    let currentTransitionFilter = 'all';   // all／home（在家＋一起）／school（在園＋一起）
+
+    function trLoadChecks() {
+      try { const o = JSON.parse(localStorage.getItem(TR_CHECK_KEY) || '{}'); return (o && typeof o === 'object' && !Array.isArray(o)) ? o : {}; } catch (e) { return {}; }
+    }
+    function trSaveChecks(o) { try { localStorage.setItem(TR_CHECK_KEY, JSON.stringify(o)); } catch (e) {} }
+
+    function trYearsNewestFirst(items) {
+      const seen = Object.create(null), list = [];
+      (items || []).forEach(function(it) { if (it && it.year && !seen[it.year]) { seen[it.year] = true; list.push(it.year); } });
+      return list.map(function(y, i) { return { y: y, k: semesterSortKey(y), i: i }; }).sort(function(a, b) { return (b.k - a.k) || (b.i - a.i); }).map(function(x) { return x.y; });
+    }
+    function trCategoryStyle(cat) { return TR_CATEGORY_STYLE[cat] || { icon: '🌟', tone: 'slate' }; }
+    function trVisible(kind, filter) { return filter === 'all' || kind === '一起' || (filter === 'home' && kind === '在家') || (filter === 'school' && kind === '在園'); }
+    function trYearItems() { return (state.transitionPlan || []).filter(function(it) { return it && it.year === currentTransitionYear; }); }
+
+    function switchTransitionView(view) {
+      currentTransitionView = view === 'article' ? 'article' : 'plan';
+      renderTransition();
+    }
+    function filterTransitionYear() {
+      const sel = document.getElementById('trYearFilter');
+      currentTransitionYear = sel ? sel.value : '';
+      renderTransition();
+    }
+    function setTransitionFilter(f) {
+      currentTransitionFilter = (f === 'home' || f === 'school') ? f : 'all';
+      renderTransitionPlan();
+    }
+
+    function renderTransition() {
+      const years = trYearsNewestFirst(state.transitionPlan || []);
+      if (years.indexOf(currentTransitionYear) === -1) currentTransitionYear = years[0] || '';
+      const sel = document.getElementById('trYearFilter');
+      if (sel) {
+        sel.innerHTML = '';
+        years.forEach(function(y) { const o = document.createElement('option'); o.value = y; o.textContent = tn(y); sel.appendChild(o); });
+        sel.value = currentTransitionYear;
+        sel.classList.toggle('hidden', years.length < 2 || currentTransitionView !== 'plan');
+      }
+      const badge = document.getElementById('trYearBadge');
+      if (badge) { badge.textContent = currentTransitionYear ? tn(currentTransitionYear) : ''; badge.classList.toggle('hidden', !(years.length === 1 && currentTransitionYear && currentTransitionView === 'plan')); }
+      ['plan', 'article'].forEach(function(v) {
+        const btn = document.getElementById('trViewBtn-' + v);
+        const on = v === currentTransitionView;
+        if (btn) { btn.className = 'tr-view-btn px-4 py-2 rounded-xl text-sm font-black transition-all tap-bounce ' + (on ? 'bg-sky-500 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'); btn.setAttribute('aria-selected', on ? 'true' : 'false'); }
+      });
+      const pv = document.getElementById('trPlanView'), av = document.getElementById('trArticleView');
+      if (pv) pv.classList.toggle('hidden', currentTransitionView !== 'plan');
+      if (av) av.classList.toggle('hidden', currentTransitionView !== 'article');
+      renderTransitionPlan();
+      renderTransitionArticles();
+    }
+
+    function renderTransitionPlan() {
+      const cardsEl = document.getElementById('trPlanCards');
+      const emptyEl = document.getElementById('trPlanEmpty');
+      const toolbar = document.getElementById('trPlanToolbar');
+      if (!cardsEl || !emptyEl) return;
+      const items = trYearItems();
+      cardsEl.innerHTML = '';
+      if (!items.length) {
+        emptyEl.classList.remove('hidden'); cardsEl.classList.add('hidden'); if (toolbar) toolbar.classList.add('hidden');
+        return;
+      }
+      emptyEl.classList.add('hidden'); cardsEl.classList.remove('hidden'); if (toolbar) toolbar.classList.remove('hidden');
+
+      const chips = document.getElementById('trFilterChips');
+      if (chips) {
+        chips.innerHTML = '';
+        [['all', 'transition.filterAll'], ['home', 'transition.filterHome'], ['school', 'transition.filterSchool']].forEach(function(c) {
+          const b = document.createElement('button');
+          b.type = 'button'; b.textContent = t(c[1]); b.setAttribute('data-filter', c[0]);
+          b.setAttribute('aria-pressed', currentTransitionFilter === c[0] ? 'true' : 'false');
+          b.className = 'px-3 py-1.5 rounded-xl text-xs font-bold tap-bounce border ' + (currentTransitionFilter === c[0] ? 'bg-sky-50 text-sky-800 border-sky-300' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50');
+          b.onclick = function() { setTransitionFilter(c[0]); };
+          chips.appendChild(b);
+        });
+      }
+
+      const checks = trLoadChecks();
+      const groups = [], byCat = Object.create(null);
+      items.forEach(function(it) {
+        if (!byCat[it.category]) { byCat[it.category] = []; groups.push(it.category); }
+        byCat[it.category].push(it);
+      });
+      groups.forEach(function(cat) {
+        const visible = byCat[cat].filter(function(it) { return trVisible(it.kind, currentTransitionFilter); });
+        if (!visible.length) return;
+        const st = trCategoryStyle(cat);
+        const card = document.createElement('div');
+        card.className = 'tr-card rounded-3xl border p-4 ' + (TR_TONES[st.tone] || TR_TONES.slate);
+        card.setAttribute('data-category', cat);
+        const head = document.createElement('h3');
+        head.className = 'flex items-center gap-2 text-base sm:text-lg font-black text-slate-800 mb-2';
+        const ic = document.createElement('span'); ic.className = 'w-9 h-9 rounded-full bg-white border border-white/80 shadow-2xs flex items-center justify-center text-xl'; ic.setAttribute('aria-hidden', 'true'); ic.textContent = st.icon;
+        const nm = document.createElement('span'); nm.textContent = tx(cat);
+        head.appendChild(ic); head.appendChild(nm); card.appendChild(head);
+        const ul = document.createElement('ul'); ul.className = 'space-y-1.5';
+        visible.forEach(function(it) {
+          const meta = TR_KIND_META[it.kind] || TR_KIND_META['一起'];
+          const li = document.createElement('li');
+          li.className = 'tr-item bg-white rounded-2xl border border-slate-200/80 px-3 py-2 flex items-start gap-2.5';
+          li.setAttribute('data-kind', it.kind);
+          const textSpan = document.createElement('span'); textSpan.className = 'flex-1 text-sm text-slate-700 leading-snug pt-0.5'; textSpan.textContent = tx(it.text);
+          if (meta.checkable) {
+            const cb = document.createElement('input');
+            cb.type = 'checkbox'; cb.className = 'tr-check mt-0.5 w-5 h-5 accent-emerald-500 shrink-0 cursor-pointer';
+            cb.checked = !!checks[it.id];
+            cb.setAttribute('aria-label', t('transition.checkAria', { text: tx(it.text) }));
+            cb.addEventListener('change', function() {
+              const o = trLoadChecks();
+              if (cb.checked) o[it.id] = 1; else delete o[it.id];
+              trSaveChecks(o);
+              textSpan.classList.toggle('line-through', cb.checked); textSpan.classList.toggle('text-slate-400', cb.checked);
+              updateTransitionProgress();
+            });
+            if (cb.checked) { textSpan.classList.add('line-through', 'text-slate-400'); }
+            const lab = document.createElement('label'); lab.className = 'flex items-start gap-2.5 flex-1 cursor-pointer';
+            lab.appendChild(cb); lab.appendChild(textSpan); li.appendChild(lab);
+          } else {
+            const dot = document.createElement('span'); dot.className = 'w-5 h-5 mt-0.5 shrink-0 flex items-center justify-center text-sm'; dot.setAttribute('aria-hidden', 'true'); dot.textContent = meta.icon;
+            li.appendChild(dot); li.appendChild(textSpan);
+          }
+          const tag = document.createElement('span');
+          tag.className = 'tr-tag text-[0.6875rem] font-black px-2 py-0.5 rounded-full whitespace-nowrap shrink-0 mt-0.5 ' + meta.chip;
+          tag.textContent = meta.icon + ' ' + t(meta.label); tag.title = t(meta.title);
+          li.appendChild(tag);
+          ul.appendChild(li);
+        });
+        card.appendChild(ul);
+        cardsEl.appendChild(card);
+      });
+      updateTransitionProgress();
+    }
+
+    function updateTransitionProgress() {
+      const checks = trLoadChecks();
+      const items = trYearItems().filter(function(it) { return (TR_KIND_META[it.kind] || {}).checkable; });
+      const done = items.filter(function(it) { return !!checks[it.id]; }).length;
+      const txt = document.getElementById('trProgressText'), fill = document.getElementById('trProgressFill');
+      if (txt) txt.textContent = done + ' / ' + items.length;
+      if (fill) fill.style.width = (items.length ? Math.round(done / items.length * 100) : 0) + '%';
+    }
+
+    function clearTransitionChecks() {
+      if (!confirm(t('transition.clearConfirm'))) return;
+      const o = trLoadChecks();
+      trYearItems().forEach(function(it) { delete o[it.id]; });
+      trSaveChecks(o);
+      renderTransitionPlan();
+      showToast(t('transition.cleared'), '🧽');
+    }
+
+    function buildTransitionPrintHtml(withChecks) {
+      const checks = withChecks ? trLoadChecks() : {};
+      const items = trYearItems();
+      const groups = [], byCat = Object.create(null);
+      items.forEach(function(it) { if (!byCat[it.category]) { byCat[it.category] = []; groups.push(it.category); } byCat[it.category].push(it); });
+      let html = '<h1>' + esc(t('transition.printTitle')) + (currentTransitionYear ? '（' + esc(tn(currentTransitionYear)) + '）' : '') + '</h1>' +
+        '<div class="print-sub">' + esc(t('transition.printSub')) + '</div>';
+      groups.forEach(function(cat) {
+        html += '<h2>' + esc(trCategoryStyle(cat).icon + ' ' + tx(cat)) + '</h2><table><tbody>';
+        byCat[cat].forEach(function(it) {
+          const meta = TR_KIND_META[it.kind] || TR_KIND_META['一起'];
+          const box = meta.checkable ? (checks[it.id] ? '☑' : '☐') : '';
+          html += '<tr><td class="box">' + box + '</td><td>' + esc(tx(it.text)) + '</td><td class="kind">' + esc(t(meta.label)) + '</td></tr>';
+        });
+        html += '</tbody></table>';
+      });
+      return html + '<div class="print-note">' + esc(t('transition.printNote')) + '</div>';
+    }
+
+    function printTransitionPlan(withChecks) {
+      if (!trYearItems().length) { showToast(t('transition.printEmpty'), 'ℹ️'); return; }
+      const area = document.getElementById('printTransitionArea');
+      if (!area) return;
+      area.innerHTML = buildTransitionPrintHtml(!!withChecks);
+      // 菜單是 A4 橫式；這份清單用直式。列印時暫時加上直式設定與 body class，印完移除。
+      let pageStyle = document.getElementById('trPrintPageStyle');
+      if (!pageStyle) { pageStyle = document.createElement('style'); pageStyle.id = 'trPrintPageStyle'; document.head.appendChild(pageStyle); }
+      pageStyle.textContent = '@media print { @page { size: A4 portrait; margin: 12mm; } }';
+      document.body.classList.add('printing-transition');
+      const done = function() {
+        document.body.classList.remove('printing-transition');
+        if (pageStyle && pageStyle.parentNode) pageStyle.parentNode.removeChild(pageStyle);
+        window.removeEventListener('afterprint', done);
+      };
+      window.addEventListener('afterprint', done);
+      window.print();
+      setTimeout(done, 1500);   // 有些瀏覽器（含 iPhone）不一定送出 afterprint
+    }
+
+    function trLines(s) { return String(s === undefined || s === null ? '' : s).split('\n').map(function(x) { return x.trim(); }).filter(Boolean); }
+
+    function renderTransitionArticles() {
+      const listEl = document.getElementById('trArticleList');
+      const emptyEl = document.getElementById('trArticleEmpty');
+      if (!listEl || !emptyEl) return;
+      const arts = state.transitionArticles || [];
+      listEl.innerHTML = '';
+      emptyEl.classList.toggle('hidden', arts.length > 0);
+      arts.forEach(function(a) {
+        if (!a || !a.title) return;
+        const card = document.createElement('article');
+        card.className = 'tr-article bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden';
+        let html = '<div class="px-5 pt-5 pb-3 bg-gradient-to-r from-sky-50 via-violet-50 to-rose-50">' +
+          '<h3 class="text-lg sm:text-xl font-black text-slate-800 leading-snug">' + esc(tx(a.title)) + '</h3>' +
+          (a.source ? '<p class="text-xs text-slate-500 mt-1.5">' + esc(t('transition.source')) + '：' + esc(tx(a.source)) + '</p>' : '') +
+          '</div><div class="p-5 space-y-4">';
+        const summary = trLines(tx(a.summary));
+        if (summary.length) html += '<div class="space-y-2">' + summary.map(function(p) { return '<p class="text-sm text-slate-700 leading-relaxed">' + esc(p) + '</p>'; }).join('') + '</div>';
+        const points = trLines(tx(a.points));
+        if (points.length) {
+          html += '<div><h4 class="text-sm font-black text-slate-800 mb-2">' + esc(t('transition.pointsTitle')) + '</h4><div class="grid grid-cols-1 sm:grid-cols-2 gap-2">';
+          points.forEach(function(p) {
+            const m = p.match(/^(\p{Extended_Pictographic}\uFE0F?)\s*(.*)$/u);
+            html += '<div class="tr-point flex items-start gap-2.5 rounded-2xl bg-amber-50/70 border border-amber-200/70 p-3">' +
+              '<span class="w-9 h-9 rounded-full bg-white flex items-center justify-center text-lg shrink-0" aria-hidden="true">' + esc(m ? m[1] : '✨') + '</span>' +
+              '<span class="text-sm text-slate-700 font-bold leading-snug pt-1.5">' + esc(m ? m[2] : p) + '</span></div>';
+          });
+          html += '</div></div>';
+        }
+        const bubbles = trLines(tx(a.bubbles));
+        if (bubbles.length) {
+          html += '<div><h4 class="text-sm font-black text-slate-800 mb-2">' + esc(t('transition.bubblesTitle')) + '</h4><div class="space-y-2">';
+          bubbles.forEach(function(b, i) {
+            html += '<div class="tr-bubble flex items-end gap-2 ' + (i % 2 ? 'flex-row-reverse' : '') + '">' +
+              '<span class="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center text-base shrink-0" aria-hidden="true">' + (i % 2 ? '👧' : '👦') + '</span>' +
+              '<span class="max-w-[85%] rounded-2xl ' + (i % 2 ? 'rounded-br-md bg-rose-50 border-rose-200' : 'rounded-bl-md bg-sky-50 border-sky-200') + ' border px-3.5 py-2 text-sm text-slate-700">' + esc(b) + '</span></div>';
+          });
+          html += '</div></div>';
+        }
+        if (a.quote) html += '<blockquote class="tr-quote rounded-2xl bg-gradient-to-r from-emerald-50 to-sky-50 border border-emerald-200 px-4 py-3 text-sm sm:text-base font-black text-emerald-800 flex items-start gap-2"><span aria-hidden="true">💡</span><span>' + esc(tx(a.quote)) + '</span></blockquote>';
+        const url = safeUrl(a.url);
+        if (url && /^https?:/i.test(url)) html += '<div class="text-right"><a href="' + escUrl(url) + '" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-sm font-bold text-sky-700 hover:underline">' + esc(t('transition.readOriginal')) + ' ↗</a></div>';
+        html += '</div>';
+        card.innerHTML = html;
+        listEl.appendChild(card);
+      });
     }
 
     // ==================== 學期任務（前台）====================

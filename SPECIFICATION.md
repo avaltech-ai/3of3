@@ -35,6 +35,7 @@
    - 3.9 `Settings`（全域系統參數）
    - 3.10 `NameMap`（名稱對照表）
    - 3.11 `SemesterTasks`（學期任務）
+   - 3.12 `TransitionPlan` & `TransitionArticles`（幼小銜接）
 4. [歷史踩坑回顧與常見崩潰問題彙整 (Historical Bugs & Root Causes)](#章節四歷史踩坑回顧與常見崩潰問題彙整)
    - 4.1 Google Sheets 日期/時間序號自動轉換破壞資料 (Duration / Priority)
    - 4.2 Safari / iOS 阻擋跨網域隱藏 iframe 表單通訊
@@ -246,6 +247,16 @@
 - **前台版面**：標題列（學期標籤；有兩個以上學期才出現學期下拉，新到舊，預設最新有任務的學期）→ 選填的**總覽圖**（有設定才顯示，點圖放大）→ 兩個類別區塊（班級小任務＝綠色系、家長配合事項＝暖橘色系；區塊標題＋「N 件事」副標；沒有任務的類別整個區塊不出現）。每個任務是一張**圖示卡片**：圓形底的表情符號（沒填用 ⭐）、粗體標題、選填的一行說明；電腦版兩欄、手機一欄。沒有任何任務時顯示「準備中」的空狀態。英文介面：類別名稱走語系字典（Class Mini Missions／How Parents Can Help），標題與說明走 `tx()`（TextMap）。學期新舊：名稱第一組數字（學年）×10 ＋ 上學期 1／下學期 2（`semesterSortKey`）。
 - **後台「🎯 學期任務」頁籤**（逐筆管理，與其他頁一致）：「➕ 新增學期任務」＋內嵌表單（新增／編輯／複製模式橫幅、更新前差異確認、另存為新任務、未儲存防呆；欄位：學期、類別、順序（留白＝接在最後）、圖示（附 24 個常用表情符號一鍵選取）、標題、說明）；**整批複製上學期**（新學期用：來源下拉只列「有任務」的學期、預設最新的；目標預設是「還沒有任務」的最新學期，使用者自己選過就不再自動改；目標學期必須還沒有任何任務；複製後再逐筆修改）；**學期總覽圖**（選學期、貼 Drive 共用連結，留白儲存＝清除）；列表（搜尋標題／說明、學期、類別、分頁、純圖示編輯／複製／刪除；排序＝學期新到舊 → 班級小任務在前 → 順序）。學期下拉的來源是試算表 `ThemeSemesters`（與主題活動共用同一份學期清單）。
 - **測試**：`tests/semestertasks.test.js`（後端）、`tests/tasks_frontend.js`（瀏覽器）、`tests/adminlist.test.js`（`adminTasksView`）。
+
+#### 2c. 幼小銜接 (Kindergarten-to-Grade-1 Transition)（2026-10-17）
+- **用途**：一年整理一次的「幼小銜接計畫」（幼兒園對大班孩子的安排＋家庭參與）與「幼小銜接文章」重點。側邊欄在「學期任務」與「影像記錄」之間（🎒 幼小銜接，頁籤 `transition`）。
+- **前台**：標題列（學年度標籤；兩個以上學年度才有下拉）＋兩個分頁「📋 銜接計畫」「📖 為什麼重要」。
+  - **銜接計畫**：說明文字、篩選鈕（全部／🏡 在家陪伴＝在家＋一起／🏫 在園練習＝在園＋一起）、列印鈕（「列印（含我的勾選）」「列印空白版」）、「清除勾選」、進度條「我們家的進度 N / M」（只算可勾選項目）。能力類別卡片（常見 8 類有專屬圖示與顏色，其他類別用 🌟／灰色；依試算表中類別第一次出現的順序），每個項目有標籤 🏫 在園／🏡 在家／🤝 一起；**在家、一起可勾選，在園只顯示**。勾選以項目編號存在瀏覽器 `localStorage` 的 `nobel_a_transition_checks`（**不上傳、不需登入**；換裝置或清除瀏覽器資料會不見；內容損壞時當成沒勾）。「清除勾選」只清目前學年度。
+  - **列印**：產生 `#printTransitionArea`（body 直接子元素），列印時 body 暫加 `printing-transition` class 並插入 `@page { size: A4 portrait }`，印完（`afterprint` 或 1.5 秒後）移除，**不影響菜單列印的 A4 橫式**。內容依類別分段的表格：方框（☑ 已勾／☐ 未勾；在園沒有方框）、項目、種類；頁尾園所與班級。依使用者決定**不附回條**。
+  - **為什麼重要**：每篇文章一張卡片：標題、出處、摘要（一行一段）、「文章重點」卡片（一行一點；行首表情符號當圖示，沒有用 ✨）、「孩子心裡的聲音」對話泡泡（左右交錯）、金句橫幅、「閱讀原文 ↗」（只接受 http/https）。**著作權**：放自己寫的摘要＋短引言＋原文連結，不貼整篇他人文章。
+  - 英文：類別、項目、文章文字走 `tx()`（TextMap）；介面走語系字典（Off to Grade 1）。
+- **後台「🎒 幼小銜接」**：「➕ 新增計畫項目」「➕ 新增文章」；計畫項目內嵌表單（學年度：可輸入或從建議選；預設最新學年度或依今天日期算出的學年度（8 月起算新學年，`rocSchoolYearOf`）／能力類別：可輸入，建議 8 個常見類別／誰來做／順序／內容；新增、編輯、複製模式與差異確認、防呆）；**整學年複製**（來源只列有項目的學年度、預設最新；目標預設最新＋1，自己輸入過就不改；目標必須沒有項目）；計畫項目列表（搜尋、學年度、類別、誰來做、分頁；`adminTransitionView`）；文章內嵌表單（標題、順序、出處、原文連結、摘要、重點、心聲、金句；新增、編輯、複製）與文章列表。
+- **測試**：`tests/transition.test.js`（後端）、`tests/transition_frontend.js`（瀏覽器）、`tests/adminlist.test.js`（`adminTransitionView`、`rocSchoolYearOf`）。
 
 #### 3. 影像記錄 (Photo Albums)
 - **相簿卡片網格**：展示活動封面圖、相簿名稱、相片數量徽章、更新日期。
@@ -493,6 +504,13 @@
 - **後端動作**（皆需 token）：`saveSemesterTask`（新增／更新，依編號）、`deleteSemesterTask`、`copySemesterTasks`（整學期複製，目標學期必須沒有任務，超過上限整批拒絕）、`saveTaskOverview`（設定或清除某學期的總覽圖）。`getAppData` 回傳 `semesterTasks` 與 `taskOverviews`（學期 → 圖檔 ID）。標題與說明納入 TextMap 掃描來源（「學期任務」）。
 - **總覽圖**：存在 `ThemeSemesters` 的 `tasksOverviewImage` 欄（後端自動補欄；後台設定或直接在試算表貼 Drive 連結／檔案 ID，存進去的是純檔案 ID）。與主題活動的 `overviewImage`（主題架構圖）互相獨立。
 - 初始內容範本：`tools/semester_tasks_115_上.tsv`（115 學年上學期的班級小任務 7 筆、家長配合事項 8 筆；7 欄，貼在 `SemesterTasks` 的 A2 起）。
+
+### 3.12 工作表：`TransitionPlan` & `TransitionArticles`（幼小銜接）
+- 由後端自動建立／補齊欄位（第一次載入資料時）。**不可更改第一列欄位名稱。** 文字欄一律以純文字格式寫入。
+- `TransitionPlan`：`id`（`TRP-…`）、`year`（學年度，例如 `115 學年度`）、`category`（能力類別，30 字內）、`order`（同學年同類別內的順序 1～999）、`kind`（只能是 `在園`、`在家`、`一起`，其他值整列忽略）、`text`（200 字內）、`updatedAt`。上限 400 筆。
+- `TransitionArticles`：`id`（`TRA-…`）、`order`、`title`（必填，100 字）、`source`（出處，100 字）、`url`（原文連結，只接受 http/https，其他一律當成沒有）、`summary`（3000 字，一行一段）、`points`（1500 字，一行一點）、`bubbles`（1000 字，一行一句）、`quote`（200 字）、`updatedAt`。上限 30 篇。
+- **後端動作**（皆需 token）：`saveTransitionItem`、`deleteTransitionItem`、`copyTransitionYear`（整學年複製，目標必須沒有項目，超過上限整批拒絕）、`saveTransitionArticle`、`deleteTransitionArticle`。`getAppData` 回傳 `transitionPlan`、`transitionArticles`。計畫的類別與內容、文章的標題／出處／摘要／重點／心聲／金句納入 TextMap 掃描來源。
+- 初始內容：`tools/transition_plan_115.tsv`（115 學年度 36 項：在園 9、在家 9、一起 18；6 欄，貼在 `TransitionPlan` 的 A2 起）、`tools/transition_article_115.md`（文章各欄位內容，到後台「➕ 新增文章」逐欄貼上；原文：未來親子 https://futureparenting.cwgv.com.tw/family/content/index/36400 ，文／劉慈惠，摘自《陪伴，是最重要的禮物》，格子外面）。
 
 ### 3.8 工作表：選項字典輔助表
 

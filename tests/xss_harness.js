@@ -57,6 +57,13 @@
       ];
       rawClone.taskOverviews = { '115 學年上學期': 'PLACEHOLDEROVERVIEWID0000000001' };
     }
+    if (!rawClone.transitionPlan || !rawClone.transitionPlan.length) rawClone.transitionPlan = [
+        { id: 'P1', year: '115 學年度', category: '規律生活', order: 1, kind: '在園', text: '8:20-8:40 前入學', updatedAt: '2026-10-01' },
+        { id: 'P2', year: '115 學年度', category: '規律生活', order: 2, kind: '在家', text: '21:00-21:30 前上床睡覺', updatedAt: '2026-10-01' },
+        { id: 'P3', year: '115 學年度', category: '語文能力', order: 1, kind: '一起', text: '能完整表達自己的需求', updatedAt: '2026-10-01' },
+        { id: 'P4', year: '114 學年度', category: '社會能力', order: 1, kind: '一起', text: '去年的項目', updatedAt: '2026-10-01' }
+      ];
+    if (!rawClone.transitionArticles || !rawClone.transitionArticles.length) rawClone.transitionArticles = [{ id: 'A1', order: 1, title: '幼小銜接很重要', source: '未來親子', url: 'https://example.com/a', summary: '第一段\n第二段', points: '📝 第一次評量\n第一次點名', bubbles: '老師怎麼生氣了？\n下課要先喝水嗎？', quote: '先安頓孩子的心', updatedAt: '2026-10-01' }];
     var data = poison(rawClone, pass, '');
     // 名稱對照表：以「被下毒後的名稱」當鍵、攻擊字串當英文值（需在英文介面下執行才會被顯示出來）
     var nm = {}, ni = 0;
@@ -89,6 +96,9 @@
     step('renderThemes', function () { renderThemes(); toggleAllThemeCards(); });
     step('switchTab tasks', function () { switchTab('tasks'); });
     step('renderSemesterTasks', function () { renderSemesterTasks(); filterSemesterTasks(); });
+    step('switchTab transition', function () { switchTab('transition'); renderTransition(); setTransitionFilter('home'); setTransitionFilter('all'); });
+    step('transition articles', function () { switchTransitionView('article'); switchTransitionView('plan'); });
+    step('transition print html', function () { document.getElementById('printTransitionArea').innerHTML = buildTransitionPrintHtml(true); });
     step('switchTab albums', function () { switchTab('albums'); });
     step('albums', function () { renderAlbumCategoryPills(); applyAlbumFilters(); renderAlbumsList(state.cachedAlbums || data.albums || []); });
     step('album photos', function () {
@@ -109,6 +119,9 @@
     step('admin albums', function () { renderAdminAlbumsTable(); });
     step('admin themes', function () { renderAdminThemesList(); });
     step('admin tasks', function () { renderAdminTasksList(); });
+    step('admin transition', function () { renderAdminTransition(); });
+    (data.transitionPlan || []).forEach(function (it, i) { step('transition item edit ' + i, function () { openTrItemForm(it.id); }); });
+    (data.transitionArticles || []).forEach(function (a, i) { step('transition article edit ' + i, function () { openTrArtForm(a.id); }); });
     (data.semesterTasks || []).forEach(function (tk, i) { step('task edit ' + i, function () { openTaskForm(tk.id); }); });
     step('admin songs', function () { renderAdminSongsTable(); });
     step('admin drive links', function () { renderFullDriveMonthlyLinks(); });

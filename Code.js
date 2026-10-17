@@ -649,6 +649,16 @@ function doPost(e) {
       result = copySemesterTasks(postData.fromSemester, postData.toSemester, postData.password);
     } else if (action === 'saveTaskOverview') {
       result = saveTaskOverview(postData.semester, postData.link, postData.password);
+    } else if (action === 'saveTransitionItem') {
+      result = saveTransitionItem(postData.data, postData.password);
+    } else if (action === 'deleteTransitionItem') {
+      result = deleteTransitionItem(postData.id, postData.password);
+    } else if (action === 'copyTransitionYear') {
+      result = copyTransitionYear(postData.fromYear, postData.toYear, postData.password);
+    } else if (action === 'saveTransitionArticle') {
+      result = saveTransitionArticle(postData.data, postData.password);
+    } else if (action === 'deleteTransitionArticle') {
+      result = deleteTransitionArticle(postData.id, postData.password);
     }
 
     // 只記錄「成功」的結果（失敗的操作重試時仍應重新執行）；保留 10 分鐘，涵蓋逾時重送與上傳區塊重試
@@ -1058,6 +1068,17 @@ function getAppData() {
       console.warn('getSemesterTasksData_ inside getAppData failed: ' + e);
     }
 
+    // 幼小銜接（銜接計畫項目、銜接文章）
+    let transitionPlan = [];
+    let transitionArticles = [];
+    try {
+      const trData = getTransitionData_();
+      transitionPlan = trData.plan;
+      transitionArticles = trData.articles;
+    } catch (e) {
+      console.warn('getTransitionData_ inside getAppData failed: ' + e);
+    }
+
     const result = {
       success: true,
       data: {
@@ -1075,6 +1096,8 @@ function getAppData() {
         themeOverviews: themeOverviews,
         semesterTasks: semesterTasks,
         taskOverviews: taskOverviews,
+        transitionPlan: transitionPlan,
+        transitionArticles: transitionArticles,
         eventTargets: eventTargets || [],
         eventCategoriesMajor: eventCategoriesMajor || [],
         eventCategoriesMinor: eventCategoriesMinor || [],
@@ -1372,11 +1395,14 @@ const TEXT_SOURCES_ = [
   ['spotlights', ['title', 'subtitle', 'tags', 'bulletPoints'], '焦點活動'],
   ['albums', ['title'], '相簿標題'],
   ['docs', ['fileName', 'description'], '常用文件'],
-  ['semesterTasks', ['title', 'description'], '學期任務']
+  ['semesterTasks', ['title', 'description'], '學期任務'],
+  ['transitionPlan', ['category', 'text'], '幼小銜接計畫'],
+  ['transitionArticles', ['title', 'source', 'summary', 'points', 'bubbles', 'quote'], '幼小銜接文章']
 ];
 const TEXT_FIELD_LABELS_ = {
   title: '標題', description: '說明', timeLocation: '時間地點', theme: '學期主題', calendarPrompt: '日曆提示',
   morningSnack: '早點', fruit: '水果', lunchStaple: '主食', lunchMain: '主菜', lunchSide1: '副菜', lunchSide2: '副菜', lunchSoup: '湯品', afternoonSnack: '午點', note: '備註',
+  category: '能力類別', text: '項目', source: '出處', summary: '摘要', points: '重點', bubbles: '孩子的心聲', quote: '金句',
   themeName: '名稱', name: '名稱', themeConcept: '概念', concept: '概念', subtitle: '副標題', tags: '標籤', bulletPoints: '重點', fileName: '名稱'
 };
 
@@ -4768,6 +4794,269 @@ function saveTaskOverview(semester, link, password) {
   } catch (err) {
     return { success: false, error: '儲存總覽圖失敗: ' + err.toString() };
   }
+}
+
+// -------------------------------------------------------------
+// 幼小銜接：TransitionPlan（銜接計畫項目）與 TransitionArticles（銜接文章重點）。一年整理一次，前台「幼小銜接」頁。
+// TransitionPlan：id、year（學年度，例如「115 學年度」）、category（能力類別）、order（同學年同類別內的順序）、
+//   kind（在園＝幼兒園做的／在家＝家庭參與／一起＝園所與家庭共同培養的能力）、text、updatedAt。
+// TransitionArticles：id、order、title、source（出處）、url（原文連結，選填，只接受 http/https）、
+//   summary（摘要）、points（重點，一行一點）、bubbles（孩子的心聲，一行一句）、quote（金句）、updatedAt。
+// 文章請放「自己寫的摘要＋短引言＋原文連結」，不要貼整篇他人文章（著作權）。
+// -------------------------------------------------------------
+const TR_PLAN_SHEET = 'TransitionPlan';
+const TR_PLAN_HEADERS = ['id', 'year', 'category', 'order', 'kind', 'text', 'updatedAt'];
+const TR_KINDS = ['在園', '在家', '一起'];
+const TR_ART_SHEET = 'TransitionArticles';
+const TR_ART_HEADERS = ['id', 'order', 'title', 'source', 'url', 'summary', 'points', 'bubbles', 'quote', 'updatedAt'];
+const TR_YEAR_MAX = 30, TR_CATEGORY_MAX = 30, TR_TEXT_MAX = 200, TR_ORDER_MAX = 999, TR_MAX_ROWS = 400;
+const TR_ART_LIMITS = { title: 100, source: 100, url: 500, summary: 3000, points: 1500, bubbles: 1000, quote: 200 };
+const TR_ART_MAX_ROWS = 30;
+
+/** 確保工作表存在、欄位齊全（缺少的補在右邊）。 */
+function ensureTrSheet_(name, headers) {
+  const ss = getSpreadsheet();
+  if (!ss) throw new Error('無法開啟 Google 試算表');
+  let sheet = ss.getSheetByName(name);
+  if (!sheet) {
+    sheet = ss.insertSheet(name);
+    sheet.appendRow(headers);
+    sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#FEF3C7');
+    sheet.setFrozenRows(1);
+  } else {
+    const lastCol = Math.max(sheet.getLastColumn(), 1);
+    const have = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(function(h) { return String(h).trim(); });
+    headers.forEach(function(h) {
+      if (have.indexOf(h) === -1) {
+        sheet.getRange(1, have.length + 1).setValue(h).setFontWeight('bold').setBackground('#FEF3C7');
+        have.push(h);
+      }
+    });
+  }
+  return sheet;
+}
+
+function trStr_(v) { return String(v === undefined || v === null ? '' : v).trim(); }
+function trOrderOf_(v) { const n = Math.floor(Number(v)); return (isFinite(n) && n >= 1 && n <= TR_ORDER_MAX) ? n : TR_ORDER_MAX + 1; }
+/** 原文連結：只接受 http/https，其他一律當成沒有。 */
+function trSafeUrl_(v) { const u = trStr_(v); return /^https?:\/\/[^\s"'<>]+$/i.test(u) ? u : ''; }
+
+/** 計畫項目：略過沒有學年度、類別、內容或種類不合法的列；依學年度、原列順序（類別第一次出現的順序）、類別內順序排列。 */
+function parseTransitionPlan_(rows) {
+  const list = [], catFirst = {};
+  (rows || []).forEach(function(r, i) {
+    if (!r) return;
+    const year = trStr_(r.year), category = trStr_(r.category), kind = trStr_(r.kind), text = trStr_(r.text);
+    if (!year || !category || !text || TR_KINDS.indexOf(kind) === -1) return;
+    const ck = year + '\u0001' + category;
+    if (catFirst[ck] === undefined) catFirst[ck] = i;
+    list.push({ id: trStr_(r.id), year: year, category: category.slice(0, TR_CATEGORY_MAX), order: trOrderOf_(r.order), kind: kind, text: text.slice(0, TR_TEXT_MAX), updatedAt: trStr_(r.updatedAt), _c: catFirst[ck], _i: i });
+  });
+  list.sort(function(a, b) { return (a.year < b.year ? -1 : a.year > b.year ? 1 : 0) || (a._c - b._c) || (a.order - b.order) || (a._i - b._i); });
+  list.forEach(function(t) { delete t._c; delete t._i; });
+  return list;
+}
+
+/** 文章：略過沒有標題的列；依順序、原列順序。 */
+function parseTransitionArticles_(rows) {
+  const list = [];
+  (rows || []).forEach(function(r, i) {
+    if (!r) return;
+    const title = trStr_(r.title);
+    if (!title) return;
+    const a = { id: trStr_(r.id), order: trOrderOf_(r.order), _i: i };
+    Object.keys(TR_ART_LIMITS).forEach(function(k) { a[k] = (k === 'url' ? trSafeUrl_(r[k]) : trStr_(r[k])).slice(0, TR_ART_LIMITS[k]); });
+    a.title = title.slice(0, TR_ART_LIMITS.title);
+    a.updatedAt = trStr_(r.updatedAt);
+    list.push(a);
+  });
+  list.sort(function(a, b) { return (a.order - b.order) || (a._i - b._i); });
+  list.forEach(function(a) { delete a._i; });
+  return list;
+}
+
+function getTransitionData_() {
+  return {
+    plan: parseTransitionPlan_(getSheetDataAsObjects(ensureTrSheet_(TR_PLAN_SHEET, TR_PLAN_HEADERS))),
+    articles: parseTransitionArticles_(getSheetDataAsObjects(ensureTrSheet_(TR_ART_SHEET, TR_ART_HEADERS)))
+  };
+}
+
+function trNewId_(prefix) {
+  return prefix + '-' + Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyyMMddHHmmss') + '-' + Utilities.getUuid().replace(/-/g, '').slice(0, 4);
+}
+
+/** 依標題把 fieldMap 寫進指定列；文字欄設成純文字格式（避免「=」開頭被當成公式）。 */
+function trWriteRow_(sheet, headers, row, fieldMap, numCols) {
+  headers.forEach(function(h, c) {
+    if (fieldMap[h] === undefined) return;
+    const cell = sheet.getRange(row, c + 1);
+    if ((numCols || []).indexOf(h) === -1) cell.setNumberFormat('@');
+    cell.setValue(fieldMap[h]);
+  });
+}
+
+function trFindRow_(data, idIdx, id) {
+  if (!id) return -1;
+  for (let i = 1; i < data.length; i++) if (String(data[i][idIdx]) === id) return i + 1;
+  return -1;
+}
+
+function validateTransitionItem_(d) {
+  d = d || {};
+  const year = trStr_(d.year), category = trStr_(d.category), kind = trStr_(d.kind), text = trStr_(d.text);
+  if (!year) return { error: '請選擇學年度！' };
+  if (year.length > TR_YEAR_MAX) return { error: '學年度名稱太長。' };
+  if (!category) return { error: '請輸入能力類別！' };
+  if (category.length > TR_CATEGORY_MAX) return { error: '能力類別最多 ' + TR_CATEGORY_MAX + ' 字。' };
+  if (TR_KINDS.indexOf(kind) === -1) return { error: '請選擇誰來做（' + TR_KINDS.join('／') + '）！' };
+  if (!text) return { error: '請輸入項目內容！' };
+  if (text.length > TR_TEXT_MAX) return { error: '項目內容最多 ' + TR_TEXT_MAX + ' 字。' };
+  let order = null;
+  if (d.order !== undefined && d.order !== null && String(d.order).trim() !== '') {
+    order = Math.floor(Number(d.order));
+    if (!isFinite(order) || order < 1 || order > TR_ORDER_MAX) return { error: '順序請填 1～' + TR_ORDER_MAX + ' 的整數。' };
+  }
+  return { value: { year: year, category: category, kind: kind, text: text, order: order } };
+}
+
+/** 新增 / 更新一個銜接計畫項目（以 id 為鍵）。順序留白：編輯時（學年度與類別沒變）維持原順序，其餘接在同學年同類別最後。 */
+function saveTransitionItem(itemData, password) {
+  if (!checkPassword(password)) return authFail_();
+  try {
+    const v = validateTransitionItem_(itemData);
+    if (v.error) return { success: false, error: v.error };
+    const t = v.value;
+    const sheet = ensureTrSheet_(TR_PLAN_SHEET, TR_PLAN_HEADERS);
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0].map(function(h) { return String(h).trim(); });
+    const ix = function(h) { return headers.indexOf(h); };
+    let targetRow = trFindRow_(data, ix('id'), trStr_(itemData && itemData.id));
+    if (targetRow === -1 && data.length - 1 >= TR_MAX_ROWS) return { success: false, error: '銜接計畫項目已達上限（' + TR_MAX_ROWS + ' 筆），請先刪除不用的舊資料。' };
+    let order = t.order;
+    if (order === null && targetRow !== -1 && trStr_(data[targetRow - 1][ix('year')]) === t.year && trStr_(data[targetRow - 1][ix('category')]) === t.category) {
+      const keep = trOrderOf_(data[targetRow - 1][ix('order')]);
+      if (keep <= TR_ORDER_MAX) order = keep;
+    }
+    if (order === null) {
+      let max = 0;
+      for (let i = 1; i < data.length; i++) {
+        if (i + 1 !== targetRow && trStr_(data[i][ix('year')]) === t.year && trStr_(data[i][ix('category')]) === t.category) {
+          const o = trOrderOf_(data[i][ix('order')]);
+          if (o <= TR_ORDER_MAX && o > max) max = o;
+        }
+      }
+      order = Math.min(max + 1, TR_ORDER_MAX);
+    }
+    const id = targetRow === -1 ? trNewId_('TRP') : trStr_(itemData.id);
+    if (targetRow === -1) targetRow = sheet.getLastRow() + 1;
+    trWriteRow_(sheet, headers, targetRow, { id: id, year: t.year, category: t.category, order: order, kind: t.kind, text: t.text, updatedAt: Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd') }, ['order']);
+    clearAppDataCache();
+    return { success: true, message: '銜接計畫項目已儲存！', itemId: id, order: order };
+  } catch (err) {
+    return { success: false, error: '儲存銜接計畫項目失敗: ' + err.toString() };
+  }
+}
+
+function trDeleteById_(sheetName, headers, id, notFound) {
+  const key = trStr_(id);
+  if (!key) return { success: false, error: '缺少編號' };
+  const sheet = ensureTrSheet_(sheetName, headers);
+  const data = sheet.getDataRange().getValues();
+  const row = trFindRow_(data, data[0].map(function(h) { return String(h).trim(); }).indexOf('id'), key);
+  if (row === -1) return { success: false, error: notFound };
+  sheet.deleteRow(row);
+  clearAppDataCache();
+  return { success: true, message: '已刪除！' };
+}
+
+function deleteTransitionItem(itemId, password) {
+  if (!checkPassword(password)) return authFail_();
+  try { return trDeleteById_(TR_PLAN_SHEET, TR_PLAN_HEADERS, itemId, '找不到該項目編號'); }
+  catch (err) { return { success: false, error: err.toString() }; }
+}
+
+/** 把某學年度的計畫項目整批複製到另一個學年度（目標學年度必須還沒有任何項目；超過上限整批拒絕）。 */
+function copyTransitionYear(fromYear, toYear, password) {
+  if (!checkPassword(password)) return authFail_();
+  try {
+    const from = trStr_(fromYear), to = trStr_(toYear);
+    if (!from || !to) return { success: false, error: '請選擇要複製的學年度與目標學年度！' };
+    if (to.length > TR_YEAR_MAX) return { success: false, error: '學年度名稱太長。' };
+    if (from === to) return { success: false, error: '來源與目標學年度不能相同！' };
+    const sheet = ensureTrSheet_(TR_PLAN_SHEET, TR_PLAN_HEADERS);
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0].map(function(h) { return String(h).trim(); });
+    const yIdx = headers.indexOf('year');
+    const sources = parseTransitionPlan_(getSheetDataAsObjects(sheet).filter(function(r) { return trStr_(r.year) === from; }));
+    if (sources.length === 0) return { success: false, error: '「' + from + '」沒有任何計畫項目可以複製。' };
+    for (let i = 1; i < data.length; i++) if (trStr_(data[i][yIdx]) === to) return { success: false, error: '「' + to + '」已經有計畫項目，為避免重複不會覆蓋；請先刪除，或逐筆新增。' };
+    if (data.length - 1 + sources.length > TR_MAX_ROWS) return { success: false, error: '銜接計畫項目已達上限（' + TR_MAX_ROWS + ' 筆），請先刪除不用的舊資料。' };
+    const today = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd');
+    const stamp = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyyMMddHHmmss');
+    let row = sheet.getLastRow() + 1;
+    sources.forEach(function(t, i) {
+      trWriteRow_(sheet, headers, row++, { id: 'TRP-' + stamp + '-' + ('00' + (i + 1)).slice(-3) + Utilities.getUuid().replace(/-/g, '').slice(0, 3), year: to, category: t.category, order: t.order, kind: t.kind, text: t.text, updatedAt: today }, ['order']);
+    });
+    clearAppDataCache();
+    return { success: true, message: '已把「' + from + '」的 ' + sources.length + ' 個項目複製到「' + to + '」！', count: sources.length };
+  } catch (err) {
+    return { success: false, error: '複製銜接計畫失敗: ' + err.toString() };
+  }
+}
+
+function validateTransitionArticle_(d) {
+  d = d || {};
+  const v = {};
+  for (const k in TR_ART_LIMITS) {
+    v[k] = String(d[k] === undefined || d[k] === null ? '' : d[k]).replace(/\r\n?/g, '\n').trim();
+    if (v[k].length > TR_ART_LIMITS[k]) return { error: '「' + ({ title: '標題', source: '出處', url: '原文連結', summary: '摘要', points: '重點', bubbles: '孩子的心聲', quote: '金句' })[k] + '」最多 ' + TR_ART_LIMITS[k] + ' 字。' };
+  }
+  if (!v.title) return { error: '請輸入文章標題！' };
+  if (v.url && !trSafeUrl_(v.url)) return { error: '原文連結請貼 http:// 或 https:// 開頭的網址。' };
+  let order = null;
+  if (d.order !== undefined && d.order !== null && String(d.order).trim() !== '') {
+    order = Math.floor(Number(d.order));
+    if (!isFinite(order) || order < 1 || order > TR_ORDER_MAX) return { error: '順序請填 1～' + TR_ORDER_MAX + ' 的整數。' };
+  }
+  v.order = order;
+  return { value: v };
+}
+
+/** 新增 / 更新一篇銜接文章（以 id 為鍵）。順序留白：編輯時維持原順序，新增時排最後。 */
+function saveTransitionArticle(articleData, password) {
+  if (!checkPassword(password)) return authFail_();
+  try {
+    const r = validateTransitionArticle_(articleData);
+    if (r.error) return { success: false, error: r.error };
+    const a = r.value;
+    const sheet = ensureTrSheet_(TR_ART_SHEET, TR_ART_HEADERS);
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0].map(function(h) { return String(h).trim(); });
+    const oIdx = headers.indexOf('order');
+    let targetRow = trFindRow_(data, headers.indexOf('id'), trStr_(articleData && articleData.id));
+    if (targetRow === -1 && data.length - 1 >= TR_ART_MAX_ROWS) return { success: false, error: '銜接文章已達上限（' + TR_ART_MAX_ROWS + ' 篇）。' };
+    let order = a.order;
+    if (order === null && targetRow !== -1) { const keep = trOrderOf_(data[targetRow - 1][oIdx]); if (keep <= TR_ORDER_MAX) order = keep; }
+    if (order === null) {
+      let max = 0;
+      for (let i = 1; i < data.length; i++) { const o = trOrderOf_(data[i][oIdx]); if (i + 1 !== targetRow && o <= TR_ORDER_MAX && o > max) max = o; }
+      order = Math.min(max + 1, TR_ORDER_MAX);
+    }
+    const id = targetRow === -1 ? trNewId_('TRA') : trStr_(articleData.id);
+    if (targetRow === -1) targetRow = sheet.getLastRow() + 1;
+    trWriteRow_(sheet, headers, targetRow, { id: id, order: order, title: a.title, source: a.source, url: a.url, summary: a.summary, points: a.points, bubbles: a.bubbles, quote: a.quote, updatedAt: Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd') }, ['order']);
+    clearAppDataCache();
+    return { success: true, message: '銜接文章已儲存！', articleId: id, order: order };
+  } catch (err) {
+    return { success: false, error: '儲存銜接文章失敗: ' + err.toString() };
+  }
+}
+
+function deleteTransitionArticle(articleId, password) {
+  if (!checkPassword(password)) return authFail_();
+  try { return trDeleteById_(TR_ART_SHEET, TR_ART_HEADERS, articleId, '找不到該文章編號'); }
+  catch (err) { return { success: false, error: err.toString() }; }
 }
 
 /**

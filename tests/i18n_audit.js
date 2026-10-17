@@ -43,6 +43,12 @@
         taskOverviews: { '115 學年上學期': 'PLACEHOLDEROVERVIEWID0000000001' }
       });
     }
+    if (!raw.transitionPlan || !raw.transitionPlan.length) raw = Object.assign({}, raw, { transitionPlan: [
+        { id: 'P1', year: '115 學年度', category: '規律生活', order: 1, kind: '在園', text: '8:20-8:40 前入學', updatedAt: '2026-10-01' },
+        { id: 'P2', year: '115 學年度', category: '規律生活', order: 2, kind: '在家', text: '21:00-21:30 前上床睡覺', updatedAt: '2026-10-01' },
+        { id: 'P3', year: '115 學年度', category: '語文能力', order: 1, kind: '一起', text: '能完整表達自己的需求', updatedAt: '2026-10-01' },
+        { id: 'P4', year: '114 學年度', category: '社會能力', order: 1, kind: '一起', text: '去年的項目', updatedAt: '2026-10-01' }
+      ], transitionArticles: [{ id: 'A1', order: 1, title: '幼小銜接很重要', source: '未來親子', url: 'https://example.com/a', summary: '第一段\n第二段', points: '📝 第一次評量\n第一次點名', bubbles: '老師怎麼生氣了？\n下課要先喝水嗎？', quote: '先安頓孩子的心', updatedAt: '2026-10-01' }] });
     const dataList = collectDataStrings(raw);
     const errors = [];
     const step = function (name, fn) { try { fn(); } catch (e) { errors.push(name + ': ' + (e && e.message)); } };
@@ -106,6 +112,8 @@
     step('album photos', function () { renderAlbumPhotosGrid([{ id: 'p1', name: 'x.jpg', url: 'https://x/y.jpg' }]); currentAlbumPhotosList = [{ id: 'p1', name: 'x.jpg', url: 'https://x/y.jpg' }]; openPhotoViewerByIndex(0); scanNow('photo-viewer'); });
     step('docs', function () { switchTab('docs'); renderDocCategoriesUI(); renderDocsList(); scanNow('docs'); });
     step('tasks', function () { switchTab('tasks'); renderSemesterTasks(); scanNow('tasks'); });
+    step('transition plan', function () { switchTab('transition'); switchTransitionView('plan'); renderTransition(); scanNow('transition-plan'); });
+    step('transition article', function () { switchTransitionView('article'); scanNow('transition-article'); switchTransitionView('plan'); });
     step('songs', function () { switchTab('songs'); renderSongCategoryPills(); renderSongsList(state.songs || []); scanNow('songs'); });
     step('songs selected', function () { (state.songs || []).slice(0, 2).forEach(function (s) { toggleSelectSong(s.id); }); updateSongsBottomBarUI(); scanNow('songs-selected'); });
 
