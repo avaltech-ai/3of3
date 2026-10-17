@@ -242,20 +242,20 @@ const htmlContent = `<!DOCTYPE html>
       <header class="bg-white/90 backdrop-blur-md border-b border-rose-100 shadow-sm sticky top-1.5 z-30 flex-shrink-0">
         <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <!-- 園所與班級 Logo 識別 -->
-          <div class="flex items-center gap-2.5 sm:gap-3">
+          <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
             <!-- 漢堡選單 (手機版專用) -->
             <button class="md:hidden text-2xl text-slate-600 hover:text-slate-800 tap-bounce p-1 focus:outline-none" onclick="toggleMobileSidebar()">
               ☰
             </button>
-            <div class="cursor-pointer flex items-center gap-2.5" onclick="switchTab('home')">
+            <div class="cursor-pointer flex items-center gap-2.5 min-w-0" onclick="switchTab('home')">
               <!-- 圖三 Logo (參照圖四設計) -->
               <div class="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-white border-2 border-rose-200 p-1 flex items-center justify-center shrink-0 shadow-xs">
                 <img src="${logoB64}" class="w-full h-full object-contain" alt="三之三生命教育基金會" data-i18n-alt="ui.logoAlt">
               </div>
-              <div class="flex flex-col justify-center">
-                <div class="flex items-center gap-2 flex-wrap">
-                  <span id="headerFoundation" data-i18n="header.foundation" class="text-[11px] sm:text-xs font-bold text-rose-500 bg-rose-50/80 border border-rose-300 px-2.5 py-0.5 rounded-full">三之三生命教育基金會</span>
-                  <span id="headerSchool" data-i18n="header.school" class="text-xs sm:text-sm font-semibold text-slate-500">新北市桃子腳非營利幼兒園</span>
+              <div class="flex flex-col justify-center min-w-0">
+                <div class="flex items-center gap-x-2 gap-y-1 flex-wrap min-w-0">
+                  <span id="headerFoundation" data-i18n="header.foundation" class="text-[11px] sm:text-xs font-bold text-rose-500 bg-rose-50/80 border border-rose-300 px-2.5 py-0.5 rounded-full whitespace-nowrap min-w-0 max-w-full truncate">三之三生命教育基金會</span>
+                  <span id="headerSchool" data-i18n="header.school" class="text-xs sm:text-sm font-semibold text-slate-500 min-w-0 max-w-full truncate">新北市桃子腳非營利幼兒園</span>
                 </div>
                 <h1 class="text-xl sm:text-2xl font-black text-slate-800 tracking-tight flex flex-wrap items-center gap-x-2 gap-y-1 mt-0.5">
                   <span id="headerClass" data-i18n="header.class" class="whitespace-nowrap">諾貝爾 A 班</span>
@@ -2589,7 +2589,13 @@ const htmlContent = `<!DOCTYPE html>
           snackFruit: '水果',
           snackAfternoon: '午點',
           noMenu: '菜單尚未公布',
-          more: '看詳細內容',
+          expand: '展開完整內容',
+          collapse: '收合',
+          menuStaple: '主食',
+          menuMain: '主菜',
+          menuSide: '副菜',
+          menuSoup: '湯品',
+          menuNote: '備註',
           kitchen: '幸福廚房',
           birthday: '慶生'
         },
@@ -2901,7 +2907,13 @@ const htmlContent = `<!DOCTYPE html>
           snackFruit: 'Fruit',
           snackAfternoon: 'Afternoon',
           noMenu: 'Menu not posted yet',
-          more: 'See details',
+          expand: 'Show full details',
+          collapse: 'Hide',
+          menuStaple: 'Main grain',
+          menuMain: 'Main dish',
+          menuSide: 'Side dish',
+          menuSoup: 'Soup',
+          menuNote: 'Note',
           kitchen: 'Happy Kitchen',
           birthday: 'Birthday party'
         },
@@ -4470,7 +4482,7 @@ const htmlContent = `<!DOCTYPE html>
 
     function initStandaloneSupport() {
       const btn = document.getElementById('appRefreshBtn');
-      if (btn && isStandaloneApp()) { btn.classList.remove('hidden'); btn.classList.add('flex'); }
+      if (btn && isStandaloneApp()) { btn.classList.remove('hidden'); btn.classList.add('flex'); const row = btn.parentElement && btn.parentElement.parentElement; if (row) row.classList.add('pr-10', 'md:pr-4'); }   // 手機上 ↻ 浮在標頭右上角：讓出位置，基金會標籤才不會被蓋住
       document.addEventListener('visibilitychange', onVisibilityChange);
     }
 
@@ -12539,6 +12551,7 @@ const htmlContent = `<!DOCTYPE html>
 
     // ==================== 首頁「今天／明天」小卡 ====================
     let todayCardTimer = null;
+    const todayExpanded = Object.create(null);   // 哪幾天的卡片目前是展開的（重畫時保持）
     function todayDateLabel(key) {
       return t('today.dateFmt', { m: Number(key.slice(5, 7)), d: Number(key.slice(8, 10)), w: (t('today.weekdays') || [])[ymdWeekday(key)] || '' });
     }
@@ -12583,13 +12596,51 @@ const htmlContent = `<!DOCTYPE html>
       } else if (!offDay) {
         const nm = document.createElement('div'); nm.className = 'today-nomenu text-xs text-slate-400'; nm.textContent = '🍱 ' + t('today.noMenu'); panel.appendChild(nm);
       }
-      const go = document.createElement('button'); go.type = 'button';
-      go.className = 'today-more text-xs font-bold text-peach-600 hover:underline tap-bounce';
-      go.textContent = t('today.more') + ' ›';
-      go.onclick = function() { goToDayFromCard(key); };
-      panel.appendChild(go);
+      // 完整內容：在這張卡片內展開（不跳到別處，避免分不清是哪一天）。只有真的還有更多內容時才出現按鈕。
+      const details = todayDetailsEl(dayEvents, dayMenu);
+      if (details) {
+        details.id = 'todayDetails-' + key;
+        const open = !!todayExpanded[key];
+        details.classList.toggle('hidden', !open);
+        const tg = document.createElement('button'); tg.type = 'button';
+        tg.className = 'today-toggle text-xs font-bold text-peach-600 hover:underline tap-bounce';
+        tg.setAttribute('aria-controls', details.id);
+        const summaryMenu = panel.querySelector('.today-menu');
+        const sync = function() { const o = !!todayExpanded[key]; tg.textContent = o ? t('today.collapse') + ' ▴' : t('today.expand') + ' ▾'; tg.setAttribute('aria-expanded', o ? 'true' : 'false'); details.classList.toggle('hidden', !o); if (summaryMenu && details.querySelector('.today-detail-menu')) summaryMenu.classList.toggle('hidden', o); };   // 展開時隱藏摘要菜單，避免同樣的菜重複出現
+        tg.onclick = function() { if (todayExpanded[key]) delete todayExpanded[key]; else todayExpanded[key] = true; sync(); };
+        sync();
+        panel.appendChild(details);
+        panel.appendChild(tg);
+      }
       return panel;
     }
+    // 展開後的完整內容：每則活動的完整說明、完整菜單。沒有比摘要更多的內容就回傳 null（不顯示展開鈕）。
+    function todayDetailsEl(dayEvents, dayMenu) {
+      const withDesc = dayEvents.filter(function(ev) { return String(ev.description || '').trim(); });
+      const menuRows = dayMenu ? [['today.snackMorning', dayMenu.morningSnack], ['today.snackFruit', dayMenu.fruit], ['today.menuStaple', dayMenu.lunchStaple], ['today.menuMain', dayMenu.lunchMain], ['today.menuSide', [dayMenu.lunchSide1, dayMenu.lunchSide2].map(function(v) { return String(v || '').trim(); }).filter(Boolean).map(function(v) { return tx(v); }).join('、')], ['today.menuSoup', dayMenu.lunchSoup], ['today.snackAfternoon', dayMenu.afternoonSnack], ['today.menuNote', dayMenu.note]].filter(function(r) { return String(r[1] || '').trim(); }) : [];
+      const menuHasMore = !!(dayMenu && [dayMenu.lunchSide1, dayMenu.lunchSide2, dayMenu.lunchSoup, dayMenu.note].some(function(v) { return String(v || '').trim(); }));
+      if (!withDesc.length && dayEvents.length <= 4 && !menuHasMore) return null;
+      const box = document.createElement('div');
+      box.className = 'today-details space-y-2 pt-1';
+      dayEvents.forEach(function(ev) {
+        const it = document.createElement('div'); it.className = 'today-detail-event rounded-2xl bg-white/90 border border-slate-100 px-3 py-2';
+        const h = document.createElement('div'); h.className = 'text-sm font-black text-slate-800'; h.textContent = tx(ev.title); it.appendChild(h);
+        if (ev.timeLocation) { const tl = document.createElement('div'); tl.className = 'text-xs text-slate-500'; tl.textContent = '🕘 ' + tx(ev.timeLocation); it.appendChild(tl); }
+        if (String(ev.description || '').trim()) { const d = document.createElement('p'); d.className = 'text-xs text-slate-600 leading-relaxed whitespace-pre-line mt-1'; d.textContent = tx(ev.description); it.appendChild(d); }
+        box.appendChild(it);
+      });
+      if (menuRows.length) {
+        const mt = document.createElement('div'); mt.className = 'today-detail-menu rounded-2xl bg-white/90 border border-slate-100 px-3 py-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs';
+        menuRows.forEach(function(r) {
+          const k = document.createElement('span'); k.className = 'font-bold text-slate-500 whitespace-nowrap'; k.textContent = t(r[0]);
+          const v = document.createElement('span'); v.className = 'text-slate-700'; v.textContent = r[0] === 'today.menuSide' ? r[1] : tx(String(r[1]).trim());
+          mt.appendChild(k); mt.appendChild(v);
+        });
+        box.appendChild(mt);
+      }
+      return box;
+    }
+
     function renderTodayCard() {
       const box = document.getElementById('todayCard');
       if (!box) return;
@@ -12604,14 +12655,6 @@ const htmlContent = `<!DOCTYPE html>
         document.addEventListener('visibilitychange', function() { if (!document.hidden) renderTodayCard(); });
       }
     }
-    function goToDayFromCard(key) {
-      state.viewYear = Number(key.slice(0, 4));
-      state.viewMonth = Number(key.slice(5, 7));
-      onDateClicked(key);
-      const el = document.getElementById('linkedContentSection');
-      if (el && typeof el.scrollIntoView === 'function') { try { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {} }
-    }
-
     // ==================== 後台「待辦提醒」====================
     function renderAdminReminders() {
       const box = document.getElementById('adminReminders');

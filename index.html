@@ -238,20 +238,20 @@
       <header class="bg-white/90 backdrop-blur-md border-b border-rose-100 shadow-sm sticky top-1.5 z-30 flex-shrink-0">
         <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <!-- 園所與班級 Logo 識別 -->
-          <div class="flex items-center gap-2.5 sm:gap-3">
+          <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
             <!-- 漢堡選單 (手機版專用) -->
             <button class="md:hidden text-2xl text-slate-600 hover:text-slate-800 tap-bounce p-1 focus:outline-none" onclick="toggleMobileSidebar()">
               ☰
             </button>
-            <div class="cursor-pointer flex items-center gap-2.5" onclick="switchTab('home')">
+            <div class="cursor-pointer flex items-center gap-2.5 min-w-0" onclick="switchTab('home')">
               <!-- 圖三 Logo (參照圖四設計) -->
               <div class="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-white border-2 border-rose-200 p-1 flex items-center justify-center shrink-0 shadow-xs">
                 <img src="data:image/jpeg;base64,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" class="w-full h-full object-contain" alt="三之三生命教育基金會" data-i18n-alt="ui.logoAlt">
               </div>
-              <div class="flex flex-col justify-center">
-                <div class="flex items-center gap-2 flex-wrap">
-                  <span id="headerFoundation" data-i18n="header.foundation" class="text-[11px] sm:text-xs font-bold text-rose-500 bg-rose-50/80 border border-rose-300 px-2.5 py-0.5 rounded-full">三之三生命教育基金會</span>
-                  <span id="headerSchool" data-i18n="header.school" class="text-xs sm:text-sm font-semibold text-slate-500">新北市桃子腳非營利幼兒園</span>
+              <div class="flex flex-col justify-center min-w-0">
+                <div class="flex items-center gap-x-2 gap-y-1 flex-wrap min-w-0">
+                  <span id="headerFoundation" data-i18n="header.foundation" class="text-[11px] sm:text-xs font-bold text-rose-500 bg-rose-50/80 border border-rose-300 px-2.5 py-0.5 rounded-full whitespace-nowrap min-w-0 max-w-full truncate">三之三生命教育基金會</span>
+                  <span id="headerSchool" data-i18n="header.school" class="text-xs sm:text-sm font-semibold text-slate-500 min-w-0 max-w-full truncate">新北市桃子腳非營利幼兒園</span>
                 </div>
                 <h1 class="text-xl sm:text-2xl font-black text-slate-800 tracking-tight flex flex-wrap items-center gap-x-2 gap-y-1 mt-0.5">
                   <span id="headerClass" data-i18n="header.class" class="whitespace-nowrap">諾貝爾 A 班</span>
@@ -2585,7 +2585,13 @@
           snackFruit: '水果',
           snackAfternoon: '午點',
           noMenu: '菜單尚未公布',
-          more: '看詳細內容',
+          expand: '展開完整內容',
+          collapse: '收合',
+          menuStaple: '主食',
+          menuMain: '主菜',
+          menuSide: '副菜',
+          menuSoup: '湯品',
+          menuNote: '備註',
           kitchen: '幸福廚房',
           birthday: '慶生'
         },
@@ -2897,7 +2903,13 @@
           snackFruit: 'Fruit',
           snackAfternoon: 'Afternoon',
           noMenu: 'Menu not posted yet',
-          more: 'See details',
+          expand: 'Show full details',
+          collapse: 'Hide',
+          menuStaple: 'Main grain',
+          menuMain: 'Main dish',
+          menuSide: 'Side dish',
+          menuSoup: 'Soup',
+          menuNote: 'Note',
           kitchen: 'Happy Kitchen',
           birthday: 'Birthday party'
         },
@@ -4466,7 +4478,7 @@
 
     function initStandaloneSupport() {
       const btn = document.getElementById('appRefreshBtn');
-      if (btn && isStandaloneApp()) { btn.classList.remove('hidden'); btn.classList.add('flex'); }
+      if (btn && isStandaloneApp()) { btn.classList.remove('hidden'); btn.classList.add('flex'); const row = btn.parentElement && btn.parentElement.parentElement; if (row) row.classList.add('pr-10', 'md:pr-4'); }   // 手機上 ↻ 浮在標頭右上角：讓出位置，基金會標籤才不會被蓋住
       document.addEventListener('visibilitychange', onVisibilityChange);
     }
 
@@ -12535,6 +12547,7 @@
 
     // ==================== 首頁「今天／明天」小卡 ====================
     let todayCardTimer = null;
+    const todayExpanded = Object.create(null);   // 哪幾天的卡片目前是展開的（重畫時保持）
     function todayDateLabel(key) {
       return t('today.dateFmt', { m: Number(key.slice(5, 7)), d: Number(key.slice(8, 10)), w: (t('today.weekdays') || [])[ymdWeekday(key)] || '' });
     }
@@ -12579,13 +12592,51 @@
       } else if (!offDay) {
         const nm = document.createElement('div'); nm.className = 'today-nomenu text-xs text-slate-400'; nm.textContent = '🍱 ' + t('today.noMenu'); panel.appendChild(nm);
       }
-      const go = document.createElement('button'); go.type = 'button';
-      go.className = 'today-more text-xs font-bold text-peach-600 hover:underline tap-bounce';
-      go.textContent = t('today.more') + ' ›';
-      go.onclick = function() { goToDayFromCard(key); };
-      panel.appendChild(go);
+      // 完整內容：在這張卡片內展開（不跳到別處，避免分不清是哪一天）。只有真的還有更多內容時才出現按鈕。
+      const details = todayDetailsEl(dayEvents, dayMenu);
+      if (details) {
+        details.id = 'todayDetails-' + key;
+        const open = !!todayExpanded[key];
+        details.classList.toggle('hidden', !open);
+        const tg = document.createElement('button'); tg.type = 'button';
+        tg.className = 'today-toggle text-xs font-bold text-peach-600 hover:underline tap-bounce';
+        tg.setAttribute('aria-controls', details.id);
+        const summaryMenu = panel.querySelector('.today-menu');
+        const sync = function() { const o = !!todayExpanded[key]; tg.textContent = o ? t('today.collapse') + ' ▴' : t('today.expand') + ' ▾'; tg.setAttribute('aria-expanded', o ? 'true' : 'false'); details.classList.toggle('hidden', !o); if (summaryMenu && details.querySelector('.today-detail-menu')) summaryMenu.classList.toggle('hidden', o); };   // 展開時隱藏摘要菜單，避免同樣的菜重複出現
+        tg.onclick = function() { if (todayExpanded[key]) delete todayExpanded[key]; else todayExpanded[key] = true; sync(); };
+        sync();
+        panel.appendChild(details);
+        panel.appendChild(tg);
+      }
       return panel;
     }
+    // 展開後的完整內容：每則活動的完整說明、完整菜單。沒有比摘要更多的內容就回傳 null（不顯示展開鈕）。
+    function todayDetailsEl(dayEvents, dayMenu) {
+      const withDesc = dayEvents.filter(function(ev) { return String(ev.description || '').trim(); });
+      const menuRows = dayMenu ? [['today.snackMorning', dayMenu.morningSnack], ['today.snackFruit', dayMenu.fruit], ['today.menuStaple', dayMenu.lunchStaple], ['today.menuMain', dayMenu.lunchMain], ['today.menuSide', [dayMenu.lunchSide1, dayMenu.lunchSide2].map(function(v) { return String(v || '').trim(); }).filter(Boolean).map(function(v) { return tx(v); }).join('、')], ['today.menuSoup', dayMenu.lunchSoup], ['today.snackAfternoon', dayMenu.afternoonSnack], ['today.menuNote', dayMenu.note]].filter(function(r) { return String(r[1] || '').trim(); }) : [];
+      const menuHasMore = !!(dayMenu && [dayMenu.lunchSide1, dayMenu.lunchSide2, dayMenu.lunchSoup, dayMenu.note].some(function(v) { return String(v || '').trim(); }));
+      if (!withDesc.length && dayEvents.length <= 4 && !menuHasMore) return null;
+      const box = document.createElement('div');
+      box.className = 'today-details space-y-2 pt-1';
+      dayEvents.forEach(function(ev) {
+        const it = document.createElement('div'); it.className = 'today-detail-event rounded-2xl bg-white/90 border border-slate-100 px-3 py-2';
+        const h = document.createElement('div'); h.className = 'text-sm font-black text-slate-800'; h.textContent = tx(ev.title); it.appendChild(h);
+        if (ev.timeLocation) { const tl = document.createElement('div'); tl.className = 'text-xs text-slate-500'; tl.textContent = '🕘 ' + tx(ev.timeLocation); it.appendChild(tl); }
+        if (String(ev.description || '').trim()) { const d = document.createElement('p'); d.className = 'text-xs text-slate-600 leading-relaxed whitespace-pre-line mt-1'; d.textContent = tx(ev.description); it.appendChild(d); }
+        box.appendChild(it);
+      });
+      if (menuRows.length) {
+        const mt = document.createElement('div'); mt.className = 'today-detail-menu rounded-2xl bg-white/90 border border-slate-100 px-3 py-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs';
+        menuRows.forEach(function(r) {
+          const k = document.createElement('span'); k.className = 'font-bold text-slate-500 whitespace-nowrap'; k.textContent = t(r[0]);
+          const v = document.createElement('span'); v.className = 'text-slate-700'; v.textContent = r[0] === 'today.menuSide' ? r[1] : tx(String(r[1]).trim());
+          mt.appendChild(k); mt.appendChild(v);
+        });
+        box.appendChild(mt);
+      }
+      return box;
+    }
+
     function renderTodayCard() {
       const box = document.getElementById('todayCard');
       if (!box) return;
@@ -12600,14 +12651,6 @@
         document.addEventListener('visibilitychange', function() { if (!document.hidden) renderTodayCard(); });
       }
     }
-    function goToDayFromCard(key) {
-      state.viewYear = Number(key.slice(0, 4));
-      state.viewMonth = Number(key.slice(5, 7));
-      onDateClicked(key);
-      const el = document.getElementById('linkedContentSection');
-      if (el && typeof el.scrollIntoView === 'function') { try { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {} }
-    }
-
     // ==================== 後台「待辦提醒」====================
     function renderAdminReminders() {
       const box = document.getElementById('adminReminders');

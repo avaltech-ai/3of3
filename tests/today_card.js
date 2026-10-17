@@ -41,15 +41,33 @@
   usePlan(at('2026-10-24', 9)); renderTodayCard();
   ok(panels()[0].getAttribute('data-date') === '2026-10-27' && panels()[1].getAttribute('data-date') === '2026-10-24' && /放假在家/.test(panels()[1].textContent) && !/菜單尚未公布/.test(panels()[1].textContent), '週六：下一個上課日在前；今天顯示「放假在家」，不顯示菜單尚未公布');
 
-  // C. 看詳細內容
+  // C. 完整內容在卡片內展開（不跳到別處）
   usePlan(at('2026-10-21', 10)); renderTodayCard();
-  panels()[1].querySelector('.today-more').click();
-  ok(state.selectedDateStr === '2026-10-22' && state.viewMonth === 10 && /22/.test($('selectedDateHeader').textContent), '按「看詳細內容」：月曆選到那一天並顯示當日詳情');
+  let tg = panels()[0].querySelector('.today-toggle'), det = panels()[0].querySelector('.today-details');
+  ok(!!tg && !!det && det.classList.contains('hidden') && tg.getAttribute('aria-expanded') === 'false' && /展開完整內容 ▾/.test(tg.textContent) && tg.getAttribute('aria-controls') === det.id, '有更多內容（副菜、湯品）：顯示「展開完整內容 ▾」，預設收合');
+  const sel0 = state.selectedDateStr, y0 = window.scrollY;
+  tg.click();
+  ok(!det.classList.contains('hidden') && tg.getAttribute('aria-expanded') === 'true' && /收合 ▴/.test(tg.textContent) && state.selectedDateStr === sel0, '按一下：在這張卡片內展開，不會改月曆選取的日期（不跳到別處）');
+  const mtxt = det.querySelector('.today-detail-menu').textContent;
+  ok(/主食糙米飯/.test(mtxt) && /主菜滷雞腿/.test(mtxt) && /副菜青菜/.test(mtxt) && /湯品湯/.test(mtxt) && /早點饅頭/.test(mtxt) && /午點綠豆湯/.test(mtxt), '展開後：完整菜單（早點、水果、主食、主菜、副菜、湯品、午點）');
+  ok(panels()[0].querySelector('.today-menu').classList.contains('hidden'), '展開時：上方的午餐／點心摘要先隱藏（避免同樣的菜重複出現）');
+  ok(/牙齒塗氟日/.test(det.querySelector('.today-detail-event').textContent) && /08:30 教室/.test(det.textContent), '展開後：活動名稱與時間地點');
+  renderTodayCard(); ok(!panels()[0].querySelector('.today-details').classList.contains('hidden'), '重畫（每 10 分鐘或回到前景）：保持展開');
+  panels()[0].querySelector('.today-toggle').click(); ok(panels()[0].querySelector('.today-details').classList.contains('hidden') && /展開完整內容/.test(panels()[0].querySelector('.today-toggle').textContent), '再按一次：收合');
+  ok(!panels()[0].querySelector('.today-menu').classList.contains('hidden'), '收合後：摘要菜單恢復顯示');
+  ok(!panels()[1].querySelector('.today-toggle') && !panels()[1].querySelector('.today-details'), '明天（活動沒有說明、沒有菜單）：沒有更多內容 → 不顯示展開鈕');
+  state.events.push({ id: 'e5', date: '2026-10-22', title: '親師座談', description: '請家長 18:30 到教室\n可攜帶孩子作品', target: '諾貝爾 A' }); renderTodayCard();
+  tg = panels()[1].querySelector('.today-toggle'); tg.click();
+  ok(/請家長 18:30 到教室/.test(panels()[1].querySelector('.today-details').textContent) && panels()[1].querySelector('.today-details p').className.indexOf('whitespace-pre-line') >= 0, '活動有說明：可展開看完整說明（保留換行）');
+  ok(!panels()[0].querySelector('.today-details:not(.hidden)'), '兩張卡片各自展開，互不影響');
+  state.events.pop();
+  usePlan(at('2026-10-24', 9)); renderTodayCard(); ok(!panels()[1].querySelector('.today-toggle'), '週末放假那格：沒有展開鈕');
+  ok(!document.querySelector('#todayCard .today-more'), '不再有會跳到月曆的「看詳細內容」');
 
   // D. 英文
   state.textMap = Object.assign({}, state.textMap || {}, { '牙齒塗氟日': 'Fluoride day' });
   toggleLanguage(); await wait(200); usePlan(at('2026-10-21', 10)); renderTodayCard();
-  ok(/Today/.test(panels()[0].querySelector('.today-label').textContent) && /Wed 10\/21/.test(panels()[0].textContent) && /Fluoride day/.test(panels()[0].textContent) && /Lunch/.test(panels()[0].textContent) && /Happy Kitchen/.test(panels()[1].textContent) && /See details/.test(panels()[0].textContent), '英文介面：標籤、日期、午餐、圖示說明是英文；活動走英文對照');
+  ok(/Today/.test(panels()[0].querySelector('.today-label').textContent) && /Wed 10\/21/.test(panels()[0].textContent) && /Fluoride day/.test(panels()[0].textContent) && /Lunch/.test(panels()[0].textContent) && /Happy Kitchen/.test(panels()[1].textContent) && /Show full details/.test(panels()[0].textContent), '英文介面：標籤、日期、午餐、圖示說明、展開鈕是英文；活動走英文對照');
   toggleLanguage(); await wait(200);
 
   // E. 後台待辦提醒
@@ -76,6 +94,7 @@
   const now = new Date();
   ok(state.selectedDateStr === getTodayDateStr() && state.viewYear === now.getFullYear() && state.viewMonth === now.getMonth() + 1, '「今天」按鈕：回到真正的今天（不再固定跳到 2026/10/23）');
   ok(/whitespace-nowrap/.test($('headerClass').className) && /flex-wrap/.test($('headerClass').parentElement.className), '班名「諾貝爾 A 班」不會被擠成兩行（標題列可換行讓 Happy Life 移到下一行）');
+  ok(/truncate/.test($('headerSchool').className) && /min-w-0/.test($('headerSchool').parentElement.className), '學校名稱保持一行，太窄時以「…」結尾（不再把「園」擠到下一行）');
   ok(/whitespace-nowrap/.test($('spotlightHistoryBtn').className) && /whitespace-nowrap/.test($('spotlightSlideCounter').className), '「歷史焦點」與「3 / 4」不會被擠成兩行');
 
   window.todayCardPlan = real.plan; window.getTodayDateStr = real.today;
