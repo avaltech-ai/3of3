@@ -6,7 +6,7 @@ const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const a = html.indexOf('const ADMIN_LIST_SIZES');
 const b = html.indexOf('// ===== 以下為畫面');
 if (a < 0 || b < 0 || b < a) { console.log('FAIL: 在 index.html 找不到後台列表函式'); process.exit(1); }
-const api = new Function(html.slice(a, b) + '\nreturn { ADMIN_LIST_SIZES, adminListTerms, adminListMatches, adminListKey, adminListSlice, adminEventsView, adminAlbumsView, adminSongsView, adminIdNewerFirst, adminDocsView, adminTransitionView, rocSchoolYearOf, spotlightPlayState, spotlightCreatedKey, adminSpotlightsView };')();
+const api = new Function(html.slice(a, b) + '\nreturn { ADMIN_LIST_SIZES, adminListTerms, adminListMatches, adminListKey, adminListSlice, adminEventsView, adminAlbumsView, adminSongsView, adminIdNewerFirst, adminDocsView, adminTransitionView, rocSchoolYearOf, ymdKey, ymdAdd, ymdWeekday, isNonSchoolDay, nextSchoolDay, todayCardPlan, adminReminderItems, spotlightPlayState, spotlightCreatedKey, adminSpotlightsView };')();
 
 let pass = 0, fail = 0;
 function ok(c, m) { if (c) { pass++; console.log('  ✓ ' + m); } else { fail++; console.log('  ✗ FAIL: ' + m); } }
@@ -140,6 +140,37 @@ ok(tv({ year: '115 學年度' }) === 't1,t2,t3' && tv({ cat: '規律生活' }) =
 ok(tv({ query: '睡覺' }) === 't2' && tv({ query: '規律 去年' }) === 'o1' && tv({ year: '115 學年度', kind: '一起', query: '表達' }) === 't3', '關鍵字（內容、類別）＋多條件');
 ok(api.adminTransitionView(null, { query: '' }).length === 0, '資料為 null：空陣列');
 ok(api.rocSchoolYearOf(new Date(2026, 9, 17)) === '115 學年度' && api.rocSchoolYearOf(new Date(2026, 7, 1)) === '115 學年度' && api.rocSchoolYearOf(new Date(2026, 6, 31)) === '114 學年度' && api.rocSchoolYearOf(new Date(2027, 0, 5)) === '115 學年度', '學年度：8 月 1 日起算新學年（2026/10、2026/8/1、2027/1 → 115；2026/7/31 → 114）');
+
+console.log('E4. 今天／明天小卡、後台待辦提醒（純函式）');
+ok(api.ymdKey('2026/10/3') === '2026-10-03' && api.ymdKey('2026-10-23T08:00') === '2026-10-23' && api.ymdKey('') === '' && api.ymdKey(null) === '' && api.ymdKey('亂寫') === '', '日期正規化：斜線、未補零、帶時間；空值與亂碼回空字串');
+ok(api.ymdAdd('2026-10-31', 1) === '2026-11-01' && api.ymdAdd('2026-12-31', 1) === '2027-01-01' && api.ymdAdd('2027-03-01', -1) === '2027-02-28' && api.ymdWeekday('2026-10-18') === 0 && api.ymdWeekday('2026-10-23') === 5, '日期加減跨月跨年、星期（10/18 週日、10/23 週五）');
+const HOL = [{ date: '2026-10-26', categoryMajor: '節慶放假', title: '補假' }, { date: '2026-12-31', endDate: '2027-01-01', categoryMajor: '休園', title: '元旦' }, { date: '2026-10-27', categoryMajor: '全園活動', title: '一般活動' }];
+ok(api.isNonSchoolDay('2026-10-24', HOL) && api.isNonSchoolDay('2026-10-26', HOL) && !api.isNonSchoolDay('2026-10-27', HOL) && api.isNonSchoolDay('2027-01-01', HOL), '不用上學：週末、放假、休園（含跨日）；一般活動照常上學');
+ok(api.nextSchoolDay('2026-10-23', HOL) === '2026-10-27' && api.nextSchoolDay('2026-10-21', HOL) === '2026-10-22', '下一個上課日：週五 → 跳過週末與週一補假到週二；平日 → 隔天');
+const at = (s, h) => { const p = s.split('-').map(Number); return new Date(p[0], p[1] - 1, p[2], h, 0, 0); };
+let pl = api.todayCardPlan(at('2026-10-21', 10), HOL); ok(pl.today === '2026-10-21' && pl.next === '2026-10-22' && pl.nextIsTomorrow && !pl.nextFirst, '平日白天：今天在前、明天在後');
+pl = api.todayCardPlan(at('2026-10-21', 18), HOL); ok(pl.nextFirst && pl.nextIsTomorrow, '平日晚上 6 點：明天放前面');
+pl = api.todayCardPlan(at('2026-10-21', 17), HOL); ok(!pl.nextFirst, '平日下午 5 點：今天仍在前');
+pl = api.todayCardPlan(at('2026-10-23', 19), HOL); ok(pl.next === '2026-10-27' && !pl.nextIsTomorrow && pl.nextFirst, '週五晚上：顯示「下一個上課日」（10/27 週二，不是明天）並放前面');
+pl = api.todayCardPlan(at('2026-10-24', 9), HOL); ok(pl.nextFirst && pl.next === '2026-10-27', '週六早上：今天不用上學 → 下一個上課日放前面');
+const M = d => ({ date: d, lunchMain: 'x' });
+const SPX = (title, start, end, status) => ({ title: title, startDate: start, endDate: end, status: status || '啟用' });
+const rem = ctx => api.adminReminderItems(Object.assign({ today: '2026-10-18', events: HOL, menus: [], spotlights: [SPX('播映中', '2026-10-01', '2099-12-31')], pendingNew: 0 }, ctx));
+const kinds = list => list.map(x => x.kind).join();
+const menusAll = []; for (let i = 0; i < 14; i++) menusAll.push(M(api.ymdAdd('2026-10-18', i)));
+ok(kinds(rem({ menus: menusAll })) === '', '一切正常（14 天都有菜單、有播映中焦點、無新文字、月中）：沒有提醒');
+let r1 = rem({ menus: menusAll.filter(m => m.date < '2026-10-29') });
+ok(kinds(r1) === 'menu' && /未來 14 天有 2 個上課日還沒有菜單（最早是 10\/29（四））/.test(r1[0].text) && r1[0].action === 'menu', '菜單快沒了：只算上課日（週末、10/26 補假不算），列出筆數與最早日期，按鈕前往每日菜單');
+ok(kinds(rem({ menus: menusAll, pendingNew: 7 })) === 'text' && /7 筆新文字/.test(rem({ menus: menusAll, pendingNew: 7 })[0].text), '英文對照有新文字');
+ok(kinds(rem({ menus: menusAll, pendingNew: null })) === '', '英文對照狀態未知（還沒取得）：不提醒');
+ok(kinds(rem({ menus: menusAll, spotlights: [SPX('停用的', '2026-10-01', '2099-12-31', '停用'), SPX('還沒開始', '2026-11-01', '2026-11-30')] })) === 'spotNone', '沒有播映中的焦點活動（只有停用、排程中）：提醒');
+const r2 = rem({ menus: menusAll, spotlights: [SPX('快結束', '2026-10-01', '2026-10-21'), SPX('還很久', '2026-10-01', '2026-12-31'), SPX('今天最後一天', '2026-10-01', '2026-10-18')] });
+ok(kinds(r2) === 'spotEnding' && /「快結束」10\/21（三）/.test(r2[0].text) && /「今天最後一天」10\/18（日）/.test(r2[0].text) && r2[0].text.indexOf('還很久') === -1, '焦點活動 3 天內下架：列出名稱與下架日（含今天最後一天），還很久的不列');
+ok(kinds(rem({ today: '2026-10-19', menus: menusAll.map(m => M(api.ymdAdd(m.date, 1))), events: HOL })) === '', '19 日：還不檢查下個月');
+const r3 = rem({ today: '2026-10-20', menus: menusAll.map(m => M(api.ymdAdd(m.date, 2))), events: HOL.filter(e => e.date < '2026-11-01' && !e.endDate) });
+ok(kinds(r3) === 'nextMonth' && /11 月/.test(r3[0].text), '20 日起：下個月沒有任何活動 → 提醒');
+ok(kinds(rem({ today: '2026-10-25', menus: [], events: [{ date: '2026-10-30', endDate: '2026-11-02', categoryMajor: '全園活動' }] }).filter(x => x.kind === 'nextMonth')) === '', '跨月活動（10/30～11/2）也算下個月有活動');
+const r4 = rem({ today: '2026-12-21', menus: [], events: [] }); ok(r4.some(x => x.kind === 'nextMonth' && /1 月/.test(x.text)), '12 月時檢查明年 1 月');
 
 console.log('F. 焦點活動 spotlightPlayState／spotlightCreatedKey／adminSpotlightsView');
 const T = '2026-10-07';

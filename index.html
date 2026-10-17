@@ -253,9 +253,9 @@
                   <span id="headerFoundation" data-i18n="header.foundation" class="text-[11px] sm:text-xs font-bold text-rose-500 bg-rose-50/80 border border-rose-300 px-2.5 py-0.5 rounded-full">三之三生命教育基金會</span>
                   <span id="headerSchool" data-i18n="header.school" class="text-xs sm:text-sm font-semibold text-slate-500">新北市桃子腳非營利幼兒園</span>
                 </div>
-                <h1 class="text-xl sm:text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2 mt-0.5">
-                  <span id="headerClass" data-i18n="header.class">諾貝爾 A 班</span>
-                  <span class="text-xs sm:text-sm font-bold text-white bg-rose-500 px-3 py-0.5 rounded-full shadow-xs">Happy Life</span>
+                <h1 class="text-xl sm:text-2xl font-black text-slate-800 tracking-tight flex flex-wrap items-center gap-x-2 gap-y-1 mt-0.5">
+                  <span id="headerClass" data-i18n="header.class" class="whitespace-nowrap">諾貝爾 A 班</span>
+                  <span class="text-xs sm:text-sm font-bold text-white bg-rose-500 px-3 py-0.5 rounded-full shadow-xs whitespace-nowrap">Happy Life</span>
                 </h1>
               </div>
             </div>
@@ -377,24 +377,27 @@
     <!-- ==================== TAB 1: 班級日常 (HOME) ==================== -->
     <section id="tabContent-home" class="space-y-6">
 
+      <!-- 0. 今天／明天小卡（家長最常看的：活動、提示、午餐與點心）；晚上 6 點後或放假日把「下一個上課日」放前面 -->
+      <div id="todayCard" class="hidden grid grid-cols-1 md:grid-cols-2 gap-3" aria-live="polite"></div>
+
       <!-- 1. SPOTLIGHT 重點活動焦點卡片 -->
       <div id="spotlightContainer" class="bg-gradient-to-br from-rose-50 via-amber-50 to-teal-50 rounded-3xl p-4 sm:p-5 border-2 border-rose-200/80 shadow-md relative overflow-hidden transition-all" onmouseenter="pauseSpotlightTimer()" onmouseleave="resumeSpotlightTimer()" ontouchstart="pauseSpotlightTimer()" ontouchend="resumeSpotlightTimer()">
         <!-- 裝飾背景符號 -->
         <div class="absolute -right-6 -bottom-6 text-7xl opacity-15 select-none pointer-events-none">🍑</div>
 
-        <div class="flex items-center justify-between mb-3">
-          <div class="flex items-center gap-2">
-            <span class="bg-peach-500 text-white text-xs font-extrabold px-3 py-1 rounded-full shadow-sm flex items-center gap-1.5">
+        <div class="flex items-center justify-between gap-2 mb-3">
+          <div class="flex items-center gap-1.5 sm:gap-2 min-w-0">
+            <span class="bg-peach-500 text-white text-xs font-extrabold px-2.5 sm:px-3 py-1 rounded-full shadow-sm flex items-center gap-1 sm:gap-1.5 whitespace-nowrap">
               <span>✨</span> <span data-i18n="cal.spotlightTag">焦點活動</span>
             </span>
-            <button type="button" id="spotlightHistoryBtn" onclick="openSpotlightHistory()" class="bg-white/80 hover:bg-white text-peach-600 border border-peach-200 text-xs font-extrabold px-3 py-1 rounded-full shadow-sm flex items-center gap-1.5 tap-bounce cursor-pointer">
+            <button type="button" id="spotlightHistoryBtn" onclick="openSpotlightHistory()" class="bg-white/80 hover:bg-white text-peach-600 border border-peach-200 text-xs font-extrabold px-2.5 sm:px-3 py-1 rounded-full shadow-sm flex items-center gap-1 sm:gap-1.5 tap-bounce cursor-pointer whitespace-nowrap">
               <span>🕘</span> <span data-i18n="ui.spotHistBtn">歷史焦點</span>
             </button>
           </div>
 
           <!-- 輪播控制與狀態 (多活動自動顯示) -->
-          <div id="spotlightNavControls" class="flex items-center gap-2">
-            <span id="spotlightSlideCounter" class="text-sm font-extrabold text-slate-500 bg-white/80 px-4 py-1.5 rounded-full border border-rose-100 shadow-2xs">
+          <div id="spotlightNavControls" class="flex items-center gap-2 shrink-0">
+            <span id="spotlightSlideCounter" class="text-xs sm:text-sm font-extrabold text-slate-500 bg-white/80 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full border border-rose-100 shadow-2xs whitespace-nowrap">
               1 / 1
             </span>
             
@@ -1012,6 +1015,9 @@
             <span data-i18n="admin.authenticated" class="bg-emerald-100 text-emerald-800 text-xs px-2 py-0.5 rounded-full font-bold">已認證</span>
           </div>
         </div>
+
+        <!-- 待辦提醒（菜單快沒了、英文對照新文字、焦點活動快下架、下個月行事曆是空的） -->
+        <div id="adminReminders" class="bg-white p-4 rounded-3xl border border-amber-200 shadow-sm space-y-2"></div>
 
         <!-- 後台功能子分頁籤 -->
         <div class="flex items-center gap-1.5 overflow-x-auto pb-1 border-b border-slate-200">
@@ -2565,6 +2571,24 @@
           logout: '登出',
           syncing: '雲端資料同步中...'
         },
+        today: {
+          today: '今天',
+          tomorrow: '明天',
+          nextSchool: '下一個上課日',
+          weekdays: ['日', '一', '二', '三', '四', '五', '六'],
+          dateFmt: '{m}/{d}（{w}）',
+          noEvent: '常態在園作息',
+          holiday: '放假在家，好好休息',
+          lunch: '午餐',
+          snack: '點心',
+          snackMorning: '早點',
+          snackFruit: '水果',
+          snackAfternoon: '午點',
+          noMenu: '菜單尚未公布',
+          more: '看詳細內容',
+          kitchen: '幸福廚房',
+          birthday: '慶生'
+        },
         cal: {
           prevMonth: '上個月',
           nextMonth: '下個月',
@@ -2858,6 +2882,24 @@
           adminActive: 'Admin Active',
           logout: 'Logout',
           syncing: 'Syncing...'
+        },
+        today: {
+          today: 'Today',
+          tomorrow: 'Tomorrow',
+          nextSchool: 'Next school day',
+          weekdays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+          dateFmt: '{w} {m}/{d}',
+          noEvent: 'Regular class routine',
+          holiday: 'No school today. Rest well at home',
+          lunch: 'Lunch',
+          snack: 'Snacks',
+          snackMorning: 'Morning',
+          snackFruit: 'Fruit',
+          snackAfternoon: 'Afternoon',
+          noMenu: 'Menu not posted yet',
+          more: 'See details',
+          kitchen: 'Happy Kitchen',
+          birthday: 'Birthday party'
         },
         cal: {
           prevMonth: 'Previous Month',
@@ -3218,6 +3260,7 @@
       if (state.selectedDateStr) {
         renderSelectedDayDetails(state.selectedDateStr);
       }
+      try { renderTodayCard(); } catch (e) {}
       initThemeFilters();
       renderThemes();
       try { renderSemesterTasks(); } catch (e) {}
@@ -3491,16 +3534,10 @@
       const mo = today.getMonth() + 1;
       const dy = ('0' + today.getDate()).slice(-2);
       
-      // 如果年月份在示範資料區間（2026-08~2027-01），預設今天，否則預設10月
-      if (yr === 2026 && mo >= 8 && mo <= 12) {
-        state.viewYear = yr;
-        state.viewMonth = mo;
-        state.selectedDateStr = `${yr}-${('0'+mo).slice(-2)}-${dy}`;
-      } else {
-        state.viewYear = 2026;
-        state.viewMonth = 10;
-        state.selectedDateStr = '2026-10-23';
-      }
+      // 一律從真正的今天開始（舊版只在 2026 年 8～12 月用今天，其他時間固定跳到 2026/10/23 的示範日期）
+      state.viewYear = yr;
+      state.viewMonth = mo;
+      state.selectedDateStr = yr + '-' + ('0' + mo).slice(-2) + '-' + dy;
 
       // 1. 優先嘗試即時載入上次快取的資料（0 秒閃開，絕不讓使用者卡在空白讀取畫面）
       let hasCachedData = false;
@@ -4204,7 +4241,7 @@
 
     function mapAdminRefreshStatus(done) {
       callBackend('mapStatus', { password: state.adminPassword }, function(res) {
-        if (res && res.success) { mapAdmin.status = res; mapAdminRenderSummary(); mapAdminUpdateBadge(); }
+        if (res && res.success) { mapAdmin.status = res; mapAdminRenderSummary(); mapAdminUpdateBadge(); try { renderAdminReminders(); } catch (e) {} }
         if (done) done();
       }, function() { if (done) done(); });
     }
@@ -4862,6 +4899,9 @@
       renderCalendar();
       // 渲染選取日期的生活與菜單
       renderSelectedDayDetails(state.selectedDateStr);
+      // 首頁「今天／明天」小卡；已登入時一併更新後台待辦提醒
+      try { renderTodayCard(); } catch (e) {}
+      if (state.adminPassword) { try { renderAdminReminders(); } catch (e) {} }
       // 渲染文件列表
       renderDocsList();
       // 渲染相簿
@@ -5949,9 +5989,10 @@
     }
 
     function goToToday() {
-      state.viewYear = 2026;
-      state.viewMonth = 10;
-      state.selectedDateStr = '2026-10-23';
+      const now = new Date();
+      state.viewYear = now.getFullYear();
+      state.viewMonth = now.getMonth() + 1;
+      state.selectedDateStr = getTodayDateStr();
       renderCalendar();
       renderSelectedDayDetails(state.selectedDateStr);
       setCalViewMode('day');
@@ -9864,6 +9905,7 @@
       document.getElementById('adminLoginCard').classList.add('hidden');
       document.getElementById('adminDashboard').classList.remove('hidden');
       renderAdminEventsTable();
+      try { renderAdminReminders(); } catch (e) {}
       updateAlbumPreviewName();
       updateAdminAuthUI();
     }
@@ -10431,6 +10473,55 @@
     function rocSchoolYearOf(d) {
       const y = d.getFullYear() - 1911;
       return (d.getMonth() >= 7 ? y : y - 1) + ' 學年度';
+    }
+    // ---------- 日期小工具與「今天／明天」「待辦提醒」的判斷（純函式）----------
+    function ymdKey(v) { const s = String(v === undefined || v === null ? '' : v).trim().replace(/\//g, '-'); const m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); return m ? m[1] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[3]).slice(-2) : ''; }
+    function ymdAdd(key, n) { const p = key.split('-').map(Number); const d = new Date(Date.UTC(p[0], p[1] - 1, p[2] + n)); return d.getUTCFullYear() + '-' + ('0' + (d.getUTCMonth() + 1)).slice(-2) + '-' + ('0' + d.getUTCDate()).slice(-2); }
+    function ymdWeekday(key) { const p = key.split('-').map(Number); return new Date(Date.UTC(p[0], p[1] - 1, p[2])).getUTCDay(); }
+    function ymdOfLocal(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+    function eventsOnDay(events, key) {
+      return (events || []).filter(function(e) { if (!e) return false; const s = ymdKey(e.date); if (!s) return false; const en = ymdKey(e.endDate) || s; return key >= s && key <= en; });
+    }
+    // 不用上學的日子：週末，或當天有「放假」「休園」類的活動（看大項、細項、類別）
+    function isNonSchoolDay(key, events) {
+      const w = ymdWeekday(key);
+      if (w === 0 || w === 6) return true;
+      return eventsOnDay(events, key).some(function(e) { const c = [e.categoryMajor, e.categoryMinor, e.category].join(' '); return c.indexOf('放假') !== -1 || c.indexOf('休園') !== -1; });
+    }
+    function nextSchoolDay(key, events) {
+      for (let i = 1; i <= 21; i++) { const k = ymdAdd(key, i); if (!isNonSchoolDay(k, events)) return k; }
+      return ymdAdd(key, 1);
+    }
+    // 首頁小卡的兩格：today＝今天；next＝下一個上課日（明天剛好要上學就是明天）；晚上 6 點後或今天不用上學 → next 放前面
+    function todayCardPlan(now, events) {
+      const today = ymdOfLocal(now);
+      const next = nextSchoolDay(today, events);
+      return { today: today, next: next, nextIsTomorrow: next === ymdAdd(today, 1), nextFirst: now.getHours() >= 18 || isNonSchoolDay(today, events) };
+    }
+    // 後台待辦提醒。ctx = { today（YYYY-MM-DD）, events, menus, spotlights, pendingNew（英文對照新文字數，未知為 null）}
+    function adminReminderItems(ctx) {
+      const out = [], today = ctx.today, events = ctx.events || [];
+      const fmt = function(k) { return Number(k.slice(5, 7)) + '/' + Number(k.slice(8, 10)) + '（' + '日一二三四五六'.charAt(ymdWeekday(k)) + '）'; };
+      const menuDays = Object.create(null); (ctx.menus || []).forEach(function(m) { const k = m && ymdKey(m.date); if (k) menuDays[k] = true; });
+      const missing = [];
+      for (let i = 0; i < 14; i++) { const k = ymdAdd(today, i); if (!isNonSchoolDay(k, events) && !menuDays[k]) missing.push(k); }
+      if (missing.length) out.push({ kind: 'menu', icon: '🍱', text: '未來 14 天有 ' + missing.length + ' 個上課日還沒有菜單（最早是 ' + fmt(missing[0]) + '）', action: 'menu', actionLabel: '前往每日菜單' });
+      if (ctx.pendingNew > 0) out.push({ kind: 'text', icon: '🌐', text: '英文對照有 ' + ctx.pendingNew + ' 筆新文字尚未加入', action: 'translations', actionLabel: '前往英文對照' });
+      const playing = (ctx.spotlights || []).filter(function(sp) { return sp && spotlightPlayState(sp, today) === 'playing'; });
+      if (!playing.length) out.push({ kind: 'spotNone', icon: '🌟', text: '目前沒有播映中的焦點活動（首頁焦點區會是空的）', action: 'spotlight', actionLabel: '前往焦點活動' });
+      else {
+        const limit = ymdAdd(today, 3);
+        const ending = playing.filter(function(sp) { const e = ymdKey(sp.endDate); return e && e >= today && e <= limit; });
+        if (ending.length) out.push({ kind: 'spotEnding', icon: '⏳', text: '焦點活動 3 天內下架：' + ending.slice(0, 3).map(function(sp) { return '「' + sp.title + '」' + fmt(ymdKey(sp.endDate)); }).join('、') + (ending.length > 3 ? ' 等 ' + ending.length + ' 則' : ''), action: 'spotlight', actionLabel: '前往焦點活動' });
+      }
+      if (Number(today.slice(8, 10)) >= 20) {
+        const y = Number(today.slice(0, 4)), m = Number(today.slice(5, 7));
+        const ny = m === 12 ? y + 1 : y, nm = m === 12 ? 1 : m + 1;
+        const first = ny + '-' + ('0' + nm).slice(-2) + '-01', last = ymdAdd(nm === 12 ? (ny + 1) + '-01-01' : ny + '-' + ('0' + (nm + 1)).slice(-2) + '-01', -1);
+        const has = events.some(function(e) { const s = e && ymdKey(e.date); if (!s) return false; const en = ymdKey(e.endDate) || s; return s <= last && en >= first; });
+        if (!has) out.push({ kind: 'nextMonth', icon: '📅', text: '下個月（' + nm + ' 月）的行事曆還沒有任何活動', action: 'events', actionLabel: '前往行事曆' });
+      }
+      return out;
     }
     // 焦點活動的輪播狀態：off（停用）、scheduled（排程中：開始日還沒到）、ended（已下架：結束日已過）、playing（播映中）
     function spotlightPlayState(sp, todayStr) {
@@ -12440,6 +12531,105 @@
       if (!fid) return;
       currentAlbumPhotosList = expandAlbumPhotos([{ id: fid, name: t('themes.overviewTitle', { semester: tx(sem) || sem }), size: 0 }]);
       openPhotoViewerByIndex(0);
+    }
+
+    // ==================== 首頁「今天／明天」小卡 ====================
+    let todayCardTimer = null;
+    function todayDateLabel(key) {
+      return t('today.dateFmt', { m: Number(key.slice(5, 7)), d: Number(key.slice(8, 10)), w: (t('today.weekdays') || [])[ymdWeekday(key)] || '' });
+    }
+    function todayPanelEl(key, label, primary) {
+      const events = state.events || [];
+      const dayEvents = getEventsForDate(key);
+      const dayMenu = getMenuForDate(key);
+      const offDay = isNonSchoolDay(key, events);
+      const panel = document.createElement('div');
+      panel.className = 'today-panel rounded-3xl border p-4 space-y-2.5 shadow-2xs ' + (primary ? 'bg-gradient-to-br from-peach-50 via-white to-amber-50 border-peach-300' : 'bg-white border-slate-200');
+      panel.setAttribute('data-date', key);
+      const head = document.createElement('div'); head.className = 'flex items-center gap-2 flex-wrap';
+      const chip = document.createElement('span'); chip.className = 'today-label text-xs font-black px-2.5 py-0.5 rounded-full ' + (primary ? 'bg-peach-500 text-white' : 'bg-slate-100 text-slate-600'); chip.textContent = label;
+      const dt = document.createElement('span'); dt.className = 'text-base font-black text-slate-800'; dt.textContent = todayDateLabel(key);
+      head.appendChild(chip); head.appendChild(dt);
+      calendarDayIcons(dayEvents, dayMenu, offDay).filter(function(ic) { return ic !== '🍱'; }).forEach(function(ic) {
+        const b = document.createElement('span'); b.className = 'today-icon text-xs font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800';
+        b.textContent = ic + ' ' + t(ic === '🥐' ? 'today.kitchen' : 'today.birthday'); head.appendChild(b);
+      });
+      panel.appendChild(head);
+      const evBox = document.createElement('div'); evBox.className = 'space-y-1.5';
+      if (dayEvents.length) {
+        dayEvents.slice(0, 4).forEach(function(ev) {
+          const row = document.createElement('div'); row.className = 'today-event text-sm text-slate-700 leading-snug';
+          if (ev.calendarPrompt) { const p = document.createElement('span'); p.className = 'today-prompt inline-block text-xs font-black px-2 py-0.5 mr-1.5 rounded-lg bg-rose-100 text-rose-700'; p.textContent = '🔔 ' + tx(ev.calendarPrompt); row.appendChild(p); }
+          const ti = document.createElement('span'); ti.className = 'font-bold'; ti.textContent = tx(ev.title); row.appendChild(ti);
+          if (ev.timeLocation) { const tl = document.createElement('span'); tl.className = 'text-xs text-slate-500 ml-1.5'; tl.textContent = tx(ev.timeLocation); row.appendChild(tl); }
+          evBox.appendChild(row);
+        });
+        if (dayEvents.length > 4) { const more = document.createElement('div'); more.className = 'text-xs text-slate-400'; more.textContent = '＋' + (dayEvents.length - 4); evBox.appendChild(more); }
+      } else {
+        const none = document.createElement('div'); none.className = 'today-noevent text-sm text-slate-500'; none.textContent = (offDay ? '🏡 ' + t('today.holiday') : '🎈 ' + t('today.noEvent')); evBox.appendChild(none);
+      }
+      panel.appendChild(evBox);
+      if (dayMenu) {
+        const lunch = [dayMenu.lunchStaple, dayMenu.lunchMain].map(function(v) { return String(v || '').trim(); }).filter(Boolean).map(function(v) { return tx(v); });
+        const snacks = [['today.snackMorning', dayMenu.morningSnack], ['today.snackFruit', dayMenu.fruit], ['today.snackAfternoon', dayMenu.afternoonSnack]].filter(function(p) { return String(p[1] || '').trim(); }).map(function(p) { return t(p[0]) + ' ' + tx(String(p[1]).trim()); });
+        const mb = document.createElement('div'); mb.className = 'today-menu rounded-2xl bg-white/80 border border-slate-100 px-3 py-2 space-y-0.5 text-xs text-slate-600';
+        if (lunch.length) { const l = document.createElement('div'); l.textContent = '🍱 ' + t('today.lunch') + '：' + lunch.join('・'); mb.appendChild(l); }
+        if (snacks.length) { const sn = document.createElement('div'); sn.textContent = '🍪 ' + t('today.snack') + '：' + snacks.join('／'); mb.appendChild(sn); }
+        if (mb.childElementCount) panel.appendChild(mb);
+      } else if (!offDay) {
+        const nm = document.createElement('div'); nm.className = 'today-nomenu text-xs text-slate-400'; nm.textContent = '🍱 ' + t('today.noMenu'); panel.appendChild(nm);
+      }
+      const go = document.createElement('button'); go.type = 'button';
+      go.className = 'today-more text-xs font-bold text-peach-600 hover:underline tap-bounce';
+      go.textContent = t('today.more') + ' ›';
+      go.onclick = function() { goToDayFromCard(key); };
+      panel.appendChild(go);
+      return panel;
+    }
+    function renderTodayCard() {
+      const box = document.getElementById('todayCard');
+      if (!box) return;
+      const plan = todayCardPlan(new Date(), state.events || []);
+      box.innerHTML = '';
+      const todayPanel = todayPanelEl(plan.today, t('today.today'), !plan.nextFirst);
+      const nextPanel = todayPanelEl(plan.next, plan.nextIsTomorrow ? t('today.tomorrow') : t('today.nextSchool'), plan.nextFirst);
+      if (plan.nextFirst) { box.appendChild(nextPanel); box.appendChild(todayPanel); } else { box.appendChild(todayPanel); box.appendChild(nextPanel); }
+      box.classList.remove('hidden');
+      if (!todayCardTimer) {
+        todayCardTimer = setInterval(renderTodayCard, 10 * 60 * 1000);   // 開著頁面跨過晚上 6 點或午夜時自動更新
+        document.addEventListener('visibilitychange', function() { if (!document.hidden) renderTodayCard(); });
+      }
+    }
+    function goToDayFromCard(key) {
+      state.viewYear = Number(key.slice(0, 4));
+      state.viewMonth = Number(key.slice(5, 7));
+      onDateClicked(key);
+      const el = document.getElementById('linkedContentSection');
+      if (el && typeof el.scrollIntoView === 'function') { try { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {} }
+    }
+
+    // ==================== 後台「待辦提醒」====================
+    function renderAdminReminders() {
+      const box = document.getElementById('adminReminders');
+      if (!box) return;
+      const st = (typeof mapAdmin !== 'undefined' && mapAdmin.status) ? mapAdmin.status : null;
+      const pending = st ? ((st.text && st.text.pendingNew) || 0) + ((st.name && st.name.pendingNew) || 0) : null;
+      const items = adminReminderItems({ today: getTodayDateStr(), events: state.events, menus: state.menus, spotlights: state.spotlights, pendingNew: pending });
+      box.innerHTML = '';
+      const h = document.createElement('div'); h.className = 'flex items-center gap-2 text-sm font-black text-slate-800';
+      h.textContent = items.length ? ('🔔 待辦提醒（' + items.length + '）') : '✅ 目前沒有待辦提醒';
+      box.appendChild(h);
+      box.classList.toggle('border-amber-200', items.length > 0); box.classList.toggle('border-emerald-200', items.length === 0);
+      items.forEach(function(it) {
+        const row = document.createElement('div');
+        row.className = 'admin-reminder flex items-center justify-between gap-2 flex-wrap rounded-2xl bg-amber-50/70 border border-amber-100 px-3 py-2';
+        row.setAttribute('data-kind', it.kind);
+        const tx1 = document.createElement('span'); tx1.className = 'text-xs font-bold text-amber-900'; tx1.textContent = it.icon + ' ' + it.text;
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'px-3 py-1 rounded-xl bg-white border border-amber-200 hover:bg-amber-100 text-xs font-bold text-amber-800 tap-bounce shrink-0';
+        b.textContent = it.actionLabel + ' ›';
+        b.onclick = function() { switchAdminSubtab(it.action); };
+        row.appendChild(tx1); row.appendChild(b); box.appendChild(row);
+      });
     }
 
     // ==================== 幼小銜接（前台）====================
