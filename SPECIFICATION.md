@@ -211,6 +211,13 @@
 - 目前頁籤記在 `sessionStorage` 的 `nobel_a_current_tab`（值限 `home／albums／songs／themes／docs／admin`），後台子面板記在 `nobel_a_admin_subtab`（限 `events／menu／uploadPhoto／songs／uploadDoc／themes／spotlight／translations／settings`）；寫入點在 `switchTab()`／`switchAdminSubtab()`，還原點在 `initApp()` 的 `restoreSavedTab()`（載入雲端資料之前）。
 - 不在白名單內的值一律忽略（從首頁開始）；`sessionStorage` 不可用時靜默略過。重新整理與 App 模式的 ↻ 都會停在原頁；關掉分頁／App 後重開從首頁開始；未登入停在後台會看到登入畫面。只還原頁籤與後台子面板，不還原打開的相簿、檢視器或詳情。
 
+### 2.2c 載入骨架畫面與「第一次開啟就連線失敗」（2026-10-18，僅前端；使用者拍板）
+- **何時出現**：只在手機裡**沒有快取資料**時（第一次開啟、或瀏覽器資料被清掉）。有快取時照舊「先顯示上次的資料、背景同步」（右上角「雲端資料同步中」），不顯示骨架。原因：沒有快取時，資料到之前會先畫出空的備援內容（「菜單尚未公布」、空白月曆、「沒有符合條件的活動相簿」），容易誤會。
+- **做法**：`<html>` 上的 class 決定顯示什麼：`app-loading`＝顯示各頁的骨架（`.app-skel`，灰色閃動區塊，`motion-safe:animate-pulse`，有 `aria-busy` 與給螢幕閱讀器的「正在載入最新資料…」），資料區塊（加了 `skel-data` 的元素）一律隱藏；`app-load-failed`＝顯示共用的失敗面板 `#appLoadFail`（📡「暫時連不上雲端資料」＋「🔄 重新載入」＋小字錯誤原因），資料區塊同樣隱藏；兩者都沒有＝正常顯示。`<head>` 有一行程式在畫面出來前就依快取加上 `app-loading`（避免先閃一下空白內容），`initApp()` 依實際是否有可用快取再設定一次；`handleDataLoaded()` 一開始就切成完成。
+- **骨架範圍**：首頁（今天／明天小卡、焦點活動、月曆，另隱藏當日詳情、週／月檢視）、影像記錄（篩選列＋相簿卡片）、唱跳音符（篩選列＋歌曲列，底部「已選取 N 首」播放列也隱藏）、主題活動、學期任務、幼小銜接（計畫與文章）、常用文件（篩選列＋列表）。頁面標題列保留。**未做（使用者決定）**：打開相簿的照片格（維持轉圈）、縮圖載入中的底色。後台不受影響。
+- **失敗**：`loadAppData()` 失敗時呼叫 `handleAppLoadFailure(err)`：還在骨架（手上沒有資料）就切到失敗面板，**不再跳「目前顯示的可能是舊資料」提示**；已有資料時照舊跳提示（`notifySyncFailed`）。按「重新載入」（`retryAppLoad()`）先回到骨架再重讀一次。錯誤原因只用 `textContent` 顯示。
+- **新增頁面或資料區塊時**：資料區塊加 `skel-data`，並在頁面裡放一個骨架（`build_index.js` 開頭的 `skelHome()`／`skelAlbums()`／`skelSongs()`／`skelTextList()`）。測試 `tests/skeleton.js`。
+
 ### 2.3 側邊導覽欄 (Sidebar Rail vs Pinned)
 - **手機底部導覽列（2026-10-18）**：手機（< 768）畫面底部固定 4 個頁面＋「⋯ 更多」（`#mobileBottomNav`，body 直接子元素，含 iPhone 安全區）。目前頁面亮起；目前頁面不在 4 個之中時「更多」亮起。「更多」是底部彈出面板：其餘頁面（依側邊欄順序）＋🔠 大字、🌐 English、⚙️ 管理後台；點背景或 Esc 關閉。**4 個頁面由後台「⚙️ 密碼與設定 → 📱 手機底部導覽列」決定**（4 格下拉、不可重複、「恢復預設」），存在試算表 `Settings` 的 `MOBILE_NAV_TABS`（逗號分隔的頁籤代號：home、themes、tasks、transition、albums、songs、docs；沒有這一列時後端自動新增；後台頁籤 admin 不可選）；後端動作 `saveMobileNav`（需 token，正好 4 個、不重複、只接受上述代號），`getAppData` 的 `settings.mobileNavTabs` 為解析後的陣列。**預設**（沒設定或設定不合法時）：班級日常、影像記錄、主題活動、唱跳音符。主內容在手機上底部留出導覽列高度；提示訊息與歌曲播放列在手機上移到導覽列上方。**手機左上角的 ☰ 已移除**（2026-10-18，使用者同意）：所有頁面與工具都在底部導覽列與「更多」裡；平板與電腦的側邊欄不變。焦點活動標題列在空間不夠時讓「3 / 4」移到下一行（不再與「歷史焦點」重疊）。測試：`tests/mobilenav.test.js`（後端）、`tests/mobile_nav.js`（瀏覽器）。
 

@@ -87,7 +87,7 @@
   renderAdminReminders();
   ok(document.querySelectorAll('#adminReminders .admin-reminder').length === 0 && /目前沒有待辦提醒/.test($('adminReminders').textContent) && $('adminReminders').classList.contains('border-emerald-200'), '都沒事：顯示「目前沒有待辦提醒」（綠框）');
   window.getTodayDateStr = real.today;
-  ok($('adminDashboard').contains($('adminReminders')) && $('adminReminders').nextElementSibling.querySelector('#adminSubtabBtn-events'), '提醒卡在後台頂部列下方、子頁籤上方');
+  ok($('adminDashboard').contains($('adminReminders')) && $('adminReminders').nextElementSibling === $('adminGroupBar') && $('adminGroupBar').nextElementSibling === $('adminSubtabBar'), '提醒卡在後台頂部列下方、組別與子頁籤上方');
 
   // F. 「今天」按鈕與版面
   goToToday();

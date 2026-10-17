@@ -2,6 +2,36 @@ const fs = require('fs');
 
 const logoB64 = fs.readFileSync('logo_b64.txt', 'utf8').trim();
 
+// ---------- 載入骨架畫面（第一次開啟、手機裡還沒有資料時，資料到之前顯示的灰色區塊） ----------
+// 只在 <html> 有 app-loading class 時顯示（見 CSS 的 .app-skel）；資料到了 handleDataLoaded() 會拿掉。
+const SKEL = 'bg-slate-200/70 rounded-xl motion-safe:animate-pulse';
+const skelLine = (w, h) => '<div class="' + SKEL + ' ' + (h || 'h-3.5') + ' ' + w + '"></div>';
+const skelWrap = (inner, extra) => '<div class="app-skel ' + (extra || '') + '" aria-busy="true"><span class="sr-only" data-i18n="ui.skelLoading">正在載入最新資料…</span>' + inner + '</div>';
+const skelCard = (body, border) => '<div class="bg-white rounded-3xl p-4 sm:p-5 border ' + (border || 'border-slate-200/80') + ' shadow-xs space-y-3">' + body + '</div>';
+const skelTextCard = (border) => skelCard(skelLine('w-1/3', 'h-5') + skelLine('w-full') + skelLine('w-5/6') + skelLine('w-2/3'), border);
+function skelHome() {
+  const small = skelCard(skelLine('w-28', 'h-6') + skelLine('w-3/4') + skelLine('w-1/2'));
+  const spot = '<div class="bg-white/70 rounded-3xl p-4 sm:p-5 border-2 border-rose-100 shadow-xs space-y-3">' + skelLine('w-32', 'h-6') +
+    '<div class="' + SKEL + ' w-full aspect-video rounded-2xl"></div>' + skelLine('w-2/3', 'h-5') + skelLine('w-1/2') + '</div>';
+  let cells = '';
+  for (let i = 0; i < 7; i++) cells += '<div class="' + SKEL + ' h-4"></div>';
+  for (let i = 0; i < 14; i++) cells += '<div class="' + SKEL + ' h-12 sm:h-16 rounded-2xl"></div>';
+  const cal = skelCard('<div class="flex justify-center">' + skelLine('w-40', 'h-7') + '</div>' + skelLine('w-full', 'h-9') +
+    '<div class="grid grid-cols-7 gap-1 sm:gap-1.5">' + cells + '</div>');
+  return skelWrap('<div class="grid grid-cols-1 md:grid-cols-2 gap-3">' + small + small + '</div>' + spot + cal, 'space-y-6');
+}
+function skelAlbums() {
+  const card = '<div class="bg-white rounded-3xl border border-teal-100 shadow-xs overflow-hidden"><div class="' + SKEL + ' rounded-none aspect-[4/3]"></div>' +
+    '<div class="p-4 space-y-2.5">' + skelLine('w-3/4', 'h-5') + skelLine('w-1/2') + '</div></div>';
+  return skelWrap('<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">' + card.repeat(6) + '</div>');
+}
+function skelSongs() {
+  const row = '<div class="bg-white rounded-2xl p-3 border border-fuchsia-100 shadow-2xs flex items-center gap-3"><div class="' + SKEL + ' w-20 h-14 shrink-0"></div>' +
+    '<div class="flex-1 space-y-2">' + skelLine('w-2/3', 'h-4') + skelLine('w-1/3') + '</div></div>';
+  return skelWrap(row.repeat(6), 'space-y-3');
+}
+const skelTextList = (n, border) => skelWrap(skelTextCard(border).repeat(n), 'space-y-4');
+
 const htmlContent = `<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -9,6 +39,8 @@ const htmlContent = `<!DOCTYPE html>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>桃子腳幼兒園 - 諾貝爾 A 班</title>
   <script>try { if (localStorage.getItem('nobel_a_big_text') === '1') document.documentElement.classList.add('big-text'); } catch (e) {}</script>
+  <!-- 手機裡還沒有任何資料（第一次開啟）：先顯示載入骨架，資料到了才顯示內容。initApp() 會依實際情況再設定一次 -->
+  <script>try { if (!localStorage.getItem('nobel_a_cached_app_data')) document.documentElement.classList.add('app-loading'); } catch (e) {}</script>
   <!-- 加到手機主畫面（PWA）：名稱「諾貝爾A」、圖示由 tools/make_icons.py 從 logo-hires.png 產生（白底，iPhone 會把透明區域顯示成黑色）。
        不做 service worker／離線快取（容易讓使用者卡在舊版）。以 App 模式開啟時沒有網址列與重新整理鈕，所以另有標頭的重新整理鈕與回到前景自動同步。 -->
   <link rel="manifest" href="manifest.webmanifest">
@@ -157,6 +189,11 @@ const htmlContent = `<!DOCTYPE html>
     #albumPhotosGrid, #albumThumbnails {
       grid-auto-rows: max-content !important;
     }
+    /* 載入骨架與「連線失敗」：app-loading＝第一次開啟、資料還沒到；app-load-failed＝第一次開啟就連線失敗（手上沒有任何資料） */
+    .app-skel, .app-fail { display: none; }
+    html.app-loading .app-skel { display: block; }
+    html.app-load-failed .app-fail { display: block; }
+    html.app-loading .skel-data, html.app-load-failed .skel-data { display: none !important; }
     #songPlayerHolder { position: relative; }
     #songPlayerHolder iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
   </style>
@@ -375,14 +412,24 @@ const htmlContent = `<!DOCTYPE html>
       <p id="loadingOverlayText" class="text-sm font-bold text-slate-500 text-center"><span class="animate-pulse" data-i18n="ui.loading">正在連線至雲端讀取最新資料庫，請稍候...</span></p>
     </div>
 
+    <!-- 第一次開啟就連線失敗（手上沒有任何資料）：不顯示空白內容，免得家長以為沒有活動 -->
+    <div id="appLoadFail" class="app-fail bg-white rounded-3xl p-6 sm:p-8 border-2 border-amber-200 shadow-sm text-center space-y-3 mb-6" role="alert">
+      <div class="text-4xl" aria-hidden="true">📡</div>
+      <h3 class="text-lg font-black text-slate-800" data-i18n="ui.loadFailTitle">暫時連不上雲端資料</h3>
+      <p class="text-sm font-semibold text-slate-600 leading-relaxed" data-i18n="ui.loadFailBody">可能是網路不穩或伺服器忙碌，所以還看不到班級的活動、菜單與相簿。請稍後再試一次。</p>
+      <button type="button" onclick="retryAppLoad()" class="px-5 py-2.5 rounded-2xl bg-peach-500 hover:bg-peach-600 text-white text-sm font-black shadow-xs tap-bounce" data-i18n="ui.loadRetry">🔄 重新載入</button>
+      <p id="appLoadFailWhy" class="text-[0.6875rem] text-slate-400 break-all"></p>
+    </div>
+
     <!-- ==================== TAB 1: 班級日常 (HOME) ==================== -->
     <section id="tabContent-home" class="space-y-6">
+      ${skelHome()}
 
       <!-- 0. 今天／明天小卡（家長最常看的：活動、提示、午餐與點心）；晚上 6 點後或放假日把「下一個上課日」放前面 -->
-      <div id="todayCard" class="hidden grid grid-cols-1 md:grid-cols-2 gap-3" aria-live="polite"></div>
+      <div id="todayCard" class="skel-data hidden grid grid-cols-1 md:grid-cols-2 gap-3" aria-live="polite"></div>
 
       <!-- 1. SPOTLIGHT 重點活動焦點卡片 -->
-      <div id="spotlightContainer" class="bg-gradient-to-br from-rose-50 via-amber-50 to-teal-50 rounded-3xl p-4 sm:p-5 border-2 border-rose-200/80 shadow-md relative overflow-hidden transition-all" onmouseenter="pauseSpotlightTimer()" onmouseleave="resumeSpotlightTimer()" ontouchstart="pauseSpotlightTimer()" ontouchend="resumeSpotlightTimer()">
+      <div id="spotlightContainer" class="skel-data bg-gradient-to-br from-rose-50 via-amber-50 to-teal-50 rounded-3xl p-4 sm:p-5 border-2 border-rose-200/80 shadow-md relative overflow-hidden transition-all" onmouseenter="pauseSpotlightTimer()" onmouseleave="resumeSpotlightTimer()" ontouchstart="pauseSpotlightTimer()" ontouchend="resumeSpotlightTimer()">
         <!-- 裝飾背景符號 -->
         <div class="absolute -right-6 -bottom-6 text-7xl opacity-15 select-none pointer-events-none">🍑</div>
 
@@ -478,7 +525,7 @@ const htmlContent = `<!DOCTYPE html>
       </div>
 
       <!-- 2. 行事曆切換工具列與主要互動日曆 -->
-      <div class="bg-white rounded-3xl p-4 sm:p-6 border border-slate-200/80 shadow-sm space-y-4">
+      <div class="skel-data bg-white rounded-3xl p-4 sm:p-6 border border-slate-200/80 shadow-sm space-y-4">
         
         <!-- 工具列：年月份切換、檢視模式切換、回到今天 -->
         <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pb-3 border-b border-slate-100">
@@ -560,7 +607,7 @@ const htmlContent = `<!DOCTYPE html>
       </div>
 
       <!-- 3. 【連動區段】點擊個別日期時帶出之當日生活與活動 / 菜單 -->
-      <div id="linkedContentSection" class="space-y-4">
+      <div id="linkedContentSection" class="skel-data space-y-4">
         
         <!-- 當日選取抬頭 -->
         <div class="flex items-center justify-between bg-white px-4 py-3 rounded-2xl border border-rose-100 shadow-2xs hidden">
@@ -656,7 +703,7 @@ const htmlContent = `<!DOCTYPE html>
       </div>
 
       <!-- 4. 【本週行程總覽容器】(切換至查看本週時呈現) -->
-      <div id="weekViewContainer" class="hidden bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm space-y-4">
+      <div id="weekViewContainer" class="skel-data hidden bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm space-y-4">
         <div class="flex items-center justify-between flex-wrap gap-x-3 gap-y-2 pb-3 border-b border-slate-100">
           <h4 class="text-base font-black text-slate-800 flex items-center gap-2">
             <span>📋</span> <span data-i18n="cal.weekOverviewTitle">本週生活與餐點總覽（週日～週六）</span>
@@ -676,7 +723,7 @@ const htmlContent = `<!DOCTYPE html>
       </div>
 
       <!-- 5. 【本月活動總覽容器】(切換至查看本月時呈現) -->
-      <div id="monthViewContainer" class="hidden bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm space-y-4">
+      <div id="monthViewContainer" class="skel-data hidden bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm space-y-4">
         <div class="flex items-center justify-between pb-3 border-b border-slate-100">
           <h4 class="text-base font-black text-slate-800 flex items-center gap-2">
             <span>🗓️</span> <span id="monthViewTitle">2026年10月份 全月重點活動列表</span>
@@ -715,8 +762,10 @@ const htmlContent = `<!DOCTYPE html>
         </div>
       </div>
 
+      ${skelAlbums()}
+
       <!-- 相簿快速篩選工具列 -->
-      <div class="bg-white p-4 sm:p-5 rounded-3xl border border-teal-200/70 shadow-xs space-y-3.5">
+      <div class="skel-data bg-white p-4 sm:p-5 rounded-3xl border border-teal-200/70 shadow-xs space-y-3.5">
         <!-- 關鍵字搜尋欄 -->
         <div class="relative">
           <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 text-xs">🔍</span>
@@ -741,12 +790,12 @@ const htmlContent = `<!DOCTYPE html>
       </div>
 
       <!-- 相簿列表格 -->
-      <div id="albumsLoading" class="py-12 text-center text-slate-400 font-bold flex flex-col items-center justify-center gap-2">
+      <div id="albumsLoading" class="skel-data py-12 text-center text-slate-400 font-bold flex flex-col items-center justify-center gap-2">
         <div class="w-8 h-8 border-3 border-teal-200 border-t-teal-600 rounded-full animate-spin"></div>
         <span data-i18n="albums.loading">正在讀取雲端相簿資料夾...</span>
       </div>
 
-      <div id="albumsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+      <div id="albumsGrid" class="skel-data grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         <!-- JS 動態產生相簿卡片 -->
       </div>
 
@@ -783,8 +832,10 @@ const htmlContent = `<!DOCTYPE html>
         </div>
       </div>
 
+      ${skelSongs()}
+
       <!-- 歌曲快速篩選工具列 -->
-      <div class="bg-white p-4 sm:p-5 rounded-3xl border border-fuchsia-200/70 shadow-xs space-y-3.5">
+      <div class="skel-data bg-white p-4 sm:p-5 rounded-3xl border border-fuchsia-200/70 shadow-xs space-y-3.5">
         <div class="relative">
           <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 text-xs">🔍</span>
           <input type="text" id="songFilter-keyword" placeholder="搜尋歌名或關鍵字..." data-i18n-placeholder="songs.searchPlaceholder" class="w-full pl-9 pr-9 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-medium focus:bg-white focus:border-fuchsia-500 focus:outline-none transition-all" oninput="applySongFilters()">
@@ -810,12 +861,12 @@ const htmlContent = `<!DOCTYPE html>
       </div>
 
       <!-- 歌曲列表 -->
-      <div id="songsListContainer" class="space-y-3 pb-24 sm:pb-20">
+      <div id="songsListContainer" class="skel-data space-y-3 pb-24 sm:pb-20">
         <!-- JS 動態插入歌曲 -->
       </div>
 
       <!-- 頁面下方固定播放控制列 (極簡自適應膠囊：選取統計 + 播放圖示按鈕) -->
-      <div id="songsBottomPlayBar" class="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] md:bottom-6 left-1/2 -translate-x-1/2 z-40 transition-all duration-300">
+      <div id="songsBottomPlayBar" class="skel-data fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] md:bottom-6 left-1/2 -translate-x-1/2 z-40 transition-all duration-300">
         <div class="bg-white/95 backdrop-blur-md border border-fuchsia-200/90 shadow-xl rounded-full px-3.5 py-1.5 sm:px-4 sm:py-2 flex items-center gap-3 sm:gap-3.5">
           <!-- 左側：勾選統計與核取方塊 -->
           <label for="bottomBarSelectAllCheckbox" class="flex items-center gap-2 cursor-pointer select-none">
@@ -857,12 +908,13 @@ const htmlContent = `<!DOCTYPE html>
       </div>
 
       <!-- 列表容器 -->
-      <div id="themesList" class="flex flex-col gap-4">
+      ${skelTextList(3, 'border-amber-100')}
+      <div id="themesList" class="skel-data flex flex-col gap-4">
         <!-- JS 生成的主題卡片會在這裡 -->
       </div>
       
       <!-- 空狀態 -->
-      <div id="themesEmptyState" class="hidden flex flex-col items-center justify-center py-16 bg-white/50 backdrop-blur rounded-3xl border border-slate-200 border-dashed">
+      <div id="themesEmptyState" class="skel-data hidden flex flex-col items-center justify-center py-16 bg-white/50 backdrop-blur rounded-3xl border border-slate-200 border-dashed">
         <div class="text-5xl mb-3 opacity-50 grayscale">📚</div>
         <p data-i18n="themes.empty" class="text-slate-500 font-bold">目前還沒有主題活動紀錄喔</p>
       </div>
@@ -886,10 +938,11 @@ const htmlContent = `<!DOCTYPE html>
         </div>
       </div>
 
-      <div id="tasksOverview"></div>
-      <div id="tasksGroups" class="space-y-6"></div>
+      ${skelTextList(3, 'border-emerald-100')}
+      <div id="tasksOverview" class="skel-data"></div>
+      <div id="tasksGroups" class="skel-data space-y-6"></div>
 
-      <div id="tasksEmptyState" class="hidden flex flex-col items-center justify-center py-16 bg-white/50 backdrop-blur rounded-3xl border border-slate-200 border-dashed">
+      <div id="tasksEmptyState" class="skel-data hidden flex flex-col items-center justify-center py-16 bg-white/50 backdrop-blur rounded-3xl border border-slate-200 border-dashed">
         <div class="text-5xl mb-3 opacity-50 grayscale">🎯</div>
         <p data-i18n="tasks.empty" class="text-slate-500 font-bold">這學期的任務還在準備中，請稍後再來看看</p>
       </div>
@@ -914,7 +967,8 @@ const htmlContent = `<!DOCTYPE html>
         <button type="button" id="trViewBtn-article" onclick="switchTransitionView('article')" role="tab" class="tr-view-btn px-4 py-2 rounded-xl text-sm font-black transition-all tap-bounce"><span aria-hidden="true">📖</span> <span data-i18n="transition.viewArticle">為什麼重要</span></button>
       </div>
 
-      <div id="trPlanView" class="space-y-4">
+      ${skelTextList(3, 'border-sky-100')}
+      <div id="trPlanView" class="skel-data space-y-4">
         <div id="trPlanToolbar" class="bg-white rounded-3xl border border-slate-200 shadow-2xs p-4 space-y-3">
           <p class="text-xs sm:text-sm text-slate-600 leading-relaxed" data-i18n="transition.planIntro">這是園方今年為大班孩子安排的銜接計畫。標示「在家」和「一起」的項目可以勾選，勾選只記在這台手機或電腦上，也能列印成 PDF 貼在家裡。</p>
           <div class="flex flex-wrap items-center gap-2 justify-between">
@@ -940,7 +994,7 @@ const htmlContent = `<!DOCTYPE html>
         </div>
       </div>
 
-      <div id="trArticleView" class="hidden space-y-5">
+      <div id="trArticleView" class="skel-data hidden space-y-5">
         <div id="trArticleList" class="space-y-5"></div>
         <div id="trArticleEmpty" class="hidden flex flex-col items-center justify-center py-16 bg-white/50 rounded-3xl border border-slate-200 border-dashed">
           <div class="text-5xl mb-3 opacity-50 grayscale">📖</div>
@@ -964,8 +1018,10 @@ const htmlContent = `<!DOCTYPE html>
         </div>
       </div>
 
+      ${skelTextList(4, 'border-indigo-100')}
+
       <!-- 文件分類與搜尋 -->
-      <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs flex flex-wrap items-center justify-between gap-3">
+      <div class="skel-data bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center gap-1.5 flex-wrap" id="docCategoryPills">
           <button onclick="filterDocs('全部')" class="doc-cat-btn px-3 py-1 rounded-xl text-xs font-bold bg-indigo-600 text-white shadow-xs">全部文件</button>
           <button onclick="filterDocs('保健用藥')" class="doc-cat-btn px-3 py-1 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">保健用藥</button>
@@ -979,7 +1035,7 @@ const htmlContent = `<!DOCTYPE html>
       </div>
 
       <!-- 文件列表清單 -->
-      <div id="docsListContainer" class="space-y-3">
+      <div id="docsListContainer" class="skel-data space-y-3">
         <!-- JS 動態插入文件項目 -->
       </div>
     </section>
@@ -2859,6 +2915,10 @@ const htmlContent = `<!DOCTYPE html>
           albumDefaultCategory: "活動記錄",
           albumNoPhotos: "此相簿目前無照片檔案。",
           albumLoadingPhotos: "讀取相簿照片中...",
+          skelLoading: "正在載入最新資料…",
+          loadFailTitle: "暫時連不上雲端資料",
+          loadFailBody: "可能是網路不穩或伺服器忙碌，所以還看不到班級的活動、菜單與相簿。請稍後再試一次。",
+          loadRetry: "🔄 重新載入",
           waitElapsed: "已等待 {s} 秒",
           newBadge: "NEW",
           newBadgeTitle: "近 7 天內新增或更新",
@@ -3185,6 +3245,10 @@ const htmlContent = `<!DOCTYPE html>
           albumDefaultCategory: "Activities",
           albumNoPhotos: "This album has no photos yet.",
           albumLoadingPhotos: "Loading album photos...",
+          skelLoading: "Loading the latest content…",
+          loadFailTitle: "Can't reach the cloud right now",
+          loadFailBody: "The network may be unstable or the server busy, so class events, menus and albums can't be shown yet. Please try again shortly.",
+          loadRetry: "🔄 Try again",
           waitElapsed: "Waiting {s}s",
           newBadge: "NEW",
           newBadgeTitle: "Added or updated in the last 7 days",
@@ -3635,6 +3699,8 @@ const htmlContent = `<!DOCTYPE html>
       if (!hasCachedData) {
         renderFallbackLocalData();
       }
+      // 沒有快取：顯示載入骨架（空的備援內容藏起來），資料到了才顯示；有快取就直接顯示
+      setAppLoadState(hasCachedData ? 'ready' : 'loading');
 
       // 確保 loadingOverlay 隱藏，主要畫面立即呈現
       showLoading(false);
@@ -4597,6 +4663,30 @@ const htmlContent = `<!DOCTYPE html>
         : (app ? '雲端資料同步失敗，目前顯示的可能是舊資料，請點右上角「↻」重新整理。' : '雲端資料同步失敗，目前顯示的可能是舊資料，請重新整理頁面。')) + (why ? ' [' + why + ']' : ''), '⚠️');
     }
 
+    // 第一次開啟的載入狀態：'loading'＝顯示骨架、'ready'＝顯示內容、'failed'＝手上沒有資料又連線失敗（顯示「重新載入」）
+    function setAppLoadState(st) {
+      const c = document.documentElement.classList;
+      c.toggle('app-loading', st === 'loading');
+      c.toggle('app-load-failed', st === 'failed');
+    }
+    function appLoadPending() {
+      return document.documentElement.classList.contains('app-loading');
+    }
+    function retryAppLoad() {
+      setAppLoadState('loading');
+      loadAppData(true);
+    }
+    // 載入失敗：第一次開啟（還在骨架）就換成「連線失敗」面板，不顯示「目前顯示的可能是舊資料」的提示；否則照舊跳提示
+    function handleAppLoadFailure(err) {
+      if (appLoadPending()) {
+        setAppLoadState('failed');
+        const why = document.getElementById('appLoadFailWhy');
+        if (why) { try { why.textContent = String((err && (err.name ? err.name + ': ' : '') + (err.message || err)) || '').slice(0, 80); } catch (e) {} }
+      } else {
+        notifySyncFailed(err);
+      }
+    }
+
     function loadAppData(isSilent = true) {
       const syncBadge = document.getElementById('bgSyncBadge');
       if (isSilent) {
@@ -4616,7 +4706,7 @@ const htmlContent = `<!DOCTYPE html>
           } catch (e) {}
           handleDataLoaded(res.data);
         } else {
-          notifySyncFailed(new Error('bad response: ' + (res && res.error ? res.error : 'no data')));
+          handleAppLoadFailure(new Error('bad response: ' + (res && res.error ? res.error : 'no data')));
           if (!state.events || state.events.length === 0) {
             renderFallbackLocalData();
           }
@@ -4626,7 +4716,7 @@ const htmlContent = `<!DOCTYPE html>
         if (syncBadge) syncBadge.classList.add('hidden');
         showLoading(false);
         console.warn('GAS 連線失敗或逾時，已保持目前最新資料:', err);
-        notifySyncFailed(err);
+        handleAppLoadFailure(err);
         if (!state.events || state.events.length === 0) {
           renderFallbackLocalData();
         }
@@ -4920,6 +5010,7 @@ const htmlContent = `<!DOCTYPE html>
 
     // 處理遠端資料
     function handleDataLoaded(data) {
+      setAppLoadState('ready');   // 先切換再畫：同一輪同步執行，畫面不會閃
       state.events = data.events || [];
       state.menus = data.menus || [];
       state.spotlights = data.spotlights || [];
