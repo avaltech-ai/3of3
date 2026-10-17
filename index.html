@@ -1016,40 +1016,57 @@
         <!-- 待辦提醒（菜單快沒了、英文對照新文字、焦點活動快下架、下個月行事曆是空的） -->
         <div id="adminReminders" class="bg-white p-4 rounded-3xl border border-amber-200 shadow-sm space-y-2"></div>
 
-        <!-- 後台功能子分頁籤 -->
-        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 border-b border-slate-200">
-          <button onclick="switchAdminSubtab('events')" id="adminSubtabBtn-events" data-i18n="admin.tabEvents" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold bg-peach-500 text-white shadow-xs whitespace-nowrap">
+        <!-- 後台功能分組（兩層）：上層 4 個組別（依更新頻率），下層只顯示目前組別的子分頁籤。對照表見 ADMIN_SUBTAB_GROUPS -->
+        <div id="adminGroupBar" class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <button type="button" onclick="switchAdminGroup('daily')" id="adminGroupBtn-daily" class="admin-group-btn flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-2xl border text-sm font-black whitespace-nowrap tap-bounce bg-slate-800 border-slate-800 text-white shadow-xs">
+            <span data-i18n="admin.groupDaily">📅 日常更新</span>
+          </button>
+          <button type="button" onclick="switchAdminGroup('media')" id="adminGroupBtn-media" class="admin-group-btn flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-2xl border text-sm font-black whitespace-nowrap tap-bounce bg-white border-slate-200 text-slate-700 hover:bg-slate-50">
+            <span data-i18n="admin.groupMedia">🖼️ 影音與文件</span>
+          </button>
+          <button type="button" onclick="switchAdminGroup('semester')" id="adminGroupBtn-semester" class="admin-group-btn flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-2xl border text-sm font-black whitespace-nowrap tap-bounce bg-white border-slate-200 text-slate-700 hover:bg-slate-50">
+            <span data-i18n="admin.groupSemester">📚 學期課程</span>
+          </button>
+          <button type="button" onclick="switchAdminGroup('system')" id="adminGroupBtn-system" class="admin-group-btn flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-2xl border text-sm font-black whitespace-nowrap tap-bounce bg-white border-slate-200 text-slate-700 hover:bg-slate-50">
+            <span data-i18n="admin.groupSystem">⚙️ 系統</span>
+            <span id="adminGroupBadge-system" class="hidden w-2 h-2 rounded-full bg-rose-500 shrink-0" title="英文對照有新文字尚未加入"></span>
+          </button>
+        </div>
+
+        <!-- 後台功能子分頁籤（只顯示目前組別的；其餘加 hidden） -->
+        <div id="adminSubtabBar" class="flex flex-wrap items-center gap-1.5 pb-2 border-b border-slate-200">
+          <button onclick="switchAdminSubtab('events')" id="adminSubtabBtn-events" data-group="daily" data-i18n="admin.tabEvents" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold bg-peach-500 text-white shadow-xs whitespace-nowrap">
             📅 行事曆活動管理
           </button>
-          <button onclick="switchAdminSubtab('menu')" id="adminSubtabBtn-menu" data-i18n="admin.tabMenu" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
+          <button onclick="switchAdminSubtab('menu')" id="adminSubtabBtn-menu" data-group="daily" data-i18n="admin.tabMenu" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
             🍱 每日菜單管理
           </button>
-          <button onclick="switchAdminSubtab('uploadPhoto')" id="adminSubtabBtn-uploadPhoto" data-i18n="admin.tabUploadPhoto" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
-            📸 相簿批次上傳
-          </button>
-          <button onclick="switchAdminSubtab('songs')" id="adminSubtabBtn-songs" data-i18n="admin.tabSongs" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
-            🎵 唱跳音符管理
-          </button>
-          <button onclick="switchAdminSubtab('uploadDoc')" id="adminSubtabBtn-uploadDoc" data-i18n="admin.tabUploadDoc" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
-            📂 文件檔案上傳
-          </button>
-          <button onclick="switchAdminSubtab('themes')" id="adminSubtabBtn-themes" data-i18n="admin.tabThemes" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
-            📚 主題活動
-          </button>
-          <button onclick="switchAdminSubtab('tasks')" id="adminSubtabBtn-tasks" data-i18n="admin.tabTasks" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
-            🎯 學期任務
-          </button>
-          <button onclick="switchAdminSubtab('transition')" id="adminSubtabBtn-transition" data-i18n="admin.tabTransition" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
-            🎒 幼小銜接
-          </button>
-          <button onclick="switchAdminSubtab('spotlight')" id="adminSubtabBtn-spotlight" data-i18n="admin.tabSpotlight" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
+          <button onclick="switchAdminSubtab('spotlight')" id="adminSubtabBtn-spotlight" data-group="daily" data-i18n="admin.tabSpotlight" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
             🌟 焦點活動管理
           </button>
-          <button onclick="switchAdminSubtab('translations')" id="adminSubtabBtn-translations" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
+          <button onclick="switchAdminSubtab('uploadPhoto')" id="adminSubtabBtn-uploadPhoto" data-group="media" data-i18n="admin.tabUploadPhoto" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap hidden">
+            📸 相簿批次上傳
+          </button>
+          <button onclick="switchAdminSubtab('songs')" id="adminSubtabBtn-songs" data-group="media" data-i18n="admin.tabSongs" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap hidden">
+            🎵 唱跳音符管理
+          </button>
+          <button onclick="switchAdminSubtab('uploadDoc')" id="adminSubtabBtn-uploadDoc" data-group="media" data-i18n="admin.tabUploadDoc" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap hidden">
+            📂 常用文件管理
+          </button>
+          <button onclick="switchAdminSubtab('themes')" id="adminSubtabBtn-themes" data-group="semester" data-i18n="admin.tabThemes" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap hidden">
+            📚 主題活動
+          </button>
+          <button onclick="switchAdminSubtab('tasks')" id="adminSubtabBtn-tasks" data-group="semester" data-i18n="admin.tabTasks" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap hidden">
+            🎯 學期任務
+          </button>
+          <button onclick="switchAdminSubtab('transition')" id="adminSubtabBtn-transition" data-group="semester" data-i18n="admin.tabTransition" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap hidden">
+            🎒 幼小銜接
+          </button>
+          <button onclick="switchAdminSubtab('translations')" id="adminSubtabBtn-translations" data-group="system" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap hidden">
             <span data-i18n="admin.tabTranslations">🌐 英文對照</span>
             <span id="mapAdminTabBadge" class="hidden ml-1 text-[0.625rem] font-extrabold text-white bg-rose-500 px-1.5 py-0.5 rounded-full align-middle" title="有新文字尚未加入對照表"></span>
           </button>
-          <button onclick="switchAdminSubtab('settings')" id="adminSubtabBtn-settings" data-i18n="admin.tabSettings" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap">
+          <button onclick="switchAdminSubtab('settings')" id="adminSubtabBtn-settings" data-group="system" data-i18n="admin.tabSettings" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap hidden">
             ⚙️ 密碼與設定
           </button>
         </div>
@@ -2776,7 +2793,11 @@
           tabTransition: '🎒 幼小銜接',
           tabSpotlight: '🌟 焦點活動管理',
           tabTranslations: '🌐 英文對照',
-          tabSettings: '⚙️ 密碼與設定'
+          tabSettings: '⚙️ 密碼與設定',
+          groupDaily: '📅 日常更新',
+          groupMedia: '🖼️ 影音與文件',
+          groupSemester: '📚 學期課程',
+          groupSystem: '⚙️ 系統'
         },
         footer: {
           motto: '用愛陪伴孩子成長的每一步'
@@ -3098,7 +3119,11 @@
           tabTransition: '🎒 Off to Grade 1',
           tabSpotlight: '🌟 Highlights',
           tabTranslations: '🌐 Translations',
-          tabSettings: '⚙️ Settings'
+          tabSettings: '⚙️ Settings',
+          groupDaily: '📅 Daily',
+          groupMedia: '🖼️ Media & Docs',
+          groupSemester: '📚 Term',
+          groupSystem: '⚙️ System'
         },
         footer: {
           motto: "Accompanying children's growth with love"
@@ -3544,6 +3569,13 @@
     const SAVED_TAB_KEY = 'nobel_a_current_tab', SAVED_SUBTAB_KEY = 'nobel_a_admin_subtab';
     const VALID_TABS = ['home', 'albums', 'songs', 'themes', 'tasks', 'transition', 'docs', 'admin'];
     const VALID_ADMIN_SUBTABS = ['events', 'menu', 'uploadPhoto', 'songs', 'uploadDoc', 'themes', 'tasks', 'transition', 'spotlight', 'translations', 'settings'];
+    // 後台兩層頁籤：組別（依更新頻率）→ 子頁籤。每個子頁籤只屬於一組，順序即畫面順序；點組別時回到該組上次停留的子頁籤（沒有就第一個）
+    const ADMIN_SUBTAB_GROUPS = {
+      daily: ['events', 'menu', 'spotlight'],
+      media: ['uploadPhoto', 'songs', 'uploadDoc'],
+      semester: ['themes', 'tasks', 'transition'],
+      system: ['translations', 'settings']
+    };
 
     function saveUiLocation(key, value) {
       try { sessionStorage.setItem(key, value); } catch (e) {}
@@ -4297,6 +4329,8 @@
       b.textContent = n > 99 ? '99+' : String(n);
       b.classList.toggle('hidden', n <= 0);
       b.title = n > 0 ? '有 ' + n + ' 筆新文字尚未加入對照表' : '';
+      const g = document.getElementById('adminGroupBadge-system');   // 「系統」組別上的紅點：英文對照頁籤收在組內時也看得到
+      if (g) { g.classList.toggle('hidden', n <= 0); g.title = b.title; }
     }
 
     // 登入後在背景取得統計，讓頁籤顯示「有新文字待處理」的紅點（失敗就不顯示，不打擾）
@@ -10017,12 +10051,33 @@
       if (typeof updateMobileSheetAuthUI === 'function') updateMobileSheetAuthUI();
     }
 
+    const adminGroupLast = {};   // 各組上次停留的子頁籤（只在這次開啟頁面期間記住）
+    function adminGroupOf(subtab) {
+      for (const g in ADMIN_SUBTAB_GROUPS) { if (ADMIN_SUBTAB_GROUPS[g].indexOf(subtab) !== -1) return g; }
+      return 'daily';
+    }
+    function switchAdminGroup(group) {
+      const subs = ADMIN_SUBTAB_GROUPS[group];
+      if (!subs) return;
+      const last = adminGroupLast[group];
+      switchAdminSubtab(subs.indexOf(last) !== -1 ? last : subs[0]);
+    }
+
     function switchAdminSubtab(subtab) {
       state.currentAdminSubtab = subtab;
       if (VALID_ADMIN_SUBTABS.indexOf(subtab) !== -1) saveUiLocation(SAVED_SUBTAB_KEY, subtab);
+      const group = adminGroupOf(subtab);
+      adminGroupLast[group] = subtab;
+      document.querySelectorAll('.admin-group-btn').forEach(btn => {
+        const on = btn.id === 'adminGroupBtn-' + group;
+        btn.className = 'admin-group-btn flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-2xl border text-sm font-black whitespace-nowrap tap-bounce ' +
+          (on ? 'bg-slate-800 border-slate-800 text-white shadow-xs' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50');
+        btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
       document.querySelectorAll('.admin-panel').forEach(p => p.classList.add('hidden'));
       document.querySelectorAll('.admin-subtab-btn').forEach(btn => {
-        btn.className = 'admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap';
+        btn.className = 'admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap' +
+          (btn.getAttribute('data-group') === group ? '' : ' hidden');
       });
 
       const targetPanel = document.getElementById(`adminPanel-${subtab}`);
