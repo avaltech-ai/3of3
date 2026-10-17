@@ -5,7 +5,10 @@
   const wait = ms => new Promise(r => setTimeout(r, ms));
   await wait(4000);
   const realHandle = window.handleDataLoaded; window.handleDataLoaded = function () {};
-  const lang0 = state.lang, events0 = state.events, nm0 = state.nameMap;
+  const lang0 = state.lang, events0 = state.events, nm0 = state.nameMap, tm0 = state.textMap;
+  // 隔離自由文字對照表（TextMap）：線上資料可能已把測試用的活動標題翻成英文，
+  // 英文介面下就無法用中文標題找到卡片。本測試只驗細項標籤，標題一律維持中文。
+  state.textMap = null;
 
   state.lang = 'zh';
   state.events = [
@@ -41,10 +44,11 @@
   state.lang = 'en';
   try { setNameMap({ '慶生活動': 'Birthday Celebration' }); } catch (e) {}
   renderSelectedDayDetails('2026-10-07');
+  ok(!!cardOf('八月壽星慶生') && !!cardOf('舊欄位名稱'), '英文介面：測試卡片可用中文標題找到（TextMap 已隔離）');
   ok(JSON.stringify(minors(cardOf('八月壽星慶生'))) === '["Birthday Celebration"]', '英文介面：細項顯示對照表的英文');
   ok(JSON.stringify(minors(cardOf('舊欄位名稱'))) === '["親師座談"]', '英文介面且對照表沒有這個名稱：退回中文');
 
-  state.lang = lang0; state.events = events0; state.nameMap = nm0; try { setNameMap(nm0 || {}); } catch (e) {}
+  state.lang = lang0; state.events = events0; state.nameMap = nm0; state.textMap = tm0; try { setNameMap(nm0 || {}); } catch (e) {}
   window.handleDataLoaded = realHandle;
   console.log(res.join('\n')); return res;
 })();
