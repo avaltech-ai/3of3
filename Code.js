@@ -659,6 +659,8 @@ function doPost(e) {
       result = saveTransitionArticle(postData.data, postData.password);
     } else if (action === 'deleteTransitionArticle') {
       result = deleteTransitionArticle(postData.id, postData.password);
+    } else if (action === 'saveMobileNav') {
+      result = saveMobileNav(postData.tabs, postData.password);
     }
 
     // 只記錄「成功」的結果（失敗的操作重試時仍應重新執行）；保留 10 分鐘，涵蓋逾時重送與上傳區塊重試
@@ -1109,6 +1111,7 @@ function getAppData() {
           docsFolderId: settings.DOCS_FOLDER_ID || DOCS_FOLDER_ID,
           activityFolderId: actFolderId || settings.ACTIVITY_FOLDER_ID || '',
           activityFolderUrl: actFolderUrl || ('https://drive.google.com/drive/folders/' + (actFolderId || ALBUMS_FOLDER_ID)),
+          mobileNavTabs: parseMobileNavTabs_(settings.MOBILE_NAV_TABS),
           tickerMessage: settings.TICKER_MESSAGE || '歡迎光臨諾貝爾 A 班！請隨時關注今日活動與營養美味菜單～'
         }
       }
@@ -5057,6 +5060,51 @@ function deleteTransitionArticle(articleId, password) {
   if (!checkPassword(password)) return authFail_();
   try { return trDeleteById_(TR_ART_SHEET, TR_ART_HEADERS, articleId, '找不到該文章編號'); }
   catch (err) { return { success: false, error: err.toString() }; }
+}
+
+// -------------------------------------------------------------
+// 手機底部導覽列：Settings 工作表的 MOBILE_NAV_TABS（逗號分隔的頁籤代號，正好 4 個；空白＝用前端預設）。
+// -------------------------------------------------------------
+const MOBILE_NAV_KEY = 'MOBILE_NAV_TABS';
+const MOBILE_NAV_ALLOWED = ['home', 'themes', 'tasks', 'transition', 'albums', 'songs', 'docs'];
+const MOBILE_NAV_COUNT = 4;
+
+/** 儲存格文字 → 頁籤代號陣列：只留允許的代號、去重複、最多 4 個；看不懂就回空陣列（前端用預設）。 */
+function parseMobileNavTabs_(v) {
+  const out = [];
+  String(v === undefined || v === null ? '' : v).split(/[,，\s]+/).forEach(function(k) {
+    const key = k.trim();
+    if (key && MOBILE_NAV_ALLOWED.indexOf(key) !== -1 && out.indexOf(key) === -1 && out.length < MOBILE_NAV_COUNT) out.push(key);
+  });
+  return out;
+}
+
+/** 設定手機底部導覽列的 4 個頁籤（順序即左到右）。Settings 沒有這一列時自動新增。 */
+function saveMobileNav(tabs, password) {
+  if (!checkPassword(password)) return authFail_();
+  try {
+    if (!Array.isArray(tabs)) return { success: false, error: '格式不正確' };
+    const list = tabs.map(function(k) { return String(k === undefined || k === null ? '' : k).trim(); });
+    if (list.length !== MOBILE_NAV_COUNT) return { success: false, error: '請選滿 ' + MOBILE_NAV_COUNT + ' 個項目。' };
+    for (let i = 0; i < list.length; i++) {
+      if (MOBILE_NAV_ALLOWED.indexOf(list[i]) === -1) return { success: false, error: '有不認得的頁面：' + list[i] };
+      if (list.indexOf(list[i]) !== i) return { success: false, error: '同一個頁面不能放兩次。' };
+    }
+    const value = list.join(',');
+    const sheet = getSpreadsheet().getSheetByName('Settings');
+    if (!sheet) return { success: false, error: '找不到 Settings 工作表' };
+    const data = sheet.getDataRange().getValues();
+    let row = -1;
+    for (let i = 1; i < data.length; i++) { if (String(data[i][0]).trim() === MOBILE_NAV_KEY) { row = i + 1; break; } }
+    if (row === -1) { row = sheet.getLastRow() + 1; sheet.getRange(row, 1).setValue(MOBILE_NAV_KEY); }
+    const cell = sheet.getRange(row, 2);
+    cell.setNumberFormat('@');
+    cell.setValue(value);
+    clearAppDataCache();
+    return { success: true, message: '手機底部導覽列已更新！', tabs: list };
+  } catch (err) {
+    return { success: false, error: '儲存手機導覽列失敗: ' + err.toString() };
+  }
 }
 
 /**

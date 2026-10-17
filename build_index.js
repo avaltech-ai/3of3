@@ -238,7 +238,7 @@ const htmlContent = `<!DOCTYPE html>
     </aside>
 
     <!-- Main Content -->
-    <div class="flex-1 flex flex-col min-w-0 transition-all duration-300 relative">
+    <div class="flex-1 flex flex-col min-w-0 transition-all duration-300 relative pb-[calc(4.25rem+env(safe-area-inset-bottom))] md:pb-0">
       <header class="bg-white/90 backdrop-blur-md border-b border-rose-100 shadow-sm sticky top-1.5 z-30 flex-shrink-0">
         <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <!-- 園所與班級 Logo 識別 -->
@@ -503,13 +503,13 @@ const htmlContent = `<!DOCTYPE html>
 
           <!-- 檢視模式選擇按鈕 (每日點選 / 本週行程 / 本月活動) -->
           <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-2xl w-full sm:w-auto justify-center">
-            <button onclick="setCalViewMode('day')" id="viewModeBtn-day" data-i18n="cal.dayView" class="cal-view-btn flex-1 sm:flex-none px-3 py-1 rounded-xl text-xs font-bold transition-all bg-white text-slate-800 shadow-xs">
+            <button onclick="setCalViewMode('day')" id="viewModeBtn-day" data-i18n="cal.dayView" class="cal-view-btn flex-1 sm:flex-none px-1.5 sm:px-3 py-1 whitespace-nowrap rounded-xl text-xs font-bold transition-all bg-white text-slate-800 shadow-xs">
               📅 單日點選
             </button>
-            <button onclick="setCalViewMode('week')" id="viewModeBtn-week" data-i18n="cal.weekView" class="cal-view-btn flex-1 sm:flex-none px-3 py-1 rounded-xl text-xs font-bold transition-all text-slate-600 hover:text-slate-900">
+            <button onclick="setCalViewMode('week')" id="viewModeBtn-week" data-i18n="cal.weekView" class="cal-view-btn flex-1 sm:flex-none px-1.5 sm:px-3 py-1 whitespace-nowrap rounded-xl text-xs font-bold transition-all text-slate-600 hover:text-slate-900">
               📋 查看本週
             </button>
-            <button onclick="setCalViewMode('month')" id="viewModeBtn-month" data-i18n="cal.monthView" class="cal-view-btn flex-1 sm:flex-none px-3 py-1 rounded-xl text-xs font-bold transition-all text-slate-600 hover:text-slate-900">
+            <button onclick="setCalViewMode('month')" id="viewModeBtn-month" data-i18n="cal.monthView" class="cal-view-btn flex-1 sm:flex-none px-1.5 sm:px-3 py-1 whitespace-nowrap rounded-xl text-xs font-bold transition-all text-slate-600 hover:text-slate-900">
               🗓️ 本月總覽
             </button>
           </div>
@@ -534,6 +534,10 @@ const htmlContent = `<!DOCTYPE html>
         <!-- 日曆天數格子 (7欄網格，動態生成) -->
         <div id="calendarGrid" class="grid grid-cols-7 gap-1 sm:gap-1.5">
           <!-- JS 動態插入 -->
+        </div>
+        <!-- 手機（< 768）預設只顯示選取日期那一週；可展開整個月 -->
+        <div id="calWeekToggleWrap" class="md:hidden hidden flex justify-center pt-2">
+          <button type="button" id="calWeekToggle" onclick="toggleCalWeekOnly()" class="px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs font-bold text-slate-600 tap-bounce"></button>
         </div>
 
         <!-- 圖例說明 -->
@@ -818,7 +822,7 @@ const htmlContent = `<!DOCTYPE html>
       </div>
 
       <!-- 頁面下方固定播放控制列 (極簡自適應膠囊：選取統計 + 播放圖示按鈕) -->
-      <div id="songsBottomPlayBar" class="fixed bottom-20 sm:bottom-6 left-1/2 -translate-x-1/2 z-40 transition-all duration-300">
+      <div id="songsBottomPlayBar" class="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] md:bottom-6 left-1/2 -translate-x-1/2 z-40 transition-all duration-300">
         <div class="bg-white/95 backdrop-blur-md border border-fuchsia-200/90 shadow-xl rounded-full px-3.5 py-1.5 sm:px-4 sm:py-2 flex items-center gap-3 sm:gap-3.5">
           <!-- 左側：勾選統計與核取方塊 -->
           <label for="bottomBarSelectAllCheckbox" class="flex items-center gap-2 cursor-pointer select-none">
@@ -2172,6 +2176,15 @@ const htmlContent = `<!DOCTYPE html>
         </div>
 
         <div id="adminPanel-settings" class="admin-panel space-y-4 hidden">
+          <div id="mobileNavSettingsCard" class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3 max-w-xl">
+            <h4 class="font-black text-slate-800 text-base">📱 手機底部導覽列</h4>
+            <p class="text-xs text-slate-500">手機畫面最下方固定 4 個頁面＋「更多」（其他頁面、大字、English、管理後台在「更多」裡）。由左到右依序選擇，同一個頁面不能選兩次。</p>
+            <div id="mobileNavSlots" class="grid grid-cols-2 sm:grid-cols-4 gap-2"></div>
+            <div class="flex flex-wrap items-center justify-end gap-2">
+              <button type="button" onclick="resetMobileNavSlots()" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 tap-bounce">恢復預設</button>
+              <button type="button" id="mobileNavSaveBtn" onclick="saveMobileNavSettings()" class="px-4 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold tap-bounce">儲存</button>
+            </div>
+          </div>
           <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4 max-w-xl">
             <h4 class="font-black text-slate-800 text-base">密碼與系統設定</h4>
             <div>
@@ -2529,7 +2542,7 @@ const htmlContent = `<!DOCTYPE html>
   </div>
 
   <!-- ==================== 全域提示訊息 TOAST ==================== -->
-  <div id="toast" class="fixed bottom-16 sm:bottom-6 left-1/2 -translate-x-1/2 z-70 bg-slate-800 text-white text-xs sm:text-sm font-bold px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 transition-all opacity-0 pointer-events-none transform translate-y-3">
+  <div id="toast" class="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] md:bottom-6 left-1/2 -translate-x-1/2 z-70 bg-slate-800 text-white text-xs sm:text-sm font-bold px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 transition-all opacity-0 pointer-events-none transform translate-y-3">
     <span id="toastIcon">✨</span>
     <span id="toastMsg"></span>
   </div>
@@ -2541,6 +2554,21 @@ const htmlContent = `<!DOCTYPE html>
   </footer>
 
   <!-- 列印本週菜單用的容器（螢幕隱藏；列印時只輸出這一塊） -->
+  <!-- 手機底部導覽列（< 768px）：4 個常用頁面＋「更多」；項目由後台「密碼與設定」決定（Settings!MOBILE_NAV_TABS） -->
+  <nav id="mobileBottomNav" class="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur border-t border-rose-100 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]" style="padding-bottom: env(safe-area-inset-bottom)" aria-label="主要頁面" data-i18n-aria="nav.bottomAria">
+    <div id="mobileBottomNavItems" class="grid grid-cols-5"></div>
+  </nav>
+  <div id="mobileMoreSheet" class="hidden md:hidden fixed inset-0 z-[60]" role="dialog" aria-modal="true" aria-labelledby="mobileMoreTitle">
+    <div class="absolute inset-0 bg-slate-900/40" onclick="closeMobileMore()"></div>
+    <div class="absolute bottom-0 inset-x-0 bg-white rounded-t-3xl shadow-2xl p-4 space-y-3" style="padding-bottom: calc(1rem + env(safe-area-inset-bottom))">
+      <div class="flex items-center justify-between">
+        <h3 id="mobileMoreTitle" class="text-base font-black text-slate-800" data-i18n="nav.more">更多</h3>
+        <button type="button" onclick="closeMobileMore()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 font-bold tap-bounce" aria-label="關閉" data-i18n-aria="ui.close">✕</button>
+      </div>
+      <div id="mobileMorePages" class="grid grid-cols-3 gap-2"></div>
+      <div id="mobileMoreTools" class="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100"></div>
+    </div>
+  </div>
   <div id="printMenuArea" aria-hidden="true"></div>
   <div id="printTransitionArea" aria-hidden="true"></div>
 
@@ -2561,6 +2589,8 @@ const htmlContent = `<!DOCTYPE html>
           docs: '常用文件',
           admin: '管理後台',
           bigText: '大字',
+          more: '更多',
+          bottomAria: '主要頁面',
           collapse: '收合選單',
           toggleTitle: '展開／收合選單',
           bigTextTitle: '放大／還原文字大小',
@@ -2600,6 +2630,8 @@ const htmlContent = `<!DOCTYPE html>
           birthday: '慶生'
         },
         cal: {
+          expandMonth: '展開整個月 ▾',
+          weekOnly: '只看這一週 ▴',
           prevMonth: '上個月',
           nextMonth: '下個月',
           todayBtn: '今天',
@@ -2879,6 +2911,8 @@ const htmlContent = `<!DOCTYPE html>
           docs: 'Docs',
           admin: 'Admin',
           bigText: 'Large text',
+          more: 'More',
+          bottomAria: 'Main pages',
           collapse: 'Collapse menu',
           toggleTitle: 'Expand / collapse menu',
           bigTextTitle: 'Toggle large text',
@@ -2918,6 +2952,8 @@ const htmlContent = `<!DOCTYPE html>
           birthday: 'Birthday party'
         },
         cal: {
+          expandMonth: 'Show whole month ▾',
+          weekOnly: 'Show this week only ▴',
           prevMonth: 'Previous Month',
           nextMonth: 'Next Month',
           todayBtn: 'Today',
@@ -3277,6 +3313,7 @@ const htmlContent = `<!DOCTYPE html>
         renderSelectedDayDetails(state.selectedDateStr);
       }
       try { renderTodayCard(); } catch (e) {}
+      try { renderMobileBottomNav(); } catch (e) {}
       initThemeFilters();
       renderThemes();
       try { renderSemesterTasks(); } catch (e) {}
@@ -3543,6 +3580,7 @@ const htmlContent = `<!DOCTYPE html>
         }
       } catch (e) {}
       updateAdminAuthUI();
+      try { renderMobileBottomNav(); } catch (e) {}   // 資料還沒到也先畫出底部導覽（用預設項目）
 
       // 初始化今天日期（若當前月在2026年10月附近則自動對齊）
       const today = new Date();
@@ -4917,6 +4955,7 @@ const htmlContent = `<!DOCTYPE html>
       renderSelectedDayDetails(state.selectedDateStr);
       // 首頁「今天／明天」小卡；已登入時一併更新後台待辦提醒
       try { renderTodayCard(); } catch (e) {}
+      try { renderMobileBottomNav(); } catch (e) {}
       if (state.adminPassword) { try { renderAdminReminders(); } catch (e) {} }
       // 渲染文件列表
       renderDocsList();
@@ -5288,6 +5327,7 @@ const htmlContent = `<!DOCTYPE html>
         applySongFilters();
       }
       updateAdminAuthUI();
+      renderMobileBottomNav();
       // 進入後台頁籤：依目前的子面板重畫列表（避免顯示先前用空資料畫的舊清單）
       if (tabName === 'admin' && state.adminPassword) { try { switchAdminSubtab(state.currentAdminSubtab || 'events'); } catch (e) {} }
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -5988,6 +6028,7 @@ const htmlContent = `<!DOCTYPE html>
 
     // ==================== 行事曆邏輯 (週日為第一天) ====================
     function changeMonth(delta) {
+      state.calWeekOnly = false;   // 換月份就展開整個月（只看一週時看不到別的月份）
       state.viewMonth += delta;
       if (state.viewMonth > 12) {
         state.viewMonth = 1;
@@ -6009,6 +6050,7 @@ const htmlContent = `<!DOCTYPE html>
       state.viewYear = now.getFullYear();
       state.viewMonth = now.getMonth() + 1;
       state.selectedDateStr = getTodayDateStr();
+      state.calWeekOnly = true;   // 回到今天：手機上回到只看這一週
       renderCalendar();
       renderSelectedDayDetails(state.selectedDateStr);
       setCalViewMode('day');
@@ -6016,12 +6058,13 @@ const htmlContent = `<!DOCTYPE html>
 
     function setCalViewMode(mode) {
       state.currentCalView = mode;
+      if (mode === 'month' && state.calWeekOnly) { state.calWeekOnly = false; applyCalWeekCollapse(); }
       ['day', 'week', 'month'].forEach(m => {
         const btn = document.getElementById(\`viewModeBtn-\${m}\`);
         if (m === mode) {
-          btn.className = 'cal-view-btn flex-1 sm:flex-none px-3 py-1 rounded-xl text-xs font-bold transition-all bg-white text-slate-800 shadow-xs';
+          btn.className = 'cal-view-btn flex-1 sm:flex-none px-1.5 sm:px-3 py-1 whitespace-nowrap rounded-xl text-xs font-bold transition-all bg-white text-slate-800 shadow-xs';
         } else {
-          btn.className = 'cal-view-btn flex-1 sm:flex-none px-3 py-1 rounded-xl text-xs font-bold transition-all text-slate-600 hover:text-slate-900';
+          btn.className = 'cal-view-btn flex-1 sm:flex-none px-1.5 sm:px-3 py-1 whitespace-nowrap rounded-xl text-xs font-bold transition-all text-slate-600 hover:text-slate-900';
         }
       });
 
@@ -6226,6 +6269,7 @@ const htmlContent = `<!DOCTYPE html>
         cell.innerHTML = \`<span>\${d}</span>\`;
         grid.appendChild(cell);
       }
+      applyCalWeekCollapse();
     }
 
     // 點選行事曆日期
@@ -12549,6 +12593,135 @@ const htmlContent = `<!DOCTYPE html>
       openPhotoViewerByIndex(0);
     }
 
+    // ==================== 手機底部導覽列 ====================
+    const NAV_TAB_META = {
+      home: { icon: '🏠', label: 'nav.daily' }, themes: { icon: '📚', label: 'nav.themes' }, tasks: { icon: '🎯', label: 'nav.tasks' },
+      transition: { icon: '🎒', label: 'nav.transition' }, albums: { icon: '📸', label: 'nav.albums' }, songs: { icon: '🎵', label: 'nav.songs' }, docs: { icon: '📁', label: 'nav.docs' }
+    };
+    const NAV_TAB_ORDER = ['home', 'themes', 'tasks', 'transition', 'albums', 'songs', 'docs'];
+    const DEFAULT_MOBILE_NAV = ['home', 'albums', 'themes', 'songs'];
+    // 後台設定的 4 個頁籤（後端已解析）；不是正好 4 個不重複的合法頁籤就用預設
+    function mobileNavTabs() {
+      const v = state.settings && state.settings.mobileNavTabs;
+      if (Array.isArray(v) && v.length === 4 && v.every(function(k, i) { return NAV_TAB_META[k] && v.indexOf(k) === i; })) return v.slice();
+      return DEFAULT_MOBILE_NAV.slice();
+    }
+    function navBtn(icon, text, active, onclick, extra) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'mnav-btn flex flex-col items-center justify-center gap-0.5 py-1.5 min-w-0 tap-bounce ' + (active ? 'text-peach-600' : 'text-slate-500') + (extra ? ' ' + extra : '');
+      if (active) b.setAttribute('aria-current', 'page');
+      const i = document.createElement('span'); i.className = 'text-xl leading-none ' + (active ? '' : 'opacity-80'); i.setAttribute('aria-hidden', 'true'); i.textContent = icon;
+      const l = document.createElement('span'); l.className = 'text-[11px] font-bold leading-tight max-w-full truncate px-1'; l.textContent = text;
+      b.appendChild(i); b.appendChild(l);
+      b.onclick = onclick;
+      return b;
+    }
+    function renderMobileBottomNav() {
+      const box = document.getElementById('mobileBottomNavItems');
+      if (!box) return;
+      const tabs = mobileNavTabs();
+      const cur = state.currentTab || 'home';
+      box.innerHTML = '';
+      tabs.forEach(function(k) {
+        const b = navBtn(NAV_TAB_META[k].icon, t(NAV_TAB_META[k].label), cur === k, function() { closeMobileMore(); switchTab(k); });
+        b.setAttribute('data-tab', k);
+        box.appendChild(b);
+      });
+      const more = navBtn('⋯', t('nav.more'), tabs.indexOf(cur) === -1, openMobileMore);
+      more.id = 'mobileNavMoreBtn'; more.setAttribute('aria-haspopup', 'dialog');
+      box.appendChild(more);
+    }
+    function openMobileMore() {
+      const sheet = document.getElementById('mobileMoreSheet');
+      if (!sheet) return;
+      const tabs = mobileNavTabs();
+      const pages = document.getElementById('mobileMorePages'), tools = document.getElementById('mobileMoreTools');
+      const tile = function(icon, text, onclick, active) {
+        const b = document.createElement('button'); b.type = 'button';
+        b.className = 'mmore-btn flex flex-col items-center justify-center gap-1 rounded-2xl border p-3 tap-bounce ' + (active ? 'bg-peach-50 border-peach-300 text-peach-700' : 'bg-slate-50 border-slate-200 text-slate-700');
+        const i = document.createElement('span'); i.className = 'text-2xl leading-none'; i.setAttribute('aria-hidden', 'true'); i.textContent = icon;
+        const l = document.createElement('span'); l.className = 'text-xs font-bold'; l.textContent = text;
+        b.appendChild(i); b.appendChild(l); b.onclick = onclick; return b;
+      };
+      pages.innerHTML = ''; tools.innerHTML = '';
+      NAV_TAB_ORDER.filter(function(k) { return tabs.indexOf(k) === -1; }).forEach(function(k) {
+        const b = tile(NAV_TAB_META[k].icon, t(NAV_TAB_META[k].label), function() { closeMobileMore(); switchTab(k); }, state.currentTab === k);
+        b.setAttribute('data-tab', k); pages.appendChild(b);
+      });
+      tools.appendChild(tile('🔠', t('nav.bigText'), function() { toggleBigText(); closeMobileMore(); }, isBigText()));
+      tools.appendChild(tile('🌐', t('nav.langToggle'), function() { closeMobileMore(); toggleLanguage(); }, false));
+      const adm = tile('⚙️', t('nav.admin'), function() { closeMobileMore(); switchTab('admin'); }, state.currentTab === 'admin'); adm.setAttribute('data-tab', 'admin'); tools.appendChild(adm);
+      sheet.classList.remove('hidden');
+      document.addEventListener('keydown', mobileMoreEsc);
+    }
+    function closeMobileMore() {
+      const sheet = document.getElementById('mobileMoreSheet');
+      if (sheet) sheet.classList.add('hidden');
+      document.removeEventListener('keydown', mobileMoreEsc);
+    }
+    function mobileMoreEsc(e) { if (e.key === 'Escape') closeMobileMore(); }
+
+    // ---------- 後台「手機底部導覽列」設定 ----------
+    function renderMobileNavSettings(values) {
+      const box = document.getElementById('mobileNavSlots');
+      if (!box) return;
+      const cur = values || mobileNavTabs();
+      box.innerHTML = '';
+      for (let i = 0; i < 4; i++) {
+        const lab = document.createElement('label'); lab.className = 'block';
+        const cap = document.createElement('span'); cap.className = 'block text-[0.6875rem] font-bold text-slate-500 mb-1'; cap.textContent = '第 ' + (i + 1) + ' 格';
+        const sel = document.createElement('select'); sel.id = 'mobileNavSlot-' + (i + 1);
+        sel.className = 'w-full px-2.5 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-700 bg-white';
+        NAV_TAB_ORDER.forEach(function(k) { const o = document.createElement('option'); o.value = k; o.textContent = NAV_TAB_META[k].icon + ' ' + t(NAV_TAB_META[k].label); sel.appendChild(o); });
+        sel.value = cur[i] || DEFAULT_MOBILE_NAV[i];
+        lab.appendChild(cap); lab.appendChild(sel); box.appendChild(lab);
+      }
+    }
+    function resetMobileNavSlots() { renderMobileNavSettings(DEFAULT_MOBILE_NAV); }
+    function saveMobileNavSettings() {
+      const tabs = [1, 2, 3, 4].map(function(i) { return (document.getElementById('mobileNavSlot-' + i) || {}).value || ''; });
+      const dup = tabs.filter(function(k, i) { return tabs.indexOf(k) !== i; });
+      if (dup.length) { showToast('同一個頁面不能選兩次：' + t(NAV_TAB_META[dup[0]].label), '⚠️'); return; }
+      const btn = document.getElementById('mobileNavSaveBtn'); if (btn) btn.disabled = true;
+      callBackend('saveMobileNav', { tabs: tabs, password: getAdminPassword() }, function(res) {
+        if (btn) btn.disabled = false;
+        if (res && res.success) {
+          if (!state.settings) state.settings = {};
+          state.settings.mobileNavTabs = Array.isArray(res.tabs) ? res.tabs : tabs;
+          renderMobileBottomNav();
+          showToast(res.message || '已更新', '✅');
+          loadAppData();
+        } else {
+          showToast('儲存失敗：' + ((res && res.error) || '未知錯誤'), '❌');
+        }
+      }, function() { if (btn) btn.disabled = false; showToast('網路連線逾時，請稍後再試', '⚠️'); });
+    }
+
+    // ==================== 手機月曆「只看這一週」====================
+    // 手機（< 768）預設只顯示選取日期所在的那一週；換月份、切到「本月總覽」或按「展開整個月」就顯示整月。
+    function applyCalWeekCollapse() {
+      const grid = document.getElementById('calendarGrid');
+      const wrap = document.getElementById('calWeekToggleWrap'), btn = document.getElementById('calWeekToggle');
+      if (!grid) return;
+      if (state.calWeekOnly === undefined) state.calWeekOnly = true;
+      const mobile = window.innerWidth < 768;
+      const sel = String(state.selectedDateStr || '');
+      const inView = Number(sel.slice(0, 4)) === state.viewYear && Number(sel.slice(5, 7)) === state.viewMonth;
+      const collapse = mobile && state.calWeekOnly && inView;
+      const first = new Date(state.viewYear, state.viewMonth - 1, 1).getDay();
+      const selWeek = inView ? Math.floor((first + Number(sel.slice(8, 10)) - 1) / 7) : -1;
+      Array.prototype.forEach.call(grid.children, function(cell, i) { cell.classList.toggle('hidden', collapse && Math.floor(i / 7) !== selWeek); });
+      if (wrap) wrap.classList.toggle('hidden', !(mobile && inView));
+      if (btn) btn.textContent = collapse ? t('cal.expandMonth') : t('cal.weekOnly');
+    }
+    function toggleCalWeekOnly() {
+      state.calWeekOnly = !state.calWeekOnly;
+      applyCalWeekCollapse();
+    }
+    let calResizeTimer = null;
+    window.addEventListener('resize', function() { clearTimeout(calResizeTimer); calResizeTimer = setTimeout(applyCalWeekCollapse, 150); });
+
     // ==================== 首頁「今天／明天」小卡 ====================
     let todayCardTimer = null;
     const todayExpanded = Object.create(null);   // 哪幾天的卡片目前是展開的（重畫時保持）
@@ -13473,6 +13646,7 @@ const htmlContent = `<!DOCTYPE html>
     }
     
     function loadSettingsToForm() {
+      renderMobileNavSettings();
       
       const actFolderInput = document.getElementById('setting-activityFolderUrl');
       if (actFolderInput) {
