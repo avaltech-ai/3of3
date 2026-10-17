@@ -484,16 +484,16 @@ const htmlContent = `<!DOCTYPE html>
         <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pb-3 border-b border-slate-100">
           <!-- 年月與切換鈕 -->
           <div class="flex items-center gap-1.5 sm:gap-2 max-w-full">
-            <button onclick="changeMonth(-1)" id="calPrevBtn" class="shrink-0 w-9 h-9 rounded-xl bg-slate-100 hover:bg-peach-100 hover:text-peach-600 flex items-center justify-center font-bold text-slate-600 transition-colors tap-bounce" title="上個月" data-i18n-title="cal.prevMonth">
+            <button onclick="changeMonth(-1)" id="calPrevBtn" class="shrink-0 w-9 h-9 max-sm:w-[34px] max-sm:h-[34px] rounded-xl bg-slate-100 hover:bg-peach-100 hover:text-peach-600 flex items-center justify-center font-bold text-slate-600 transition-colors tap-bounce" title="上個月" data-i18n-title="cal.prevMonth">
               ❮
             </button>
-            <h3 id="calendarCurrentMonthText" class="text-[0.95rem] sm:text-lg font-black text-slate-800 min-w-0 sm:min-w-[130px] whitespace-nowrap text-center tracking-tight">
+            <h3 id="calendarCurrentMonthText" class="text-[15px] max-[359px]:text-[14px] sm:text-lg font-black text-slate-800 min-w-0 sm:min-w-[130px] whitespace-nowrap text-center tracking-tight">
               2026 年 10 月
             </h3>
-            <button onclick="changeMonth(1)" id="calNextBtn" class="shrink-0 w-9 h-9 rounded-xl bg-slate-100 hover:bg-peach-100 hover:text-peach-600 flex items-center justify-center font-bold text-slate-600 transition-colors tap-bounce" title="下個月" data-i18n-title="cal.nextMonth">
+            <button onclick="changeMonth(1)" id="calNextBtn" class="shrink-0 w-9 h-9 max-sm:w-[34px] max-sm:h-[34px] rounded-xl bg-slate-100 hover:bg-peach-100 hover:text-peach-600 flex items-center justify-center font-bold text-slate-600 transition-colors tap-bounce" title="下個月" data-i18n-title="cal.nextMonth">
               ❯
             </button>
-            <button onclick="goToToday()" data-i18n="cal.todayBtn" class="whitespace-nowrap shrink-0 px-2.5 sm:px-3 py-1.5 rounded-xl bg-rose-50 text-peach-600 hover:bg-peach-100 text-xs font-bold border border-rose-200/70 tap-bounce ml-1">
+            <button onclick="goToToday()" data-i18n="cal.todayBtn" class="whitespace-nowrap shrink-0 px-2.5 sm:px-3 py-1.5 rounded-xl bg-rose-50 text-peach-600 hover:bg-peach-100 text-xs max-sm:text-[13px] font-bold border border-rose-200/70 tap-bounce ml-1">
               今天
             </button>
           </div>
@@ -501,13 +501,13 @@ const htmlContent = `<!DOCTYPE html>
           <!-- 檢視模式選擇按鈕 (每日點選 / 本週行程 / 本月活動) -->
           <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-2xl w-full sm:w-auto justify-center">
             <button onclick="setCalViewMode('day')" id="viewModeBtn-day" class="cal-view-btn flex-auto sm:flex-none px-1.5 sm:px-3 py-1 min-w-0 truncate max-[359px]:text-[13px] rounded-xl text-xs font-bold transition-all bg-white text-slate-800 shadow-xs">
-              <span class="max-[359px]:hidden" aria-hidden="true">📅</span> <span data-i18n="cal.dayView">單日點選</span>
+              <span class="hidden sm:inline" aria-hidden="true">📅</span> <span data-i18n="cal.dayView">單日點選</span>
             </button>
             <button onclick="setCalViewMode('week')" id="viewModeBtn-week" class="cal-view-btn flex-auto sm:flex-none px-1.5 sm:px-3 py-1 min-w-0 truncate max-[359px]:text-[13px] rounded-xl text-xs font-bold transition-all text-slate-600 hover:text-slate-900">
-              <span class="max-[359px]:hidden" aria-hidden="true">📋</span> <span data-i18n="cal.weekView">查看本週</span>
+              <span class="hidden sm:inline" aria-hidden="true">📋</span> <span data-i18n="cal.weekView">查看本週</span>
             </button>
             <button onclick="setCalViewMode('month')" id="viewModeBtn-month" class="cal-view-btn flex-auto sm:flex-none px-1.5 sm:px-3 py-1 min-w-0 truncate max-[359px]:text-[13px] rounded-xl text-xs font-bold transition-all text-slate-600 hover:text-slate-900">
-              <span class="max-[359px]:hidden" aria-hidden="true">🗓️</span> <span data-i18n="cal.monthView">本月總覽</span>
+              <span class="hidden sm:inline" aria-hidden="true">🗓️</span> <span data-i18n="cal.monthView">本月總覽</span>
             </button>
           </div>
         </div>

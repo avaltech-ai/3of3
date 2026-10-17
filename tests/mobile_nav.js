@@ -92,6 +92,7 @@
   goToToday(); ok(state.currentCalView === 'day', '電腦按「今天」：維持原本的「單日點選」');
   restoreWidth();
   ok([...document.querySelectorAll('.cal-view-btn')].every(b => /truncate/.test(b.className) && /min-w-0/.test(b.className)) && /whitespace-nowrap/.test(document.querySelector('[onclick="goToToday()"]').className), '模式鈕不換行也不會超出畫面（太窄時以「…」結尾）；「今天」鈕不換行');
+  ok([...document.querySelectorAll('.cal-view-btn > span[aria-hidden]')].length === 3 && [...document.querySelectorAll('.cal-view-btn > span[aria-hidden]')].every(sp => /\bhidden\b/.test(sp.className) && /sm:inline/.test(sp.className)) && /max-sm:w-\[34px\]/.test($('calPrevBtn').className) && /max-sm:text-\[13px\]/.test(document.querySelector('[onclick="goToToday()"]').className), '手機上模式鈕不放圖示（文字才放得下，大字模式也一樣）；‹ › 與「今天」在手機上固定大小');
 
   window.callBackend = real.cb; window.showToast = real.toast; window.loadAppData = real.load; window.toggleBigText = real.big;
   state.settings = saved.settings; state.adminPassword = saved.pwd; state.selectedDateStr = saved.sel; state.viewYear = saved.vy; state.viewMonth = saved.vm; state.currentCalView = saved.mode || 'day'; window.handleDataLoaded = realHandle;
