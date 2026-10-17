@@ -239,10 +239,7 @@
         <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <!-- 園所與班級 Logo 識別 -->
           <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
-            <!-- 漢堡選單 (手機版專用) -->
-            <button class="md:hidden text-2xl text-slate-600 hover:text-slate-800 tap-bounce p-1 focus:outline-none" onclick="toggleMobileSidebar()">
-              ☰
-            </button>
+            <!-- 手機原本的 ☰ 漢堡選單已移除（2026-10-18）：所有頁面與工具都在底部導覽列與「更多」裡 -->
             <div class="cursor-pointer flex items-center gap-2.5 min-w-0" onclick="switchTab('home')">
               <!-- 圖三 Logo (參照圖四設計) -->
               <div class="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-white border-2 border-rose-200 p-1 flex items-center justify-center shrink-0 shadow-xs">
@@ -385,7 +382,7 @@
         <!-- 裝飾背景符號 -->
         <div class="absolute -right-6 -bottom-6 text-7xl opacity-15 select-none pointer-events-none">🍑</div>
 
-        <div class="flex items-center justify-between gap-2 mb-3">
+        <div class="flex flex-wrap items-center justify-between gap-x-2 gap-y-2 mb-3">
           <div class="flex items-center gap-1.5 sm:gap-2 min-w-0">
             <span class="bg-peach-500 text-white text-xs font-extrabold px-2.5 sm:px-3 py-1 rounded-full shadow-sm flex items-center gap-1 sm:gap-1.5 whitespace-nowrap">
               <span>✨</span> <span data-i18n="cal.spotlightTag">焦點活動</span>
@@ -396,7 +393,7 @@
           </div>
 
           <!-- 輪播控制與狀態 (多活動自動顯示) -->
-          <div id="spotlightNavControls" class="flex items-center gap-2 shrink-0">
+          <div id="spotlightNavControls" class="flex items-center gap-2 shrink-0 ml-auto">
             <span id="spotlightSlideCounter" class="text-xs sm:text-sm font-extrabold text-slate-500 bg-white/80 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full border border-rose-100 shadow-2xs whitespace-nowrap">
               1 / 1
             </span>
@@ -482,31 +479,31 @@
         <!-- 工具列：年月份切換、檢視模式切換、回到今天 -->
         <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pb-3 border-b border-slate-100">
           <!-- 年月與切換鈕 -->
-          <div class="flex items-center gap-2">
-            <button onclick="changeMonth(-1)" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-peach-100 hover:text-peach-600 flex items-center justify-center font-bold text-slate-600 transition-colors tap-bounce" title="上個月" data-i18n-title="cal.prevMonth">
+          <div class="flex items-center gap-1.5 sm:gap-2 max-w-full">
+            <button onclick="changeMonth(-1)" id="calPrevBtn" class="shrink-0 w-9 h-9 rounded-xl bg-slate-100 hover:bg-peach-100 hover:text-peach-600 flex items-center justify-center font-bold text-slate-600 transition-colors tap-bounce" title="上個月" data-i18n-title="cal.prevMonth">
               ❮
             </button>
-            <h3 id="calendarCurrentMonthText" class="text-base sm:text-lg font-black text-slate-800 min-w-[130px] text-center tracking-tight">
+            <h3 id="calendarCurrentMonthText" class="text-[0.95rem] sm:text-lg font-black text-slate-800 min-w-0 sm:min-w-[130px] whitespace-nowrap text-center tracking-tight">
               2026 年 10 月
             </h3>
-            <button onclick="changeMonth(1)" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-peach-100 hover:text-peach-600 flex items-center justify-center font-bold text-slate-600 transition-colors tap-bounce" title="下個月" data-i18n-title="cal.nextMonth">
+            <button onclick="changeMonth(1)" id="calNextBtn" class="shrink-0 w-9 h-9 rounded-xl bg-slate-100 hover:bg-peach-100 hover:text-peach-600 flex items-center justify-center font-bold text-slate-600 transition-colors tap-bounce" title="下個月" data-i18n-title="cal.nextMonth">
               ❯
             </button>
-            <button onclick="goToToday()" data-i18n="cal.todayBtn" class="px-3 py-1.5 rounded-xl bg-rose-50 text-peach-600 hover:bg-peach-100 text-xs font-bold border border-rose-200/70 tap-bounce ml-1">
+            <button onclick="goToToday()" data-i18n="cal.todayBtn" class="whitespace-nowrap shrink-0 px-2.5 sm:px-3 py-1.5 rounded-xl bg-rose-50 text-peach-600 hover:bg-peach-100 text-xs font-bold border border-rose-200/70 tap-bounce ml-1">
               今天
             </button>
           </div>
 
           <!-- 檢視模式選擇按鈕 (每日點選 / 本週行程 / 本月活動) -->
           <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-2xl w-full sm:w-auto justify-center">
-            <button onclick="setCalViewMode('day')" id="viewModeBtn-day" data-i18n="cal.dayView" class="cal-view-btn flex-1 sm:flex-none px-1.5 sm:px-3 py-1 whitespace-nowrap rounded-xl text-xs font-bold transition-all bg-white text-slate-800 shadow-xs">
-              📅 單日點選
+            <button onclick="setCalViewMode('day')" id="viewModeBtn-day" class="cal-view-btn flex-auto sm:flex-none px-1.5 sm:px-3 py-1 min-w-0 truncate max-[359px]:text-[13px] rounded-xl text-xs font-bold transition-all bg-white text-slate-800 shadow-xs">
+              <span class="max-[359px]:hidden" aria-hidden="true">📅</span> <span data-i18n="cal.dayView">單日點選</span>
             </button>
-            <button onclick="setCalViewMode('week')" id="viewModeBtn-week" data-i18n="cal.weekView" class="cal-view-btn flex-1 sm:flex-none px-1.5 sm:px-3 py-1 whitespace-nowrap rounded-xl text-xs font-bold transition-all text-slate-600 hover:text-slate-900">
-              📋 查看本週
+            <button onclick="setCalViewMode('week')" id="viewModeBtn-week" class="cal-view-btn flex-auto sm:flex-none px-1.5 sm:px-3 py-1 min-w-0 truncate max-[359px]:text-[13px] rounded-xl text-xs font-bold transition-all text-slate-600 hover:text-slate-900">
+              <span class="max-[359px]:hidden" aria-hidden="true">📋</span> <span data-i18n="cal.weekView">查看本週</span>
             </button>
-            <button onclick="setCalViewMode('month')" id="viewModeBtn-month" data-i18n="cal.monthView" class="cal-view-btn flex-1 sm:flex-none px-1.5 sm:px-3 py-1 whitespace-nowrap rounded-xl text-xs font-bold transition-all text-slate-600 hover:text-slate-900">
-              🗓️ 本月總覽
+            <button onclick="setCalViewMode('month')" id="viewModeBtn-month" class="cal-view-btn flex-auto sm:flex-none px-1.5 sm:px-3 py-1 min-w-0 truncate max-[359px]:text-[13px] rounded-xl text-xs font-bold transition-all text-slate-600 hover:text-slate-900">
+              <span class="max-[359px]:hidden" aria-hidden="true">🗓️</span> <span data-i18n="cal.monthView">本月總覽</span>
             </button>
           </div>
         </div>
@@ -530,10 +527,6 @@
         <!-- 日曆天數格子 (7欄網格，動態生成) -->
         <div id="calendarGrid" class="grid grid-cols-7 gap-1 sm:gap-1.5">
           <!-- JS 動態插入 -->
-        </div>
-        <!-- 手機（< 768）預設只顯示選取日期那一週；可展開整個月 -->
-        <div id="calWeekToggleWrap" class="md:hidden hidden flex justify-center pt-2">
-          <button type="button" id="calWeekToggle" onclick="toggleCalWeekOnly()" class="px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs font-bold text-slate-600 tap-bounce"></button>
         </div>
 
         <!-- 圖例說明 -->
@@ -2626,14 +2619,14 @@
           birthday: '慶生'
         },
         cal: {
-          expandMonth: '展開整個月 ▾',
-          weekOnly: '只看這一週 ▴',
+          prevWeek: '上一週',
+          nextWeek: '下一週',
           prevMonth: '上個月',
           nextMonth: '下個月',
           todayBtn: '今天',
-          dayView: '📅 單日點選',
-          weekView: '📋 查看本週',
-          monthView: '🗓️ 本月總覽',
+          dayView: '單日點選',
+          weekView: '查看本週',
+          monthView: '本月總覽',
           weekdays: ['週日', '週一', '週二', '週三', '週四', '週五', '週六'],
           legendNobel: '諾貝爾 A 班',
           legendAllSchool: '全園活動',
@@ -2948,14 +2941,14 @@
           birthday: 'Birthday party'
         },
         cal: {
-          expandMonth: 'Show whole month ▾',
-          weekOnly: 'Show this week only ▴',
+          prevWeek: 'Previous week',
+          nextWeek: 'Next week',
           prevMonth: 'Previous Month',
           nextMonth: 'Next Month',
           todayBtn: 'Today',
-          dayView: '📅 Day',
-          weekView: '📋 Week',
-          monthView: '🗓️ Month',
+          dayView: 'Day',
+          weekView: 'Week',
+          monthView: 'Month',
           weekdays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
           legendNobel: 'Nobel A',
           legendAllSchool: 'School Events',
@@ -4952,6 +4945,7 @@
       // 首頁「今天／明天」小卡；已登入時一併更新後台待辦提醒
       try { renderTodayCard(); } catch (e) {}
       try { renderMobileBottomNav(); } catch (e) {}
+      try { applyCalDefaultMode(); } catch (e) {}
       if (state.adminPassword) { try { renderAdminReminders(); } catch (e) {} }
       // 渲染文件列表
       renderDocsList();
@@ -6024,7 +6018,16 @@
 
     // ==================== 行事曆邏輯 (週日為第一天) ====================
     function changeMonth(delta) {
-      state.calWeekOnly = false;   // 換月份就展開整個月（只看一週時看不到別的月份）
+      // 手機在「單日點選／查看本週」時月曆只顯示一週：‹ › 改成一次移一週（選取日期跟著移，月份標題跟著換）
+      if (calShowsWeekOnly()) {
+        const key = ymdAdd(state.selectedDateStr, 7 * delta);
+        state.selectedDateStr = key;
+        state.viewYear = Number(key.slice(0, 4));
+        state.viewMonth = Number(key.slice(5, 7));
+        renderCalendar();
+        if (state.currentCalView === 'week') renderWeekView(); else renderSelectedDayDetails(key);
+        return;
+      }
       state.viewMonth += delta;
       if (state.viewMonth > 12) {
         state.viewMonth = 1;
@@ -6046,21 +6049,19 @@
       state.viewYear = now.getFullYear();
       state.viewMonth = now.getMonth() + 1;
       state.selectedDateStr = getTodayDateStr();
-      state.calWeekOnly = true;   // 回到今天：手機上回到只看這一週
       renderCalendar();
       renderSelectedDayDetails(state.selectedDateStr);
-      setCalViewMode('day');
+      setCalViewMode(window.innerWidth < 768 ? 'week' : 'day');   // 手機回到預設的「查看本週」
     }
 
     function setCalViewMode(mode) {
       state.currentCalView = mode;
-      if (mode === 'month' && state.calWeekOnly) { state.calWeekOnly = false; applyCalWeekCollapse(); }
       ['day', 'week', 'month'].forEach(m => {
         const btn = document.getElementById(`viewModeBtn-${m}`);
         if (m === mode) {
-          btn.className = 'cal-view-btn flex-1 sm:flex-none px-1.5 sm:px-3 py-1 whitespace-nowrap rounded-xl text-xs font-bold transition-all bg-white text-slate-800 shadow-xs';
+          btn.className = 'cal-view-btn flex-auto sm:flex-none px-1.5 sm:px-3 py-1 min-w-0 truncate max-[359px]:text-[13px] rounded-xl text-xs font-bold transition-all bg-white text-slate-800 shadow-xs';
         } else {
-          btn.className = 'cal-view-btn flex-1 sm:flex-none px-1.5 sm:px-3 py-1 whitespace-nowrap rounded-xl text-xs font-bold transition-all text-slate-600 hover:text-slate-900';
+          btn.className = 'cal-view-btn flex-auto sm:flex-none px-1.5 sm:px-3 py-1 min-w-0 truncate max-[359px]:text-[13px] rounded-xl text-xs font-bold transition-all text-slate-600 hover:text-slate-900';
         }
       });
 
@@ -6068,6 +6069,7 @@
       const weekSec = document.getElementById('weekViewContainer');
       const monthSec = document.getElementById('monthViewContainer');
 
+      applyCalWeekCollapse();   // 手機：本月總覽顯示整月，單日／本週只顯示那一週
       if (mode === 'day') {
         daySec.classList.remove('hidden');
         weekSec.classList.add('hidden');
@@ -12696,24 +12698,30 @@
 
     // ==================== 手機月曆「只看這一週」====================
     // 手機（< 768）預設只顯示選取日期所在的那一週；換月份、切到「本月總覽」或按「展開整個月」就顯示整月。
-    function applyCalWeekCollapse() {
-      const grid = document.getElementById('calendarGrid');
-      const wrap = document.getElementById('calWeekToggleWrap'), btn = document.getElementById('calWeekToggle');
-      if (!grid) return;
-      if (state.calWeekOnly === undefined) state.calWeekOnly = true;
-      const mobile = window.innerWidth < 768;
+    // 手機（< 768）在「單日點選／查看本週」時只顯示選取日期那一週；「本月總覽」顯示整月；電腦與平板永遠整月
+    function calShowsWeekOnly() {
       const sel = String(state.selectedDateStr || '');
       const inView = Number(sel.slice(0, 4)) === state.viewYear && Number(sel.slice(5, 7)) === state.viewMonth;
-      const collapse = mobile && state.calWeekOnly && inView;
-      const first = new Date(state.viewYear, state.viewMonth - 1, 1).getDay();
-      const selWeek = inView ? Math.floor((first + Number(sel.slice(8, 10)) - 1) / 7) : -1;
-      Array.prototype.forEach.call(grid.children, function(cell, i) { cell.classList.toggle('hidden', collapse && Math.floor(i / 7) !== selWeek); });
-      if (wrap) wrap.classList.toggle('hidden', !(mobile && inView));
-      if (btn) btn.textContent = collapse ? t('cal.expandMonth') : t('cal.weekOnly');
+      return window.innerWidth < 768 && inView && state.currentCalView !== 'month';
     }
-    function toggleCalWeekOnly() {
-      state.calWeekOnly = !state.calWeekOnly;
-      applyCalWeekCollapse();
+    function applyCalWeekCollapse() {
+      const grid = document.getElementById('calendarGrid');
+      if (!grid) return;
+      const collapse = calShowsWeekOnly();
+      const sel = String(state.selectedDateStr || '');
+      const first = new Date(state.viewYear, state.viewMonth - 1, 1).getDay();
+      const selWeek = collapse ? Math.floor((first + Number(sel.slice(8, 10)) - 1) / 7) : -1;
+      Array.prototype.forEach.call(grid.children, function(cell, i) { cell.classList.toggle('hidden', collapse && Math.floor(i / 7) !== selWeek); });
+      [['calPrevBtn', 'cal.prevWeek', 'cal.prevMonth'], ['calNextBtn', 'cal.nextWeek', 'cal.nextMonth']].forEach(function(p) {
+        const b = document.getElementById(p[0]); if (!b) return;
+        const label = t(collapse ? p[1] : p[2]); b.title = label; b.setAttribute('aria-label', label);
+      });
+    }
+    let calDefaultModeApplied = false;   // 手機第一次載入時預設「查看本週」（之後尊重使用者的選擇）
+    function applyCalDefaultMode() {
+      if (calDefaultModeApplied) return;
+      calDefaultModeApplied = true;
+      if (window.innerWidth < 768) setCalViewMode('week');
     }
     let calResizeTimer = null;
     window.addEventListener('resize', function() { clearTimeout(calResizeTimer); calResizeTimer = setTimeout(applyCalWeekCollapse, 150); });

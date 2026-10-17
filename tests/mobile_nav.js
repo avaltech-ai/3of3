@@ -5,7 +5,7 @@
   await wait(4000);
   const realHandle = window.handleDataLoaded; window.handleDataLoaded = function () {};
   const startLang = state.lang; if (state.lang === 'en') { toggleLanguage(); await wait(300); }
-  const saved = { settings: JSON.parse(JSON.stringify(state.settings || {})), tab: state.currentTab, pwd: state.adminPassword, sel: state.selectedDateStr, vy: state.viewYear, vm: state.viewMonth, wk: state.calWeekOnly, big: document.documentElement.classList.contains('big-text') };
+  const saved = { settings: JSON.parse(JSON.stringify(state.settings || {})), tab: state.currentTab, pwd: state.adminPassword, sel: state.selectedDateStr, vy: state.viewYear, vm: state.viewMonth, mode: state.currentCalView, big: document.documentElement.classList.contains('big-text') };
   const real = { cb: window.callBackend, toast: window.showToast, load: window.loadAppData, big: window.toggleBigText, lang: window.toggleLanguage };
   const $ = id => document.getElementById(id);
   const cbs = [], toasts = [];
@@ -65,28 +65,37 @@
   ok(/Daily/.test(navLabels()[0]) && /More/.test(navLabels()[4]), '英文介面：導覽列文字是英文');
   toggleLanguage(); await wait(200);
 
-  // F. 手機月曆「只看這一週」
+  // F. 手機月曆：模式鈕與格子連動
   switchTab('home');
-  fakeWidth(390); state.viewYear = 2026; state.viewMonth = 10; state.selectedDateStr = '2026-10-21'; state.calWeekOnly = true; renderCalendar();
   const shown = () => [...$('calendarGrid').children].filter(c => !c.classList.contains('hidden'));
-  ok(shown().length === 7 && shown().some(c => /^\s*21/.test(c.textContent)) && shown().some(c => /^\s*18/.test(c.textContent)) && shown().some(c => /^\s*24/.test(c.textContent)), '手機：只顯示選取日期那一週（10/18～10/24）');
-  ok(!$('calWeekToggleWrap').classList.contains('hidden') && /展開整個月/.test($('calWeekToggle').textContent), '下方有「展開整個月 ▾」');
-  $('calWeekToggle').click(); ok(shown().length === $('calendarGrid').children.length && /只看這一週/.test($('calWeekToggle').textContent), '按一下：展開整個月，按鈕變「只看這一週 ▴」');
-  $('calWeekToggle').click(); ok(shown().length === 7, '再按：收回一週');
-  state.selectedDateStr = '2026-10-01'; renderCalendar(); ok(shown().length === 7 && shown().some(c => /^\s*1\b/.test(c.textContent)) && shown().some(c => /^\s*27/.test(c.textContent)), '月初那週：包含上個月尾的格子（9/27～10/3）');
-  state.selectedDateStr = '2026-10-31'; renderCalendar(); ok(shown().length === 7 && shown().some(c => /^\s*31/.test(c.textContent)), '月底那週也正確');
-  changeMonth(1); ok(state.calWeekOnly === false && shown().length === $('calendarGrid').children.length && $('calWeekToggleWrap').classList.contains('hidden'), '換到下個月：自動顯示整月（選取日期不在這個月時不顯示切換鈕）');
+  const allCells = () => $('calendarGrid').children.length;
+  const activeMode = () => ['day', 'week', 'month'].filter(m => /shadow-xs/.test($('viewModeBtn-' + m).className)).join();
+  fakeWidth(390); state.viewYear = 2026; state.viewMonth = 10; state.selectedDateStr = '2026-10-21'; state.currentCalView = 'day'; renderCalendar();
+  calDefaultModeApplied = false; applyCalDefaultMode();
+  ok(state.currentCalView === 'week' && activeMode() === 'week' && !$('weekViewContainer').classList.contains('hidden') && $('linkedContentSection').classList.contains('hidden'), '手機第一次載入：預設選「查看本週」（按鈕亮起、下方顯示本週列表）');
+  ok(shown().length === 7 && shown().some(c => /^\s*18/.test(c.textContent)) && shown().some(c => /^\s*24/.test(c.textContent)), '格子只顯示這一週（10/18～10/24），和按鈕一致');
+  ok(!document.getElementById('calWeekToggle'), '不再有另外的「展開整個月」按鈕（同一件事只有一個開關）');
+  setCalViewMode('day'); applyCalDefaultMode(); ok(state.currentCalView === 'day', '預設只套用一次：使用者自己切換後不會被改回來');
+  onDateClicked('2026-10-22'); ok(state.currentCalView === 'day' && activeMode() === 'day' && state.selectedDateStr === '2026-10-22' && shown().length === 7 && !$('linkedContentSection').classList.contains('hidden'), '點某一天：切到「單日點選」看那天詳情，格子仍是那一週');
+  setCalViewMode('month'); ok(shown().length === allCells() && activeMode() === 'month' && !$('monthViewContainer').classList.contains('hidden'), '「本月總覽」：格子展開整個月');
+  ok($('calPrevBtn').title === '上個月' && $('calNextBtn').title === '下個月', '整月時 ‹ › 是上個月／下個月');
+  const m0 = state.viewMonth; changeMonth(1); ok(state.viewMonth === 11 && state.selectedDateStr === '2026-10-22' && shown().length === allCells(), '整月時按 ›：換到下個月（選取日期不變）');
   changeMonth(-1);
-  goToToday(); ok(state.calWeekOnly === true && shown().length === 7 && state.selectedDateStr === getTodayDateStr(), '按「今天」：回到今天，並收回只看這一週');
-  setCalViewMode('month'); ok(state.calWeekOnly === false && shown().length === $('calendarGrid').children.length, '切到「本月總覽」：顯示整月');
-  setCalViewMode('day');
-  fakeWidth(1024); state.calWeekOnly = true; applyCalWeekCollapse(); ok(shown().length === $('calendarGrid').children.length && $('calWeekToggleWrap').classList.contains('hidden'), '電腦／平板（≥ 768）：永遠顯示整月，沒有切換鈕');
+  setCalViewMode('week'); ok(shown().length === 7 && $('calPrevBtn').title === '上一週' && $('calNextBtn').title === '下一週', '回到「查看本週」：格子收回一週，‹ › 變成上一週／下一週');
+  changeMonth(1); ok(state.selectedDateStr === '2026-10-29' && state.viewMonth === 10 && shown().length === 7 && shown().some(c => /^\s*29/.test(c.textContent)), '週模式按 ›：移到下一週（10/29 那週）');
+  ok([...document.querySelectorAll('#weekDaysList > div')].some(d => /29/.test(d.textContent)), '下方本週列表跟著換成那一週');
+  changeMonth(1); ok(state.selectedDateStr === '2026-11-05' && state.viewMonth === 11 && /11/.test($('calendarCurrentMonthText').textContent) && shown().length === 7, '跨月：移到 11/5 那週，月份標題換成 11 月');
+  changeMonth(-1); changeMonth(-1); ok(state.selectedDateStr === '2026-10-22' && state.viewMonth === 10, '按 ‹：一次退一週');
+  setCalViewMode('day'); changeMonth(1); ok(state.selectedDateStr === '2026-10-29' && /29/.test($('selectedDateHeader').textContent), '單日模式按 ›：也是移一週，並顯示那天詳情');
+  goToToday(); ok(state.currentCalView === 'week' && state.selectedDateStr === getTodayDateStr() && shown().length === 7, '手機按「今天」：回到今天並回到「查看本週」');
+  fakeWidth(1024); setCalViewMode('week'); ok(shown().length === allCells() && $('calPrevBtn').title === '上個月', '電腦／平板（≥ 768）：任何模式都是整月，‹ › 一次一個月');
+  goToToday(); ok(state.currentCalView === 'day', '電腦按「今天」：維持原本的「單日點選」');
   restoreWidth();
-  ok(document.querySelectorAll('.cal-view-btn').length === 3 && [...document.querySelectorAll('.cal-view-btn')].every(b => /whitespace-nowrap/.test(b.className)), '「單日點選／查看本週／本月總覽」不會被擠成兩行');
+  ok([...document.querySelectorAll('.cal-view-btn')].every(b => /truncate/.test(b.className) && /min-w-0/.test(b.className)) && /whitespace-nowrap/.test(document.querySelector('[onclick="goToToday()"]').className), '模式鈕不換行也不會超出畫面（太窄時以「…」結尾）；「今天」鈕不換行');
 
   window.callBackend = real.cb; window.showToast = real.toast; window.loadAppData = real.load; window.toggleBigText = real.big;
-  state.settings = saved.settings; state.adminPassword = saved.pwd; state.selectedDateStr = saved.sel; state.viewYear = saved.vy; state.viewMonth = saved.vm; state.calWeekOnly = saved.wk; window.handleDataLoaded = realHandle;
+  state.settings = saved.settings; state.adminPassword = saved.pwd; state.selectedDateStr = saved.sel; state.viewYear = saved.vy; state.viewMonth = saved.vm; state.currentCalView = saved.mode || 'day'; window.handleDataLoaded = realHandle;
   if (state.lang !== startLang) toggleLanguage();
-  try { closeMobileMore(); switchTab(saved.tab || 'home'); renderCalendar(); renderMobileBottomNav(); } catch (e) {}
+  try { closeMobileMore(); switchTab(saved.tab || 'home'); renderCalendar(); setCalViewMode(state.currentCalView); renderMobileBottomNav(); } catch (e) {}
   console.log(res.join('\n')); return res;
 })();
