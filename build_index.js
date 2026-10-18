@@ -2656,6 +2656,7 @@ const htmlContent = `<!DOCTYPE html>
           admin: '管理後台',
           bigText: '大字',
           more: '更多',
+          hasNew: '有新內容',
           bottomAria: '主要頁面',
           collapse: '收合選單',
           toggleTitle: '展開／收合選單',
@@ -2986,6 +2987,7 @@ const htmlContent = `<!DOCTYPE html>
           admin: 'Admin',
           bigText: 'Large text',
           more: 'More',
+          hasNew: 'new content',
           bottomAria: 'Main pages',
           collapse: 'Collapse menu',
           toggleTitle: 'Expand / collapse menu',
@@ -5101,6 +5103,8 @@ const htmlContent = `<!DOCTYPE html>
         }
       });
 
+      try { updateNewSince(data); } catch (e) {}   // 「上次來之後有什麼新的」導覽列紅點
+
       // 管理員已登入：行事曆活動列表一律用新資料重畫。原因：重新整理頁面時 initApp() 先用還沒載入的空資料畫過一次，
       // 之後雲端資料才到；若當時使用者不在後台頁籤（例如在首頁），舊的「目前沒有活動紀錄」就會留著，第一次點進後台看到空清單。
       if (state.adminPassword) { try { renderAdminEventsTable(); } catch (e) {} }
@@ -5364,6 +5368,7 @@ const htmlContent = `<!DOCTYPE html>
 
     function switchTab(tabName) {
       if (tabName === 'daily') tabName = 'home';
+      if (state.currentTab && state.currentTab !== tabName) { try { newSinceMarkSeen(state.currentTab); } catch (e) {} }
       if (window.innerWidth < 768 && mobileSidebarOpen) {
         toggleMobileSidebar();
       }
@@ -12754,6 +12759,105 @@ const htmlContent = `<!DOCTYPE html>
       if (Array.isArray(v) && v.length === 4 && v.every(function(k, i) { return NAV_TAB_META[k] && v.indexOf(k) === i; })) return v.slice();
       return DEFAULT_MOBILE_NAV.slice();
     }
+    // ==================== 「上次來之後有什麼新的」導覽列紅點（2026-10-18，僅前端）====================
+    // 每次開啟網站時，把這次看到的內容編號存在家長自己的手機（localStorage）；下次開啟時比對出「上次之後新增的」，
+    // 在側邊欄、手機底部導覽（與「更多」）對應頁面加紅點。只算新增（修改不算）；菜單不算（每週固定更新）。
+    // 一次開啟期間（sessionStorage，含重新整理）比對的起點固定；離開某頁時那頁的紅點消失；關掉網站重開就以上次為起點重算。
+    // 每台手機第一次開啟只記下起點、不提示。
+    const NEW_SINCE_SNAP_KEY = 'nobel_a_seen_v1', NEW_SINCE_BASE_KEY = 'nobel_a_new_base', NEW_SINCE_SEEN_KEY = 'nobel_a_new_seen';
+    const NEW_SINCE_TAB = { events: 'home', spotlights: 'home', albums: 'albums', songs: 'songs', docs: 'docs', themes: 'themes', tasks: 'tasks', transition: 'transition' };
+    const newSince = { items: {} };   // 頁籤 → 這次開啟的新項目鍵值（類別:編號）
+
+    // 純函式：各類內容的編號。all＝存進手機的清單；eligible＝可以算「新」的（活動只算今天以後、焦點只算播映中）
+    function newSinceCollect(data, today) {
+      const idOf = x => (x && x.id !== undefined && x.id !== null) ? String(x.id).trim().slice(0, 80) : '';
+      const ids = arr => (Array.isArray(arr) ? arr : []).map(idOf).filter(Boolean);
+      const both = arr => { const a = ids(arr); return { all: a, eligible: a }; };
+      const events = Array.isArray(data && data.events) ? data.events : [];
+      const upcoming = events.filter(e => { const end = normalizeDate(e && (e.endDate || e.date)); return !!end && end >= today; });
+      const playing = (Array.isArray(data && data.spotlights) ? data.spotlights : []).filter(sp => sp && spotlightPlayState(sp, today) === 'playing');
+      const tr = ids(data && data.transitionPlan).concat(ids(data && data.transitionArticles).map(id => 'art:' + id));
+      return {
+        events: { all: ids(events), eligible: ids(upcoming) },
+        spotlights: both(playing),   // 存「播映中」的：排程中的焦點開播那天才算新
+        albums: both(data && data.albums), songs: both(data && data.songs), docs: both(data && data.docs),
+        themes: both(data && data.themes), tasks: both(data && data.semesterTasks), transition: { all: tr, eligible: tr }
+      };
+    }
+    // 純函式：比對起點，回傳 { 頁籤: [類別:編號, …] }；起點沒有該類別（舊版存的或第一次）就不提示該類別
+    function newSinceDiff(col, base) {
+      const out = {};
+      Object.keys(NEW_SINCE_TAB).forEach(type => {
+        if (!base || !Array.isArray(base[type]) || !col[type]) return;
+        const seen = new Set(base[type]);
+        const fresh = col[type].eligible.filter(id => !seen.has(id)).map(id => type + ':' + id);
+        if (fresh.length) { const tab = NEW_SINCE_TAB[type]; out[tab] = (out[tab] || []).concat(fresh); }
+      });
+      return out;
+    }
+    function newSinceRead(store, key) {
+      try { const v = JSON.parse(store.getItem(key) || 'null'); return v && typeof v === 'object' && !Array.isArray(v) ? v : null; } catch (e) { return null; }
+    }
+    function newSinceWrite(store, key, v) {
+      try { store.setItem(key, JSON.stringify(v)); } catch (e) {}
+    }
+    function updateNewSince(data) {
+      if (!data || typeof data !== 'object') return;
+      const col = newSinceCollect(data, getTodayDateStr());
+      const snap = {};
+      Object.keys(col).forEach(k => { snap[k] = col[k].all; });
+      let base = newSinceRead(sessionStorage, NEW_SINCE_BASE_KEY);
+      if (!base) {
+        base = newSinceRead(localStorage, NEW_SINCE_SNAP_KEY) || snap;   // 第一次開啟：以現在為起點，不提示
+        newSinceWrite(sessionStorage, NEW_SINCE_BASE_KEY, base);
+      }
+      newSince.items = newSinceDiff(col, base);
+      newSinceWrite(localStorage, NEW_SINCE_SNAP_KEY, snap);
+      renderNewDots();
+    }
+    function newSinceSeen() { return newSinceRead(sessionStorage, NEW_SINCE_SEEN_KEY) || {}; }
+    function newSinceUnseen(tab) {
+      const seen = newSinceSeen()[tab] || [];
+      return (newSince.items[tab] || []).filter(k => seen.indexOf(k) === -1);
+    }
+    function newSinceMarkSeen(tab) {
+      if (!newSince.items[tab] || !newSince.items[tab].length) return;
+      const all = newSinceSeen();
+      all[tab] = Array.from(new Set((all[tab] || []).concat(newSince.items[tab])));
+      newSinceWrite(sessionStorage, NEW_SINCE_SEEN_KEY, all);
+      renderNewDots();
+    }
+    // 在按鈕的圖示上加／拿掉紅點（圖示 span 不會被 switchTab 改寫 class）
+    function setNewDot(btn, on) {
+      if (!btn) return;
+      const icon = btn.querySelector('span');
+      if (!icon) return;
+      let dot = icon.querySelector(':scope > .new-dot');
+      if (on && !dot) {
+        icon.classList.add('relative');
+        dot = document.createElement('span');
+        dot.className = 'new-dot absolute -top-0.5 -right-1 w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-white pointer-events-none';
+        dot.setAttribute('aria-hidden', 'true');
+        icon.appendChild(dot);
+        const sr = document.createElement('span'); sr.className = 'new-dot-sr sr-only'; sr.textContent = '（' + t('nav.hasNew') + '）';
+        btn.appendChild(sr);
+      } else if (!on && dot) {
+        dot.remove();
+        const sr = btn.querySelector(':scope > .new-dot-sr'); if (sr) sr.remove();
+      }
+    }
+    function renderNewDots() {
+      const tabs = Object.keys(NAV_TAB_META);
+      const has = {};
+      tabs.forEach(k => { has[k] = newSinceUnseen(k).length > 0; });
+      tabs.forEach(k => {
+        setNewDot(document.getElementById('tabBtn-' + k), has[k]);
+        document.querySelectorAll('#mobileBottomNavItems [data-tab="' + k + '"], #mobileMorePages [data-tab="' + k + '"]').forEach(b => setNewDot(b, has[k]));
+      });
+      const inBar = mobileNavTabs();
+      setNewDot(document.getElementById('mobileNavMoreBtn'), tabs.some(k => has[k] && inBar.indexOf(k) === -1));
+    }
+
     function navBtn(icon, text, active, onclick, extra) {
       const b = document.createElement('button');
       b.type = 'button';
@@ -12779,6 +12883,7 @@ const htmlContent = `<!DOCTYPE html>
       const more = navBtn('⋯', t('nav.more'), tabs.indexOf(cur) === -1, openMobileMore);
       more.id = 'mobileNavMoreBtn'; more.setAttribute('aria-haspopup', 'dialog');
       box.appendChild(more);
+      try { renderNewDots(); } catch (e) {}
     }
     function openMobileMore() {
       const sheet = document.getElementById('mobileMoreSheet');
@@ -12800,6 +12905,7 @@ const htmlContent = `<!DOCTYPE html>
       tools.appendChild(tile('🔠', t('nav.bigText'), function() { toggleBigText(); closeMobileMore(); }, isBigText()));
       tools.appendChild(tile('🌐', t('nav.langToggle'), function() { closeMobileMore(); toggleLanguage(); }, false));
       const adm = tile('⚙️', t('nav.admin'), function() { closeMobileMore(); switchTab('admin'); }, state.currentTab === 'admin'); adm.setAttribute('data-tab', 'admin'); tools.appendChild(adm);
+      try { renderNewDots(); } catch (e) {}
       sheet.classList.remove('hidden');
       document.addEventListener('keydown', mobileMoreEsc);
     }
