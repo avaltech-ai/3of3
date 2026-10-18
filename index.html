@@ -2275,8 +2275,8 @@
             <div class="flex flex-wrap items-center justify-between gap-2">
               <h4 class="font-black text-slate-800 text-base flex items-center gap-2">🌐 英文對照表</h4>
               <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-2xl">
-                <button type="button" id="mapAdminKind-text" onclick="mapAdminSetKind('text')" class="px-3 py-1 rounded-xl text-xs font-bold bg-white text-slate-800 shadow-xs">內容（活動、菜單等）</button>
-                <button type="button" id="mapAdminKind-name" onclick="mapAdminSetKind('name')" class="px-3 py-1 rounded-xl text-xs font-bold text-slate-600">名稱（類別、班級）</button>
+                <button type="button" id="mapAdminKind-text" onclick="mapAdminSetKind('text')" class="px-3 py-1 rounded-xl text-xs font-bold bg-white text-slate-800 shadow-xs"><span>內容（活動、菜單等）</span><span id="mapAdminKindBadge-text" class="hidden ml-1 text-[0.625rem] font-extrabold text-white bg-rose-500 px-1.5 py-0.5 rounded-full align-middle"></span></button>
+                <button type="button" id="mapAdminKind-name" onclick="mapAdminSetKind('name')" class="px-3 py-1 rounded-xl text-xs font-bold text-slate-600"><span>名稱（類別、班級）</span><span id="mapAdminKindBadge-name" class="hidden ml-1 text-[0.625rem] font-extrabold text-white bg-rose-500 px-1.5 py-0.5 rounded-full align-middle"></span></button>
               </div>
             </div>
             <p class="text-[0.6875rem] text-slate-500 leading-relaxed">流程：① 同步新文字 → ② 產生草稿（機器翻譯，不會公開）→ ③ 核對並修改英文 → ④ 儲存變更。英文空白的文字，英文介面會顯示中文。也可以直接在 Google 試算表的 TextMap／NameMap 編輯，兩種方式並存。中文只差一兩個字的內容（例如「和」與「與」）會標示「🔗 相似文字」，可用「有相似文字」篩選，並把其中一筆的英文套用到其餘相似列。</p>
@@ -3945,6 +3945,8 @@
         else if (action === 'mapSync') runner.adminMapSync(payload.kind, payload.password);
         else if (action === 'textDraft') runner.adminTextDraft(payload.limit, payload.password);
         else if (action === 'textAdopt') runner.adminTextAdopt(payload.zhList, payload.password);
+        else if (action === 'mapDraft') runner.adminMapDraft(payload.kind, payload.limit, payload.password);
+        else if (action === 'mapAdopt') runner.adminMapAdopt(payload.kind, payload.zhList, payload.password);
         else if (action === 'mapStatus') runner.adminMapStatus(payload.password);
         else if (action === 'getAlbumPhotos') runner.getAlbumPhotos(payload.albumId);
         else if (action === 'clearAlbumListCache') runner.clearAlbumListCache(payload.password);
@@ -4259,6 +4261,8 @@
     };
 
     function mapAdminKinds() { return ['text', 'name']; }
+    // 這一類有沒有「機器草稿」欄：內容一定有；名稱從 2026-10-18 起也有（後端回傳 hasDraft；後端還沒更新時是 false，維持舊畫面）
+    function mapAdminKindHasDraft(k) { return k === 'text' || !!(mapAdmin.data[k] && mapAdmin.data[k].hasDraft); }
     function mapAdminHasDirty() {
       return mapAdminKinds().some(function(k) { return Object.keys(mapAdmin.dirty[k]).length > 0; });
     }
@@ -4390,11 +4394,11 @@
         save.textContent = '💾 儲存變更' + (nDirty ? '（' + nDirty + '）' : '');
         save.disabled = mapAdmin.busy || nDirty === 0;
       }
-      const isText = k === 'text';
+      const showDraft = mapAdminKindHasDraft(k);
       ['mapAdminDraftBtn', 'mapAdminAdoptAllBtn'].forEach(function(id) {
         const b = document.getElementById(id);
         if (!b) return;
-        b.classList.toggle('hidden', !isText);
+        b.classList.toggle('hidden', !showDraft);
         b.disabled = mapAdmin.busy;
       });
       const sync = document.getElementById('mapAdminSyncBtn'); if (sync) sync.disabled = mapAdmin.busy;
@@ -4418,8 +4422,8 @@
       if (!mapAdmin.data[k]) { el.textContent = '載入中…'; return; }
       const parts = ['共 ' + mapAdmin.data[k].rows.length + ' 筆'];
       if (st) {
-        parts.push('尚未翻譯 ' + st.missingEn + ' 筆' + (k === 'text' ? '（其中有草稿 ' + st.withDraft + ' 筆）' : ''));
-        if (st.pendingNew > 0) parts.push('⚠️ 有 ' + st.pendingNew + ' 筆新文字尚未加入，請按「同步新文字」');
+        parts.push('尚未翻譯 ' + st.missingEn + ' 筆' + (mapAdminKindHasDraft(k) ? '（其中有草稿 ' + st.withDraft + ' 筆）' : ''));
+        if (st.pendingNew > 0) parts.push('⚠️ 有 ' + st.pendingNew + (k === 'name' ? ' 筆新名稱' : ' 筆新文字') + '尚未加入，請按「同步新文字」');
         if (st.unused > 0) parts.push('目前沒有使用 ' + st.unused + ' 筆');
       }
       const sim = mapAdminSimInfo();
@@ -4439,6 +4443,7 @@
       box.textContent = '';
       const unused = mapAdminUnusedLabel();
       const isText = mapAdmin.kind === 'text';
+      const hasDraft = mapAdminKindHasDraft(mapAdmin.kind);
       const simInfo = mapAdminSimInfo();
       slice.forEach(function(r) {
         const row = document.createElement('div');
@@ -4465,7 +4470,7 @@
         c1.appendChild(zhBox);
         row.appendChild(c1);
         const c2 = document.createElement('div'); c2.className = 'sm:col-span-3 min-w-0 flex items-start gap-1.5';
-        if (isText) {
+        if (hasDraft) {
           const dr = document.createElement('div'); dr.className = 'text-xs text-slate-500 italic break-words flex-1 min-w-0'; dr.textContent = r.draft || '';
           c2.appendChild(dr);
           if (r.draft && !String(r.cur || '').trim()) {
@@ -4476,7 +4481,7 @@
           }
         }
         row.appendChild(c2);
-        const c3 = document.createElement('div'); c3.className = isText ? 'sm:col-span-5' : 'sm:col-span-8';
+        const c3 = document.createElement('div'); c3.className = hasDraft ? 'sm:col-span-5' : 'sm:col-span-8';
         const inp = document.createElement('input'); inp.type = 'text'; inp.value = r.cur || ''; inp.maxLength = isText ? 600 : 100;
         inp.placeholder = '尚未翻譯（英文介面會顯示中文）';
         inp.className = 'w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs';
@@ -4578,7 +4583,14 @@
       const n = st ? ((st.text && st.text.pendingNew) || 0) + ((st.name && st.name.pendingNew) || 0) : 0;
       b.textContent = n > 99 ? '99+' : String(n);
       b.classList.toggle('hidden', n <= 0);
-      b.title = n > 0 ? '有 ' + n + ' 筆新文字尚未加入對照表' : '';
+      const nText = st ? ((st.text && st.text.pendingNew) || 0) : 0, nName = st ? ((st.name && st.name.pendingNew) || 0) : 0;
+      b.title = n > 0 ? '有 ' + n + ' 筆新文字尚未加入對照表（內容 ' + nText + ' 筆、名稱 ' + nName + ' 筆）' : '';
+      // 內容／名稱切換鈕上各自的紅點：一眼看出新文字是哪一類
+      [['text', nText, '內容'], ['name', nName, '名稱']].forEach(function(x) {
+        const kb = document.getElementById('mapAdminKindBadge-' + x[0]), kbtn = document.getElementById('mapAdminKind-' + x[0]);
+        if (kb) { kb.textContent = x[1] > 99 ? '99+' : String(x[1]); kb.classList.toggle('hidden', x[1] <= 0); }
+        if (kbtn) { if (x[1] > 0) kbtn.setAttribute('aria-label', x[2] + '，有 ' + x[1] + ' 筆新文字尚未加入'); else kbtn.removeAttribute('aria-label'); }
+      });
       const g = document.getElementById('adminGroupBadge-system');   // 「系統」組別上的紅點：英文對照頁籤收在組內時也看得到
       if (g) { g.classList.toggle('hidden', n <= 0); g.title = b.title; }
     }
@@ -4668,21 +4680,23 @@
     // 連續產生機器草稿：每次 20 筆，直到完成、按停止、額度用盡或出錯；顯示進度
     function mapAdminDraftRun() {
       if (mapAdmin.drafting) return;
-      const st = mapAdmin.status && mapAdmin.status.text;
+      const k = mapAdmin.kind;
+      const st = mapAdmin.status && mapAdmin.status[k];
+      const what = k === 'name' ? '名稱' : '文字';
       const total = st ? st.missingEn - st.withDraft : 0;
       if (st && total <= 0) { showToast('沒有需要產生草稿的項目（請先按「同步新文字」）', 'ℹ️'); return; }
-      if (!confirm('要用機器翻譯為尚未翻譯的文字產生英文草稿嗎？\n草稿只會顯示在「機器草稿」欄，不會公開，需要您核對後才會上線。')) return;
+      if (!confirm('要用機器翻譯為尚未翻譯的' + what + '產生英文草稿嗎？\n草稿只會顯示在「機器草稿」欄，不會公開，需要您核對後才會上線。')) return;
       mapAdmin.drafting = true; mapAdmin.cancelDraft = false;
       mapAdminSetBusy(true);
       let done = 0;
       const finish = function(msg, icon) {
         mapAdmin.drafting = false; mapAdminSetBusy(false); mapAdminProgress(null);
         showToast(msg, icon || '✅');
-        mapAdminLoad('text', function() { mapAdminRefreshStatus(); });
+        mapAdminLoad(k, function() { mapAdminRefreshStatus(); });
       };
       const step = function() {
         if (mapAdmin.cancelDraft) { finish('已停止，共產生 ' + done + ' 筆草稿', 'ℹ️'); return; }
-        callBackend('textDraft', { limit: 20, password: state.adminPassword }, function(res) {
+        callBackend('mapDraft', { kind: k, limit: 20, password: state.adminPassword }, function(res) {
           if (!(res && res.success && res.result)) {
             mapAdmin.drafting = false; mapAdminSetBusy(false); mapAdminProgress(null);
             if (!(res && res.authExpired)) showToast('產生草稿失敗：' + ((res && res.error) || '未知錯誤'), '❌');
@@ -4705,15 +4719,16 @@
     }
 
     function mapAdminAdoptAll() {
-      const st = mapAdmin.status && mapAdmin.status.text;
+      const k = mapAdmin.kind;
+      const st = mapAdmin.status && mapAdmin.status[k];
       if (st && st.withDraft <= 0) { showToast('目前沒有可採用的草稿', 'ℹ️'); return; }
       if (!confirm('把所有「英文空白、有草稿」的項目一次採用為正式英文？\n採用後英文介面就會公開顯示，請確認您已核對過草稿。')) return;
       mapAdminSetBusy(true);
-      callBackend('textAdopt', { zhList: null, password: state.adminPassword }, function(res) {
+      callBackend('mapAdopt', { kind: k, zhList: null, password: state.adminPassword }, function(res) {
         mapAdminSetBusy(false);
         if (res && res.success) {
           showToast('已採用 ' + (res.adopted || 0) + ' 筆草稿為正式英文', '✅');
-          mapAdminLoad('text', function() { mapAdminRefreshStatus(); });
+          mapAdminLoad(k, function() { mapAdminRefreshStatus(); });
         } else if (!(res && res.authExpired)) {
           showToast('採用失敗：' + ((res && res.error) || '未知錯誤'), '❌');
         }
@@ -10905,7 +10920,7 @@
       const next = nextSchoolDay(today, events);
       return { today: today, next: next, nextIsTomorrow: next === ymdAdd(today, 1), nextFirst: now.getHours() >= 18 || isNonSchoolDay(today, events) };
     }
-    // 後台待辦提醒。ctx = { today（YYYY-MM-DD）, events, menus, spotlights, pendingNew（英文對照新文字數，未知為 null）}
+    // 後台待辦提醒。ctx = { today（YYYY-MM-DD）, events, menus, spotlights, pendingText／pendingName（英文對照「內容」「名稱」尚未加入的新文字數，未知為 null）}
     function adminReminderItems(ctx) {
       const out = [], today = ctx.today, events = ctx.events || [];
       const fmt = function(k) { return Number(k.slice(5, 7)) + '/' + Number(k.slice(8, 10)) + '（' + '日一二三四五六'.charAt(ymdWeekday(k)) + '）'; };
@@ -10913,7 +10928,8 @@
       const missing = [];
       for (let i = 0; i < 14; i++) { const k = ymdAdd(today, i); if (!isNonSchoolDay(k, events) && !menuDays[k]) missing.push(k); }
       if (missing.length) out.push({ kind: 'menu', icon: '🍱', text: '未來 14 天有 ' + missing.length + ' 個上課日還沒有菜單（最早是 ' + fmt(missing[0]) + '）', action: 'menu', actionLabel: '前往每日菜單' });
-      if (ctx.pendingNew > 0) out.push({ kind: 'text', icon: '🌐', text: '英文對照有 ' + ctx.pendingNew + ' 筆新文字尚未加入', action: 'translations', actionLabel: '前往英文對照' });
+      if (ctx.pendingText > 0) out.push({ kind: 'mapText', icon: '🌐', text: '英文對照（內容）有 ' + ctx.pendingText + ' 筆新文字尚未加入', action: 'translations', mapKind: 'text', actionLabel: '前往內容' });
+      if (ctx.pendingName > 0) out.push({ kind: 'mapName', icon: '🌐', text: '英文對照（名稱）有 ' + ctx.pendingName + ' 筆新名稱尚未加入', action: 'translations', mapKind: 'name', actionLabel: '前往名稱' });
       const playing = (ctx.spotlights || []).filter(function(sp) { return sp && spotlightPlayState(sp, today) === 'playing'; });
       if (!playing.length) out.push({ kind: 'spotNone', icon: '🌟', text: '目前沒有播映中的焦點活動（首頁焦點區會是空的）', action: 'spotlight', actionLabel: '前往焦點活動' });
       else {
@@ -13299,8 +13315,8 @@
       const box = document.getElementById('adminReminders');
       if (!box) return;
       const st = (typeof mapAdmin !== 'undefined' && mapAdmin.status) ? mapAdmin.status : null;
-      const pending = st ? ((st.text && st.text.pendingNew) || 0) + ((st.name && st.name.pendingNew) || 0) : null;
-      const items = adminReminderItems({ today: getTodayDateStr(), events: state.events, menus: state.menus, spotlights: state.spotlights, pendingNew: pending });
+      const pendingText = st ? ((st.text && st.text.pendingNew) || 0) : null, pendingName = st ? ((st.name && st.name.pendingNew) || 0) : null;
+      const items = adminReminderItems({ today: getTodayDateStr(), events: state.events, menus: state.menus, spotlights: state.spotlights, pendingText: pendingText, pendingName: pendingName });
       box.innerHTML = '';
       const h = document.createElement('div'); h.className = 'flex items-center gap-2 text-sm font-black text-slate-800';
       h.textContent = items.length ? ('🔔 待辦提醒（' + items.length + '）') : '✅ 目前沒有待辦提醒';
@@ -13313,7 +13329,10 @@
         const tx1 = document.createElement('span'); tx1.className = 'text-xs font-bold text-amber-900'; tx1.textContent = it.icon + ' ' + it.text;
         const b = document.createElement('button'); b.type = 'button'; b.className = 'px-3 py-1 rounded-xl bg-white border border-amber-200 hover:bg-amber-100 text-xs font-bold text-amber-800 tap-bounce shrink-0';
         b.textContent = it.actionLabel + ' ›';
-        b.onclick = function() { switchAdminSubtab(it.action); };
+        b.onclick = function() {
+          if (it.mapKind) { try { mapAdminSetKind(it.mapKind); } catch (e) {} }   // 先切到對應的「內容」或「名稱」，再打開英文對照頁
+          switchAdminSubtab(it.action);
+        };
         row.appendChild(tx1); row.appendChild(b); box.appendChild(row);
       });
     }

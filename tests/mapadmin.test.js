@@ -73,7 +73,7 @@ let r = c.adminMapList('text', TOK);
 ok(r.success && r.hasDraft === true && r.rows.length === 5, 'TextMap：5 列（重複的「白飯」只取第一列）');
 ok(r.rows[0].zh === '白飯' && r.rows[0].en === 'Rice' && r.rows[1].draft === 'Banana' && r.rows[1].note === '老師備註' && r.rows[1].used_in === '每日菜單：水果', '欄位內容正確（含 draft、出處、備註）');
 r = c.adminMapList('name', TOK);
-ok(r.success && r.hasDraft === false && r.rows.length === 3 && r.rows.every(x => x.draft === ''), 'NameMap：沒有 draft 欄');
+ok(r.success && r.hasDraft === true && r.rows.length === 3 && r.rows.every(x => x.draft === ''), 'NameMap：也有 draft 欄（2026-10-18 起，與內容比照）；舊工作表沒有這欄時自動補上，內容是空的');
 e = env({}); r = e.ctx.adminMapList('text', TOK);
 ok(r.success && r.rows.length === 0 && eq(e.book.TextMap.rows[0], ['zh', 'en', 'draft', 'used_in', 'note']), '工作表不存在：自動建立表頭、回傳空列表');
 
@@ -164,5 +164,58 @@ ok(post(c, { action: 'mapList', kind: 'text', password: 'bad' }).authExpired ===
 const dupKey = 'k' + 'a'.repeat(20); const first = post(c, { action: 'mapSave', kind: 'text', changes: [{ zh: '牛奶', en: 'Milk2' }], password: TOK, idempotencyKey: dupKey });
 const again = post(c, { action: 'mapSave', kind: 'text', changes: [{ zh: '牛奶', en: 'Milk3' }], password: TOK, idempotencyKey: dupKey });
 ok(first.updated === 1 && again.duplicate === true && e.book.TextMap.rows.find(x => x[0] === '牛奶')[1] === 'Milk2', '冪等：同一次操作重送只執行一次（逾時重送不會重複寫入）');
+
+console.log('H. 名稱（NameMap）也有機器草稿：產生、採用、不公開、驗證 token（2026-10-18）');
+e = env({ TextMap: TM(), NameMap: NM() }, { data: DATA() }); c = e.ctx;
+c.adminMapList('name', TOK);
+ok(eq(e.book.NameMap.rows[0], ['zh', 'en', 'used_in', 'note', 'draft']), '舊的 NameMap（沒有 draft 欄）：第一次讀取自動在最右邊補上 draft 欄，既有欄位與資料不動');
+ok(eq(e.book.NameMap.rows[1].slice(0, 4), ['幸福廚房', 'Happy Kitchen', '相簿類別', '']) && e.book.NameMap.rows[2][1] === '', '既有列的內容完全不變');
+r = c.adminMapDraft('name', 20, TOK);
+ok(r.success && r.kind === 'name' && r.result.drafted === 1 && r.result.remaining === 0 && e.calls.translate === 1, '產生名稱草稿：只處理「en 與 draft 都空白、目前有使用」的列（諾貝爾 A）共 1 筆；已有英文的（幸福廚房）與「目前沒有使用」的（舊名稱）都不翻');
+ok(e.book.NameMap.rows[2][4] === 'EN(諾貝爾 A)' && e.book.NameMap.rows[2][1] === '' && !e.book.NameMap.rows[1][4] && !e.book.NameMap.rows[3][4], '草稿只寫進 draft 欄，en 欄仍是空的（不公開）；其他列的 draft 欄沒被動');
+ok(eq(c.getNameMapForApp_(e.ss), { '幸福廚房': 'Happy Kitchen', '舊名稱': 'Old' }) && JSON.stringify(c.getNameMapForApp_(e.ss)).indexOf('EN(') === -1, '草稿不會出現在公開資料（getNameMapForApp_ 只回傳 en 欄不為空的）');
+r = c.adminMapDraft('name', 20, TOK);
+ok(r.result.drafted === 0 && e.calls.translate === 1, '再按一次：已經有草稿的不重翻（不浪費翻譯額度）');
+r = c.adminMapStatus(TOK);
+ok(r.name.missingEn === 1 && r.name.withDraft === 1, '統計：名稱「尚未翻譯 1 筆，其中有草稿 1 筆」');
+r = c.adminMapAdopt('name', ['不存在的名稱'], TOK);
+ok(r.success && r.adopted === 0 && e.book.NameMap.rows[2][1] === '', '採用：指定的名稱不在清單裡 → 採用 0 筆');
+r = c.adminMapAdopt('name', ['諾貝爾 A'], TOK);
+ok(r.success && r.kind === 'name' && r.adopted === 1 && e.book.NameMap.rows[2][1] === 'EN(諾貝爾 A)', '採用指定名稱：草稿變成正式英文');
+ok(c.getNameMapForApp_(e.ss)['諾貝爾 A'] === 'EN(諾貝爾 A)', '採用後，公開資料（英文介面用的名稱對照）就有這個英文');
+r = c.adminMapAdopt('name', null, TOK); ok(r.adopted === 0, '再採用一次：已經有英文的不會被覆蓋（0 筆）');
+// 不覆蓋老師已填的英文
+e = env({ NameMap: [['zh', 'en', 'draft', 'used_in', 'note'], ['雨果', 'Hugo', 'Rain Fruit', '活動對象', ''], ['米羅 A', '', 'Miro A', '活動對象', '']] }); c = e.ctx;
+r = c.adminMapAdopt('name', null, TOK);
+ok(r.adopted === 1 && e.book.NameMap.rows[1][1] === 'Hugo' && e.book.NameMap.rows[2][1] === 'Miro A', '採用全部：老師已填的英文（雨果＝Hugo）不被草稿蓋掉；只有英文空白的才採用');
+// Title Case 與長度上限
+e = env({ NameMap: [['zh', 'en', 'draft', 'used_in', 'note'], ['親師活動', '', '', '活動大項', ''], ['很長的名稱', '', '', '活動大項', '']] }); c = e.ctx;
+c.LanguageApp.translate = z => z === '親師活動' ? 'parent-teacher event of the school year' : 'x'.repeat(150);
+r = c.adminMapDraft('name', 5, TOK);
+ok(e.book.NameMap.rows[1][2] === 'Parent-teacher Event of the School Year', '名稱草稿用 Title Case（每個字開頭大寫，of／the 保持小寫）：' + e.book.NameMap.rows[1][2]);
+ok(e.book.NameMap.rows[2][2].length === 100, '名稱草稿長度上限 100（與公開英文名稱一致）');
+ok(c.titleCaseEn_('ABC class') === 'ABC Class' && c.titleCaseEn_('Daily Life') === 'Daily Life' && c.titleCaseEn_('') === '', '本來就大寫的字不動、空字串不出錯');
+// 額度用完
+e = env({ NameMap: [['zh', 'en', 'draft', 'used_in', 'note'], ['甲', '', '', '相簿類別', ''], ['乙', '', '', '相簿類別', '']] }); c = e.ctx;
+let n = 0; c.LanguageApp.translate = z => { n++; if (n >= 2) throw new Error('Service invoked too many times for one day: translate'); return 'A'; };
+r = c.adminMapDraft('name', 5, TOK);
+ok(r.result.stoppedByQuota === true && r.result.drafted === 1 && e.book.NameMap.rows[1][2] === 'A' && !e.book.NameMap.rows[2][2], '翻譯額度用完：停止並回報 stoppedByQuota，已產生的 1 筆草稿保留、沒產生的不亂填');
+// 驗證與未知類型
+e = env({ NameMap: NM() }); c = e.ctx; const snap2 = JSON.stringify(e.book.NameMap.rows);
+ok(c.adminMapDraft('name', 5, 'bad').authExpired === true && c.adminMapAdopt('name', null, 'bad').authExpired === true && e.calls.translate === 0 && JSON.stringify(e.book.NameMap.rows) === snap2, '錯誤 token：兩個新動作都拒絕，沒有呼叫翻譯、試算表沒被動');
+ok(c.adminMapDraft('bogus', 5, TOK).success === false && c.adminMapDraft('__proto__', 5, TOK).success === false && c.adminMapAdopt('constructor', null, TOK).success === false && c.adminMapAdopt('name', '字串', TOK).success === false && c.adminMapAdopt('name', Array.from({ length: 501 }, () => 'z'), TOK).success === false, '未知的類型（含 __proto__、constructor）、格式不對、超過 500 筆 → 拒絕');
+// 內容的舊動作仍可用（相容）
+e = env({ TextMap: TM() }); c = e.ctx;
+ok(c.adminTextDraft(5, TOK).success && c.adminTextAdopt(['香蕉'], TOK).adopted === 1 && c.adminMapDraft('text', 5, TOK).success, '內容（text）：舊的 adminTextDraft／adminTextAdopt 仍可用，新的 adminMapDraft(\'text\') 結果相同');
+// 同步不動 draft
+e = env({ NameMap: [['zh', 'en', 'draft', 'used_in', 'note'], ['親職活動', '', '我的草稿', '活動細項', '']] }, { data: {} }); c = e.ctx;
+c.adminMapSync('name', TOK);
+ok(e.book.NameMap.rows[1][2] === '我的草稿', '同步名稱：不會洗掉 draft 欄');
+// doPost
+e = env({ NameMap: NM() }, { data: {} }); c = e.ctx;
+const pr = body => JSON.parse(c.doPost({ postData: { contents: JSON.stringify(body) } }).text);
+ok(pr({ action: 'mapDraft', kind: 'name', limit: 5, password: TOK }).result.drafted === 1, 'doPost mapDraft（名稱）');
+ok(pr({ action: 'mapAdopt', kind: 'name', zhList: null, password: TOK }).adopted === 1, 'doPost mapAdopt（名稱）');
+ok(pr({ action: 'mapDraft', kind: 'name', password: 'bad' }).authExpired === true && pr({ action: 'mapAdopt', kind: 'name', password: 'bad' }).authExpired === true, 'doPost：新動作錯誤 token 一律拒絕');
 
 console.log('\n結果：' + pass + ' 通過，' + fail + ' 失敗'); process.exit(fail ? 1 : 0);

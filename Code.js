@@ -635,6 +635,10 @@ function doPost(e) {
       result = adminTextDraft(postData.limit, postData.password);
     } else if (action === 'textAdopt') {
       result = adminTextAdopt(postData.zhList, postData.password);
+    } else if (action === 'mapDraft') {
+      result = adminMapDraft(postData.kind, postData.limit, postData.password);
+    } else if (action === 'mapAdopt') {
+      result = adminMapAdopt(postData.kind, postData.zhList, postData.password);
     } else if (action === 'mapStatus') {
       result = adminMapStatus(postData.password);
     } else if (action === 'saveTheme') {
@@ -1133,7 +1137,7 @@ function getAppData() {
 // 名稱對照表（NameMap）：試算表維護的名稱（類別、學期、活動對象）的英文對照
 // -------------------------------------------------------------
 const NAME_MAP_SHEET = 'NameMap';
-const NAME_MAP_HEADERS = ['zh', 'en', 'used_in', 'note'];
+const NAME_MAP_HEADERS = ['zh', 'en', 'draft', 'used_in', 'note'];   // draft＝機器翻譯草稿（不公開，核對後才採用為 en）；舊工作表會自動補上這欄
 const NAME_MAP_MAX_LEN = 100;       // 單一英文名稱的長度上限
 const NAME_MAP_MAX_ENTRIES = 500;   // 回傳給前台的對照筆數上限
 const NAME_MAP_SKIP = { '全部文件': 1, '全部': 1 };   // 前台以固定文字（語系字典）呈現，不查對照表
@@ -1279,7 +1283,7 @@ function syncNameMap_() {
   const collected = collectNameSources_(ss);
   const ens = ensureNameMapSheet_(ss);
   const sh = ens.sheet, cols = ens.cols;
-  const width = Math.max(sh.getLastColumn(), 4);
+  const width = Math.max(sh.getLastColumn(), NAME_MAP_HEADERS.length);
   const data = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, width).getValues() : [];
   const rowOf = {};
   const dupZh = [];
@@ -1547,28 +1551,42 @@ function syncTextMap_() {
 }
 
 /** 機器翻譯（Apps Script 內建 LanguageApp，免金鑰）。回傳清理過的英文，失敗回傳 ''。 */
-function machineTranslateZhToEn_(zh) {
+function machineTranslateZhToEn_(zh, maxLen) {
   const out = LanguageApp.translate(zh, 'zh-TW', 'en');
-  return String(out === undefined || out === null ? '' : out).replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, TEXT_MAP_MAX_LEN);
+  return String(out === undefined || out === null ? '' : out).replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, maxLen || TEXT_MAP_MAX_LEN);
+}
+
+/** 名稱（類別、學期、班級）的英文慣例是 Title Case（Parent Event）：每個單字開頭大寫，但連接詞與介系詞（and、of…）保持小寫；本來就是大寫開頭或全大寫的字不動。 */
+function titleCaseEn_(s) {
+  const small = { a: 1, an: 1, and: 1, as: 1, at: 1, but: 1, by: 1, for: 1, in: 1, of: 1, on: 1, or: 1, the: 1, to: 1, with: 1 };
+  return String(s === undefined || s === null ? '' : s).split(' ').map(function(w, i) {
+    if (!w) return w;
+    if (i > 0 && Object.prototype.hasOwnProperty.call(small, w)) return w;
+    return w.charAt(0).toUpperCase() + w.slice(1);
+  }).join(' ');
 }
 
 /**
  * 為「目前有使用、en 與 draft 都空白」的列產生機器翻譯草稿（只寫 draft 欄，不動 en）。
  * 每次最多 limit 筆、最多 TEXT_MAP_DRAFT_BUDGET_MS 毫秒；遇到額度用盡就停止。回傳 { drafted, remaining, errors, stoppedByQuota }。
  */
-function draftTextMap_(limit) {
+function draftTextMap_(limit) { return draftMap_('text', limit); }
+
+/** 通用版：kind 是 'text' 或 'name'。只處理「目前有使用、en 與 draft 都空白」的列，只寫 draft 欄。 */
+function draftMap_(kind, limit) {
+  const cfg = MAP_KINDS_[kind];
   const ss = getSpreadsheet();
-  const ens = ensureTextMapSheet_(ss);
+  const ens = cfg.ensure(ss);
   const sh = ens.sheet, cols = ens.cols;
-  const width = Math.max(sh.getLastColumn(), TEXT_MAP_HEADERS.length);
+  const width = Math.max(sh.getLastColumn(), cfg.headers.length);
   const rows = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, width).getValues() : [];
   const max = (typeof limit === 'number' && limit > 0) ? Math.min(Math.floor(limit), TEXT_MAP_DRAFT_BATCH) : TEXT_MAP_DRAFT_BATCH;
   const started = Date.now();
   const pending = [];
   rows.forEach(function(row, i) {
-    const z = normalizeText_(row[cols.zh - 1]);
-    if (!z || normalizeText_(row[cols.en - 1]) || normalizeText_(row[cols.draft - 1])) return;
-    if (normalizeText_(row[cols.used_in - 1]) === TEXT_MAP_UNUSED) return;
+    const z = cfg.norm(row[cols.zh - 1]);
+    if (!z || cfg.norm(row[cols.en - 1]) || cfg.norm(row[cols.draft - 1])) return;
+    if (cfg.norm(row[cols.used_in - 1]) === cfg.norm(cfg.unused)) return;
     pending.push({ rowIndex: i + 2, zh: z });
   });
   const res = { drafted: 0, remaining: 0, errors: 0, stoppedByQuota: false };
@@ -1576,38 +1594,43 @@ function draftTextMap_(limit) {
     if (res.drafted >= max || Date.now() - started > TEXT_MAP_DRAFT_BUDGET_MS) break;
     let en = '';
     try {
-      en = machineTranslateZhToEn_(pending[k].zh);
+      en = machineTranslateZhToEn_(pending[k].zh, cfg.maxLen);
     } catch (e) {
       res.errors++;
       if (/quota|limit|too many|Service invoked too many/i.test(String(e))) { res.stoppedByQuota = true; break; }
       continue;
     }
+    if (kind === 'name') en = titleCaseEn_(en);
     if (!en || en === pending[k].zh) { res.errors++; continue; }
     sh.getRange(pending[k].rowIndex, cols.draft).setNumberFormat('@').setValue(textCellSafe_(en));
     res.drafted++;
   }
   res.remaining = Math.max(0, pending.length - res.drafted - res.errors);
-  clearTextMapCache_();
+  cfg.clear();
   return res;
 }
 
 /** 把「en 空白、draft 有內容」的列，把 draft 複製成 en（老師核對草稿後使用）。onlyList 有值時只處理這些中文原文。回傳採用筆數。 */
-function adoptTextDrafts_(onlyList) {
-  const only = Array.isArray(onlyList) ? onlyList.reduce(function(acc, z) { acc[normalizeText_(z)] = true; return acc; }, {}) : null;
+function adoptTextDrafts_(onlyList) { return adoptMapDrafts_('text', onlyList); }
+
+/** 通用版：把「en 空白、draft 有內容」的列採用為正式英文；onlyList 有值只採用這些中文。 */
+function adoptMapDrafts_(kind, onlyList) {
+  const cfg = MAP_KINDS_[kind];
+  const only = Array.isArray(onlyList) ? onlyList.reduce(function(acc, z) { acc[cfg.norm(z)] = true; return acc; }, {}) : null;
   const ss = getSpreadsheet();
-  const ens = ensureTextMapSheet_(ss);
+  const ens = cfg.ensure(ss);
   const sh = ens.sheet, cols = ens.cols;
-  const width = Math.max(sh.getLastColumn(), TEXT_MAP_HEADERS.length);
+  const width = Math.max(sh.getLastColumn(), cfg.headers.length);
   const rows = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, width).getValues() : [];
   let n = 0;
   rows.forEach(function(row, i) {
-    const draft = normalizeText_(row[cols.draft - 1]);
-    if (!draft || normalizeText_(row[cols.en - 1])) return;
-    if (only && !Object.prototype.hasOwnProperty.call(only, normalizeText_(row[cols.zh - 1]))) return;
+    const draft = cfg.norm(row[cols.draft - 1]);
+    if (!draft || cfg.norm(row[cols.en - 1])) return;
+    if (only && !Object.prototype.hasOwnProperty.call(only, cfg.norm(row[cols.zh - 1]))) return;
     sh.getRange(i + 2, cols.en).setNumberFormat('@').setValue(textCellSafe_(draft));
     n++;
   });
-  clearTextMapCache_();
+  cfg.clear();
   return n;
 }
 
@@ -1768,7 +1791,7 @@ const MAP_ADMIN_MANUAL = '（手動新增）';
 const MAP_KINDS_ = {
   text: { sheet: TEXT_MAP_SHEET, headers: TEXT_MAP_HEADERS, norm: normalizeText_, maxRows: TEXT_MAP_MAX_ROWS, maxLen: TEXT_MAP_MAX_LEN, hasDraft: true,
           ensure: ensureTextMapSheet_, clear: clearTextMapCache_, unused: TEXT_MAP_UNUSED },
-  name: { sheet: NAME_MAP_SHEET, headers: NAME_MAP_HEADERS, norm: normalizeName_, maxRows: 2000, maxLen: NAME_MAP_MAX_LEN, hasDraft: false,
+  name: { sheet: NAME_MAP_SHEET, headers: NAME_MAP_HEADERS, norm: normalizeName_, maxRows: 2000, maxLen: NAME_MAP_MAX_LEN, hasDraft: true,
           ensure: ensureNameMapSheet_, clear: clearAppDataCache, unused: '（目前沒有使用）' }
 };
 
@@ -1925,6 +1948,31 @@ function adminTextDraft(limit, password) {
   try {
     const n = Math.min(Math.max(Math.floor(Number(limit) || MAP_ADMIN_DRAFT_BATCH), 1), MAP_ADMIN_DRAFT_BATCH);
     return { success: true, result: draftTextMap_(n) };
+  } catch (err) {
+    return { success: false, error: String(err) };
+  }
+}
+
+/** 產生一小批機器翻譯草稿：kind 是 'text'（內容）或 'name'（名稱）。 */
+function adminMapDraft(kind, limit, password) {
+  if (!checkPassword(password)) return authFail_();
+  try {
+    if (!mapKind_(kind)) return { success: false, error: '未知的對照表' };
+    const n = Math.min(Math.max(Math.floor(Number(limit) || MAP_ADMIN_DRAFT_BATCH), 1), MAP_ADMIN_DRAFT_BATCH);
+    return { success: true, kind: kind, result: draftMap_(kind, n) };
+  } catch (err) {
+    return { success: false, error: String(err) };
+  }
+}
+
+/** 採用草稿：kind 是 'text' 或 'name'；zhList 有值只採用這些，否則採用全部「en 空白、draft 有內容」的列。 */
+function adminMapAdopt(kind, zhList, password) {
+  if (!checkPassword(password)) return authFail_();
+  try {
+    if (!mapKind_(kind)) return { success: false, error: '未知的對照表' };
+    if (zhList !== undefined && zhList !== null && !Array.isArray(zhList)) return { success: false, error: '格式錯誤' };
+    if (Array.isArray(zhList) && zhList.length > MAP_ADMIN_MAX_CHANGES) return { success: false, error: '一次最多採用 ' + MAP_ADMIN_MAX_CHANGES + ' 筆' };
+    return { success: true, kind: kind, adopted: adoptMapDrafts_(kind, Array.isArray(zhList) ? zhList : null) };
   } catch (err) {
     return { success: false, error: String(err) };
   }

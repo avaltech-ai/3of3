@@ -86,14 +86,14 @@ const noHeader = env({ AlbumCategories: [['別的欄位'], ['幸福廚房']] });
 console.log('C. 同步 syncNameMap_');
 e = env(world()); c = e.ctx;
 const r1 = c.syncNameMap_(); const sh = e.book.NameMap;
-ok(!!sh && eq(sh.rows[0], ['zh', 'en', 'used_in', 'note']), '第一次同步：自動建立 NameMap 工作表與標題列');
+ok(!!sh && eq(sh.rows[0], ['zh', 'en', 'draft', 'used_in', 'note']), '第一次同步：自動建立 NameMap 工作表與標題列（含機器草稿欄 draft）');
 const rowOfName = n => sh.rows.findIndex((r, i) => i > 0 && r[0] === n);
 const get = (n, col) => sh.rows[rowOfName(n)][col];
 ok(get('幸福廚房', 1) === 'Happy Kitchen' && get('115 學年上學期', 1) === 'Academic Year 115, Semester 1', '新增列預填英文草稿');
 ok(get('諾貝爾 A', 1) === '' && get('兩果', 1) === '' && get('雨果', 1) === '' && get('高峰活動', 1) === '', '班級名稱與不確定的名稱：英文欄留空');
 ok(r1.added === col.order.length && r1.total === col.order.length && r1.missingEn.includes('諾貝爾 A') && r1.missingEn.includes('高峰活動') && !r1.missingEn.includes('幸福廚房'), '報告：新增數量、尚未填英文的清單正確');
 ok(r1.issues.some(m => /^雨果：/.test(m)) && r1.issues.some(m => /^諾貝爾 A：/.test(m)), '報告列出資料問題（雨果、多餘空白）');
-ok(get('雨果', 3) !== '' && get('幸福廚房', 2) === '相簿類別、活動細項（目前前台未顯示）', 'used_in／note 欄位被寫入');
+ok(get('雨果', 4) !== '' && get('幸福廚房', 3) === '相簿類別、活動細項（目前前台未顯示）', 'used_in／note 欄位被寫入');
 ok(e.calls.clearCache === 1, '同步後清除前台快取');
 // 老師填寫英文
 sh.rows[rowOfName('諾貝爾 A')][1] = 'Nobel A'; sh.rows[rowOfName('幸福廚房')][1] = '我自己改的英文'; sh.rows[rowOfName('全園活動')][1] = '';   // 故意清空一個有草稿的
@@ -106,7 +106,7 @@ ok(!r2.missingEn.includes('諾貝爾 A') && r2.missingEn.includes('全園活動'
 e.book.AlbumCategories.rows.push(['新增的相簿類別']); e.book.AlbumCategories.rows = e.book.AlbumCategories.rows.filter(r => r[0] !== '慶生會'); e.book.Albums.rows = e.book.Albums.rows;
 const r3 = c.syncNameMap_();
 ok(r3.added === 1 && rowOfName('新增的相簿類別') > 0 && get('新增的相簿類別', 1) === '', '字典新增名稱 → 同步後自動補進對照表（英文留空）');
-ok(rowOfName('慶生會') > 0 && get('慶生會', 2) === '（目前沒有使用）' && r3.unused >= 1, '字典移除的名稱：列保留不刪除，出處標示「目前沒有使用」');
+ok(rowOfName('慶生會') > 0 && get('慶生會', 3) === '（目前沒有使用）' && r3.unused >= 1, '字典移除的名稱：列保留不刪除，出處標示「目前沒有使用」');
 // 重複列
 sh.rows.push(['幸福廚房', 'Dup', '', '']); const r4 = c.syncNameMap_();
 ok(r4.issues.some(m => /^幸福廚房：.*重複/.test(m)), '對照表出現重複列 → 報告提醒');

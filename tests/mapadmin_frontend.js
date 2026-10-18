@@ -20,7 +20,9 @@
   const mkRows = n => Array.from({ length: n }, (_, i) => ({ zh: '文字' + i, en: i % 3 === 0 ? 'Text ' + i : '', draft: i % 3 === 1 ? 'Draft ' + i : '', used_in: i % 10 === 9 ? '（目前沒有使用）' : '每日菜單：主食', note: '' }));
   const base = mkRows(120);
   const listRes = () => ({ success: true, kind: 'text', hasDraft: true, unusedLabel: '（目前沒有使用）', rows: base.map(r => Object.assign({}, r)) });
-  const nameRes = () => ({ success: true, kind: 'name', hasDraft: false, unusedLabel: '（目前沒有使用）', rows: [{ zh: '幸福廚房', en: 'Happy Kitchen', draft: '', used_in: '相簿類別', note: '' }, { zh: '舊名稱', en: '', draft: '', used_in: '（目前沒有使用）', note: '' }] });
+  let nameHasDraft = false;   // 模擬後端有沒有更新：false＝舊後端（NameMap 沒有草稿欄），true＝新後端
+  const nameRes = () => nameHasDraft ? ({ success: true, kind: 'name', hasDraft: true, unusedLabel: '（目前沒有使用）', rows: [{ zh: '幸福廚房', en: 'Happy Kitchen', draft: '', used_in: '相簿類別', note: '' }, { zh: '諾貝爾 A', en: '', draft: 'Nobel A', used_in: '活動對象', note: '' }, { zh: '舊名稱', en: '', draft: '', used_in: '（目前沒有使用）', note: '' }] })
+    : ({ success: true, kind: 'name', hasDraft: false, unusedLabel: '（目前沒有使用）', rows: [{ zh: '幸福廚房', en: 'Happy Kitchen', draft: '', used_in: '相簿類別', note: '' }, { zh: '舊名稱', en: '', draft: '', used_in: '（目前沒有使用）', note: '' }] });
   const statusRes = () => ({ success: true, text: { total: 120, missingEn: 70, withDraft: 40, unused: 12, pendingNew: 3 }, name: { total: 2, missingEn: 1, withDraft: 0, unused: 1, pendingNew: 0 } });
   handlers.mapList = p => p.kind === 'name' ? nameRes() : listRes();
   handlers.mapStatus = () => statusRes();
@@ -106,31 +108,31 @@
 
   // G. 連續產生草稿
   mapAdmin.status = statusRes(); let seq = [{ drafted: 20, remaining: 40 }, { drafted: 20, remaining: 20 }, { drafted: 20, remaining: 0 }];
-  handlers.textDraft = () => ({ success: true, result: Object.assign({ errors: 0, stoppedByQuota: false }, seq.shift()) });
+  handlers.mapDraft = () => ({ success: true, result: Object.assign({ errors: 0, stoppedByQuota: false }, seq.shift()) });
   log = []; toasts = []; mapAdminDraftRun(); await wait(150);
-  ok(calls('textDraft').length === 3 && calls('textDraft').every(c => c.payload.limit === 20), '連續呼叫 3 次、每次 20 筆，直到剩餘為 0');
+  ok(calls('mapDraft').length === 3 && calls('mapDraft').every(c => c.payload.limit === 20), '連續呼叫 3 次、每次 20 筆，直到剩餘為 0');
   ok(/草稿完成：共產生 60 筆/.test(toasts.join('|')) && document.getElementById('mapAdminProgress').classList.contains('hidden') && mapAdmin.drafting === false && mapAdmin.busy === false, '完成：提示總數、隱藏進度條、解除忙碌');
   seq = [{ drafted: 20, remaining: 40 }, { drafted: 20, remaining: 20 }]; let n = 0;
-  handlers.textDraft = () => { n++; if (n === 1) setTimeout(mapAdminCancelDraft, 0); return { success: true, result: Object.assign({ errors: 0, stoppedByQuota: false }, seq.shift() || { drafted: 0, remaining: 0 }) }; };
+  handlers.mapDraft = () => { n++; if (n === 1) setTimeout(mapAdminCancelDraft, 0); return { success: true, result: Object.assign({ errors: 0, stoppedByQuota: false }, seq.shift() || { drafted: 0, remaining: 0 }) }; };
   log = []; toasts = []; mapAdminDraftRun(); await wait(150);
-  ok(calls('textDraft').length <= 2 && /已停止/.test(toasts.join('|')) && mapAdmin.drafting === false, '按「停止」：不再送下一批');
-  handlers.textDraft = () => ({ success: true, result: { drafted: 5, remaining: 30, errors: 0, stoppedByQuota: true } }); log = []; toasts = []; mapAdminDraftRun(); await wait(80);
-  ok(calls('textDraft').length === 1 && /每日額度/.test(toasts.join('|')), '額度用盡：立刻停止並提醒明天再繼續');
-  handlers.textDraft = () => ({ success: true, result: { drafted: 0, remaining: 5, errors: 5, stoppedByQuota: false } }); log = []; toasts = []; mapAdminDraftRun(); await wait(80);
-  ok(calls('textDraft').length === 1, '一批完全沒有進展（全部失敗）：停止，不會無限重試');
-  handlers.textDraft = () => new Error('連線逾時'); log = []; toasts = []; mapAdminDraftRun(); await wait(80);
+  ok(calls('mapDraft').length <= 2 && /已停止/.test(toasts.join('|')) && mapAdmin.drafting === false, '按「停止」：不再送下一批');
+  handlers.mapDraft = () => ({ success: true, result: { drafted: 5, remaining: 30, errors: 0, stoppedByQuota: true } }); log = []; toasts = []; mapAdminDraftRun(); await wait(80);
+  ok(calls('mapDraft').length === 1 && /每日額度/.test(toasts.join('|')), '額度用盡：立刻停止並提醒明天再繼續');
+  handlers.mapDraft = () => ({ success: true, result: { drafted: 0, remaining: 5, errors: 5, stoppedByQuota: false } }); log = []; toasts = []; mapAdminDraftRun(); await wait(80);
+  ok(calls('mapDraft').length === 1, '一批完全沒有進展（全部失敗）：停止，不會無限重試');
+  handlers.mapDraft = () => new Error('連線逾時'); log = []; toasts = []; mapAdminDraftRun(); await wait(80);
   ok(/產生草稿中斷/.test(toasts.join('|')) && mapAdmin.busy === false && mapAdmin.drafting === false, '網路中斷：提示並解除忙碌');
-  confirmAnswer = false; log = []; mapAdminDraftRun(); await wait(30); ok(calls('textDraft').length === 0, '確認視窗按取消：不呼叫後端');
+  confirmAnswer = false; log = []; mapAdminDraftRun(); await wait(30); ok(calls('mapDraft').length === 0, '確認視窗按取消：不呼叫後端');
   confirmAnswer = true; mapAdmin.status = { text: { total: 5, missingEn: 3, withDraft: 3, unused: 0, pendingNew: 0 }, name: {} }; log = []; toasts = []; mapAdminDraftRun(); await wait(30);
-  ok(calls('textDraft').length === 0 && /沒有需要產生草稿/.test(toasts.join('|')), '沒有需要草稿的項目：直接提示、不呼叫後端');
+  ok(calls('mapDraft').length === 0 && /沒有需要產生草稿/.test(toasts.join('|')), '沒有需要草稿的項目：直接提示、不呼叫後端');
   mapAdmin.status = statusRes();
 
   // H. 採用全部、刪除
-  handlers.textAdopt = () => ({ success: true, adopted: 40 }); log = []; toasts = []; mapAdminAdoptAll(); await wait(60);
-  ok(calls('textAdopt').length === 1 && calls('textAdopt')[0].payload.zhList === null && /已採用 40 筆/.test(toasts.join('|')), '採用全部：zhList 為 null、提示採用筆數');
-  confirmAnswer = false; log = []; mapAdminAdoptAll(); await wait(30); ok(calls('textAdopt').length === 0, '確認視窗按取消：不採用'); confirmAnswer = true;
+  handlers.mapAdopt = () => ({ success: true, adopted: 40 }); log = []; toasts = []; mapAdminAdoptAll(); await wait(60);
+  ok(calls('mapAdopt').length === 1 && calls('mapAdopt')[0].payload.zhList === null && /已採用 40 筆/.test(toasts.join('|')), '採用全部：zhList 為 null、提示採用筆數');
+  confirmAnswer = false; log = []; mapAdminAdoptAll(); await wait(30); ok(calls('mapAdopt').length === 0, '確認視窗按取消：不採用'); confirmAnswer = true;
   mapAdmin.status = { text: { withDraft: 0, missingEn: 5, total: 5, unused: 0, pendingNew: 0 }, name: {} }; log = []; toasts = []; mapAdminAdoptAll(); await wait(30);
-  ok(calls('textAdopt').length === 0 && /沒有可採用/.test(toasts.join('|')), '沒有草稿：直接提示'); mapAdmin.status = statusRes();
+  ok(calls('mapAdopt').length === 0 && /沒有可採用/.test(toasts.join('|')), '沒有草稿：直接提示'); mapAdmin.status = statusRes();
   handlers.mapDelete = p => ({ success: true, deleted: p.zhList.length, skipped: 0 });
   mapAdminOnFilter('unused'); const cbs = [...document.querySelectorAll('#mapAdminRows input[type=checkbox]')]; cbs[0].checked = true; cbs[0].dispatchEvent(new Event('change')); cbs[1].checked = true; cbs[1].dispatchEvent(new Event('change'));
   ok(document.getElementById('mapAdminDeleteBtn').disabled === false && /（2）/.test(document.getElementById('mapAdminDeleteBtn').textContent), '勾選 2 列：刪除鈕啟用並顯示（2）');
@@ -155,10 +157,46 @@
   // J. 切換種類（NameMap）
   mapAdmin.dirty.text = {}; log = []; mapAdminSetKind('name'); await wait(60);
   ok(mapAdmin.kind === 'name' && calls('mapList')[0].payload.kind === 'name' && rowsEl().length === 2, '切到「名稱」：載入 NameMap（2 列）');
-  ok(document.getElementById('mapAdminDraftBtn').classList.contains('hidden') && document.getElementById('mapAdminAdoptAllBtn').classList.contains('hidden'), 'NameMap 沒有草稿功能：隱藏「產生草稿」「採用全部草稿」');
+  ok(document.getElementById('mapAdminDraftBtn').classList.contains('hidden') && document.getElementById('mapAdminAdoptAllBtn').classList.contains('hidden'), '舊後端（NameMap 沒有草稿欄、hasDraft=false）：維持舊畫面，隱藏「產生草稿」「採用全部草稿」（相容：前端先上線也不會壞）');
   ok(inputOf('幸福廚房').maxLength === 100, 'NameMap 英文欄上限 100 字元');
   ok(rowsEl().every(r => r.children[1].textContent === ''), 'NameMap 沒有機器草稿欄內容');
   mapAdminSetKind('text'); await wait(30);
+
+  // J2. 名稱也有機器草稿（2026-10-18：後端 NameMap 加 draft 欄，與內容比照）＋內容／名稱各自的紅點
+  nameHasDraft = true;
+  const nameStatus = () => ({ success: true, text: { total: 120, missingEn: 70, withDraft: 40, unused: 12, pendingNew: 3 }, name: { total: 3, missingEn: 2, withDraft: 1, unused: 1, pendingNew: 1 } });
+  handlers.mapStatus = () => nameStatus(); mapAdmin.status = nameStatus(); mapAdmin.data = { text: mapAdmin.data.text, name: null }; mapAdmin.dirty = { text: {}, name: {} };
+  mapAdminUpdateBadge();
+  const kb = k => document.getElementById('mapAdminKindBadge-' + k), kbt = k => document.getElementById('mapAdminKind-' + k);
+  ok(!kb('text').classList.contains('hidden') && kb('text').textContent === '3' && !kb('name').classList.contains('hidden') && kb('name').textContent === '1', '「內容」「名稱」切換鈕上各有自己的紅點：內容 3、名稱 1');
+  ok(document.getElementById('mapAdminTabBadge').textContent === '4' && /內容 3 筆、名稱 1 筆/.test(document.getElementById('mapAdminTabBadge').title) && /內容，有 3 筆/.test(kbt('text').getAttribute('aria-label')) && /名稱，有 1 筆/.test(kbt('name').getAttribute('aria-label')), '頁籤紅點是合計 4，滑過會寫明「內容 3 筆、名稱 1 筆」；切換鈕有給螢幕閱讀器的說明');
+  mapAdmin.status = { text: { pendingNew: 0 }, name: { pendingNew: 2 } }; mapAdminUpdateBadge();
+  ok(kb('text').classList.contains('hidden') && !kb('name').classList.contains('hidden') && kb('name').textContent === '2' && !kbt('text').getAttribute('aria-label'), '只有名稱有新文字：內容的紅點與說明消失、名稱顯示 2');
+  mapAdmin.status = nameStatus(); mapAdminUpdateBadge();
+  log = []; mapAdminSetKind('name'); await wait(80);
+  const hid = id => document.getElementById(id).classList.contains('hidden');
+  ok(mapAdmin.kind === 'name' && !hid('mapAdminDraftBtn') && !hid('mapAdminAdoptAllBtn'), '新後端（hasDraft=true）：「名稱」分頁也顯示「產生草稿」與「採用全部草稿」');
+  const nr = zh => rowsEl().find(x => x.getAttribute('data-zh') === zh);
+  ok(rowsEl().length === 3 && !!nr('諾貝爾 A') && nr('諾貝爾 A').children[1].textContent.indexOf('Nobel A') !== -1 && !!nr('諾貝爾 A').children[1].querySelector('button') && nr('幸福廚房').children[1].querySelector('button') === null, '名稱列表：顯示機器草稿欄；有草稿且英文空白的列才有「採用」鈕');
+  ok(inputOf('諾貝爾 A').maxLength === 100 && inputOf('諾貝爾 A').value === '', '名稱英文欄：上限 100 字元、尚未填');
+  ok(/（其中有草稿 1 筆）/.test(document.getElementById('mapAdminSummary').textContent) && /有 1 筆新名稱尚未加入/.test(document.getElementById('mapAdminSummary').textContent), '名稱摘要：「尚未翻譯 2 筆（其中有草稿 1 筆）」與「有 1 筆新名稱尚未加入」');
+  const nameAdoptBtn = nr('諾貝爾 A') && nr('諾貝爾 A').children[1].querySelector('button'); if (nameAdoptBtn) nameAdoptBtn.click();
+  ok(inputOf('諾貝爾 A').value === 'Nobel A' && mapAdminIsChanged('諾貝爾 A'), '按單筆「採用」：草稿填進英文欄並標為已修改（按儲存才寫入）');
+  mapAdmin.dirty.name = {}; mapAdmin.data.name = null; mapAdminLoad('name'); await wait(50);
+  let asked = []; window.confirm = m => { asked.push(String(m)); return true; };
+  handlers.mapDraft = () => ({ success: true, result: { drafted: 1, remaining: 0, errors: 0, stoppedByQuota: false } });
+  mapAdmin.status = nameStatus(); log = []; toasts = []; mapAdminDraftRun(); await wait(120);
+  ok(calls('mapDraft').length === 1 && calls('mapDraft')[0].payload.kind === 'name' && calls('mapDraft')[0].payload.limit === 20 && /名稱/.test(asked[0]) && /草稿完成：共產生 1 筆/.test(toasts.join('|')), '名稱的「產生草稿」：送出 kind=name、確認視窗寫「名稱」、完成提示');
+  ok(calls('mapList').length >= 1 && calls('mapList').every(c => c.payload.kind === 'name') && mapAdmin.kind === 'name', '完成後重新載入的是「名稱」的列表（不是內容）');
+  mapAdmin.status = Object.assign(nameStatus(), { name: { total: 3, missingEn: 2, withDraft: 0, unused: 1, pendingNew: 1 } }); log = []; toasts = []; mapAdminDraftRun(); await wait(30);
+  ok(calls('mapDraft').length === 1 && calls('mapDraft')[0].payload.kind === 'name', '名稱還有 2 筆沒草稿：可以繼續產生');
+  mapAdmin.status = Object.assign(nameStatus(), { name: { total: 3, missingEn: 1, withDraft: 1, unused: 1, pendingNew: 0 } }); log = []; toasts = []; mapAdminDraftRun(); await wait(30);
+  ok(calls('mapDraft').length === 0 && /沒有需要產生草稿/.test(toasts.join('|')), '名稱：全部都有草稿了 → 直接提示，不呼叫後端');
+  handlers.mapAdopt = () => ({ success: true, adopted: 1 }); mapAdmin.status = nameStatus(); log = []; toasts = []; mapAdminAdoptAll(); await wait(80);
+  ok(calls('mapAdopt').length === 1 && calls('mapAdopt')[0].payload.kind === 'name' && calls('mapAdopt')[0].payload.zhList === null && /已採用 1 筆/.test(toasts.join('|')) && calls('mapList').every(c => c.payload.kind === 'name'), '名稱的「採用全部草稿」：送出 kind=name，重新載入名稱列表');
+  window.confirm = function () { return confirmAnswer; };
+  nameHasDraft = false; handlers.mapStatus = () => statusRes(); mapAdmin.status = statusRes(); mapAdminUpdateBadge();
+  mapAdmin.data = { text: mapAdmin.data.text, name: null }; mapAdminSetKind('text'); await wait(30); mapAdmin.dirty = { text: {}, name: {} };
 
   // K. 跳脫
   base[5] = { zh: '<img src=x onerror="window.__mapadminpwn=1">', en: '"><script>window.__mapadminpwn=2<\/script>', draft: '<b>bold</b>', used_in: '<i>x</i>', note: '' };
