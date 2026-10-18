@@ -3686,11 +3686,16 @@
       const key = normName(name);
       return (key && (key in m)) ? m[key] : '';
     }
-    // 學年度（例如「115 學年度」，幼小銜接頁的標籤、下拉選單與列印標題）沒有任何字典可以同步進名稱對照表，所以對照表裡永遠查不到。
-    // 查不到時依固定規則換成「Academic Year 115」；老師在對照表填了英文就以老師的為準（nameEn 優先）。
+    // 學年度（例如「115 學年度」，幼小銜接頁的標籤、下拉選單與列印標題）沒有任何字典可以同步進名稱對照表，所以名稱對照表裡查不到。
+    // 查不到時的順序：① 老師在「內容」對照表（TextMap）填的英文（後台「英文對照」的「內容」分頁，例如手動新增一筆）② 固定規則：
+    // 民國年 + 1911 ＝ 西元年，顯示「The 2026–2027 School Year」（115 學年度 ＝ 2026 年 8 月～2027 年 7 月）。老師在名稱對照表填了就以名稱對照表為準（nameEn 優先）。
     function academicYearEn(n) {
       const m = /^(\d{2,3})\s*學年度$/.exec(String(n).trim());
-      return m ? 'Academic Year ' + m[1] : '';
+      if (!m) return '';
+      const fromText = tx(n);
+      if (typeof fromText === 'string' && fromText !== n && fromText.trim()) return fromText;
+      const y = Number(m[1]) + 1911;
+      return 'The ' + y + '–' + (y + 1) + ' School Year';
     }
     function tn(name) {
       const n = String(name === undefined || name === null ? '' : name);

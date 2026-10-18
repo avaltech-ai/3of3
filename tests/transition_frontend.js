@@ -116,15 +116,21 @@
   toggleLanguage(); await wait(200); renderTransition();
   ok(/Daily routine/.test(cards()[0].querySelector('h3').textContent) && items().some(i => /Learn to read a clock/.test(i.textContent)) && /Together/.test(items()[2].querySelector('.tr-tag').textContent) && /Our progress/.test($('trPlanToolbar').textContent), '英文介面：類別與項目走對照、標籤與工具列是英文');
   ok(/語文能力/.test(cards()[1].textContent), '沒有對照的類別退回中文');
-  // 學年度標籤：名稱對照表裡沒有「115 學年度」，查不到時依固定規則顯示 Academic Year 115（2026-10-18 使用者回報英文介面還是中文）
-  const realNm = state.nameMap; state.nameMap = {}; renderTransition();   // 只用測試自己的名稱對照（不依賴線上現有的）
+  // 學年度標籤：名稱對照表查不到時，先查「內容」對照表（老師常把「115 學年度」填在那裡），再用固定規則（民國年＋1911）
+  // （2026-10-18 使用者回報：英文介面還是中文；之後又發現他把「The 2026–2027 School Year」填在內容分頁，標籤卻只查名稱）
+  const realNm = state.nameMap, realTm = state.textMap; state.nameMap = {}; state.textMap = {}; renderTransition();   // 只用測試自己的對照（不依賴線上現有的）
   const optTxt = () => Array.from($('trYearFilter').options).map(o => o.textContent).join('|');
-  ok($('trYearBadge').textContent === 'Academic Year 115' && optTxt() === 'Academic Year 115|Academic Year 114', '英文介面：學年度標籤與下拉選單顯示「Academic Year 115」「Academic Year 114」（對照表查不到時的備援規則）');
-  ok(/（Academic Year 115）/.test(buildTransitionPrintHtml(false)) && !/學年度/.test(buildTransitionPrintHtml(false).split('<h2>')[0]), '英文介面：列印標題的學年度也是英文');
+  ok($('trYearBadge').textContent === 'The 2026–2027 School Year' && optTxt() === 'The 2026–2027 School Year|The 2025–2026 School Year', '兩張對照表都沒填：用固定規則，標籤與下拉選單顯示「The 2026–2027 School Year」「The 2025–2026 School Year」（115 學年度＝2026–2027）');
+  ok(/（The 2026–2027 School Year）/.test(buildTransitionPrintHtml(false)) && !/學年度/.test(buildTransitionPrintHtml(false).split('<h2>')[0]), '列印標題的學年度也是英文');
+  state.textMap = { '115 學年度': 'AY 115 (from content table)' }; renderTransition();
+  ok($('trYearBadge').textContent === 'AY 115 (from content table)' && /AY 115 \(from content table\)\|The 2025–2026 School Year/.test(optTxt()), '老師把「115 學年度」填在「內容」對照表：標籤用這個英文（沒填的 114 仍用規則）');
   state.nameMap = { '115 學年度': 'School Year 2026' }; renderTransition();
-  ok($('trYearBadge').textContent === 'School Year 2026' && /School Year 2026\|Academic Year 114/.test(optTxt()), '老師在名稱對照表填了英文：以老師的為準（備援規則只在查不到時才用）');
-  state.nameMap = realNm; renderTransition();
-  ok(tn('115 學年度') === 'Academic Year 115' && tn('116學年度') === 'Academic Year 116' && tn('115 學年上學期') !== 'Academic Year 115' && tn('學年度') === '學年度' && tn('一百一十五 學年度') === '一百一十五 學年度' && tn('115 學年度（試辦）') === '115 學年度（試辦）', '規則只認「數字＋學年度」（可有空白）：不誤判學期、沒有數字的、後面還有字的');
+  ok($('trYearBadge').textContent === 'School Year 2026', '兩張都填了：以「名稱」對照表為準');
+  state.nameMap = {}; state.textMap = { '115 學年度': '   ' }; renderTransition();
+  ok($('trYearBadge').textContent === 'The 2026–2027 School Year', '內容對照表填的是空白：當作沒填，用規則');
+  state.nameMap = realNm; state.textMap = realTm; renderTransition();
+  state.textMap = {};
+  ok(tn('115 學年度') === 'The 2026–2027 School Year' && tn('116學年度') === 'The 2027–2028 School Year' && tn('99 學年度') === 'The 2010–2011 School Year' && tn('115 學年上學期') !== 'The 2026–2027 School Year' && tn('學年度') === '學年度' && tn('一百一十五 學年度') === '一百一十五 學年度' && tn('115 學年度（試辦）') === '115 學年度（試辦）', '規則只認「數字＋學年度」（可有空白）：不誤判學期、沒有數字的、後面還有字的');
   toggleLanguage(); await wait(200);
 
   // H. 跳脫
