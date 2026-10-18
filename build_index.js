@@ -3720,10 +3720,16 @@ const htmlContent = `<!DOCTYPE html>
       const key = normName(name);
       return (key && (key in m)) ? m[key] : '';
     }
+    // 學年度（例如「115 學年度」，幼小銜接頁的標籤、下拉選單與列印標題）沒有任何字典可以同步進名稱對照表，所以對照表裡永遠查不到。
+    // 查不到時依固定規則換成「Academic Year 115」；老師在對照表填了英文就以老師的為準（nameEn 優先）。
+    function academicYearEn(n) {
+      const m = /^(\\d{2,3})\\s*學年度$/.exec(String(n).trim());
+      return m ? 'Academic Year ' + m[1] : '';
+    }
     function tn(name) {
       const n = String(name === undefined || name === null ? '' : name);
       if (state.lang !== 'en') return n;
-      return nameEn(n) || n;
+      return nameEn(n) || academicYearEn(n) || n;
     }
 
     // ---------- 自由文字英文（TextMap）----------
