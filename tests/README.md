@@ -123,7 +123,7 @@ console.log(await window.__nameMapFrontendTest());   // allPass 應為 true
 - `tests/subscribe.js`（瀏覽器）：訂閱按鈕與說明視窗（網址、`webcal://`、複製與備援、關閉、字典，15 項）。
 - `node tests/textmap.test.js`：自由文字英文 TextMap 後端（掃描、同步不覆蓋、機器草稿只寫 draft、採用草稿、回傳與大型分段快取、`doGet` 唯讀動作，65 項；已納入 `tests/ci.sh`）。
 - `tests/textmap_frontend.js`（瀏覽器）：`tx()` 查表與各顯示位置（活動、菜單、列印、焦點活動、相簿、文件、主題）、退回中文、跳脫、載入與快取（40 項）。
-- `node tests/mapadmin.test.js`：後台英文對照編輯後端（token 驗證、列表、批次儲存、只刪未使用、同步、草稿上限、採用、統計、`doPost` 路由與冪等，60 項；已納入 `tests/ci.sh`）。
+- `node tests/mapadmin.test.js`：後台英文對照編輯後端（token 驗證、列表、批次儲存、只刪未使用與手動新增（2026-10-18：手動新增的列也能刪，含出處前後有空白、只是長得像的其他出處不算、錯誤 token 不刪；變異測試：手動新增又不能刪 4、任何列都能刪 7、出處含「手動新增」字樣就能刪 1，都抓到）、同步、草稿上限、採用、統計、`doPost` 路由與冪等，60 項；已納入 `tests/ci.sh`）。
 - `node tests/spotlightorder.test.js`：焦點活動播放順位（順位只屬於播映中、即時算出連續 1～N、到期補位、排程中開播排最後、移動順位與夾範圍、整理後的清單、已整理好不重複寫回、預設篩選；後端 `updateSpotlightsOrder`／`saveSpotlight` 可清空順位、空白不變成 1，33 項；已納入 `tests/ci.sh`）。
 - `tests/spotlight_adminlist.js`（瀏覽器）：後台焦點活動列表（預設只顯示播映中且依輪播順序、清除篩選回到預設、順位下拉只給播映中並為 1～N、其他顯示未排／已取消順位、到期自動補位、排程中開播排最後、改順位寫回播映中 1～N 其餘清空、儲存與刪除後整理、登入後第一次畫列表自動整理、搜尋、跳脫，46 項；約 10 秒）。
 - `tests/spotlight_relist.js`（瀏覽器）：後台焦點活動「再次上架」（按鈕、帶入內容與圖片、新編號、起始日＝今天、結束日留空、不上傳、原本那筆不變、結束日未填提醒、結束日早於開始日擋下、編輯與新增不受影響、跳脫，36 項；約 6 秒）。

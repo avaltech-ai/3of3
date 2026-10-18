@@ -142,6 +142,25 @@
   ok(calls('mapDelete').map(c => c.payload.zhList.length).join() === '100,100,30', '超過 100 筆：分段刪除（100、100、30）');
   mapAdmin.sel = {}; confirmAnswer = false; mapAdmin.sel['a'] = true; log = []; mapAdminDeleteSelected(); await wait(30); ok(calls('mapDelete').length === 0, '確認視窗按取消：不刪除'); confirmAnswer = true; mapAdmin.sel = {};
 
+  // H2. 手動新增的列也能勾選刪除（2026-10-18，使用者要求）
+  const dataRows = mapAdmin.data.text.rows, nBefore = dataRows.length;
+  dataRows.push({ zh: '手動甲', en: 'Manual A', draft: '', used_in: '（手動新增）', note: '' }, { zh: '手動乙', en: 'Manual B', draft: '', used_in: '（手動新增）', note: '' });
+  mapAdmin.sel = {}; mapAdminOnFilter('all'); mapAdminOnQuery('手動');
+  const cbOf = zh => { const r = rowsEl().find(x => x.getAttribute('data-zh') === zh); return r && r.querySelector('input[type=checkbox]'); };
+  ok(!!cbOf('手動甲') && !!cbOf('手動乙') && /手動新增的項目，可能仍在網站上使用/.test(cbOf('手動甲').title), '出處是「手動新增」的列：有勾選框，提示寫明「可能仍在網站上使用」');
+  ok(cbOf('文字1') === null || cbOf('文字1') === undefined, '使用中的一般列：仍然沒有勾選框');
+  let asked2 = []; window.confirm = m => { asked2.push(String(m)); return true; };
+  handlers.mapDelete = p => ({ success: true, deleted: p.zhList.length, skipped: 0 });
+  ['手動甲', '手動乙'].forEach(z => { const cb = cbOf(z); if (cb) { cb.checked = true; cb.dispatchEvent(new Event('change')); } });
+  ok(/（2）/.test(document.getElementById('mapAdminDeleteBtn').textContent) && document.getElementById('mapAdminDeleteBtn').disabled === false, '勾選 2 筆手動新增：刪除鈕啟用並顯示（2）');
+  log = []; toasts = []; mapAdminDeleteSelected(); await wait(60);
+  ok(/其中 2 筆是「手動新增」的/.test(asked2[0]) && /刪除後那些地方的英文介面會改顯示中文/.test(asked2[0]), '確認視窗特別警告：其中 N 筆是手動新增的、可能還在使用、刪除後英文介面會改顯示中文');
+  ok(calls('mapDelete').length === 1 && eq(calls('mapDelete')[0].payload.zhList.slice().sort(), ['手動乙', '手動甲'].sort()) && calls('mapDelete')[0].payload.kind === 'text' && /已刪除 2 筆/.test(toasts.join('|')), '送出刪除：兩筆中文、kind=text、提示已刪除 2 筆');
+  mapAdmin.sel = {}; mapAdmin.sel['x'] = true; mapAdmin.sel['y'] = true; asked2 = []; log = []; mapAdminDeleteSelected(); await wait(40);
+  ok(!/手動新增/.test(asked2[0]) && /「目前沒有使用」的項目/.test(asked2[0]), '只選「目前沒有使用」的：確認視窗維持原本的說法（不出現手動新增的警告）');
+  mapAdmin.sel = {}; window.confirm = function () { return confirmAnswer; };
+  mapAdmin.data.text.rows.length = nBefore; mapAdminOnQuery(''); mapAdminOnFilter('all');
+
   // I. 手動新增
   mapAdminOnFilter('all'); log = []; toasts = [];
   document.getElementById('mapAdminAddZh').value = '  全新的   文字 '; document.getElementById('mapAdminAddEn').value = '';

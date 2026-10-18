@@ -122,6 +122,18 @@ ok(c.adminMapDelete('text', [], TOK).success === false && c.adminMapDelete('text
 const dn = env({ NameMap: NM() }); r = dn.ctx.adminMapDelete('name', ['舊名稱', '幸福廚房'], TOK);
 ok(r.deleted === 1 && r.skipped === 1 && dn.book.NameMap.rows.length === 3, 'NameMap：同樣只刪未使用的');
 
+// 手動新增的列也能直接刪除（2026-10-18，使用者要求）：出處是「（手動新增）」的列，不必先同步
+e = env({ TextMap: [['zh', 'en', 'draft', 'used_in', 'note'], ['115 學年度', 'The 2026–2027 School Year', '', '（手動新增）', ''], ['白飯', 'Rice', '', '每日菜單：主食', ''], ['舊菜名', 'Old', '', '（目前沒有使用）', ''], ['另一筆手動', 'X', '', '（手動新增）', '']] });
+r = e.ctx.adminMapDelete('text', ['115 學年度', '白飯', '舊菜名'], TOK);
+ok(r.success && r.deleted === 2 && r.skipped === 1 && eq(e.book.TextMap.rows.map(x => x[0]), ['zh', '白飯', '另一筆手動']), '手動新增的列可以直接刪（與「目前沒有使用」的一起刪）；使用中的「白飯」仍然跳過；沒選的手動列不受影響');
+r = e.ctx.adminMapDelete('text', ['另一筆手動'], TOK); ok(r.deleted === 1 && r.skipped === 0 && eq(e.book.TextMap.rows.map(x => x[0]), ['zh', '白飯']), '只選手動新增的一筆：刪除成功');
+e = env({ NameMap: [['zh', 'en', 'draft', 'used_in', 'note'], ['自訂名稱', 'Custom', '', '（手動新增）', ''], ['幸福廚房', 'Happy Kitchen', '', '相簿類別', '']] });
+r = e.ctx.adminMapDelete('name', ['自訂名稱', '幸福廚房'], TOK); ok(r.deleted === 1 && r.skipped === 1 && eq(e.book.NameMap.rows.map(x => x[0]), ['zh', '幸福廚房']), 'NameMap：手動新增的可以刪、使用中的不能刪');
+e = env({ TextMap: [['zh', 'en', 'draft', 'used_in', 'note'], ['含空白', 'A', '', '  （手動新增）  ', ''], ['不是手動', 'B', '', '（手動新增）以外的出處', '']] });
+r = e.ctx.adminMapDelete('text', ['含空白', '不是手動'], TOK); ok(r.deleted === 1 && r.skipped === 1 && e.book.TextMap.rows[1][0] === '不是手動', '出處前後有空白也算手動新增；只是「長得像」的其他出處不算（要完全相同）');
+e = env({ TextMap: [['zh', 'en', 'draft', 'used_in', 'note'], ['手動', 'A', '', '（手動新增）', '']] }); const snapD = JSON.stringify(e.book.TextMap.rows);
+r = e.ctx.adminMapDelete('text', ['手動'], 'bad'); ok(r.authExpired === true && JSON.stringify(e.book.TextMap.rows) === snapD, '手動新增的列：錯誤 token 一樣拒絕、不刪');
+
 console.log('E. 同步與草稿與採用');
 e = env({ TextMap: TM(), NameMap: NM() }, { data: DATA() }); c = e.ctx;
 r = c.adminMapSync('text', TOK);

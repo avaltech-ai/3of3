@@ -1901,7 +1901,8 @@ function adminMapSave(kind, changes, password) {
   }
 }
 
-/** 刪除「目前沒有使用」的列（使用中的不能刪，避免誤刪還在顯示的翻譯）。回傳 { deleted, skipped }。 */
+/** 刪除「目前沒有使用」或「手動新增」的列（其他使用中的不能刪，避免誤刪還在顯示的翻譯）。回傳 { deleted, skipped }。
+ *  「手動新增」是管理員自己在網頁上加的（出處標示 MAP_ADMIN_MANUAL，直到下次「同步新文字」重新計算出處為止），所以允許直接刪除（2026-10-18，使用者要求）。 */
 function adminMapDelete(kind, zhList, password) {
   if (!checkPassword(password)) return authFail_();
   try {
@@ -1913,11 +1914,11 @@ function adminMapDelete(kind, zhList, password) {
     zhList.forEach(function(z) { want[cfg.norm(z)] = true; });
     const all = mapReadAll_(cfg);
     const targets = [];
-    const deletable = {};   // 中文 → 第一列是否為「目前沒有使用」；重複的列沿用第一列的判斷
+    const deletable = {};   // 中文 → 第一列是否為「目前沒有使用」或「手動新增」；重複的列沿用第一列的判斷
     all.values.forEach(function(row, i) {
       const z = cfg.norm(row[all.cols.zh - 1]);
       if (!z || !Object.prototype.hasOwnProperty.call(want, z)) return;
-      if (!Object.prototype.hasOwnProperty.call(deletable, z)) deletable[z] = cfg.norm(row[all.cols.used_in - 1]) === cfg.norm(cfg.unused);
+      if (!Object.prototype.hasOwnProperty.call(deletable, z)) { const used = cfg.norm(row[all.cols.used_in - 1]); deletable[z] = used === cfg.norm(cfg.unused) || used === cfg.norm(MAP_ADMIN_MANUAL); }
       if (deletable[z]) targets.push(i + 2);
     });
     const skipped = Object.keys(deletable).filter(function(z) { return !deletable[z]; }).length;

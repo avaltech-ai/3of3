@@ -4277,6 +4277,7 @@
     function mapAdminHasDirty() {
       return mapAdminKinds().some(function(k) { return Object.keys(mapAdmin.dirty[k]).length > 0; });
     }
+    const MAP_ADMIN_MANUAL_LABEL = '（手動新增）';   // 與後端 MAP_ADMIN_MANUAL 相同：管理員自己加的列，出處在下次同步前都是這個
     function mapAdminUnusedLabel() { return (mapAdmin.data[mapAdmin.kind] && mapAdmin.data[mapAdmin.kind].unusedLabel) || '（目前沒有使用）'; }
 
     // ---------- 相似文字（只差 1～2 個字的列）----------
@@ -4462,8 +4463,9 @@
         row.setAttribute('data-zh', r.zh);
         const c1 = document.createElement('div'); c1.className = 'sm:col-span-4 min-w-0 flex items-start gap-1.5';
         const isUnused = String(r.used_in || '').trim() === unused;
-        if (isUnused && !r.isNew) {
-          const cb = document.createElement('input'); cb.type = 'checkbox'; cb.className = 'mt-1 shrink-0'; cb.title = '選取以刪除（目前沒有使用）';
+        const isManual = String(r.used_in || '').trim() === MAP_ADMIN_MANUAL_LABEL;
+        if ((isUnused || isManual) && !r.isNew) {
+          const cb = document.createElement('input'); cb.type = 'checkbox'; cb.className = 'mt-1 shrink-0'; cb.title = isManual ? '選取以刪除（手動新增的項目，可能仍在網站上使用）' : '選取以刪除（目前沒有使用）';
           cb.checked = !!mapAdmin.sel[r.zh];
           cb.addEventListener('change', function() { if (cb.checked) mapAdmin.sel[r.zh] = true; else delete mapAdmin.sel[r.zh]; mapAdminUpdateControls(); });
           c1.appendChild(cb);
@@ -4753,7 +4755,11 @@
       const k = mapAdmin.kind;
       const list = Object.keys(mapAdmin.sel);
       if (list.length === 0) return;
-      if (!confirm('確定刪除選取的 ' + list.length + ' 筆「目前沒有使用」的項目嗎？\n（網站上還在使用的項目不會被刪除）')) return;
+      const manualN = list.filter(function(z) { const rw = ((mapAdmin.data[k] && mapAdmin.data[k].rows) || []).filter(function(r) { return r.zh === z; })[0]; return !!rw && String(rw.used_in || '').trim() === MAP_ADMIN_MANUAL_LABEL; }).length;
+      const delMsg = manualN > 0
+        ? '確定刪除選取的 ' + list.length + ' 筆嗎？\n其中 ' + manualN + ' 筆是「手動新增」的：它們可能仍在網站上使用，刪除後那些地方的英文介面會改顯示中文（或預設規則）。\n（網站上還在使用、而且不是手動新增的項目不會被刪除）'
+        : '確定刪除選取的 ' + list.length + ' 筆「目前沒有使用」的項目嗎？\n（網站上還在使用的項目不會被刪除）';
+      if (!confirm(delMsg)) return;
       mapAdminSetBusy(true);
       let idx = 0, deleted = 0, skipped = 0;
       const next = function() {
