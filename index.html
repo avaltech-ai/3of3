@@ -161,7 +161,8 @@
       #printTransitionArea h1 { font-size: 18pt; font-weight: 900; margin: 0 0 1mm; }
       #printTransitionArea .print-sub { font-size: 10pt; color: #444; margin-bottom: 3mm; }
       #printTransitionArea h2 { font-size: 12pt; font-weight: 800; margin: 3mm 0 1mm; page-break-after: avoid; }
-      #printTransitionArea table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 1mm; }
+      /* 寬度留 1.5mm：border-collapse 的最外側框線有一半在表格外，表格剛好撐滿版心時最右邊那條會被列印邊界切掉（Safari 實測） */
+      #printTransitionArea table { width: calc(100% - 1.5mm); border-collapse: collapse; table-layout: fixed; margin-bottom: 1mm; }
       #printTransitionArea td { border: 1px solid #555; padding: 1.6mm 2mm; font-size: 10.5pt; vertical-align: middle; word-break: break-word; }
       #printTransitionArea td.box { width: 9mm; text-align: center; font-size: 14pt; }
       #printTransitionArea td.kind { width: 18mm; text-align: center; font-size: 9pt; color: #333; }
@@ -1064,10 +1065,7 @@
           <div class="flex flex-wrap items-center gap-2 justify-between">
             <div id="trFilterChips" class="flex flex-wrap gap-1.5" role="group"></div>
             <div class="flex flex-wrap items-center gap-1.5">
-              <button type="button" onclick="printTransitionPlan(true)" class="px-3 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold tap-bounce"><span aria-hidden="true">🖨️</span> <span data-i18n="transition.printMine">列印（含我的勾選）</span></button>
-              <button type="button" onclick="printTransitionPlan(false)" class="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold tap-bounce" data-i18n="transition.printBlank">列印空白版</button>
-              <button type="button" onclick="printHabitSheet(4)" class="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold tap-bounce"><span aria-hidden="true">🗓️</span> <span data-i18n="transition.printHabit">列印四週打卡表</span></button>
-              <button type="button" onclick="printHabitSheet(1)" class="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold tap-bounce"><span aria-hidden="true">🗓️</span> <span data-i18n="transition.printHabit1">列印單週打卡表</span></button>
+              <button type="button" id="trPrintOpenBtn" onclick="openTrPrintPanel()" aria-haspopup="dialog" class="px-3 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold tap-bounce"><span aria-hidden="true">🖨️</span> <span data-i18n="transition.printOpen">列印…</span></button>
               <button type="button" onclick="clearTransitionChecks()" class="px-3 py-1.5 rounded-xl bg-white hover:bg-rose-50 border border-slate-200 text-slate-500 hover:text-rose-600 text-xs font-bold tap-bounce" data-i18n="transition.clearChecks">清除勾選</button>
             </div>
           </div>
@@ -2500,6 +2498,39 @@
 
   <!-- ==================== 桃子腳幼兒園 完整 Google Drive 照片連結彈窗 ==================== -->
   <!-- ==================== 訂閱行事曆說明視窗 ==================== -->
+  <!-- 幼小銜接「列印」面板：四種列印集中在這裡（直式：計畫清單；橫式：好習慣打卡表） -->
+  <div id="trPrintModal" class="fixed inset-0 z-60 modal-backdrop flex items-center justify-center p-3 sm:p-5 hidden select-none" onclick="if(event.target===this)closeTrPrintPanel()">
+    <div class="bg-white rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl relative border border-slate-100 flex flex-col gap-3 max-h-[88vh] overflow-y-auto" onclick="event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="trPrintTitle">
+      <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+        <h3 id="trPrintTitle" class="text-base sm:text-lg font-black text-slate-800 flex items-center gap-2"><span aria-hidden="true">🖨️</span> <span data-i18n="transition.printPanelTitle">列印</span></h3>
+        <button type="button" onclick="closeTrPrintPanel()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold tap-bounce shrink-0" title="關閉" data-i18n-title="ui.close" aria-label="關閉" data-i18n-aria="ui.close">✕</button>
+      </div>
+      <p class="text-xs text-slate-600 leading-relaxed" data-i18n="transition.printPanelIntro">選一份來列印，也可以在列印視窗存成 PDF。</p>
+      <button type="button" data-print="check" onclick="trPrintFrom('check')" class="tr-print-card w-full text-left flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-sky-50 hover:border-sky-300 p-3 tap-bounce">
+        <span class="text-2xl shrink-0" aria-hidden="true">📋</span>
+        <span class="flex-1 min-w-[7rem]"><span class="block text-sm font-black text-slate-800" data-i18n="transition.fileCheck"></span><span class="block text-xs text-slate-500 mt-0.5" data-i18n="transition.printDescCheck"></span></span>
+        <span class="shrink-0 ml-auto text-[0.6875rem] font-black px-2 py-0.5 rounded-lg whitespace-nowrap bg-sky-100 text-sky-800" data-i18n="transition.orientPortrait"></span>
+      </button>
+      <button type="button" data-print="blank" onclick="trPrintFrom('blank')" class="tr-print-card w-full text-left flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-sky-50 hover:border-sky-300 p-3 tap-bounce">
+        <span class="text-2xl shrink-0" aria-hidden="true">📄</span>
+        <span class="flex-1 min-w-[7rem]"><span class="block text-sm font-black text-slate-800" data-i18n="transition.fileBlank"></span><span class="block text-xs text-slate-500 mt-0.5" data-i18n="transition.printDescBlank"></span></span>
+        <span class="shrink-0 ml-auto text-[0.6875rem] font-black px-2 py-0.5 rounded-lg whitespace-nowrap bg-sky-100 text-sky-800" data-i18n="transition.orientPortrait"></span>
+      </button>
+      <button type="button" data-print="habit4" onclick="trPrintFrom('habit4')" class="tr-print-card w-full text-left flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-sky-50 hover:border-sky-300 p-3 tap-bounce">
+        <span class="text-2xl shrink-0" aria-hidden="true">🗓️</span>
+        <span class="flex-1 min-w-[7rem]"><span class="block text-sm font-black text-slate-800" data-i18n="transition.fileHabit4"></span><span class="block text-xs text-slate-500 mt-0.5" data-i18n="transition.printDescHabit4"></span></span>
+        <span class="shrink-0 ml-auto text-[0.6875rem] font-black px-2 py-0.5 rounded-lg whitespace-nowrap bg-amber-100 text-amber-800" data-i18n="transition.orientLandscape"></span>
+      </button>
+      <button type="button" data-print="habit1" onclick="trPrintFrom('habit1')" class="tr-print-card w-full text-left flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-sky-50 hover:border-sky-300 p-3 tap-bounce">
+        <span class="text-2xl shrink-0" aria-hidden="true">📅</span>
+        <span class="flex-1 min-w-[7rem]"><span class="block text-sm font-black text-slate-800" data-i18n="transition.fileHabit1"></span><span class="block text-xs text-slate-500 mt-0.5" data-i18n="transition.printDescHabit1"></span></span>
+        <span class="shrink-0 ml-auto text-[0.6875rem] font-black px-2 py-0.5 rounded-lg whitespace-nowrap bg-amber-100 text-amber-800" data-i18n="transition.orientLandscape"></span>
+      </button>
+      <div id="trPrintTipSafari" class="hidden rounded-2xl bg-amber-50 border border-amber-200 px-3 py-2 text-xs font-bold text-amber-900 leading-relaxed" data-i18n="transition.printTipSafari">用 Safari 列印橫式（打卡表）時，請在列印視窗把方向選成「橫向」；Chrome、Edge 會自動選好。</div>
+      <div class="text-[0.6875rem] text-slate-400 leading-relaxed" data-i18n="transition.printTipFile">存成 PDF 時，檔名會自動是項目名稱，不會互相覆蓋。</div>
+    </div>
+  </div>
+
   <div id="calendarSubscribeModal" class="fixed inset-0 z-60 modal-backdrop flex items-center justify-center p-3 sm:p-5 hidden select-none" onclick="if(event.target===this)closeCalendarSubscribe()">
     <div class="bg-white rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl relative border border-slate-100 flex flex-col gap-3 max-h-[88vh] overflow-y-auto" onclick="event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="calSubTitle">
       <div class="flex items-center justify-between pb-2 border-b border-slate-100">
@@ -2839,6 +2870,7 @@
           subscribeNote: '活動以「全天事件」顯示，時間與地點請看活動備註。Apple 行事曆約數小時內同步；Google 行事曆的更新可能需要 12～24 小時才會出現。',
           printNoMenu: '本週尚無菜單資料可列印',
           printTitle: '本週菜單',
+          fileMenu: '本週菜單（{range}）',
           printColDate: '日期',
           printColMorning: '早點',
           printColFruit: '水果',
@@ -2885,12 +2917,23 @@
           kindHomeTitle: '家長可以在家陪伴的事',
           kindBothTitle: '園所與家庭一起陪孩子培養的能力',
           progressLabel: '我們家的進度',
-          printMine: '列印（含我的勾選）',
-          printBlank: '列印空白版',
-          printHabit: '列印四週打卡表',
           habitTitle: '我的好習慣打卡表',
           habitSub: '連續 4 週，做到就在格子裡打勾 ✓；灰色格子不用打卡。',
-          printHabit1: '列印單週打卡表',
+          printOpen: '列印…',
+          printPanelTitle: '列印',
+          printPanelIntro: '選一份來列印，也可以在列印視窗存成 PDF。',
+          printDescCheck: '全部項目，已勾選的會印成 ☑',
+          printDescBlank: '全部項目，方框都是空的',
+          printDescHabit4: '5 個好習慣 × 4 週，附小獎勵欄',
+          printDescHabit1: '5 個好習慣 × 1 週，格子較大',
+          orientPortrait: 'A4 直式',
+          orientLandscape: 'A4 橫式',
+          printTipSafari: '用 Safari 列印橫式（打卡表）時，請在列印視窗把方向選成「橫向」；Chrome、Edge 會自動選好。',
+          printTipFile: '存成 PDF 時，檔名會自動是項目名稱，不會互相覆蓋。',
+          fileCheck: '幼小銜接計畫（含勾選）',
+          fileBlank: '幼小銜接計畫（空白）',
+          fileHabit4: '好習慣打卡表（四週）',
+          fileHabit1: '好習慣打卡表（單週）',
           habitTitle1: '我的好習慣打卡表（單週）',
           habitSub1: '這一週，做到就在格子裡打勾 ✓；灰色格子不用打卡。',
           habitName: '姓名',
@@ -3184,6 +3227,7 @@
           subscribeNote: 'Events appear as all-day events; see the event notes for time and place. Apple Calendar syncs within hours; Google Calendar can take 12 to 24 hours to show changes.',
           printNoMenu: 'No menu data to print for this week',
           printTitle: 'Weekly Menu',
+          fileMenu: 'Weekly menu ({range})',
           printColDate: 'Date',
           printColMorning: 'Morning snack',
           printColFruit: 'Fruit',
@@ -3230,12 +3274,23 @@
           kindHomeTitle: 'Things parents can do at home',
           kindBothTitle: 'Skills school and family build together',
           progressLabel: 'Our progress',
-          printMine: 'Print (with my checks)',
-          printBlank: 'Print blank copy',
-          printHabit: 'Print 4-week habit chart',
           habitTitle: 'My Good Habits Chart',
           habitSub: 'For 4 weeks in a row, tick the box each time you do it ✓. Grey boxes need no tick.',
-          printHabit1: 'Print 1-week habit chart',
+          printOpen: 'Print…',
+          printPanelTitle: 'Print',
+          printPanelIntro: 'Pick one to print, or save it as a PDF from the print window.',
+          printDescCheck: 'All items; ticked ones print as ☑',
+          printDescBlank: 'All items with empty boxes',
+          printDescHabit4: '5 good habits × 4 weeks, with a little reward box',
+          printDescHabit1: '5 good habits × 1 week, bigger boxes',
+          orientPortrait: 'A4 portrait',
+          orientLandscape: 'A4 landscape',
+          printTipSafari: 'In Safari, please set the print window to "Landscape" for the habit charts. Chrome and Edge pick it automatically.',
+          printTipFile: 'When saving as PDF, the file name is the item name, so files never overwrite each other.',
+          fileCheck: 'Transition plan (with my checks)',
+          fileBlank: 'Transition plan (blank)',
+          fileHabit4: 'Habit chart (4 weeks)',
+          fileHabit1: 'Habit chart (1 week)',
           habitTitle1: 'My Good Habits Chart (1 week)',
           habitSub1: 'This week, tick the box each time you do it ✓. Grey boxes need no tick.',
           habitName: 'Name',
@@ -4170,6 +4225,8 @@
       const area = document.getElementById('printMenuArea');
       if (!area) return;
       area.innerHTML = buildWeekMenuPrintHtml();
+      const wk = getWeekDateStrs();
+      setPrintTitle(t('cal.fileMenu').replace('{range}', wk[0].slice(5) + '～' + wk[6].slice(5)));   // 日期用「10-18」不用斜線（檔名裡的 / 會被換成別的字元）
       window.print();
     }
 
@@ -13457,7 +13514,41 @@
 
     function printTransitionPlan(withChecks) {
       if (!trYearItems().length) { showToast(t('transition.printEmpty'), 'ℹ️'); return; }
-      trPrintArea(buildTransitionPrintHtml(!!withChecks), 'portrait');
+      trPrintArea(buildTransitionPrintHtml(!!withChecks), 'portrait', t(withChecks ? 'transition.fileCheck' : 'transition.fileBlank'));
+    }
+
+    // ---- 列印面板（2026-10-18，使用者選方案 A：工具列只留一個「列印…」，點開才看到四種列印）----
+    // Safari（含 iPhone／iPad）不支援網頁指定紙張方向（@page size），橫式要使用者在列印視窗自己選「橫向」，所以只在 Safari 顯示提醒
+    function trBrowserIgnoresPageSize() {
+      const ua = (typeof navigator !== 'undefined' && navigator.userAgent) || '';
+      return /iPad|iPhone|iPod/.test(ua) || (/Safari/.test(ua) && !/Chrome|Chromium|CriOS|FxiOS|Edg|OPR|Android/.test(ua));
+    }
+    let trPrintOpener = null;
+    function trPrintEsc(e) { if (e.key === 'Escape') closeTrPrintPanel(); }
+    function openTrPrintPanel() {
+      const m = document.getElementById('trPrintModal');
+      if (!m) return;
+      trPrintOpener = document.activeElement;
+      const tip = document.getElementById('trPrintTipSafari');
+      if (tip) tip.classList.toggle('hidden', !trBrowserIgnoresPageSize());
+      m.classList.remove('hidden');
+      document.addEventListener('keydown', trPrintEsc);
+      const first = m.querySelector('.tr-print-card');
+      if (first) { try { first.focus(); } catch (e) {} }
+    }
+    function closeTrPrintPanel() {
+      const m = document.getElementById('trPrintModal');
+      if (m) m.classList.add('hidden');
+      document.removeEventListener('keydown', trPrintEsc);
+      if (trPrintOpener && trPrintOpener.focus) { try { trPrintOpener.focus(); } catch (e) {} }
+      trPrintOpener = null;
+    }
+    function trPrintFrom(kind) {
+      closeTrPrintPanel();
+      if (kind === 'check') printTransitionPlan(true);
+      else if (kind === 'blank') printTransitionPlan(false);
+      else if (kind === 'habit4') printHabitSheet(4);
+      else if (kind === 'habit1') printHabitSheet(1);
     }
 
     // 每天要做的好習慣（固定一份，使用者拍板 2026-10-18）：只列「在家」或「一起」、可以每天打卡的項目。
@@ -13502,14 +13593,30 @@
       const en = state.lang === 'en';
       const L = { title: t(W === 1 ? 'transition.habitTitle1' : 'transition.habitTitle'), sub: t(W === 1 ? 'transition.habitSub1' : 'transition.habitSub'), name: t('transition.habitName'), start: t('transition.habitStart'), date: t('transition.habitDate'),
         column: t('transition.habitColumn'), week: t('transition.habitWeek'), days: t('transition.habitDays'), rewardTitle: t('transition.habitRewardTitle'), rewardLine: t('transition.habitRewardLine'), note: t('transition.printNote') };
-      trPrintArea(buildHabitSheetHtml(L, TR_HABITS.map(function(x) { return { text: en ? x.en : x.zh, weekendOnly: !!x.weekendOnly }; }), W), 'landscape');
+      trPrintArea(buildHabitSheetHtml(L, TR_HABITS.map(function(x) { return { text: en ? x.en : x.zh, weekendOnly: !!x.weekendOnly }; }), W), 'landscape', t(W === 1 ? 'transition.fileHabit1' : 'transition.fileHabit4'));
     }
 
+    // 列印期間暫時把網頁標題改成「項目名稱 - 班級」：瀏覽器「存成 PDF」預設拿網頁標題當檔名，
+    // 不改的話每一份都叫「桃子腳幼兒園 - 諾貝爾 A 班.pdf」，會互相覆蓋。印完（afterprint）還原；有些瀏覽器不送 afterprint，30 秒後也會還原。
+    let printTitleBase = null, printTitleTimer = null;
+    function setPrintTitle(item) {
+      if (printTitleBase === null) printTitleBase = document.title;   // 連按兩次時，第二次不能把「已改過的標題」當成原本的標題
+      document.title = item + ' - ' + t('header.class');
+      clearTimeout(printTitleTimer);
+      printTitleTimer = setTimeout(restorePrintTitle, 30000);
+    }
+    function restorePrintTitle() {
+      clearTimeout(printTitleTimer);
+      if (printTitleBase !== null) { document.title = printTitleBase; printTitleBase = null; }
+    }
+    window.addEventListener('afterprint', restorePrintTitle);
+
     // 共用的列印流程：把內容放進列印區、暫時加上紙張方向與 body class，印完移除（菜單是 A4 橫式，銜接清單直式，打卡表橫式）
-    function trPrintArea(html, orientation) {
+    function trPrintArea(html, orientation, fileTitle) {
       const area = document.getElementById('printTransitionArea');
       if (!area) return;
       area.innerHTML = html;
+      if (fileTitle) setPrintTitle(fileTitle);
       let pageStyle = document.getElementById('trPrintPageStyle');
       if (!pageStyle) { pageStyle = document.createElement('style'); pageStyle.id = 'trPrintPageStyle'; document.head.appendChild(pageStyle); }
       pageStyle.textContent = '@media print { @page { size: A4 ' + orientation + '; margin: 12mm; } }';

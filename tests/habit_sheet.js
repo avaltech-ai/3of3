@@ -5,14 +5,15 @@
   const wait = ms => new Promise(r => setTimeout(r, ms));
   await wait(2500);
   const $ = id => document.getElementById(id);
+  const title0 = document.title;   // 網頁原本的標題（列印會暫時改掉，最後要還原）
   const real = { print: window.print, plan: state.transitionPlan, lang: state.lang };
-  let printed = 0, html = '', cls = false, style = '';
-  window.print = () => { printed++; html = $('printTransitionArea').innerHTML; cls = document.body.classList.contains('printing-transition'); const st = $('trPrintPageStyle'); style = st ? st.textContent : ''; };
+  let printed = 0, html = '', cls = false, style = '', titleAtPrint = '';
+  window.print = () => { printed++; titleAtPrint = document.title; html = $('printTransitionArea').innerHTML; cls = document.body.classList.contains('printing-transition'); const st = $('trPrintPageStyle'); style = st ? st.textContent : ''; };
   const wrap = document.createElement('div'); wrap.innerHTML = '';
 
   // A. 按鈕
-  const btn = Array.from(document.querySelectorAll('#trPlanToolbar button')).find(b => /printHabitSheet/.test(b.getAttribute('onclick') || ''));
-  ok(!!btn && btn.textContent.indexOf('列印四週打卡表') !== -1, '幼小銜接計畫頁有「列印四週打卡表」按鈕');
+  const btn = document.querySelector('#trPrintModal button[data-print="habit4"]');
+  ok(!!btn && btn.textContent.indexOf('好習慣打卡表（四週）') !== -1, '列印面板有「好習慣打卡表（四週）」卡片');
 
   // B. 列印（即使計畫資料是空的也能印：習慣是固定一份，不依賴工作表）
   state.transitionPlan = [];
@@ -56,8 +57,8 @@
   await wait(1700);
 
   // H. 單週版：內容比照四週版，只有 7 天
-  const btn1 = Array.from(document.querySelectorAll('#trPlanToolbar button')).find(b => /printHabitSheet\(1\)/.test(b.getAttribute('onclick') || ''));
-  ok(!!btn1 && btn1.textContent.indexOf('列印單週打卡表') !== -1 && /printHabitSheet\(4\)/.test(btn.getAttribute('onclick')), '兩個按鈕：「列印四週打卡表」呼叫 (4)、「列印單週打卡表」呼叫 (1)');
+  const btn1 = document.querySelector('#trPrintModal button[data-print="habit1"]');
+  ok(!!btn1 && btn1.textContent.indexOf('好習慣打卡表（單週）') !== -1 && /habit4/.test(btn.getAttribute('onclick')) && /habit1/.test(btn1.getAttribute('onclick')), '面板裡兩張打卡表卡片：四週呼叫 habit4、單週呼叫 habit1');
   printed = 0; printHabitSheet(1);
   const b1 = document.createElement('div'); b1.innerHTML = html;
   const rows1 = b1.querySelectorAll('table.habit.w1 tbody tr');
@@ -74,6 +75,85 @@
   ok(/1 week/.test(eb1.querySelector('h1').textContent) && /Mon/.test(eb1.textContent) && !/Week \d/.test(eb1.textContent) && !/[一-鿿]/.test(eb1.textContent.replace(/Taozijiao.*/, '')), '單週版英文介面：標題 (1 week)、Mon～Sun、沒有中文');
   await wait(1700);
 
+  // J. 列印面板（方案 A）：工具列只留一個「列印…」，點開才看到四種列印
+  const tab0 = state.currentTab; switchTab('transition'); await wait(200);   // 按鈕要在畫面上才拿得到焦點
+  const tb = $('trPlanToolbar'), opener = $('trPrintOpenBtn'), modal = $('trPrintModal');
+  const printBtns = Array.from(tb.querySelectorAll('button')).filter(b => /print/i.test(b.getAttribute('onclick') || ''));
+  ok(!!opener && opener.textContent.indexOf('列印…') !== -1 && printBtns.length === 1 && printBtns[0] === opener && opener.getAttribute('aria-haspopup') === 'dialog', '工具列只有一個列印按鈕「🖨️ 列印…」（篩選與清除勾選旁不再有四個列印鈕）');
+  ok(!!tb.querySelector('button[onclick="clearTransitionChecks()"]') && !!$('trFilterChips'), '工具列仍有篩選鈕與「清除勾選」');
+  ok(modal.classList.contains('hidden') && modal.querySelector('[role="dialog"]').getAttribute('aria-modal') === 'true' && modal.parentElement === document.body, '面板平常是隱藏的；是 body 的直接子元素（列印時會被整個隱藏）；role=dialog、aria-modal');
+  opener.focus(); openTrPrintPanel();
+  ok(!modal.classList.contains('hidden') && document.activeElement === modal.querySelector('.tr-print-card'), '按「列印…」：面板打開、焦點移到第一張卡片');
+  const cards = Array.from(modal.querySelectorAll('.tr-print-card'));
+  const tagOf = c => c.lastElementChild.textContent.trim();
+  ok(cards.length === 4 && cards.map(c => c.dataset.print).join() === 'check,blank,habit4,habit1', '面板有 4 張卡片，順序：含勾選、空白、四週、單週');
+  ok(cards.map(tagOf).join('|') === 'A4 直式|A4 直式|A4 橫式|A4 橫式', '每張卡片標示紙張方向：計畫兩張 A4 直式、打卡表兩張 A4 橫式');
+  ok(cards.every(c => c.querySelectorAll('span.block').length === 2 && c.querySelectorAll('span.block')[0].textContent.trim() && c.querySelectorAll('span.block')[1].textContent.trim()), '每張卡片都有標題與一行說明');
+  ok(/5 個好習慣 × 4 週/.test(cards[2].textContent) && /5 個好習慣 × 1 週/.test(cards[3].textContent) && /☑/.test(cards[0].textContent), '說明文字：計畫含勾選會印成 ☑；打卡表是 5 個習慣 × 4 週／1 週');
+  // Safari 提醒：只有 Safari 看得到
+  const realSafari = window.trBrowserIgnoresPageSize;
+  window.trBrowserIgnoresPageSize = () => true; closeTrPrintPanel(); openTrPrintPanel();
+  const tipOn = !$('trPrintTipSafari').classList.contains('hidden') && /橫向/.test($('trPrintTipSafari').textContent);
+  window.trBrowserIgnoresPageSize = () => false; closeTrPrintPanel(); openTrPrintPanel();
+  const tipOff = $('trPrintTipSafari').classList.contains('hidden');
+  window.trBrowserIgnoresPageSize = realSafari;
+  ok(tipOn && tipOff, 'Safari 會看到「請選橫向」的提醒；Chrome／Edge 看不到');
+  // 判斷 Safari 的規則
+  const uaOf = ua => { const real = Object.getOwnPropertyDescriptor(Navigator.prototype, 'userAgent'); Object.defineProperty(navigator, 'userAgent', { configurable: true, get: () => ua }); const r = trBrowserIgnoresPageSize(); delete navigator.userAgent; return r; };
+  ok(uaOf('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15') === true && uaOf('Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1') === true && uaOf('Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 CriOS/130.0 Mobile/15E148 Safari/604.1') === true, 'Safari（Mac）與 iPhone 上的所有瀏覽器（含 Chrome、Firefox：它們在 iOS 上都是 Safari 引擎）都算「不支援」');
+  ok(uaOf('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36') === false && uaOf('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/130.0 Safari/537.36 Edg/130.0') === false && uaOf('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/130.0 Safari/537.36') === false, 'Windows／Mac 的 Chrome、Edge 不算（它們會自動橫向）');
+  // 點卡片：關閉面板並列印，方向正確
+  const kinds = [['check', 'portrait', '幼小銜接計畫（含勾選）'], ['blank', 'portrait', '幼小銜接計畫（空白）'], ['habit4', 'landscape', '好習慣打卡表（四週）'], ['habit1', 'landscape', '好習慣打卡表（單週）']];
+  state.transitionPlan = [{ id: 'Z', year: '115 學年度', category: '規律生活', order: 1, kind: '在家', text: '測試項目' }];
+  const seen = [];
+  for (const [k, orient, name] of kinds) {
+    window.dispatchEvent(new Event('afterprint')); closeTrPrintPanel(); openTrPrintPanel();
+    printed = 0; style = ''; titleAtPrint = '';
+    modal.querySelector('button[data-print="' + k + '"]').click();
+    seen.push(printed === 1 && modal.classList.contains('hidden') && new RegExp('size: A4 ' + orient).test(style) && titleAtPrint.indexOf(name) === 0);
+  }
+  ok(seen.every(Boolean), '點四張卡片：各自列印一次、面板關閉、方向（直／直／橫／橫）與檔名都對');
+  window.dispatchEvent(new Event('afterprint')); await wait(1700);
+  // 關閉方式
+  openTrPrintPanel(); document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+  const escOk = modal.classList.contains('hidden');
+  openTrPrintPanel(); modal.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  const bgOk = modal.classList.contains('hidden');
+  openTrPrintPanel(); modal.querySelector('button[onclick="closeTrPrintPanel()"]').click();
+  const xOk = modal.classList.contains('hidden');
+  openTrPrintPanel(); modal.querySelector('[role="dialog"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  const insideOk = !modal.classList.contains('hidden');
+  closeTrPrintPanel();
+  ok(escOk && bgOk && xOk && insideOk, '關閉：Esc、點背景、點 ✕ 都能關；點面板內部不會關');
+  opener.focus(); openTrPrintPanel(); closeTrPrintPanel();
+  ok(document.activeElement === opener, '關閉後焦點回到「列印…」按鈕');
+  const realLang0 = state.lang; state.lang = 'en'; applyTranslations(); openTrPrintPanel();
+  const enText = modal.textContent; const enBtn = opener.textContent;
+  closeTrPrintPanel(); state.lang = realLang0; applyTranslations();
+  ok(/Print…/.test(enBtn) && /A4 landscape/.test(enText) && /A4 portrait/.test(enText) && /Habit chart \(4 weeks\)/.test(enText) && !/[一-鿿]/.test(enText), '英文介面：按鈕與面板全是英文');
+
+  switchTab(tab0 || 'home');
+  // I. PDF 檔名：列印期間網頁標題＝「項目名稱 - 班級」，印完還原；四個項目、菜單、英文都各自不同
+  window.dispatchEvent(new Event('afterprint'));   // 前面幾次列印還沒「印完」，先送出，讓標題回到原本的
+  const origTitle = document.title, cls0 = t('header.class'), titles = [];
+  ok(origTitle === title0, '前面的列印都印完後：網頁標題回到原本的「' + title0.slice(0, 12) + '…」');
+  const grab = fn => { titleAtPrint = ''; fn(); titles.push(titleAtPrint); window.dispatchEvent(new Event('afterprint')); return titleAtPrint; };
+  state.transitionPlan = [{ id: 'Z', year: '115 學年度', category: '規律生活', order: 1, kind: '在家', text: '測試項目' }];
+  const tCheck = grab(() => printTransitionPlan(true)), tBlank = grab(() => printTransitionPlan(false)), tH4 = grab(() => printHabitSheet(4)), tH1 = grab(() => printHabitSheet(1));
+  ok(tCheck === '幼小銜接計畫（含勾選） - ' + cls0 && tBlank === '幼小銜接計畫（空白） - ' + cls0 && tH4 === '好習慣打卡表（四週） - ' + cls0 && tH1 === '好習慣打卡表（單週） - ' + cls0, '列印時網頁標題＝項目名稱＋班級（PDF 預設檔名）：計畫含勾選／空白、四週打卡表、單週打卡表各不相同');
+  ok(new Set(titles).size === 4 && document.title === origTitle, '四個項目的檔名互不相同（不會互相覆蓋）；afterprint 後網頁標題還原');
+  const realMenus = state.menus; state.menus = [{ date: state.selectedDateStr, lunchMain: '測試菜' }].concat(state.menus || []);
+  const tMenu = grab(() => printWeekMenu()); state.menus = realMenus;
+  ok(/^本週菜單（\d\d-\d\d～\d\d-\d\d） - /.test(tMenu) && document.title === origTitle, '菜單列印：檔名含這一週的日期範圍（用「10-18」不用斜線）、印完還原');
+  ok(titles.concat(tMenu).every(x => !/[\/\\:*?"<>|]/.test(x)), '檔名不含 / \\ : * ? " < > | 這些檔名不能用的字元');
+  printHabitSheet(4); printHabitSheet(1);   // 連按兩次（還沒送出 afterprint）
+  ok(titleAtPrint === '好習慣打卡表（單週） - ' + cls0, '連按兩次：第二次標題是第二個項目');
+  window.dispatchEvent(new Event('afterprint'));
+  ok(document.title === origTitle, '連按兩次後印完：標題還原成最初的（不是第一次改過的）');
+  state.lang = 'en'; const tEn = grab(() => printHabitSheet(4)); state.lang = real.lang;
+  ok(/^Habit chart \(4 weeks\) - /.test(tEn) && !/[一-鿿]/.test(tEn), '英文介面：檔名是英文');
+  await wait(1700);
+
   // G. 真正的列印樣式量排版：A4 橫式、邊界 12mm → 內容區 273 × 186 mm
   const rules = [];
   Array.from(document.styleSheets).forEach(ss => { try { Array.from(ss.cssRules).forEach(r => { if (r.type === CSSRule.MEDIA_RULE && /print/.test(r.conditionText || r.media.mediaText)) Array.from(r.cssRules).forEach(x => { if (x.selectorText && x.selectorText.indexOf('#printTransitionArea') !== -1 && x.selectorText.indexOf('body') === -1) rules.push(x.cssText); }); }); } catch (e) {} });
@@ -85,15 +165,20 @@
   const mm = px => px / 96 * 25.4;
   const hmm = mm(area.scrollHeight), wmm = mm(area.scrollWidth);
   ok(rules.length >= 10, '取得列印樣式規則（' + rules.length + ' 條）');
+  const wr = rules.map(r => /^#printTransitionArea table \{[^}]*width: calc\(100% - ([\d.]+)(px|mm)\)/.exec(r)).find(Boolean);
+  const cut = wr ? (wr[2] === 'mm' ? Number(wr[1]) : Number(wr[1]) / 96 * 25.4) : 0;   // 瀏覽器會把 mm 換成 px 顯示
+  ok(cut >= 1.4 && cut <= 3, '列印表格的寬度規則是「100% 減 ' + cut.toFixed(2) + ' mm」（計畫清單與打卡表共用，右邊框線不被切）');
   ok(hmm <= 186, '排版高度 ' + hmm.toFixed(1) + ' mm ≤ 186 mm：塞得進一頁 A4 橫式');
-  ok(wmm <= 273.5, '排版寬度 ' + wmm.toFixed(1) + ' mm ≤ 273.5 mm：沒有橫向超出');
+  const limitPx = Math.ceil(273 / 25.4 * 96);   // scrollWidth 是整數像素
+  ok(area.scrollWidth <= limitPx, '排版寬度 ' + area.scrollWidth + ' px ≤ ' + limitPx + ' px（273 mm 進位）：沒有橫向超出版心');
   const cell = (area.querySelector('td.day') || document.body).getBoundingClientRect();
   ok(mm(cell.width) >= 6 && mm(cell.height) >= 12, '打卡格 ' + mm(cell.width).toFixed(1) + ' × ' + mm(cell.height).toFixed(1) + ' mm：孩子用鉛筆打勾夠大');
   const offEl = area.querySelector('td.off'), onEl = area.querySelector('td.day:not(.off)');
   const offBg = offEl ? getComputedStyle(offEl).backgroundColor : '', onBg = onEl ? getComputedStyle(onEl).backgroundColor : '';
   ok(!!offEl && offBg !== onBg && /217/.test(offBg), '灰色格子是淺灰（印出來看得出來、不會蓋過打勾）');
   const tbl = area.querySelector('table.habit');
-  ok(!!tbl && mm(tbl.getBoundingClientRect().width) <= 273.5 && getComputedStyle(tbl).tableLayout === 'fixed', '表格寬度在版心內、欄寬固定');
+  const gap = mm(area.getBoundingClientRect().right - tbl.getBoundingClientRect().right);
+  ok(!!tbl && gap >= 1.2 && getComputedStyle(tbl).tableLayout === 'fixed', '四週版：表格右緣離版心右緣 ' + gap.toFixed(1) + ' mm（≥ 1.2 mm，最右邊那條框線不會被列印邊界切掉）、欄寬固定');
   window.__habitShot = area;   // 供截圖用
 
   // 單週版同樣量一次：格子更大、同樣塞得進一頁
@@ -101,12 +186,15 @@
   area.style.cssText = 'display:block;position:absolute;left:-9999px;top:0;width:273mm;background:#fff;color:#000;font-family:"Noto Sans TC",sans-serif';
   await wait(200);
   const h1mm = mm(area.scrollHeight), w1mm = mm(area.scrollWidth), c1 = (area.querySelector('td.day') || document.body).getBoundingClientRect();
-  ok(h1mm <= 186 && w1mm <= 273.5, '單週版排版 ' + w1mm.toFixed(1) + ' × ' + h1mm.toFixed(1) + ' mm：塞得進一頁 A4 橫式');
+  const tbl1 = area.querySelector('table.habit'), gap1 = tbl1 ? mm(area.getBoundingClientRect().right - tbl1.getBoundingClientRect().right) : 0;
+  ok(h1mm <= 186 && area.scrollWidth <= limitPx && gap1 >= 1.2, '單週版排版 ' + w1mm.toFixed(2) + ' × ' + h1mm.toFixed(1) + ' mm、右緣離版心 ' + gap1.toFixed(1) + ' mm：塞得進一頁 A4 橫式、右邊框線不被切');
   ok(mm(c1.width) >= 25 && mm(c1.height) >= 18, '單週版打卡格 ' + mm(c1.width).toFixed(1) + ' × ' + mm(c1.height).toFixed(1) + ' mm：比四週版大很多（適合孩子每天自己貼貼紙或打勾）');
   area.setAttribute('style', old || ''); stl.remove();
 
   await wait(1700);
+  window.dispatchEvent(new Event('afterprint'));
   window.print = real.print; state.transitionPlan = real.plan; state.lang = real.lang;
+  ok(document.title === title0, '測試結束：網頁標題已還原');
   const fail = res.filter(r => r.indexOf('✗') === 0).length;
   console.log(res.join('\n')); return { allPass: fail === 0, pass: res.length - fail, fail: fail, res: res };
 })();
