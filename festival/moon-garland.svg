@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 64" aria-hidden="true">
+  <defs>
+    <g id="lanY">
+      <path d="M0 0 v3" stroke="#8C7A6B" stroke-width="1.2"/>
+      <rect x="-3.5" y="3" width="7" height="2.4" rx="1" fill="#C98A2E"/>
+      <circle cx="0" cy="13" r="8.5" fill="#F7C65A"/>
+      <path d="M-3 5 Q-6 13 -3 21 M3 5 Q6 13 3 21" fill="none" stroke="#E0A42E" stroke-width="1"/>
+      <rect x="-3.5" y="20.5" width="7" height="2.4" rx="1" fill="#C98A2E"/>
+      <path d="M0 23 v5" stroke="#E24B4A" stroke-width="1.4"/>
+    </g>
+    <g id="lanO">
+      <path d="M0 0 v3" stroke="#8C7A6B" stroke-width="1.2"/>
+      <rect x="-3.5" y="3" width="7" height="2.4" rx="1" fill="#C98A2E"/>
+      <circle cx="0" cy="13" r="8.5" fill="#F59E4C"/>
+      <path d="M-3 5 Q-6 13 -3 21 M3 5 Q6 13 3 21" fill="none" stroke="#D9661F" stroke-width="1"/>
+      <rect x="-3.5" y="20.5" width="7" height="2.4" rx="1" fill="#C98A2E"/>
+      <path d="M0 23 v5" stroke="#E24B4A" stroke-width="1.4"/>
+    </g>
+    <g id="sm">
+      <path d="M0 0 v4" stroke="#8C7A6B" stroke-width="1.2"/>
+      <path d="M0 4 l2 4.4 4.6 0.5 -3.5 3.1 1 4.6 -4.1 -2.4 -4.1 2.4 1 -4.6 -3.5 -3.1 4.6 -0.5 Z" fill="#AFA9EC"/>
+    </g>
+  </defs>
+  <path d="M0 6 Q200 46 400 6" fill="none" stroke="#8C7A6B" stroke-width="1.4"/>
+  <use href="#sm" x="25" y="10.7"/>
+  <use href="#lanY" x="75" y="18.2"/>
+  <use href="#lanO" x="125" y="23.2"/>
+  <use href="#sm" x="175" y="25.7"/>
+  <use href="#lanY" x="225" y="25.7"/>
+  <use href="#sm" x="275" y="23.2"/>
+  <use href="#lanO" x="325" y="18.2"/>
+  <use href="#lanY" x="375" y="10.7"/>
+</svg>

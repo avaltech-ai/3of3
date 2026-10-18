@@ -45,7 +45,9 @@
 
   // F. 跨月：回到前景時更新
   html.setAttribute('data-season', 'spring');
+  Object.defineProperty(document, 'hidden', { configurable: true, get: () => false });   // 模擬「回到前景」（瀏覽器窗格在背景時 document.hidden 會是 true）
   document.dispatchEvent(new Event('visibilitychange'));
+  delete document.hidden;
   ok(html.getAttribute('data-season') === seasonOf(new Date().getMonth() + 1), '回到前景（visibilitychange）：依今天重新設定季節');
 
   // G. 列印區背景不受季節影響

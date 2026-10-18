@@ -42,6 +42,74 @@ const htmlContent = `<!DOCTYPE html>
   <!-- 手機裡還沒有任何資料（第一次開啟）：先顯示載入骨架，資料到了才顯示內容。initApp() 會依實際情況再設定一次 -->
   <script>try { if (!localStorage.getItem('nobel_a_cached_app_data')) document.documentElement.classList.add('app-loading'); } catch (e) {}</script>
   <!-- 季節主題色：依月份（春 3～5、夏 6～8、秋 9～11、冬 12～2）設定 data-season；規則與 seasonOf() 相同 -->
+  <!-- 節慶主題：在畫面出來前就依日期設定 data-festival（節慶優先於季節）。FESTIVAL-START～FESTIVAL-END 之間是純函式，tests/festival.test.js 會取出測試 -->
+  <script>
+    /* FESTIVAL-START */
+    // 節慶主題（2026-10-18，使用者拍板）：9 個節慶；農曆新年＝小年夜前 7 天（春節前 9 天）～元宵，元宵前 3 天起小圖示換成 🏮；其餘＝節日前 3 天～當天。
+    var FESTIVALS = {
+      lny: { zh: '農曆新年', en: 'Lunar New Year', icon: '🧧' },
+      children: { zh: '兒童節', en: "Children's Day", icon: '🎈' },
+      mother: { zh: '母親節', en: "Mother's Day", icon: '💐' },
+      dragon: { zh: '端午節', en: 'Dragon Boat Festival', icon: '🐲' },
+      father: { zh: '父親節', en: "Father's Day", icon: '👔' },
+      moon: { zh: '中秋節', en: 'Mid-Autumn Festival', icon: '🥮' },
+      teacher: { zh: '教師節', en: "Teachers' Day", icon: '🍎' },
+      halloween: { zh: '萬聖節', en: 'Halloween', icon: '🎃' },
+      xmas: { zh: '聖誕節', en: 'Christmas', icon: '🎄' }
+    };
+    // 農曆節日的國曆日期：[春節（初一）, 元宵, 端午, 中秋]。來源：香港天文台公農曆對照表（UTC+8，與台灣行政院行事曆一致），2026-10-18 核對。
+    // 注意：瀏覽器內建的農曆換算（Intl chinese）在 2027、2030 年春節會差一天，所以不用它。2036 年起需補表（沒有資料的年份只是不顯示農曆節慶）。
+    var FESTIVAL_LUNAR = {
+      2026: ['2026-02-17', '2026-03-03', '2026-06-19', '2026-09-25'],
+      2027: ['2027-02-06', '2027-02-20', '2027-06-09', '2027-09-15'],
+      2028: ['2028-01-26', '2028-02-09', '2028-05-28', '2028-10-03'],
+      2029: ['2029-02-13', '2029-02-27', '2029-06-16', '2029-09-22'],
+      2030: ['2030-02-03', '2030-02-17', '2030-06-05', '2030-09-12'],
+      2031: ['2031-01-23', '2031-02-06', '2031-06-24', '2031-10-01'],
+      2032: ['2032-02-11', '2032-02-25', '2032-06-12', '2032-09-19'],
+      2033: ['2033-01-31', '2033-02-14', '2033-06-01', '2033-09-08'],
+      2034: ['2034-02-19', '2034-03-05', '2034-06-20', '2034-09-27'],
+      2035: ['2035-02-08', '2035-02-22', '2035-06-10', '2035-09-16']
+    };
+    function festYmd(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+    function festAdd(ymd, n) { var p = String(ymd).split('-'); return festYmd(new Date(+p[0], +p[1] - 1, +p[2] + n)); }
+    // 某一年所有節慶的期間：start～end（含）；days＝節日當天（月曆圖示、今天小卡插圖用）
+    function festivalsOfYear(y) {
+      var list = [], L = FESTIVAL_LUNAR[y];
+      var md = function(m, d) { return y + '-' + m + '-' + d; };
+      var span = function(key, day) { list.push({ key: key, start: festAdd(day, -3), end: day, days: [{ date: day, icon: FESTIVALS[key].icon }] }); };
+      if (L) list.push({ key: 'lny', start: festAdd(L[0], -9), end: L[1], lantern: festAdd(L[1], -3), days: [{ date: L[0], icon: '🧧' }, { date: L[1], icon: '🏮' }] });
+      span('children', md('04', '04'));
+      var may1 = new Date(y, 4, 1).getDay();
+      span('mother', md('05', ('0' + (1 + (7 - may1) % 7 + 7)).slice(-2)));   // 5 月第二個星期日
+      if (L) span('dragon', L[2]);
+      span('father', md('08', '08'));
+      if (L) span('moon', L[3]);
+      span('teacher', md('09', '28'));
+      span('halloween', md('10', '31'));
+      span('xmas', md('12', '25'));
+      return list;
+    }
+    // 這一天落在哪個節慶期間（重疊時取最先結束的，例如中秋 9/25 與教師節期間重疊時，9/25 是中秋）；phase＝'lantern' 表示元宵前 3 天起
+    function festivalOn(ymd) {
+      var y = +String(ymd).slice(0, 4), best = null;
+      festivalsOfYear(y).forEach(function(x) { if (ymd >= x.start && ymd <= x.end && (!best || x.end < best.end)) best = x; });
+      return best ? { key: best.key, phase: best.lantern && ymd >= best.lantern ? 'lantern' : '' } : null;
+    }
+    // 這一天是不是節日當天（農曆新年有兩天：春節 🧧、元宵 🏮）
+    function festivalDayOf(ymd) {
+      var hit = null;
+      festivalsOfYear(+String(ymd).slice(0, 4)).forEach(function(x) { x.days.forEach(function(d) { if (d.date === ymd) hit = { key: x.key, icon: d.icon }; }); });
+      return hit;
+    }
+    function applyFestival(date) {
+      var h = document.documentElement, f = festivalOn(festYmd(date instanceof Date ? date : new Date()));
+      if (f) { h.setAttribute('data-festival', f.key); if (f.phase) h.setAttribute('data-festival-phase', f.phase); else h.removeAttribute('data-festival-phase'); }
+      else { h.removeAttribute('data-festival'); h.removeAttribute('data-festival-phase'); }
+    }
+    /* FESTIVAL-END */
+    try { applyFestival(); } catch (e) {}
+  </script>
   <script>try { var sm = new Date().getMonth() + 1; document.documentElement.setAttribute('data-season', sm >= 3 && sm <= 5 ? 'spring' : sm >= 6 && sm <= 8 ? 'summer' : sm >= 9 && sm <= 11 ? 'autumn' : 'winter'); } catch (e) {}</script>
   <!-- 加到手機主畫面（PWA）：名稱「諾貝爾A」、圖示由 tools/make_icons.py 從 logo-hires.png 產生（白底，iPhone 會把透明區域顯示成黑色）。
        不做 service worker／離線快取（容易讓使用者卡在舊版）。以 App 模式開啟時沒有網址列與重新整理鈕，所以另有標頭的重新整理鈕與回到前景自動同步。 -->
@@ -153,6 +221,30 @@ const htmlContent = `<!DOCTYPE html>
     html[data-season="summer"] #seasonBadge::after { content: '🍉'; }
     html[data-season="autumn"] #seasonBadge::after { content: '🍁'; }
     html[data-season="winter"] #seasonBadge::after { content: '⛄'; }
+    /* 節慶主題（2026-10-18）：節慶期間覆蓋季節的底色、色條、小圖示，並顯示頁首下方掛飾與標題卡角落淡圖。圖片只在對應節慶時才下載 */
+    html[data-festival="lny"] { --season-bg: #FFF5F2; --season-bar: linear-gradient(to right, #E24B4A, #EF9F27, #E24B4A); --festival-garland: url(festival/lny-garland.svg); --festival-sticker: url(festival/lny-sticker.svg); }
+    html[data-festival="lny"] #seasonBadge::after { content: '🧧'; }
+    html[data-festival="children"] { --season-bg: #F7FBFF; --season-bar: linear-gradient(to right, #F09595, #FAC775, #85B7EB); --festival-garland: url(festival/children-garland.svg); --festival-sticker: url(festival/children-sticker.svg); }
+    html[data-festival="children"] #seasonBadge::after { content: '🎈'; }
+    html[data-festival="mother"] { --season-bg: #FFF6F8; --season-bar: linear-gradient(to right, #ED93B1, #F4C0D1, #ED93B1); --festival-garland: url(festival/mother-garland.svg); --festival-sticker: url(festival/mother-sticker.svg); }
+    html[data-festival="mother"] #seasonBadge::after { content: '💐'; }
+    html[data-festival="dragon"] { --season-bg: #F5FAEE; --season-bar: linear-gradient(to right, #639922, #FAC775, #639922); --festival-garland: url(festival/dragon-garland.svg); --festival-sticker: url(festival/dragon-sticker.svg); }
+    html[data-festival="dragon"] #seasonBadge::after { content: '🐲'; }
+    html[data-festival="father"] { --season-bg: #F5F7FA; --season-bar: linear-gradient(to right, #378ADD, #B4B2A9, #378ADD); --festival-garland: url(festival/father-garland.svg); --festival-sticker: url(festival/father-sticker.svg); }
+    html[data-festival="father"] #seasonBadge::after { content: '👔'; }
+    html[data-festival="moon"] { --season-bg: #F6F6FC; --season-bar: linear-gradient(to right, #3C3489, #FAC775, #3C3489); --festival-garland: url(festival/moon-garland.svg); --festival-sticker: url(festival/moon-sticker.svg); }
+    html[data-festival="moon"] #seasonBadge::after { content: '🥮'; }
+    html[data-festival="teacher"] { --season-bg: #F4F9FC; --season-bar: linear-gradient(to right, #85B7EB, #5DCAA5, #85B7EB); --festival-garland: url(festival/teacher-garland.svg); --festival-sticker: url(festival/teacher-sticker.svg); }
+    html[data-festival="teacher"] #seasonBadge::after { content: '🍎'; }
+    html[data-festival="halloween"] { --season-bg: #FBF6FF; --season-bar: linear-gradient(to right, #D85A30, #7F77DD, #D85A30); --festival-garland: url(festival/halloween-garland.svg); --festival-sticker: url(festival/halloween-sticker.svg); }
+    html[data-festival="halloween"] #seasonBadge::after { content: '🎃'; }
+    html[data-festival="xmas"] { --season-bg: #F8FAF6; --season-bar: linear-gradient(to right, #E24B4A, #3B6D11, #E24B4A); --festival-garland: url(festival/xmas-garland.svg); --festival-sticker: url(festival/xmas-sticker.svg); }
+    html[data-festival="xmas"] #seasonBadge::after { content: '🎄'; }
+    html[data-festival="lny"][data-festival-phase="lantern"] #seasonBadge::after { content: '🏮'; }
+    #festivalGarland { display: none; height: 44px; margin-bottom: -12px; background-repeat: repeat-x; background-size: auto 100%; background-position: center top; pointer-events: none; }
+    html[data-festival] #festivalGarland { display: block; background-image: var(--festival-garland); }
+    .festival-shadow { display: none; position: absolute; right: -10px; bottom: -16px; width: 104px; height: 104px; background: var(--festival-sticker) no-repeat center / contain; opacity: .22; z-index: -1; pointer-events: none; }
+    html[data-festival] .festival-shadow { display: block; }
     body {
       background-color: var(--season-bg);
       font-family: 'Zen Maru Gothic', 'Noto Sans TC', sans-serif;
@@ -329,6 +421,8 @@ const htmlContent = `<!DOCTYPE html>
           </div>
         </div>
       </header>
+      <!-- 節慶掛飾：掛在頁首正下方、跟著頁面捲動（不讓固定在頂端的頁首變高）；只有節慶期間顯示 -->
+      <div id="festivalGarland" aria-hidden="true"></div>
 
 
   <!-- ==================== 主要內容區塊 CONTAINER ==================== -->
@@ -756,7 +850,8 @@ const htmlContent = `<!DOCTYPE html>
     <!-- ==================== TAB 2: 活動影像相簿 (ALBUMS) ==================== -->
     <section id="tabContent-albums" class="space-y-6 hidden">
       <!-- 相簿區抬頭 -->
-      <div class="bg-gradient-to-r from-teal-50 via-sky-50 to-rose-50 p-5 rounded-3xl border border-teal-200/70 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      <div class="relative isolate overflow-hidden bg-gradient-to-r from-teal-50 via-sky-50 to-rose-50 p-5 rounded-3xl border border-teal-200/70 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div class="festival-shadow" aria-hidden="true"></div>
         <div>
           <div class="flex items-center gap-2">
             <span class="text-2xl">📸</span>
@@ -826,7 +921,8 @@ const htmlContent = `<!DOCTYPE html>
     <!-- ==================== TAB: 唱跳音符 (SONGS) ==================== -->
     <section id="tabContent-songs" class="space-y-6 hidden">
       <!-- 唱跳音符抬頭 -->
-      <div class="bg-gradient-to-r from-pink-50 via-fuchsia-50 to-violet-50 p-5 rounded-3xl border border-fuchsia-200/70 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      <div class="relative isolate overflow-hidden bg-gradient-to-r from-pink-50 via-fuchsia-50 to-violet-50 p-5 rounded-3xl border border-fuchsia-200/70 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div class="festival-shadow" aria-hidden="true"></div>
         <div>
           <div class="flex items-center gap-2">
             <span class="text-2xl">🎵</span>
@@ -1020,7 +1116,8 @@ const htmlContent = `<!DOCTYPE html>
     <!-- ==================== TAB 3: 常用文件下載 (DOCS) ==================== -->
     <section id="tabContent-docs" class="space-y-6 hidden">
       <!-- 文件區抬頭 -->
-      <div class="bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 p-5 rounded-3xl border border-indigo-200/70 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      <div class="relative isolate overflow-hidden bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 p-5 rounded-3xl border border-indigo-200/70 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div class="festival-shadow" aria-hidden="true"></div>
         <div>
           <div class="flex items-center gap-2">
             <span class="text-2xl">📁</span>
@@ -4691,7 +4788,7 @@ const htmlContent = `<!DOCTYPE html>
       const d = date instanceof Date ? date : new Date();
       document.documentElement.setAttribute('data-season', seasonOf(d.getMonth() + 1));
     }
-    document.addEventListener('visibilitychange', function() { if (!document.hidden) { try { applySeason(); } catch (e) {} } });
+    document.addEventListener('visibilitychange', function() { if (!document.hidden) { try { applySeason(); applyFestival(); } catch (e) {} } });
 
     // 第一次開啟的載入狀態：'loading'＝顯示骨架、'ready'＝顯示內容、'failed'＝手上沒有資料又連線失敗（顯示「重新載入」）
     function setAppLoadState(st) {
@@ -6376,6 +6473,8 @@ const htmlContent = `<!DOCTYPE html>
         // 🥐、🎂 只看當天活動與菜單備註，不依賴有沒有菜單（菜單常晚於活動才填；否則活動排好了日曆卻看不到）。
         let menuIcons = '';
         const calIcons = calendarDayIcons(dayEvents, dayMenu, isWeekend);
+        const festDay = festivalDayOf(dayStr);   // 節日當天加節慶圖示（例如中秋 🥮）
+        if (festDay) calIcons.push(festDay.icon);
         if (calIcons.length) {
           menuIcons = \`<span class="inline-flex items-center gap-1.5">\${calIcons.map(ic => \`<span>\${ic}</span>\`).join('')}</span>\`;
         }
@@ -13032,6 +13131,18 @@ const htmlContent = `<!DOCTYPE html>
         const b = document.createElement('span'); b.className = 'today-icon text-xs font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800';
         b.textContent = ic + ' ' + t(ic === '🥐' ? 'today.kitchen' : 'today.birthday'); head.appendChild(b);
       });
+      const festDay = festivalDayOf(key);
+      if (festDay) {
+        const fc = document.createElement('span'); fc.className = 'today-festival-chip text-xs font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800';
+        const fi = FESTIVALS[festDay.key];
+        fc.textContent = festDay.icon + ' ' + (festDay.icon === '🏮' ? (state.lang === 'en' ? 'Lantern Festival' : '元宵節') : (state.lang === 'en' ? fi.en : fi.zh));
+        head.appendChild(fc);
+        panel.classList.add('relative', 'overflow-hidden');
+        panel.style.paddingRight = '4.5rem';   // 右上角插圖的位置，文字不會被壓到
+        const st = document.createElement('div'); st.className = 'today-festival-sticker'; st.setAttribute('aria-hidden', 'true');
+        st.style.cssText = 'position:absolute;top:0.5rem;right:0.5rem;width:3.5rem;height:3.5rem;background:url(festival/' + festDay.key + '-sticker.svg) no-repeat center/contain;pointer-events:none';
+        panel.appendChild(st);
+      }
       panel.appendChild(head);
       const evBox = document.createElement('div'); evBox.className = 'space-y-1.5';
       if (dayEvents.length) {

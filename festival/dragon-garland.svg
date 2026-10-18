@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 64" aria-hidden="true">
+  <defs>
+    <g id="zz">
+      <path d="M0 0 v4" stroke="#8C7A6B" stroke-width="1.2"/>
+      <path d="M0 4 L11 21 H-11 Z" fill="#6BA34A"/>
+      <path d="M0 4 L3 21" stroke="#4E8A3A" stroke-width="1"/>
+      <path d="M-7 15 H7" stroke="#E8D9A8" stroke-width="2.2"/>
+    </g>
+    <g id="sachR">
+      <path d="M0 0 v4" stroke="#C93837" stroke-width="1.2"/>
+      <path d="M0 4 C8 4 9.5 12 0 20 C-9.5 12 -8 4 0 4 Z" fill="#E24B4A"/>
+      <circle cx="0" cy="11" r="2.6" fill="#F2BE45"/>
+      <path d="M-1 20 v6 M1 20 v6" stroke="#F2BE45" stroke-width="1.2"/>
+    </g>
+    <g id="sachY">
+      <path d="M0 0 v4" stroke="#C93837" stroke-width="1.2"/>
+      <path d="M0 4 C8 4 9.5 12 0 20 C-9.5 12 -8 4 0 4 Z" fill="#F2BE45"/>
+      <circle cx="0" cy="11" r="2.6" fill="#E24B4A"/>
+      <path d="M-1 20 v6 M1 20 v6" stroke="#E24B4A" stroke-width="1.2"/>
+    </g>
+  </defs>
+  <path d="M0 6 Q200 46 400 6" fill="none" stroke="#8C7A6B" stroke-width="1.4"/>
+  <use href="#sachR" x="25" y="10.7"/>
+  <use href="#zz" x="75" y="18.2"/>
+  <use href="#sachY" x="125" y="23.2"/>
+  <use href="#zz" x="175" y="25.7"/>
+  <use href="#sachR" x="225" y="25.7"/>
+  <use href="#zz" x="275" y="23.2"/>
+  <use href="#sachY" x="325" y="18.2"/>
+  <use href="#zz" x="375" y="10.7"/>
+</svg>

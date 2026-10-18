@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 64" aria-hidden="true">
+  <defs>
+    <g id="car">
+      <path d="M0 0 v4" stroke="#7FA86A" stroke-width="1.2"/>
+      <path d="M-5 13 Q0 17 5 13 L3 19 H-3 Z" fill="#6BA34A"/>
+      <circle cx="-4" cy="10" r="4.6" fill="#ED93B1"/><circle cx="4" cy="10" r="4.6" fill="#ED93B1"/>
+      <circle cx="0" cy="7" r="4.6" fill="#F4A7C3"/>
+      <path d="M-7 9 l2 -1.5 M7 9 l-2 -1.5 M0 3 v2" stroke="#E07A9E" stroke-width="1"/>
+    </g>
+    <g id="hrt">
+      <path d="M0 0 v4" stroke="#7FA86A" stroke-width="1.2"/>
+      <path d="M0 20 C-10 13 -9.5 4.5 -4.8 4.5 C-2.2 4.5 0 6.5 0 8.6 C0 6.5 2.2 4.5 4.8 4.5 C9.5 4.5 10 13 0 20 Z" fill="#E86A92"/>
+    </g>
+  </defs>
+  <path d="M0 6 Q200 46 400 6" fill="none" stroke="#7FA86A" stroke-width="1.6"/>
+  <use href="#hrt" x="25" y="10.7"/>
+  <use href="#car" x="75" y="18.2"/>
+  <use href="#hrt" x="125" y="23.2"/>
+  <use href="#car" x="175" y="25.7"/>
+  <use href="#car" x="225" y="25.7"/>
+  <use href="#hrt" x="275" y="23.2"/>
+  <use href="#car" x="325" y="18.2"/>
+  <use href="#hrt" x="375" y="10.7"/>
+</svg>

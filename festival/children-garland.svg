@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 64" aria-hidden="true">
+  <defs>
+    <path id="tri" d="M-9 0 H9 L0 17 Z"/>
+    <g id="balR"><path d="M0 0 v3" stroke="#8C7A6B"/><ellipse cx="0" cy="12" rx="7.5" ry="9" fill="#F0908F"/><path d="M-1.5 21 h3 l-1.5 2 Z" fill="#F0908F"/><ellipse cx="-2.5" cy="8.5" rx="1.8" ry="2.6" fill="#fff" opacity="0.6"/></g>
+    <g id="balB"><path d="M0 0 v3" stroke="#8C7A6B"/><ellipse cx="0" cy="12" rx="7.5" ry="9" fill="#7FB3E8"/><path d="M-1.5 21 h3 l-1.5 2 Z" fill="#7FB3E8"/><ellipse cx="-2.5" cy="8.5" rx="1.8" ry="2.6" fill="#fff" opacity="0.6"/></g>
+  </defs>
+  <path d="M0 6 Q200 46 400 6" fill="none" stroke="#8C7A6B" stroke-width="1.4"/>
+  <use href="#tri" x="25" y="10.7" fill="#F7C65A"/>
+  <use href="#balR" x="75" y="18.2"/>
+  <use href="#tri" x="125" y="23.2" fill="#97C459"/>
+  <use href="#tri" x="175" y="25.7" fill="#7FB3E8"/>
+  <use href="#tri" x="225" y="25.7" fill="#F0908F"/>
+  <use href="#tri" x="275" y="23.2" fill="#B9A6E6"/>
+  <use href="#balB" x="325" y="18.2"/>
+  <use href="#tri" x="375" y="10.7" fill="#F7C65A"/>
+</svg>
