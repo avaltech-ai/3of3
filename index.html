@@ -7,6 +7,8 @@
   <script>try { if (localStorage.getItem('nobel_a_big_text') === '1') document.documentElement.classList.add('big-text'); } catch (e) {}</script>
   <!-- 手機裡還沒有任何資料（第一次開啟）：先顯示載入骨架，資料到了才顯示內容。initApp() 會依實際情況再設定一次 -->
   <script>try { if (!localStorage.getItem('nobel_a_cached_app_data')) document.documentElement.classList.add('app-loading'); } catch (e) {}</script>
+  <!-- 季節主題色：依月份（春 3～5、夏 6～8、秋 9～11、冬 12～2）設定 data-season；規則與 seasonOf() 相同 -->
+  <script>try { var sm = new Date().getMonth() + 1; document.documentElement.setAttribute('data-season', sm >= 3 && sm <= 5 ? 'spring' : sm >= 6 && sm <= 8 ? 'summer' : sm >= 9 && sm <= 11 ? 'autumn' : 'winter'); } catch (e) {}</script>
   <!-- 加到手機主畫面（PWA）：名稱「諾貝爾A」、圖示由 tools/make_icons.py 從 logo-hires.png 產生（白底，iPhone 會把透明區域顯示成黑色）。
        不做 service worker／離線快取（容易讓使用者卡在舊版）。以 App 模式開啟時沒有網址列與重新整理鈕，所以另有標頭的重新整理鈕與回到前景自動同步。 -->
   <link rel="manifest" href="manifest.webmanifest">
@@ -106,8 +108,19 @@
       #printMenuArea tr { page-break-inside: avoid; }
       #printMenuArea .print-note { margin-top: 4mm; font-size: 9.5pt; color: #444; }
     }
+    /* 季節主題色（2026-10-18）：只換氣氛，不換主色。沒有 data-season（例如舊瀏覽器）時維持原本的米白與彩虹色條 */
+    :root { --season-bg: #FDFBF7; --season-bar: linear-gradient(to right, #FF7A85, #FBBF24, #34D399); }
+    html[data-season="spring"] { --season-bg: #FFF6F8; --season-bar: linear-gradient(to right, #F9A8D4, #BBF7D0, #FDE68A); }
+    html[data-season="summer"] { --season-bg: #F2F9FE; --season-bar: linear-gradient(to right, #7DD3FC, #FDE047, #5EEAD4); }
+    html[data-season="autumn"] { --season-bg: #FFF7EE; --season-bar: linear-gradient(to right, #FDBA74, #FCD34D, #D6A77A); }
+    html[data-season="winter"] { --season-bg: #F5F8FC; --season-bar: linear-gradient(to right, #93C5FD, #E2E8F0, #FCA5A5); }
+    .season-bar { background-image: var(--season-bar); }
+    html[data-season="spring"] #seasonBadge::after { content: '🌸'; }
+    html[data-season="summer"] #seasonBadge::after { content: '🍉'; }
+    html[data-season="autumn"] #seasonBadge::after { content: '🍁'; }
+    html[data-season="winter"] #seasonBadge::after { content: '⛄'; }
     body {
-      background-color: #FDFBF7;
+      background-color: var(--season-bg);
       font-family: 'Zen Maru Gothic', 'Noto Sans TC', sans-serif;
       -webkit-tap-highlight-color: transparent;
     }
@@ -167,7 +180,7 @@
 <body class="text-slate-700 min-h-screen flex flex-col antialiased selection:bg-peach-200">
 
   <!-- ==================== 頂部全彩色帶 (取代原本的走馬燈) ==================== -->
-  <div class="bg-gradient-to-r from-peach-500 via-sun-400 to-mint-400 h-1.5 w-full sticky top-0 z-50"></div>
+  <div id="seasonBar" class="season-bar h-1.5 w-full sticky top-0 z-50"></div>
 
   <!-- ==================== HEADER 導覽標題列 ==================== -->
   
@@ -249,8 +262,9 @@
             <!-- 手機原本的 ☰ 漢堡選單已移除（2026-10-18）：所有頁面與工具都在底部導覽列與「更多」裡 -->
             <div class="cursor-pointer flex items-center gap-2.5 min-w-0" onclick="switchTab('home')">
               <!-- 圖三 Logo (參照圖四設計) -->
-              <div class="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-white border-2 border-rose-200 p-1 flex items-center justify-center shrink-0 shadow-xs">
+              <div class="relative w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-white border-2 border-rose-200 p-1 flex items-center justify-center shrink-0 shadow-xs">
                 <img src="data:image/jpeg;base64,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" class="w-full h-full object-contain" alt="三之三生命教育基金會" data-i18n-alt="ui.logoAlt">
+                <span id="seasonBadge" class="absolute -bottom-1.5 -left-1.5 text-sm sm:text-base leading-none pointer-events-none select-none" aria-hidden="true"></span>
               </div>
               <div class="flex flex-col justify-center min-w-0">
                 <div class="flex items-center gap-x-2 gap-y-1 flex-wrap min-w-0">
@@ -4630,6 +4644,20 @@
         ? (app ? 'Cloud sync failed. The content shown may be outdated. Tap ↻ at the top right to reload.' : 'Cloud sync failed. The content shown may be outdated. Please reload.')
         : (app ? '雲端資料同步失敗，目前顯示的可能是舊資料，請點右上角「↻」重新整理。' : '雲端資料同步失敗，目前顯示的可能是舊資料，請重新整理頁面。')) + (why ? ' [' + why + ']' : ''), '⚠️');
     }
+
+    // 季節主題色：依月份決定（純函式；<head> 的程式用同一套規則先設定一次，避免閃動）
+    function seasonOf(month) {
+      const m = Number(month);
+      if (m >= 3 && m <= 5) return 'spring';
+      if (m >= 6 && m <= 8) return 'summer';
+      if (m >= 9 && m <= 11) return 'autumn';
+      return 'winter';
+    }
+    function applySeason(date) {
+      const d = date instanceof Date ? date : new Date();
+      document.documentElement.setAttribute('data-season', seasonOf(d.getMonth() + 1));
+    }
+    document.addEventListener('visibilitychange', function() { if (!document.hidden) { try { applySeason(); } catch (e) {} } });
 
     // 第一次開啟的載入狀態：'loading'＝顯示骨架、'ready'＝顯示內容、'failed'＝手上沒有資料又連線失敗（顯示「重新載入」）
     function setAppLoadState(st) {

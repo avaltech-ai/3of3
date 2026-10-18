@@ -41,6 +41,8 @@ const htmlContent = `<!DOCTYPE html>
   <script>try { if (localStorage.getItem('nobel_a_big_text') === '1') document.documentElement.classList.add('big-text'); } catch (e) {}</script>
   <!-- 手機裡還沒有任何資料（第一次開啟）：先顯示載入骨架，資料到了才顯示內容。initApp() 會依實際情況再設定一次 -->
   <script>try { if (!localStorage.getItem('nobel_a_cached_app_data')) document.documentElement.classList.add('app-loading'); } catch (e) {}</script>
+  <!-- 季節主題色：依月份（春 3～5、夏 6～8、秋 9～11、冬 12～2）設定 data-season；規則與 seasonOf() 相同 -->
+  <script>try { var sm = new Date().getMonth() + 1; document.documentElement.setAttribute('data-season', sm >= 3 && sm <= 5 ? 'spring' : sm >= 6 && sm <= 8 ? 'summer' : sm >= 9 && sm <= 11 ? 'autumn' : 'winter'); } catch (e) {}</script>
   <!-- 加到手機主畫面（PWA）：名稱「諾貝爾A」、圖示由 tools/make_icons.py 從 logo-hires.png 產生（白底，iPhone 會把透明區域顯示成黑色）。
        不做 service worker／離線快取（容易讓使用者卡在舊版）。以 App 模式開啟時沒有網址列與重新整理鈕，所以另有標頭的重新整理鈕與回到前景自動同步。 -->
   <link rel="manifest" href="manifest.webmanifest">
@@ -140,8 +142,19 @@ const htmlContent = `<!DOCTYPE html>
       #printMenuArea tr { page-break-inside: avoid; }
       #printMenuArea .print-note { margin-top: 4mm; font-size: 9.5pt; color: #444; }
     }
+    /* 季節主題色（2026-10-18）：只換氣氛，不換主色。沒有 data-season（例如舊瀏覽器）時維持原本的米白與彩虹色條 */
+    :root { --season-bg: #FDFBF7; --season-bar: linear-gradient(to right, #FF7A85, #FBBF24, #34D399); }
+    html[data-season="spring"] { --season-bg: #FFF6F8; --season-bar: linear-gradient(to right, #F9A8D4, #BBF7D0, #FDE68A); }
+    html[data-season="summer"] { --season-bg: #F2F9FE; --season-bar: linear-gradient(to right, #7DD3FC, #FDE047, #5EEAD4); }
+    html[data-season="autumn"] { --season-bg: #FFF7EE; --season-bar: linear-gradient(to right, #FDBA74, #FCD34D, #D6A77A); }
+    html[data-season="winter"] { --season-bg: #F5F8FC; --season-bar: linear-gradient(to right, #93C5FD, #E2E8F0, #FCA5A5); }
+    .season-bar { background-image: var(--season-bar); }
+    html[data-season="spring"] #seasonBadge::after { content: '🌸'; }
+    html[data-season="summer"] #seasonBadge::after { content: '🍉'; }
+    html[data-season="autumn"] #seasonBadge::after { content: '🍁'; }
+    html[data-season="winter"] #seasonBadge::after { content: '⛄'; }
     body {
-      background-color: #FDFBF7;
+      background-color: var(--season-bg);
       font-family: 'Zen Maru Gothic', 'Noto Sans TC', sans-serif;
       -webkit-tap-highlight-color: transparent;
     }
@@ -201,7 +214,7 @@ const htmlContent = `<!DOCTYPE html>
 <body class="text-slate-700 min-h-screen flex flex-col antialiased selection:bg-peach-200">
 
   <!-- ==================== 頂部全彩色帶 (取代原本的走馬燈) ==================== -->
-  <div class="bg-gradient-to-r from-peach-500 via-sun-400 to-mint-400 h-1.5 w-full sticky top-0 z-50"></div>
+  <div id="seasonBar" class="season-bar h-1.5 w-full sticky top-0 z-50"></div>
 
   <!-- ==================== HEADER 導覽標題列 ==================== -->
   
@@ -283,8 +296,9 @@ const htmlContent = `<!DOCTYPE html>
             <!-- 手機原本的 ☰ 漢堡選單已移除（2026-10-18）：所有頁面與工具都在底部導覽列與「更多」裡 -->
             <div class="cursor-pointer flex items-center gap-2.5 min-w-0" onclick="switchTab('home')">
               <!-- 圖三 Logo (參照圖四設計) -->
-              <div class="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-white border-2 border-rose-200 p-1 flex items-center justify-center shrink-0 shadow-xs">
+              <div class="relative w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-white border-2 border-rose-200 p-1 flex items-center justify-center shrink-0 shadow-xs">
                 <img src="${logoB64}" class="w-full h-full object-contain" alt="三之三生命教育基金會" data-i18n-alt="ui.logoAlt">
+                <span id="seasonBadge" class="absolute -bottom-1.5 -left-1.5 text-sm sm:text-base leading-none pointer-events-none select-none" aria-hidden="true"></span>
               </div>
               <div class="flex flex-col justify-center min-w-0">
                 <div class="flex items-center gap-x-2 gap-y-1 flex-wrap min-w-0">
@@ -4664,6 +4678,20 @@ const htmlContent = `<!DOCTYPE html>
         ? (app ? 'Cloud sync failed. The content shown may be outdated. Tap ↻ at the top right to reload.' : 'Cloud sync failed. The content shown may be outdated. Please reload.')
         : (app ? '雲端資料同步失敗，目前顯示的可能是舊資料，請點右上角「↻」重新整理。' : '雲端資料同步失敗，目前顯示的可能是舊資料，請重新整理頁面。')) + (why ? ' [' + why + ']' : ''), '⚠️');
     }
+
+    // 季節主題色：依月份決定（純函式；<head> 的程式用同一套規則先設定一次，避免閃動）
+    function seasonOf(month) {
+      const m = Number(month);
+      if (m >= 3 && m <= 5) return 'spring';
+      if (m >= 6 && m <= 8) return 'summer';
+      if (m >= 9 && m <= 11) return 'autumn';
+      return 'winter';
+    }
+    function applySeason(date) {
+      const d = date instanceof Date ? date : new Date();
+      document.documentElement.setAttribute('data-season', seasonOf(d.getMonth() + 1));
+    }
+    document.addEventListener('visibilitychange', function() { if (!document.hidden) { try { applySeason(); } catch (e) {} } });
 
     // 第一次開啟的載入狀態：'loading'＝顯示骨架、'ready'＝顯示內容、'failed'＝手上沒有資料又連線失敗（顯示「重新載入」）
     function setAppLoadState(st) {
