@@ -79,7 +79,7 @@
   currentTaskSemester = SEM2; renderSemesterTasks();
 
   // D. 英文與空狀態
-  state.textMap = Object.assign({}, state.textMap || {}, { '注重閱讀的品質': 'Quality reading' });
+  state.textMap = { '注重閱讀的品質': 'Quality reading' };   // 只用測試自己的對照（不併入線上現有的，否則老師之後補了其他標題的英文，「沒對照就退回中文」就不成立）
   state.lang = 'en'; renderSemesterTasks();
   ok(/Class Mini Missions/.test(groups()[0].textContent) && /How Parents Can Help/.test(groups()[1].textContent) && /3 things/.test(groups()[0].textContent), '英文介面：類別名稱與副標是英文');
   ok(/Quality reading/.test(cards()[0].textContent) && /每天共讀一本繪本/.test(groups()[1].textContent), '英文介面：有對照的標題顯示英文，沒對照的退回中文');

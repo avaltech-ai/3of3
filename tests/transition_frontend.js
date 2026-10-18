@@ -112,7 +112,7 @@
   reset(); switchTab('transition');
 
   // G. 英文
-  state.textMap = Object.assign({}, state.textMap || {}, { '規律生活': 'Daily routine', '學會看時鐘': 'Learn to read a clock' });
+  state.textMap = { '規律生活': 'Daily routine', '學會看時鐘': 'Learn to read a clock' };   // 只用測試自己的對照（不併入線上現有的，否則老師之後補了「語文能力」的英文，「沒有對照就退回中文」就不成立）
   toggleLanguage(); await wait(200); renderTransition();
   ok(/Daily routine/.test(cards()[0].querySelector('h3').textContent) && items().some(i => /Learn to read a clock/.test(i.textContent)) && /Together/.test(items()[2].querySelector('.tr-tag').textContent) && /Our progress/.test($('trPlanToolbar').textContent), '英文介面：類別與項目走對照、標籤與工具列是英文');
   ok(/語文能力/.test(cards()[1].textContent), '沒有對照的類別退回中文');

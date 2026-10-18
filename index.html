@@ -167,6 +167,20 @@
       #printTransitionArea td.kind { width: 18mm; text-align: center; font-size: 9pt; color: #333; }
       #printTransitionArea tr { page-break-inside: avoid; }
       #printTransitionArea .print-note { margin-top: 3mm; font-size: 9pt; color: #444; }
+      #printTransitionArea .habit-info { display: flex; gap: 12mm; font-size: 11pt; margin: 0 0 3mm; }
+      #printTransitionArea table.habit { margin-bottom: 3mm; }
+      #printTransitionArea table.habit th { border: 1px solid #555; background: #eee; font-size: 9pt; font-weight: 800; padding: 1mm 0; }
+      #printTransitionArea table.habit th.hname { width: 56mm; font-size: 10.5pt; }
+      #printTransitionArea table.habit td.hname { font-size: 10.5pt; font-weight: 700; text-align: left; padding: 1.5mm 2mm; }
+      #printTransitionArea table.habit td.day { height: 14mm; padding: 0; }
+      #printTransitionArea table.habit td.off { background: #d9d9d9; }
+      #printTransitionArea table.habit.w1 td.day { height: 20mm; }
+      #printTransitionArea table.habit.w1 th { font-size: 11pt; padding: 2mm 0; }
+      #printTransitionArea table.habit.w1 td.hname { font-size: 12pt; }
+      #printTransitionArea table.habit td.wk-start, #printTransitionArea table.habit th.wk-start { border-left: 2px solid #000; }
+      #printTransitionArea .habit-reward { border: 2px dashed #555; border-radius: 3mm; padding: 3mm 5mm; font-size: 11pt; page-break-inside: avoid; }
+      #printTransitionArea .habit-reward b { font-size: 12pt; }
+      #printTransitionArea .habit-reward .line { display: inline-block; min-width: 80mm; border-bottom: 1px solid #000; height: 7mm; vertical-align: bottom; }
       #printMenuArea { display: block !important; color: #000; background: #fff; font-family: 'Noto Sans TC', sans-serif; }
       #printMenuArea h1 { font-size: 20pt; font-weight: 900; margin: 0 0 2mm; }
       #printMenuArea .print-sub { font-size: 11pt; color: #444; margin-bottom: 4mm; }
@@ -1052,6 +1066,8 @@
             <div class="flex flex-wrap items-center gap-1.5">
               <button type="button" onclick="printTransitionPlan(true)" class="px-3 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold tap-bounce"><span aria-hidden="true">🖨️</span> <span data-i18n="transition.printMine">列印（含我的勾選）</span></button>
               <button type="button" onclick="printTransitionPlan(false)" class="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold tap-bounce" data-i18n="transition.printBlank">列印空白版</button>
+              <button type="button" onclick="printHabitSheet(4)" class="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold tap-bounce"><span aria-hidden="true">🗓️</span> <span data-i18n="transition.printHabit">列印四週打卡表</span></button>
+              <button type="button" onclick="printHabitSheet(1)" class="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold tap-bounce"><span aria-hidden="true">🗓️</span> <span data-i18n="transition.printHabit1">列印單週打卡表</span></button>
               <button type="button" onclick="clearTransitionChecks()" class="px-3 py-1.5 rounded-xl bg-white hover:bg-rose-50 border border-slate-200 text-slate-500 hover:text-rose-600 text-xs font-bold tap-bounce" data-i18n="transition.clearChecks">清除勾選</button>
             </div>
           </div>
@@ -2871,6 +2887,20 @@
           progressLabel: '我們家的進度',
           printMine: '列印（含我的勾選）',
           printBlank: '列印空白版',
+          printHabit: '列印四週打卡表',
+          habitTitle: '我的好習慣打卡表',
+          habitSub: '連續 4 週，做到就在格子裡打勾 ✓；灰色格子不用打卡。',
+          printHabit1: '列印單週打卡表',
+          habitTitle1: '我的好習慣打卡表（單週）',
+          habitSub1: '這一週，做到就在格子裡打勾 ✓；灰色格子不用打卡。',
+          habitName: '姓名',
+          habitStart: '開始日期',
+          habitDate: '______ 年 ____ 月 ____ 日',
+          habitColumn: '好習慣',
+          habitWeek: '第 {n} 週',
+          habitDays: '一,二,三,四,五,六,日',
+          habitRewardTitle: '🎁 小獎勵',
+          habitRewardLine: '集滿 ______ 個勾，我想要：',
           clearChecks: '清除勾選',
           clearConfirm: '要清除這台裝置上的所有勾選嗎？',
           cleared: '已清除勾選',
@@ -3202,6 +3232,20 @@
           progressLabel: 'Our progress',
           printMine: 'Print (with my checks)',
           printBlank: 'Print blank copy',
+          printHabit: 'Print 4-week habit chart',
+          habitTitle: 'My Good Habits Chart',
+          habitSub: 'For 4 weeks in a row, tick the box each time you do it ✓. Grey boxes need no tick.',
+          printHabit1: 'Print 1-week habit chart',
+          habitTitle1: 'My Good Habits Chart (1 week)',
+          habitSub1: 'This week, tick the box each time you do it ✓. Grey boxes need no tick.',
+          habitName: 'Name',
+          habitStart: 'Start date',
+          habitDate: '____ / ____ / ________',
+          habitColumn: 'Good habit',
+          habitWeek: 'Week {n}',
+          habitDays: 'Mon,Tue,Wed,Thu,Fri,Sat,Sun',
+          habitRewardTitle: '🎁 Little reward',
+          habitRewardLine: 'When I get ______ ticks, I want:',
           clearChecks: 'Clear checks',
           clearConfirm: 'Clear all checks saved on this device?',
           cleared: 'Checks cleared',
@@ -13413,13 +13457,62 @@
 
     function printTransitionPlan(withChecks) {
       if (!trYearItems().length) { showToast(t('transition.printEmpty'), 'ℹ️'); return; }
+      trPrintArea(buildTransitionPrintHtml(!!withChecks), 'portrait');
+    }
+
+    // 每天要做的好習慣（固定一份，使用者拍板 2026-10-18）：只列「在家」或「一起」、可以每天打卡的項目。
+    // 寫死在程式裡，不跟 TransitionPlan 工作表連動（工作表的文字老師會改，打卡表不該跟著跑掉）；要換項目請改這裡。
+    const TR_HABITS = [
+      { zh: '21:00–21:30 前上床睡覺', en: 'In bed by 21:00–21:30' },
+      { zh: '每日 10–15 分鐘親子共讀', en: '10–15 minutes of reading together' },
+      { zh: '自己整理書包、寢具與個人物品', en: 'Tidy my own bag, bedding and things' },
+      { zh: '用餐後清潔桌面、地面與清洗個人餐碗', en: 'Clean up after meals and wash my own bowl' },
+      { zh: '假日運動至少 30 分鐘（只有週六、週日）', en: 'Exercise 30+ minutes (Sat and Sun only)', weekendOnly: true }
+    ];
+    // 純函式（只用傳進來的文字與習慣清單）：A4 橫式、4 週 × 7 天的空白格，週一起算，附小獎勵欄
+    function buildHabitSheetHtml(L, habits, weeks) {
+      const W = weeks === 1 ? 1 : 4;   // 只有「單週」或「四週」兩種
+      const days = String(L.days).split(',');
+      let h = '<h1>' + esc(L.title) + '</h1><div class="print-sub">' + esc(L.sub) + '</div>' +
+        '<div class="habit-info"><span>' + esc(L.name) + '：____________________</span><span>' + esc(L.start) + '：' + esc(L.date) + '</span></div>' +
+        '<table class="habit' + (W === 1 ? ' w1' : '') + '"><thead>';
+      if (W === 4) {   // 四週版多一列「第 N 週」；單週版不需要
+        h += '<tr><th class="hname" rowspan="2">' + esc(L.column) + '</th>';
+        for (let w = 1; w <= W; w++) h += '<th colspan="7" class="wk-start">' + esc(String(L.week).replace('{n}', w)) + '</th>';
+        h += '</tr><tr>';
+      } else {
+        h += '<tr><th class="hname">' + esc(L.column) + '</th>';
+      }
+      for (let w = 0; w < W; w++) for (let d = 0; d < 7; d++) h += '<th' + (d === 0 ? ' class="wk-start"' : '') + '>' + esc(days[d] || '') + '</th>';
+      h += '</tr></thead><tbody>';
+      habits.forEach(function(it) {
+        h += '<tr><td class="hname">' + esc(it.text) + '</td>';
+        for (let w = 0; w < W; w++) for (let d = 0; d < 7; d++) {
+          const off = it.weekendOnly && d < 5;
+          h += '<td class="day' + (off ? ' off' : '') + (d === 0 ? ' wk-start' : '') + '"></td>';
+        }
+        h += '</tr>';
+      });
+      h += '</tbody></table><div class="habit-reward"><b>' + esc(L.rewardTitle) + '</b>　' + esc(L.rewardLine) + ' <span class="line"></span></div>' +
+        '<div class="print-note">' + esc(L.note) + '</div>';
+      return h;
+    }
+    function printHabitSheet(weeks) {
+      const W = weeks === 1 ? 1 : 4;
+      const en = state.lang === 'en';
+      const L = { title: t(W === 1 ? 'transition.habitTitle1' : 'transition.habitTitle'), sub: t(W === 1 ? 'transition.habitSub1' : 'transition.habitSub'), name: t('transition.habitName'), start: t('transition.habitStart'), date: t('transition.habitDate'),
+        column: t('transition.habitColumn'), week: t('transition.habitWeek'), days: t('transition.habitDays'), rewardTitle: t('transition.habitRewardTitle'), rewardLine: t('transition.habitRewardLine'), note: t('transition.printNote') };
+      trPrintArea(buildHabitSheetHtml(L, TR_HABITS.map(function(x) { return { text: en ? x.en : x.zh, weekendOnly: !!x.weekendOnly }; }), W), 'landscape');
+    }
+
+    // 共用的列印流程：把內容放進列印區、暫時加上紙張方向與 body class，印完移除（菜單是 A4 橫式，銜接清單直式，打卡表橫式）
+    function trPrintArea(html, orientation) {
       const area = document.getElementById('printTransitionArea');
       if (!area) return;
-      area.innerHTML = buildTransitionPrintHtml(!!withChecks);
-      // 菜單是 A4 橫式；這份清單用直式。列印時暫時加上直式設定與 body class，印完移除。
+      area.innerHTML = html;
       let pageStyle = document.getElementById('trPrintPageStyle');
       if (!pageStyle) { pageStyle = document.createElement('style'); pageStyle.id = 'trPrintPageStyle'; document.head.appendChild(pageStyle); }
-      pageStyle.textContent = '@media print { @page { size: A4 portrait; margin: 12mm; } }';
+      pageStyle.textContent = '@media print { @page { size: A4 ' + orientation + '; margin: 12mm; } }';
       document.body.classList.add('printing-transition');
       const done = function() {
         document.body.classList.remove('printing-transition');
