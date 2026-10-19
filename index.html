@@ -152,6 +152,7 @@
       #pinSidebarBtn { opacity: 1; }
     }
     /* 列印本週菜單：螢幕上隱藏列印區；列印時只輸出列印區（#printMenuArea 必須是 body 的直接子元素） */
+    #footerLineWrap:not(.hidden) { display: flex; align-items: center; }   /* 外框自己是 flex：裡面的連結才會和旁邊的聯絡資訊垂直置中對齊（不然 inline 的行高基線會讓它偏高約 2px） */
     .wrap-any { overflow-wrap: anywhere; word-break: break-word; }   /* 很長又沒有空白的檔名也要能換行（break-words 不會縮小最小寬度，會把版面撐出橫向捲動） */
     #printMenuArea, #printTransitionArea { display: none; }
     @media print {

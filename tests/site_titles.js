@@ -130,6 +130,13 @@
   ok(!wrap.classList.contains('hidden') && ln.getAttribute('href') === 'https://lin.ee/izXkZCI' && ln.target === '_blank' && /noopener/.test(ln.rel) && /noreferrer/.test(ln.rel), '填了網址：顯示 LINE 連結，開新分頁，rel 有 noopener noreferrer');
   ok(/Line@/.test(ln.textContent) && !!ln.querySelector('svg') && !ln.querySelector('img') && wrap.textContent.indexOf('｜') === -1, '連結是綠色 LINE 圖示（內建 SVG，不是外部圖片）加「Line@」；不放分隔線（換行時分隔線會孤零零留在上一行）');
   ok($('footerContact').textContent === DEF.footerContact && wrap.nextElementSibling === $('footerContact'), '聯絡資訊維持原本的文字，LINE 連結排在它前面');
+  // 垂直對齊（使用者回報兩段文字高高低低）：LINE 圖示、「Line@」文字、聯絡資訊的垂直中心要在 1px 內（縮短聯絡資訊讓它們一定同一行）
+  state.settings.footerContact = '｜☎️ 02-2668-8249'; applySiteTitles();
+  const cy = el => { const rg = document.createRange(); rg.selectNodeContents(el); const r = Array.from(rg.getClientRects())[0]; return r ? (r.top + r.bottom) / 2 : NaN; };
+  const sv = ln.querySelector('svg').getBoundingClientRect(), svC = (sv.top + sv.bottom) / 2, txC = cy(ln.querySelector('span')), ctC = cy($('footerContact'));
+  ok(Math.abs(ln.getBoundingClientRect().top - $('footerContact').getBoundingClientRect().top) < 12, '（前提）LINE 連結與聯絡資訊在同一行');
+  ok(Math.abs(svC - txC) <= 1 && Math.abs(svC - ctC) <= 1 && Math.abs(txC - ctC) <= 1, '垂直置中對齊：圖示、「Line@」、聯絡資訊的中心差 ≤ 1px（圖示 ' + svC.toFixed(1) + '、Line@ ' + txC.toFixed(1) + '、聯絡 ' + ctC.toFixed(1) + '）');
+  state.settings.footerContact = '';
   ok(/開啟 LINE 官方帳號/.test(ln.getAttribute('aria-label')) && ln.title === ln.getAttribute('aria-label'), '中文介面：有無障礙標籤與提示');
   state.lang = 'en'; applyTranslations(); ok(/Open LINE official account/.test(ln.getAttribute('aria-label')) && !wrap.classList.contains('hidden'), '英文介面：標籤是英文，連結仍顯示');
   state.lang = 'zh-TW'; applyTranslations();
