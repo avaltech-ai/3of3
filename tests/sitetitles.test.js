@@ -57,7 +57,7 @@ function env(sheets, opts) {
 const SETTINGS = () => [['key', 'value', 'description'], ['CLASS_NAME', '諾貝爾 A 班', '班級名稱'], ['ADMIN_PASSWORD', 'secret-pass-123', '管理員密碼'], ['TICKER_MESSAGE', '歡迎', '跑馬燈']];
 const valOf = (e, key) => { const r = e.book.Settings.rows.find(x => String(x[0]).trim() === key); return r ? r[1] : undefined; };
 const rowsOf = (e, key) => e.book.Settings.rows.filter(x => String(x[0]).trim() === key).length;
-const DEF = { headerFoundation: '三之三生命教育基金會', headerSchool: '新北市桃子腳非營利幼兒園', headerClass: '諾貝爾 A 班', headerBadge: 'Happy Life', footerContact: 'TEL：02-2668-8249｜FAX：02-2668-8245', footerMotto: '用愛陪伴孩子成長的每一步' };
+const DEF = { headerFoundation: '三之三生命教育基金會', headerSchool: '新北市桃子腳非營利幼兒園', headerClass: '諾貝爾 A 班', headerBadge: 'Happy Life', footerContact: 'TEL：02-2668-8249｜FAX：02-2668-8245', footerMotto: '用愛陪伴孩子成長的每一步', footerLineUrl: '' };
 const PROPS = Object.keys(DEF);
 
 console.log('A. 驗證 token');
@@ -82,8 +82,8 @@ ok(valOf(e, 'HEADER_CLASS') === '諾貝爾 C 班' && rowsOf(e, 'HEADER_CLASS') =
 ok(e.book.Settings.formats[(e.book.Settings.rows.findIndex(x => x[0] === 'HEADER_CLASS') + 1) + ',2'] === '@', '儲存格設成純文字格式（開頭是 = + - 的內容不會被當成公式）');
 r = c.saveSiteTitles({ headerSchool: '=HYPERLINK("x")', footerContact: '+886 2 1234 5678' }, TOK);
 ok(valOf(e, 'HEADER_SCHOOL') === '=HYPERLINK("x")' && valOf(e, 'FOOTER_CONTACT') === '+886 2 1234 5678', '以 = 或 + 開頭的內容：原樣存成文字');
-const all = c.saveSiteTitles({ headerFoundation: '基金會甲', headerSchool: '學校乙', headerClass: '班丙', headerBadge: 'Good Life', footerContact: 'TEL：02-1111-2222', footerMotto: '標語丁' }, TOK);
-ok(all.success && PROPS.every(p => all.titles[p] !== ''), '六段一次全存：全部成功');
+const all = c.saveSiteTitles({ headerFoundation: '基金會甲', headerSchool: '學校乙', headerClass: '班丙', headerBadge: 'Good Life', footerContact: 'TEL：02-1111-2222', footerMotto: '標語丁', footerLineUrl: 'https://lin.ee/izXkZCI' }, TOK);
+ok(all.success && PROPS.every(p => all.titles[p] !== ''), '七段（含 LINE 連結）一次全存：全部成功');
 
 console.log('C. 預設值與清理');
 e = env({ Settings: SETTINGS() }); c = e.ctx;
@@ -101,13 +101,14 @@ ok(r.titles.footerMotto === '第一行 第二行 第三行 後面', '換行、Ta
 r = c.saveSiteTitles({ footerMotto: '   ' }, TOK); ok(r.success && r.titles.footerMotto === '', '只有空白：視為清除');
 
 console.log('D. 長度上限與格式驗證（有一筆不對就整批拒絕）');
-const MAX = { headerFoundation: 30, headerSchool: 40, headerClass: 20, headerBadge: 20, footerContact: 80, footerMotto: 60 };
+const MAX = { headerFoundation: 30, headerSchool: 40, headerClass: 20, headerBadge: 20, footerContact: 80, footerMotto: 60, footerLineUrl: 300 };
+const fill = (p, n) => p === 'footerLineUrl' ? 'https://x.test/' + 'a'.repeat(n - 15) : '字'.repeat(n);
 e = env({ Settings: SETTINGS() }); c = e.ctx;
 PROPS.forEach(p => {
-  const okR = c.saveSiteTitles({ [p]: '字'.repeat(MAX[p]) }, TOK);
+  const okR = c.saveSiteTitles({ [p]: fill(p, MAX[p]) }, TOK);
   ok(okR.success && okR.titles[p].length === MAX[p], p + '：剛好 ' + MAX[p] + ' 字可以');
   const s0 = JSON.stringify(e.book.Settings.rows);
-  const badR = c.saveSiteTitles({ [p]: '字'.repeat(MAX[p] + 1) }, TOK);
+  const badR = c.saveSiteTitles({ [p]: fill(p, MAX[p] + 1) }, TOK);
   ok(badR.success === false && /最多/.test(badR.error) && JSON.stringify(e.book.Settings.rows) === s0, p + '：多 1 字被拒絕、不寫入');
 });
 e = env({ Settings: SETTINGS() }); c = e.ctx; snap = JSON.stringify(e.book.Settings.rows);
@@ -152,6 +153,24 @@ ok(e.book.NameMap.rows.some(x => x[0] === '諾貝爾 C 班') && old && /目前�
 e.ctx.getAppData = () => ({ success: true, data: { settings: { footerMotto: '快樂學習每一天' } } });
 sync = c.adminMapSync('text', TOK);
 ok(sync.success && e.book.TextMap.rows.some(x => x[0] === '快樂學習每一天' && /頁尾：標語/.test(String(x[3]))), '同步內容對照：自訂的標語出現在對照表，出處「頁尾：標語」');
+
+console.log('H. LINE 連結（網址欄位：留空＝不顯示；只收 https 網址）');
+e = env({ Settings: SETTINGS() }); c = e.ctx;
+r = c.saveSiteTitles({ footerLineUrl: '  https://lin.ee/izXkZCI  ' }, TOK);
+ok(r.success && r.titles.footerLineUrl === 'https://lin.ee/izXkZCI' && valOf(e, 'FOOTER_LINE_URL') === 'https://lin.ee/izXkZCI', '存網址：去前後空白，寫進 FOOTER_LINE_URL，公開值就是這個網址');
+ok(/不顯示/.test(String(e.book.Settings.rows.find(x => x[0] === 'FOOTER_LINE_URL')[2])) && /頁尾/.test(String(e.book.Settings.rows.find(x => x[0] === 'FOOTER_LINE_URL')[2])) && /LINE/.test(String(e.book.Settings.rows.find(x => x[0] === 'FOOTER_LINE_URL')[2])), '新增的列說明寫出「頁尾：LINE 連結」，且說明空白＝不顯示（網址類沒有預設文字）');
+snap = JSON.stringify(e.book.Settings.rows);
+['http://lin.ee/x', 'ftp://lin.ee/x', 'javascript:alert(1)', 'data:text/html,x', 'lin.ee/izXkZCI', '//lin.ee/x', 'https://', 'https://a b', 'https:// lin.ee', 'HTTPS ://x', 'mailto:a@b.c'].forEach(u => {
+  const x = c.saveSiteTitles({ footerLineUrl: u }, TOK);
+  ok(x.success === false && /https:\/\//.test(x.error) && JSON.stringify(e.book.Settings.rows) === snap, '拒絕不合法的網址：' + u);
+});
+r = c.saveSiteTitles({ footerLineUrl: 'HTTPS://LIN.EE/ABC' }, TOK); ok(r.success && r.titles.footerLineUrl === 'HTTPS://LIN.EE/ABC', '協定大小寫不拘（HTTPS:// 可以）');
+r = c.saveSiteTitles({ footerLineUrl: '' }, TOK); ok(r.success && r.titles.footerLineUrl === '' && valOf(e, 'FOOTER_LINE_URL') === '', '清空：不顯示（沒有預設值）');
+r = c.saveSiteTitles({ footerLineUrl: 'https://lin.ee/第一\n第二' }, TOK); ok(r.success === false, '網址中間有換行（清理成空白後變成有空白）：拒絕');
+ok(S({ FOOTER_LINE_URL: 'javascript:alert(1)' }).footerLineUrl === '' && S({ FOOTER_LINE_URL: 'http://x.test' }).footerLineUrl === '' && S({ FOOTER_LINE_URL: 'https://a b' }).footerLineUrl === '', '試算表裡被手動填了不合法網址：公開時一律當成空白（前台不會顯示壞連結或 javascript: 連結）');
+ok(S({ FOOTER_LINE_URL: ' https://lin.ee/x ' }).footerLineUrl === 'https://lin.ee/x' && S({ FOOTER_LINE_URL: 'https://x.test/' + 'a'.repeat(400) }).footerLineUrl === '', '合法網址去空白後公開；超過 300 字的網址公開時當成空白（截斷後會變成錯誤連結，所以不是截短）');
+e = env({ Settings: SETTINGS().concat([['FOOTER_LINE_URL', 'https://lin.ee/中文網址', '']]) }); c = e.ctx;
+ok(Object.keys(c.collectNameSources_(e.ss).names).length === 1 && Object.keys(c.collectTextSources_({ settings: { footerLineUrl: 'https://lin.ee/中文網址' } }).units).length === 0, '網址（即使網址裡有中文）不進英文對照：名稱、內容都不蒐集（名稱對照只有程式內建的「全園」）');
 
 console.log('G. doPost 路由');
 const post = (ctx, body) => JSON.parse(ctx.doPost({ postData: { contents: JSON.stringify(body) } }).text);

@@ -16,9 +16,10 @@
   const DEF = { headerFoundation: '三之三生命教育基金會', headerSchool: '新北市桃子腳非營利幼兒園', headerClass: '諾貝爾 A 班', headerBadge: 'Happy Life', footerContact: 'TEL：02-2668-8249｜FAX：02-2668-8245', footerMotto: '用愛陪伴孩子成長的每一步' };
   const EN = { headerFoundation: '3&3 Life Education', headerSchool: 'Taozihjiao Kindergarten', headerClass: 'Nobel A Class', headerBadge: 'Happy Life', footerContact: 'TEL：02-2668-8249｜FAX：02-2668-8245', footerMotto: "Accompanying children's growth with love" };
   const PROPS = Object.keys(DEF);
+  const ALL = PROPS.concat(['footerLineUrl']);
   const shown = () => { const o = {}; PROPS.forEach(p => { o[p] = $(p).textContent; }); return o; };
   const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-  const reset = () => { toasts.length = 0; cbs.length = 0; respond = null; state.settings = Object.assign({}, saved.settings); PROPS.forEach(p => { state.settings[p] = ''; }); state.lang = 'zh-TW'; state.nameMap = Object.create(null); state.textMap = {}; applyTranslations(); };
+  const reset = () => { toasts.length = 0; cbs.length = 0; respond = null; state.settings = Object.assign({}, saved.settings); ALL.forEach(p => { state.settings[p] = ''; }); state.lang = 'zh-TW'; state.nameMap = Object.create(null); state.textMap = {}; applyTranslations(); };
   const fld = p => $('siteTitle-' + p);
   const visibleSubtabs = () => Array.from(document.querySelectorAll('.admin-subtab-btn')).filter(b => !hidden(b)).map(b => b.id.replace('adminSubtabBtn-', ''));
   reset();
@@ -38,11 +39,12 @@
 
   // B. 表單結構
   const secs = Array.from($('siteTitlesFields').children);
-  ok(secs.length === 2 && /頁首/.test(secs[0].textContent.slice(0, 4)) && /頁尾/.test(secs[1].textContent.slice(0, 4)) && secs[0].querySelectorAll('[data-site-field]').length === 4 && secs[1].querySelectorAll('[data-site-field]').length === 2, '兩個區段：頁首 4 段（基金會、學校、班級、標籤）、頁尾 2 段（聯絡資訊、標語）');
+  ok(secs.length === 2 && /頁首/.test(secs[0].textContent.slice(0, 4)) && /頁尾/.test(secs[1].textContent.slice(0, 4)) && secs[0].querySelectorAll('[data-site-field]').length === 4 && secs[1].querySelectorAll('[data-site-field]').length === 3, '兩個區段：頁首 4 段（基金會、學校、班級、標籤）、頁尾 3 段（聯絡資訊、標語、LINE 連結）');
   ok(PROPS.every(p => fld(p) && fld(p).placeholder === DEF[p] && fld(p).value === ''), '每段一個輸入框，空白時以預設文字當提示');
   ok(PROPS.every(p => /預設：/.test(fld(p).closest('[data-site-field]').textContent) && fld(p).closest('[data-site-field]').textContent.indexOf(DEF[p]) >= 0), '每段下方寫出「預設：…」');
-  ok(fld('headerFoundation').maxLength === 30 && fld('headerSchool').maxLength === 40 && fld('headerClass').maxLength === 20 && fld('headerBadge').maxLength === 20 && fld('footerContact').maxLength === 80 && fld('footerMotto').maxLength === 60, '字數上限與後端一致（30／40／20／20／80／60）');
-  ok(PROPS.every(p => fld(p).closest('[data-site-field]').querySelector('[data-site-count]').textContent === '使用預設'), '空白時計數顯示「使用預設」');
+  ok(fld('headerFoundation').maxLength === 30 && fld('headerSchool').maxLength === 40 && fld('headerClass').maxLength === 20 && fld('headerBadge').maxLength === 20 && fld('footerContact').maxLength === 80 && fld('footerMotto').maxLength === 60 && fld('footerLineUrl').maxLength === 300, '字數上限與後端一致（30／40／20／20／80／60／300）');
+  ok(PROPS.every(p => fld(p).closest('[data-site-field]').querySelector('[data-site-count]').textContent === '使用預設') && fld('footerLineUrl').closest('[data-site-field]').querySelector('[data-site-count]').textContent === '不顯示', '空白時計數顯示「使用預設」；LINE 連結沒有預設文字，顯示「不顯示」');
+  ok(fld('footerLineUrl').placeholder === 'https://lin.ee/…' && /預設：不顯示/.test(fld('footerLineUrl').closest('[data-site-field]').textContent) && /綠色 LINE 圖示/.test(fld('footerLineUrl').closest('[data-site-field]').textContent), 'LINE 連結：提示 https://lin.ee/…、「預設：不顯示」、說明會出現綠色 LINE 圖示');
   fld('headerClass').value = '諾貝爾 B 班'; siteTitleCount(fld('headerClass')); ok(fld('headerClass').closest('[data-site-field]').querySelector('[data-site-count]').textContent === '7 / 20 字', '輸入後計數即時更新（7 / 20 字）');
   ok(/英文對照/.test($('siteTitlesCard').textContent) && /同步新文字/.test($('siteTitlesCard').textContent) && /只填中文/.test($('siteTitlesCard').textContent), '說明英文介面的做法：只填中文，到「英文對照」同步');
   Array.from($('siteTitlesCard').querySelectorAll('button')).filter(b => /前往「英文對照」/.test(b.textContent))[0].click(); ok(state.currentAdminSubtab === 'translations', '「前往英文對照」按鈕：切到英文對照');
@@ -91,7 +93,7 @@
   // G. 儲存
   reset(); switchAdminSubtab('siteTitles'); renderSiteTitlesForm();
   fld('headerClass').value = '  諾貝爾 B 班 '; fld('footerMotto').value = '快樂學習每一天'; fld('headerBadge').value = 'Good Life'; $('siteTitlesSaveBtn').click();
-  ok(cbs.length === 1 && cbs[0].a === 'saveSiteTitles' && same(Object.keys(cbs[0].p.titles), PROPS) && cbs[0].p.password === state.adminPassword, '按「儲存」：呼叫 saveSiteTitles，送出六個欄位與管理員 token');
+  ok(cbs.length === 1 && cbs[0].a === 'saveSiteTitles' && same(Object.keys(cbs[0].p.titles), ALL) && cbs[0].p.password === state.adminPassword, '按「儲存」：呼叫 saveSiteTitles，送出七個欄位（含 LINE 連結）與管理員 token');
   ok(cbs[0].p.titles.headerClass === '諾貝爾 B 班' && cbs[0].p.titles.footerMotto === '快樂學習每一天' && cbs[0].p.titles.headerBadge === 'Good Life' && cbs[0].p.titles.headerFoundation === '' && cbs[0].p.titles.footerContact === '', '前後空白去掉；沒填的送空字串（＝預設）');
   ok(state.settings.headerClass === '諾貝爾 B 班' && $('headerClass').textContent === '諾貝爾 B 班' && $('footerMotto').textContent === '快樂學習每一天' && $('headerBadge').textContent === 'Good Life', '儲存成功：馬上套用到頁首頁尾');
   ok(/介面標題已更新/.test(toasts.join('|')) && /英文對照/.test(toasts.join('|')), '提示「介面標題已更新」，並提醒英文介面要到英文對照');
@@ -118,12 +120,42 @@
   ok(fld('headerClass').value === '' && fld('footerMotto').value === '快樂學習每一天' && fld('headerClass').closest('[data-site-field]').querySelector('[data-site-count]').textContent === '使用預設', '該欄的「恢復預設」：只清這一欄，計數回「使用預設」');
   ok($('headerClass').textContent === '諾貝爾 B 班', '「恢復預設」只改表單，要按「儲存」才生效');
   Array.from($('siteTitlesCard').querySelectorAll('button')).filter(b => /全部恢復預設/.test(b.textContent))[0].click();
-  ok(PROPS.every(p => fld(p).value === ''), '「全部恢復預設」：六欄都清空');
-  $('siteTitlesSaveBtn').click(); ok(cbs.length === 1 && PROPS.every(p => cbs[0].p.titles[p] === '') && PROPS.every(p => $(p).textContent === DEF[p]), '全部恢復預設後儲存：送出六個空字串，頁首頁尾回到原本的文字');
+  ok(ALL.every(p => fld(p).value === ''), '「全部恢復預設」：七欄都清空');
+  $('siteTitlesSaveBtn').click(); ok(cbs.length === 1 && ALL.every(p => cbs[0].p.titles[p] === '') && PROPS.every(p => $(p).textContent === DEF[p]), '全部恢復預設後儲存：送出七個空字串，頁首頁尾回到原本的文字');
+
+  // J. 頁尾 LINE 連結
+  reset(); const wrap = $('footerLineWrap'), ln = $('footerLine');
+  ok(!!wrap && !!ln && wrap.classList.contains('hidden'), '沒填 LINE 連結：頁尾不顯示 LINE（預設隱藏）');
+  state.settings.footerLineUrl = 'https://lin.ee/izXkZCI'; applySiteTitles();
+  ok(!wrap.classList.contains('hidden') && ln.getAttribute('href') === 'https://lin.ee/izXkZCI' && ln.target === '_blank' && /noopener/.test(ln.rel) && /noreferrer/.test(ln.rel), '填了網址：顯示 LINE 連結，開新分頁，rel 有 noopener noreferrer');
+  ok(/Line@/.test(ln.textContent) && !!ln.querySelector('svg') && !ln.querySelector('img') && wrap.textContent.indexOf('｜') === -1, '連結是綠色 LINE 圖示（內建 SVG，不是外部圖片）加「Line@」；不放分隔線（換行時分隔線會孤零零留在上一行）');
+  ok($('footerContact').textContent === DEF.footerContact && wrap.nextElementSibling === $('footerContact'), '聯絡資訊維持原本的文字，LINE 連結排在它前面');
+  ok(/開啟 LINE 官方帳號/.test(ln.getAttribute('aria-label')) && ln.title === ln.getAttribute('aria-label'), '中文介面：有無障礙標籤與提示');
+  state.lang = 'en'; applyTranslations(); ok(/Open LINE official account/.test(ln.getAttribute('aria-label')) && !wrap.classList.contains('hidden'), '英文介面：標籤是英文，連結仍顯示');
+  state.lang = 'zh-TW'; applyTranslations();
+  ['http://lin.ee/x', 'javascript:alert(1)', 'data:text/html,x', 'ftp://lin.ee/x', 'lin.ee/x', 'https://', 'https://a b', 'https://a\nb', 'HTTP://x.test', 'https://x.test/' + 'a'.repeat(300)].forEach(u => {
+    state.settings.footerLineUrl = u; applySiteTitles();
+    ok(wrap.classList.contains('hidden') && ln.getAttribute('href') === '#', '不合法的網址一律不顯示（第二道防線）：' + u.slice(0, 30));
+  });
+  state.settings.footerLineUrl = 'https://x.test/a"onmouseover="window.__linepwn=1'; applySiteTitles();
+  ok(!window.__linepwn && !ln.hasAttribute('onmouseover') && ln.getAttribute('href') === 'https://x.test/a"onmouseover="window.__linepwn=1', '網址含引號與事件字串：只當成網址文字，不會變成屬性');
+  state.settings.footerLineUrl = 'HTTPS://LIN.EE/ABC'; applySiteTitles(); ok(!wrap.classList.contains('hidden') && ln.getAttribute('href') === 'HTTPS://LIN.EE/ABC', '協定大小寫不拘');
+  state.settings.footerLineUrl = ''; applySiteTitles(); ok(wrap.classList.contains('hidden') && !ln.hasAttribute('aria-label'), '清空：隱藏並移除標籤');
+  state.settings = undefined; applySiteTitles(); ok(wrap.classList.contains('hidden'), '沒有設定物件：隱藏、不拋錯');
+  state.settings = Object.assign({}, saved.settings); ALL.forEach(p => { state.settings[p] = ''; });
+  // 表單：儲存與驗證
+  switchAdminSubtab('siteTitles'); renderSiteTitlesForm(); fld('footerLineUrl').value = ' https://lin.ee/izXkZCI '; cbs.length = 0; $('siteTitlesSaveBtn').click();
+  ok(cbs.length === 1 && cbs[0].p.titles.footerLineUrl === 'https://lin.ee/izXkZCI' && !wrap.classList.contains('hidden') && ln.getAttribute('href') === 'https://lin.ee/izXkZCI', '儲存 LINE 連結：送出去空白的網址、馬上顯示在頁尾');
+  ok(!/英文對照/.test(toasts.join('|').split('介面標題已更新')[1] || ''), '只改網址：不提醒英文對照');
+  toasts.length = 0; fld('footerLineUrl').value = 'https://lin.ee/中文頁面'; $('siteTitlesSaveBtn').click(); ok(/介面標題已更新/.test(toasts.join('|')) && !/英文對照/.test(toasts.join('|')), '網址裡就算有中文字：也不提醒英文對照（網址不翻譯）');
+  ['http://lin.ee/x', 'lin.ee/x', 'javascript:alert(1)', 'https://a b'].forEach(u => { cbs.length = 0; toasts.length = 0; fld('footerLineUrl').value = u; $('siteTitlesSaveBtn').click(); ok(cbs.length === 0 && /必須是 https:\/\/ 開頭的網址/.test(toasts.join('|')), '前端先擋下不合法的網址（不送出）：' + u); });
+  cbs.length = 0; fld('footerLineUrl').value = ''; $('siteTitlesSaveBtn').click(); ok(cbs.length === 1 && cbs[0].p.titles.footerLineUrl === '' && wrap.classList.contains('hidden'), '清空再存：LINE 連結從頁尾消失');
+  fld('footerLineUrl').closest('[data-site-field]').querySelector('[data-site-reset]').click(); ok(fld('footerLineUrl').value === '' && fld('footerLineUrl').closest('[data-site-field]').querySelector('[data-site-count]').textContent === '不顯示', '該欄的「恢復預設」：清空並顯示「不顯示」');
+  state.settings = Object.assign({}, saved.settings); ALL.forEach(p => { state.settings[p] = ''; }); applySiteTitles();
 
   // I. 其他
   ok(typeof saveMobileNavSettings === 'function' && typeof renderMobileNavSettings === 'function', '手機導覽列的儲存與載入函式仍在');
-  ok(SITE_TITLE_DEFS.length === 6 && SITE_TITLE_DEFS.every(d => d.zh === DEF[d.prop]), '前端的預設文字與頁面原本的文字一致');
+  ok(SITE_TITLE_DEFS.length === 7 && SITE_TITLE_DEFS.filter(d => d.kind !== 'url').every(d => d.zh === DEF[d.prop]) && SITE_TITLE_DEFS.filter(d => d.kind === 'url').length === 1, '前端的預設文字與頁面原本的文字一致（另有 1 個網址欄位）');
 
   // 還原
   window.callBackend = real.cb; window.showToast = real.toast; window.mapAdminOpen = saved.mo;

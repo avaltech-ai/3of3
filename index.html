@@ -2804,7 +2804,16 @@
 
   <!-- ==================== 頁尾 FOOTER ==================== -->
   <footer class="bg-white border-t border-rose-100/80 py-6 px-4 mt-12 text-center text-xs text-slate-400 space-y-1">
-    <p id="footerContact" data-site-title="footerContact" class="font-bold text-sm text-rose-600 tracking-wide wrap-any">TEL：02-2668-8249｜FAX：02-2668-8245</p>
+    <div class="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
+      <!-- LINE 連結（後台「介面標題」填了 https 網址才顯示；圖示是內建 SVG，不載入外部圖片） -->
+      <span id="footerLineWrap" class="hidden">
+        <a id="footerLine" href="#" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 font-bold text-sm text-emerald-600 hover:underline tap-bounce">
+          <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="6" fill="#06C755"/><ellipse cx="12" cy="11" rx="7.4" ry="5.8" fill="#FFFFFF"/><path d="M9.5 15.5L8.2 19L12.2 16.3Z" fill="#FFFFFF"/><rect x="7.6" y="9.9" width="8.8" height="2.2" rx="1.1" fill="#06C755"/></svg>
+          <span>Line@</span>
+        </a>
+      </span>
+      <p id="footerContact" data-site-title="footerContact" class="font-bold text-sm text-rose-600 tracking-wide wrap-any">TEL：02-2668-8249｜FAX：02-2668-8245</p>
+    </div>
     <p id="footerMotto" data-site-title="footerMotto" class="wrap-any">用愛陪伴孩子成長的每一步</p>
   </footer>
 
@@ -3586,7 +3595,8 @@
       { prop: 'headerClass', area: '頁首', label: '班級名稱', kind: 'name', max: 20, zh: '諾貝爾 A 班', i18n: 'header.class', hint: '頁首最大的黑色粗體字' },
       { prop: 'headerBadge', area: '頁首', label: '標籤', kind: 'name', max: 20, zh: 'Happy Life', i18n: '', hint: '班級名稱旁邊的紅色圓角標籤' },
       { prop: 'footerContact', area: '頁尾', label: '聯絡資訊', kind: 'text', max: 80, zh: 'TEL：02-2668-8249｜FAX：02-2668-8245', i18n: '', hint: '頁尾第一行（紅色粗體）' },
-      { prop: 'footerMotto', area: '頁尾', label: '標語', kind: 'text', max: 60, zh: '用愛陪伴孩子成長的每一步', i18n: 'footer.motto', hint: '頁尾第二行（灰色）' }
+      { prop: 'footerMotto', area: '頁尾', label: '標語', kind: 'text', max: 60, zh: '用愛陪伴孩子成長的每一步', i18n: 'footer.motto', hint: '頁尾第二行（灰色）' },
+      { prop: 'footerLineUrl', area: '頁尾', label: 'LINE 連結', kind: 'url', max: 300, zh: '', i18n: '', placeholder: 'https://lin.ee/…', hint: 'LINE 官方帳號網址（https:// 開頭）。填了，頁尾聯絡資訊前面會出現綠色 LINE 圖示，點了開新分頁；留空就不顯示' }
     ];
     function siteTitleDef(prop) { return SITE_TITLE_DEFS.find(function(d) { return d.prop === prop; }); }
     function siteTitleCustom(prop) {
@@ -3602,11 +3612,36 @@
       if (state.lang === 'en') return d.kind === 'name' ? tn(custom) : tx(custom);
       return custom;
     }
+    // LINE 連結：必須是 https:// 開頭、不含空白或控制字元、不超過 300 字（和後端的規則相同；公開資料已經過後端驗證，這裡是第二道防線）
+    function isSiteLineUrl(u) {
+      const x = String(u == null ? '' : u).trim();
+      if (x.length > 300 || x.length < 9 || x.toLowerCase().indexOf('https://') !== 0) return false;
+      for (let i = 0; i < x.length; i++) { if (x.charCodeAt(i) <= 32) return false; }
+      return true;
+    }
+    function applySiteLine() {
+      const wrap = document.getElementById('footerLineWrap'), a = document.getElementById('footerLine');
+      if (!wrap || !a) return;
+      const url = siteTitleCustom('footerLineUrl');
+      const on = isSiteLineUrl(url);
+      wrap.classList.toggle('hidden', !on);
+      if (on) {
+        const label = state.lang === 'en' ? 'Open LINE official account (new tab)' : '開啟 LINE 官方帳號（新分頁）';
+        a.setAttribute('href', url);
+        a.setAttribute('aria-label', label);
+        a.title = label;
+      } else {
+        a.setAttribute('href', '#');
+        a.removeAttribute('aria-label');
+        a.removeAttribute('title');
+      }
+    }
     function applySiteTitles() {
       document.querySelectorAll('[data-site-title]').forEach(function(el) {
         const txt = siteTitleText(el.getAttribute('data-site-title'));
         if (txt && el.textContent !== txt) el.textContent = txt;
       });
+      applySiteLine();
     }
 
     function applyTranslations() {
@@ -13487,10 +13522,10 @@
             '<div class="flex items-center gap-2">' +
             '<input type="text" id="siteTitle-' + d.prop + '" maxlength="' + d.max + '" class="flex-1 min-w-0 px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-emerald-500 focus:outline-none" oninput="siteTitleCount(this)">' +
             '<button type="button" data-site-reset="1" onclick="siteTitleResetOne(this)" class="shrink-0 px-2.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-[0.6875rem] font-bold text-slate-600 tap-bounce">恢復預設</button></div>' +
-            '<div class="text-[0.6875rem] text-slate-400 mt-1 break-words wrap-any">預設：' + esc(d.zh) + '</div>';
+            '<div class="text-[0.6875rem] text-slate-400 mt-1 break-words wrap-any">預設：' + (d.kind === 'url' ? '不顯示' : esc(d.zh)) + '</div>';
           const inp = wrap.querySelector('input');
           inp.value = cur;
-          inp.placeholder = d.zh;
+          inp.placeholder = d.placeholder || d.zh;
           sec.appendChild(wrap);
           siteTitleCount(inp);
         });
@@ -13503,7 +13538,7 @@
       const d = siteTitleDef(wrap.getAttribute('data-site-field'));
       const c = wrap.querySelector('[data-site-count]');
       const n = String(inp.value || '').trim().length;
-      if (c && d) c.textContent = (n === 0 ? '使用預設' : n + ' / ' + d.max + ' 字');
+      if (c && d) c.textContent = (n === 0 ? (d.kind === 'url' ? '不顯示' : '使用預設') : n + ' / ' + d.max + ' 字');
     }
     function siteTitleResetOne(btn) {
       const wrap = btn && btn.closest ? btn.closest('[data-site-field]') : null;
@@ -13522,6 +13557,8 @@
       const titles = siteTitleFormValues();
       const tooLong = SITE_TITLE_DEFS.filter(function(d) { return titles[d.prop].length > d.max; })[0];
       if (tooLong) { showToast('「' + tooLong.label + '」最多 ' + tooLong.max + ' 字', '⚠️'); return; }
+      const badUrl = SITE_TITLE_DEFS.filter(function(d) { return d.kind === 'url' && titles[d.prop] && !isSiteLineUrl(titles[d.prop]); })[0];
+      if (badUrl) { showToast('「' + badUrl.label + '」必須是 https:// 開頭的網址（不能有空白）', '⚠️'); return; }
       const btn = document.getElementById('siteTitlesSaveBtn'); if (btn) btn.disabled = true;
       callBackend('saveSiteTitles', { titles: titles, password: getAdminPassword() }, function(res) {
         if (btn) btn.disabled = false;
@@ -13530,7 +13567,7 @@
           state.settings = Object.assign({}, state.settings, res.titles || titles);
           try { applySiteTitles(); } catch (e) {}
           renderSiteTitlesForm();
-          const needEn = SITE_TITLE_DEFS.some(function(d) { return siteTitleCustom(d.prop) && String(before[d.prop] || '') !== siteTitleCustom(d.prop) && /[㐀-鿿]/.test(siteTitleCustom(d.prop)); });
+          const needEn = SITE_TITLE_DEFS.some(function(d) { return d.kind !== 'url' && siteTitleCustom(d.prop) && String(before[d.prop] || '') !== siteTitleCustom(d.prop) && /[㐀-鿿]/.test(siteTitleCustom(d.prop)); });
           showToast('介面標題已更新！' + (needEn ? '英文介面請到「英文對照」同步並填上英文' : ''), '✅');
         } else {
           showToast('儲存失敗：' + ((res && res.error) || '未知錯誤'), '❌');

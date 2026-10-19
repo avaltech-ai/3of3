@@ -5348,7 +5348,9 @@ const SITE_TITLE_FIELDS_ = [
   { prop: 'headerClass', key: 'HEADER_CLASS', area: '頁首', label: '班級名稱', kind: 'name', max: 20, zh: '諾貝爾 A 班' },
   { prop: 'headerBadge', key: 'HEADER_BADGE', area: '頁首', label: '標籤', kind: 'name', max: 20, zh: 'Happy Life' },
   { prop: 'footerContact', key: 'FOOTER_CONTACT', area: '頁尾', label: '聯絡資訊', kind: 'text', max: 80, zh: 'TEL：02-2668-8249｜FAX：02-2668-8245' },
-  { prop: 'footerMotto', key: 'FOOTER_MOTTO', area: '頁尾', label: '標語', kind: 'text', max: 60, zh: '用愛陪伴孩子成長的每一步' }
+  { prop: 'footerMotto', key: 'FOOTER_MOTTO', area: '頁尾', label: '標語', kind: 'text', max: 60, zh: '用愛陪伴孩子成長的每一步' },
+  // 網址類（kind: 'url'）：沒有預設文字，空白＝不顯示；只收 https 網址，不進英文對照
+  { prop: 'footerLineUrl', key: 'FOOTER_LINE_URL', area: '頁尾', label: 'LINE 連結', kind: 'url', max: 300, zh: '' }
 ];
 
 /** 控制字元（含換行、Tab）換成空白、收斂空白、去頭尾。 */
@@ -5356,9 +5358,15 @@ function cleanSiteTitle_(v) {
   return String(v === undefined || v === null ? '' : v).replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/[\s　]+/g, ' ').trim();
 }
 
+/** 網址類欄位：必須是 https:// 開頭、沒有空白、不超過上限（超過不截短，截短會變成錯誤的連結）。 */
+function siteTitleUrlOk_(v, max) {
+  return v.length <= max && /^https:\/\/\S+$/i.test(v);
+}
+
 /** 儲存格 → 公開用的值：清理、截到上限；和預設文字相同就當作沒自訂（空字串）。 */
 function siteTitleValue_(field, raw) {
   let v = cleanSiteTitle_(Object.prototype.toString.call(raw) === '[object Date]' ? '' : raw);
+  if (field.kind === 'url') return siteTitleUrlOk_(v, field.max) ? v : '';
   if (v.length > field.max) v = v.slice(0, field.max);
   return normalizeName_(v) === normalizeName_(field.zh) ? '' : v;
 }
@@ -5397,6 +5405,7 @@ function saveSiteTitles(titles, password) {
       if (v !== null && v !== undefined && typeof v !== 'string') return { success: false, error: '「' + f.label + '」必須是文字' };
       const clean = cleanSiteTitle_(v);
       if (clean.length > f.max) return { success: false, error: '「' + f.label + '」最多 ' + f.max + ' 字（目前 ' + clean.length + ' 字）' };
+      if (f.kind === 'url' && clean && !siteTitleUrlOk_(clean, f.max)) return { success: false, error: '「' + f.label + '」必須是 https:// 開頭的網址（不能有空白）' };
       updates.push([f, normalizeName_(clean) === normalizeName_(f.zh) ? '' : clean]);
     }
     if (!updates.length) return { success: false, error: '沒有要儲存的內容' };
@@ -5411,7 +5420,7 @@ function saveSiteTitles(titles, password) {
       if (row === -1) {
         row = sheet.getLastRow() + 1;
         sheet.getRange(row, 1).setValue(f.key);
-        sheet.getRange(row, 3).setValue(f.area + '：' + f.label + '（空白＝使用預設文字）');
+        sheet.getRange(row, 3).setValue(f.area + '：' + f.label + (f.kind === 'url' ? '（空白＝不顯示）' : '（空白＝使用預設文字）'));
       }
       const cell = sheet.getRange(row, 2);
       cell.setNumberFormat('@');   // 純文字：開頭是 = + - 的內容不會被當成公式
