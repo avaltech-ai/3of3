@@ -1804,11 +1804,11 @@ const htmlContent = `<!DOCTYPE html>
                 </div>
 
                 <div class="border border-dashed border-indigo-200 rounded-2xl p-3.5 bg-indigo-50/40 text-center">
-                  <input type="file" id="docModal-fileInput" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.png" class="hidden" onchange="handleDocModalFileChosen(event)">
+                  <input type="file" id="docModal-fileInput" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.txt,.jpg,.jpeg,.png,.zip,.rar,.7z" class="hidden" onchange="handleDocModalFileChosen(event)">
                   <button type="button" onclick="document.getElementById('docModal-fileInput').click()" class="text-xs font-bold text-indigo-700 bg-white border border-indigo-200 px-3.5 py-1.5 rounded-xl shadow-2xs hover:bg-indigo-50 tap-bounce inline-flex items-center gap-1.5">
                     <span>📁</span> 選取檔案上傳至 Google Drive（選填，編輯時可替換原檔）
                   </button>
-                  <div id="docModal-fileStatus" class="text-[0.6875rem] text-slate-500 mt-1">若已有網址可直接修改上欄，或選取新檔案覆蓋上傳</div>
+                  <div id="docModal-fileStatus" class="text-[0.6875rem] text-slate-500 mt-1">若已有網址可直接修改上欄，或選取新檔案覆蓋上傳（PDF、Word、Excel、PowerPoint、圖片、ZIP／RAR／7Z；單檔最大 25 MB）</div>
                 </div>
 
                 <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
@@ -7838,6 +7838,34 @@ const htmlContent = `<!DOCTYPE html>
     let docModalSelectedFile = null;
     let docModalOriginalFileName = '';
 
+    // 可上傳的檔案類型與大小（2026-10-19 起加入壓縮檔 zip／rar／7z）。選檔視窗的 accept 與這份清單要一致（測試會比對）；
+    // 後端不限副檔名，限制只在前端（選檔當下就擋，不用等上傳到一半才失敗）。
+    const DOC_MAX_FILE_BYTES = 25 * 1024 * 1024;
+    const DOC_ALLOWED_EXT = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'csv', 'txt', 'jpg', 'jpeg', 'png', 'zip', 'rar', '7z'];
+    const DOC_MIME_BY_EXT = {
+      pdf: 'application/pdf', doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      xls: 'application/vnd.ms-excel', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      ppt: 'application/vnd.ms-powerpoint', pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      csv: 'text/csv', txt: 'text/plain', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
+      zip: 'application/zip', rar: 'application/vnd.rar', '7z': 'application/x-7z-compressed'
+    };
+    function docFileExt(name) {
+      const s = String(name || '');
+      const i = s.lastIndexOf('.');
+      return (i > -1 && i < s.length - 1) ? s.slice(i + 1).toLowerCase() : '';
+    }
+    // 瀏覽器有時不給 .rar／.7z 的類型（空字串）；沒有類型就用副檔名對照，再沒有才用通用二進位（以前一律當成 PDF，會讓 Drive 把壓縮檔標成 PDF）
+    function docUploadMime(file) {
+      return (file && file.type) || DOC_MIME_BY_EXT[docFileExt(file && file.name)] || 'application/octet-stream';
+    }
+    // 回傳空字串表示可以上傳；否則是要告訴使用者的原因
+    function docFileProblem(file) {
+      if (!file) return '沒有選到檔案';
+      if (DOC_ALLOWED_EXT.indexOf(docFileExt(file.name)) === -1) return '不支援這種檔案格式（可傳 PDF、Word、Excel、PowerPoint、文字、圖片、ZIP／RAR／7Z）';
+      if (file.size > DOC_MAX_FILE_BYTES) return '檔案太大（' + (file.size / 1048576).toFixed(1) + ' MB），單檔最大 25 MB';
+      return '';
+    }
+
     function getDocFileExtension(doc) {
       if (!doc) return 'pdf';
       if (doc.fileExtension) {
@@ -7903,12 +7931,12 @@ const htmlContent = `<!DOCTYPE html>
         badgeTextColor = '#6D28D9';
         bgClass = 'bg-purple-50/90 border-purple-100';
         displayExt = (ext === 'JPG' || ext === 'JPEG') ? 'JPG' : ((ext === 'PNG') ? 'PNG' : 'IMG');
-      } else if (['ZIP', 'RAR', '7Z', 'TAR'].indexOf(ext) !== -1) {
+      } else if (['ZIP', 'RAR', '7Z', 'TAR', 'GZ'].indexOf(ext) !== -1) {
         pageColor = '#D97706';
         foldColor = '#FDE68A';
         badgeTextColor = '#B45309';
         bgClass = 'bg-amber-50/90 border-amber-100';
-        displayExt = 'ZIP';
+        displayExt = ext;   // 壓縮檔：徽章顯示真正的副檔名（ZIP／RAR／7Z…），不再一律寫 ZIP
       } else if (ext === 'TXT' || ext === 'MD') {
         pageColor = '#475569';
         foldColor = '#94A3B8';
@@ -8706,7 +8734,7 @@ const htmlContent = `<!DOCTYPE html>
       if (fileInput) fileInput.value = '';
       const statusEl = document.getElementById('docModal-fileStatus');
       if (statusEl) {
-        statusEl.textContent = '若已有網址可直接修改上欄，或選取新檔案覆蓋上傳';
+        statusEl.textContent = '若已有網址可直接修改上欄，或選取新檔案覆蓋上傳（PDF、Word、Excel、PowerPoint、圖片、ZIP／RAR／7Z；單檔最大 25 MB）';
         statusEl.className = 'text-[0.6875rem] text-slate-500 mt-1';
       }
 
@@ -8756,6 +8784,8 @@ const htmlContent = `<!DOCTYPE html>
     function handleDocModalFileChosen(e) {
       const files = e.target.files;
       if (!files || files.length === 0) return;
+      const problem = docFileProblem(files[0]);
+      if (problem) { showToast(problem, '⚠️'); e.target.value = ''; return; }   // 擋下：維持原本已選的檔案（沒有就是沒選）
       docModalSelectedFile = files[0];
       const statusEl = document.getElementById('docModal-fileStatus');
       if (statusEl) {
@@ -8810,7 +8840,7 @@ const htmlContent = `<!DOCTYPE html>
           const base64Data = evt.target.result.split(',')[1];
           const fileObj = {
             name: docModalSelectedFile.name,
-            mimeType: docModalSelectedFile.type || 'application/pdf',
+            mimeType: docUploadMime(docModalSelectedFile),
             base64: base64Data
           };
 
