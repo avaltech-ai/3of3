@@ -667,6 +667,8 @@ function doPost(e) {
       result = deleteTransitionArticle(postData.id, postData.password);
     } else if (action === 'saveMobileNav') {
       result = saveMobileNav(postData.tabs, postData.password);
+    } else if (action === 'saveSiteTitles') {
+      result = saveSiteTitles(postData.titles, postData.password);
     }
 
     // 只記錄「成功」的結果（失敗的操作重試時仍應重新執行）；保留 10 分鐘，涵蓋逾時重送與上傳區塊重試
@@ -1120,7 +1122,9 @@ function getAppData() {
           activityFolderId: actFolderId || settings.ACTIVITY_FOLDER_ID || '',
           activityFolderUrl: actFolderUrl || ('https://drive.google.com/drive/folders/' + (actFolderId || ALBUMS_FOLDER_ID)),
           mobileNavTabs: parseMobileNavTabs_(settings.MOBILE_NAV_TABS),
-          tickerMessage: settings.TICKER_MESSAGE || '歡迎光臨諾貝爾 A 班！請隨時關注今日活動與營養美味菜單～'
+          tickerMessage: settings.TICKER_MESSAGE || '歡迎光臨諾貝爾 A 班！請隨時關注今日活動與營養美味菜單～',
+          // 介面標題（頁首、頁尾）：空字串＝前台用內建預設文字
+          ...siteTitlesFromSettings_(settings)
         }
       }
     };
@@ -1252,6 +1256,13 @@ function collectNameSources_(ss) {
     });
   });
   NAME_BUILTINS_.forEach(function(b) { const rec = touch(b[0], b[1]); });
+  // 介面標題（頁首）：自訂的基金會、學校、班級名稱與標籤（沒自訂＝預設，前台用內建英文，不需要對照）
+  siteTitleCustoms_(ss).forEach(function(c) {
+    if (c.field.kind !== 'name') return;
+    const n = normalizeName_(c.value);
+    if (!n || !hasCjk_(n) || NAME_MAP_SKIP[n]) return;
+    touch(n, c.field.area + '：' + c.field.label);
+  });
   return { names: names, order: order };
 }
 
@@ -1452,6 +1463,10 @@ function collectTextSources_(data) {
       if (!row) return;
       src[1].forEach(function(f) { add(row[f], src[2] + '：' + (TEXT_FIELD_LABELS_[f] || f)); });
     });
+  });
+  // 介面標題（頁尾）：自訂的聯絡資訊與標語（沒中文的電話傳真不需要翻譯，add 會略過）
+  SITE_TITLE_FIELDS_.forEach(function(f) {
+    if (f.kind === 'text' && d.settings) add(d.settings[f.prop], f.area + '：' + f.label);
   });
   (d.themes || []).forEach(function(th) {
     (th && Array.isArray(th.goals) ? th.goals : []).forEach(function(g) {
@@ -5318,6 +5333,94 @@ function saveMobileNav(tabs, password) {
     return { success: true, message: '手機底部導覽列已更新！', tabs: list };
   } catch (err) {
     return { success: false, error: '儲存手機導覽列失敗: ' + err.toString() };
+  }
+}
+
+// -------------------------------------------------------------
+// 介面標題（2026-10-19）：頁首的基金會名稱、學校名稱、班級名稱、標籤，頁尾的聯絡資訊、標語。
+// 存在 Settings 工作表（key／value）；空白＝使用程式內建的預設文字（所以不會因為不小心清空而讓頁首變空白）。
+// 英文介面：名稱類（基金會、學校、班級、標籤）走「英文對照→名稱」，內容類（聯絡資訊、標語）走「英文對照→內容」，
+// 所以自訂的文字會被蒐集進那兩張對照表（見 collectNameSources_／collectTextSources_）；沒自訂時前台用內建英文。
+// -------------------------------------------------------------
+const SITE_TITLE_FIELDS_ = [
+  { prop: 'headerFoundation', key: 'HEADER_FOUNDATION', area: '頁首', label: '基金會名稱', kind: 'name', max: 30, zh: '三之三生命教育基金會' },
+  { prop: 'headerSchool', key: 'HEADER_SCHOOL', area: '頁首', label: '學校名稱', kind: 'name', max: 40, zh: '新北市桃子腳非營利幼兒園' },
+  { prop: 'headerClass', key: 'HEADER_CLASS', area: '頁首', label: '班級名稱', kind: 'name', max: 20, zh: '諾貝爾 A 班' },
+  { prop: 'headerBadge', key: 'HEADER_BADGE', area: '頁首', label: '標籤', kind: 'name', max: 20, zh: 'Happy Life' },
+  { prop: 'footerContact', key: 'FOOTER_CONTACT', area: '頁尾', label: '聯絡資訊', kind: 'text', max: 80, zh: 'TEL：02-2668-8249｜FAX：02-2668-8245' },
+  { prop: 'footerMotto', key: 'FOOTER_MOTTO', area: '頁尾', label: '標語', kind: 'text', max: 60, zh: '用愛陪伴孩子成長的每一步' }
+];
+
+/** 控制字元（含換行、Tab）換成空白、收斂空白、去頭尾。 */
+function cleanSiteTitle_(v) {
+  return String(v === undefined || v === null ? '' : v).replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/[\s　]+/g, ' ').trim();
+}
+
+/** 儲存格 → 公開用的值：清理、截到上限；和預設文字相同就當作沒自訂（空字串）。 */
+function siteTitleValue_(field, raw) {
+  let v = cleanSiteTitle_(Object.prototype.toString.call(raw) === '[object Date]' ? '' : raw);
+  if (v.length > field.max) v = v.slice(0, field.max);
+  return normalizeName_(v) === normalizeName_(field.zh) ? '' : v;
+}
+
+/** Settings 物件 → 六個公開欄位（只輸出這六個，不會帶出密碼等其他設定）。 */
+function siteTitlesFromSettings_(settings) {
+  const out = {};
+  const st = settings || {};
+  SITE_TITLE_FIELDS_.forEach(function(f) { out[f.prop] = siteTitleValue_(f, st[f.key]); });
+  return out;
+}
+
+/** 目前有自訂（非空白）的欄位：[{ field, value }]，供英文對照蒐集。 */
+function siteTitleCustoms_(ss) {
+  const sheet = ss ? ss.getSheetByName('Settings') : null;
+  const vals = siteTitlesFromSettings_(getSettingsObject(sheet));
+  return SITE_TITLE_FIELDS_.filter(function(f) { return vals[f.prop] !== ''; }).map(function(f) { return { field: f, value: vals[f.prop] }; });
+}
+
+/**
+ * 儲存介面標題。titles 是 { 欄位名: 文字 }，只處理有傳的欄位；空字串或 null＝清除自訂、恢復預設。
+ * 有任何一筆不合法（不認得的欄位、不是字串、超過長度）就整批拒絕，什麼都不寫。
+ */
+function saveSiteTitles(titles, password) {
+  if (!checkPassword(password)) return authFail_();
+  try {
+    if (!titles || typeof titles !== 'object' || Array.isArray(titles)) return { success: false, error: '格式不正確' };
+    const byProp = Object.create(null);
+    SITE_TITLE_FIELDS_.forEach(function(f) { byProp[f.prop] = f; });
+    const updates = [];
+    const keys = Object.keys(titles);
+    for (let i = 0; i < keys.length; i++) {
+      const f = byProp[keys[i]];
+      if (!f) return { success: false, error: '不認得的欄位：' + keys[i] };
+      const v = titles[keys[i]];
+      if (v !== null && v !== undefined && typeof v !== 'string') return { success: false, error: '「' + f.label + '」必須是文字' };
+      const clean = cleanSiteTitle_(v);
+      if (clean.length > f.max) return { success: false, error: '「' + f.label + '」最多 ' + f.max + ' 字（目前 ' + clean.length + ' 字）' };
+      updates.push([f, normalizeName_(clean) === normalizeName_(f.zh) ? '' : clean]);
+    }
+    if (!updates.length) return { success: false, error: '沒有要儲存的內容' };
+
+    const sheet = getSpreadsheet().getSheetByName('Settings');
+    if (!sheet) return { success: false, error: '找不到 Settings 工作表' };
+    const data = sheet.getDataRange().getValues();
+    updates.forEach(function(u) {
+      const f = u[0];
+      let row = -1;
+      for (let i = 1; i < data.length; i++) { if (String(data[i][0]).trim() === f.key) { row = i + 1; break; } }
+      if (row === -1) {
+        row = sheet.getLastRow() + 1;
+        sheet.getRange(row, 1).setValue(f.key);
+        sheet.getRange(row, 3).setValue(f.area + '：' + f.label + '（空白＝使用預設文字）');
+      }
+      const cell = sheet.getRange(row, 2);
+      cell.setNumberFormat('@');   // 純文字：開頭是 = + - 的內容不會被當成公式
+      cell.setValue(u[1]);
+    });
+    clearAppDataCache();
+    return { success: true, message: '介面標題已更新！', titles: siteTitlesFromSettings_(getSettingsObject(sheet)) };
+  } catch (err) {
+    return { success: false, error: '儲存介面標題失敗: ' + err.toString() };
   }
 }
 

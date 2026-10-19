@@ -17,7 +17,7 @@
   // A. 分組完整
   const all = groups.reduce((a, g) => a.concat(ADMIN_SUBTAB_GROUPS[g]), []);
   ok(same(groups, ['daily', 'media', 'semester', 'system']), '4 個組別，依序為 日常更新／影音與文件／學期課程／系統');
-  ok(all.length === VALID_ADMIN_SUBTABS.length && VALID_ADMIN_SUBTABS.every(s => all.filter(x => x === s).length === 1), '11 個子頁籤每個都恰好屬於一組，沒有遺漏或重複');
+  ok(all.length === VALID_ADMIN_SUBTABS.length && VALID_ADMIN_SUBTABS.every(s => all.filter(x => x === s).length === 1), '13 個子頁籤每個都恰好屬於一組，沒有遺漏或重複');
   ok(groups.every(g => $('adminGroupBtn-' + g)), '每個組別都有按鈕');
   ok(all.every(s => $('adminSubtabBtn-' + s) && $('adminSubtabBtn-' + s).getAttribute('data-group') === adminGroupOf(s)), '每個子頁籤按鈕的 data-group 與對照表一致');
   const domOrder = Array.from(document.querySelectorAll('.admin-subtab-btn')).map(b => b.id.replace('adminSubtabBtn-', ''));
@@ -50,7 +50,7 @@
   renderAdminReminders();
   const rb = document.querySelector('#adminReminders .admin-reminder button'); if (rb) rb.click();
   window.adminReminderItems = realItems; renderAdminReminders();
-  ok(state.currentAdminSubtab === 'translations' && same(activeGroups(), ['system']) && same(visibleSubtabs(), ['translations', 'settings']), '待辦提醒「前往」英文對照：組別跟著切到「系統」');
+  ok(state.currentAdminSubtab === 'translations' && same(activeGroups(), ['system']) && same(visibleSubtabs(), ['translations', 'mobileNav', 'siteTitles', 'settings']), '待辦提醒「前往」英文對照：組別跟著切到「系統」');
 
   // E. 重新整理還原：子頁籤在其他組
   const realRst = window.readStoredToken; window.readStoredToken = () => '';

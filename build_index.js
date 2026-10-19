@@ -410,12 +410,12 @@ const htmlContent = `<!DOCTYPE html>
               </div>
               <div class="flex flex-col justify-center min-w-0">
                 <div class="flex items-center gap-x-2 gap-y-1 flex-wrap min-w-0">
-                  <span id="headerFoundation" data-i18n="header.foundation" class="text-[11px] sm:text-xs font-bold text-rose-500 bg-rose-50/80 border border-rose-300 px-2.5 py-0.5 rounded-full whitespace-nowrap min-w-0 max-w-full truncate">三之三生命教育基金會</span>
-                  <span id="headerSchool" data-i18n="header.school" class="text-xs sm:text-sm font-semibold text-slate-500 min-w-0 max-w-full truncate">新北市桃子腳非營利幼兒園</span>
+                  <span id="headerFoundation" data-site-title="headerFoundation" class="text-[11px] sm:text-xs font-bold text-rose-500 bg-rose-50/80 border border-rose-300 px-2.5 py-0.5 rounded-full whitespace-nowrap min-w-0 max-w-full truncate">三之三生命教育基金會</span>
+                  <span id="headerSchool" data-site-title="headerSchool" class="text-xs sm:text-sm font-semibold text-slate-500 min-w-0 max-w-full truncate">新北市桃子腳非營利幼兒園</span>
                 </div>
                 <h1 class="text-xl sm:text-2xl font-black text-slate-800 tracking-tight flex flex-wrap items-center gap-x-2 gap-y-1 mt-0.5">
-                  <span id="headerClass" data-i18n="header.class" class="whitespace-nowrap">諾貝爾 A 班</span>
-                  <span class="text-xs sm:text-sm font-bold text-white bg-rose-500 px-3 py-0.5 rounded-full shadow-xs whitespace-nowrap">Happy Life</span>
+                  <span id="headerClass" data-site-title="headerClass" class="min-w-0 max-w-full wrap-any">諾貝爾 A 班</span>
+                  <span id="headerBadge" data-site-title="headerBadge" class="text-xs sm:text-sm font-bold text-white bg-rose-500 px-3 py-0.5 rounded-full shadow-xs max-w-full wrap-any">Happy Life</span>
                 </h1>
               </div>
             </div>
@@ -1251,6 +1251,12 @@ const htmlContent = `<!DOCTYPE html>
           <button onclick="switchAdminSubtab('translations')" id="adminSubtabBtn-translations" data-group="system" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap hidden">
             <span data-i18n="admin.tabTranslations">🌐 英文對照</span>
             <span id="mapAdminTabBadge" class="hidden ml-1 text-[0.625rem] font-extrabold text-white bg-rose-500 px-1.5 py-0.5 rounded-full align-middle" title="有新文字尚未加入對照表"></span>
+          </button>
+          <button onclick="switchAdminSubtab('mobileNav')" id="adminSubtabBtn-mobileNav" data-group="system" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap hidden">
+            📱 手機導覽列
+          </button>
+          <button onclick="switchAdminSubtab('siteTitles')" id="adminSubtabBtn-siteTitles" data-group="system" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap hidden">
+            🏷️ 介面標題
           </button>
           <button onclick="switchAdminSubtab('settings')" id="adminSubtabBtn-settings" data-group="system" data-i18n="admin.tabSettings" class="admin-subtab-btn px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 whitespace-nowrap hidden">
             ⚙️ 密碼與設定
@@ -2406,7 +2412,7 @@ const htmlContent = `<!DOCTYPE html>
           </div>
         </div>
 
-        <div id="adminPanel-settings" class="admin-panel space-y-4 hidden">
+        <div id="adminPanel-mobileNav" class="admin-panel space-y-4 hidden">
           <div id="mobileNavSettingsCard" class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3 max-w-xl">
             <h4 class="font-black text-slate-800 text-base">📱 手機底部導覽列</h4>
             <p class="text-xs text-slate-500">手機畫面最下方固定 4 個頁面＋「更多」（其他頁面、大字、English、管理後台在「更多」裡）。由左到右依序選擇，同一個頁面不能選兩次。</p>
@@ -2416,6 +2422,25 @@ const htmlContent = `<!DOCTYPE html>
               <button type="button" id="mobileNavSaveBtn" onclick="saveMobileNavSettings()" class="px-4 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold tap-bounce">儲存</button>
             </div>
           </div>
+        </div>
+
+        <div id="adminPanel-siteTitles" class="admin-panel space-y-4 hidden">
+          <div id="siteTitlesCard" class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4 max-w-2xl">
+            <h4 class="font-black text-slate-800 text-base">🏷️ 介面標題</h4>
+            <p class="text-xs text-slate-500 leading-relaxed">設定網站最上方（頁首）與最下方（頁尾）的文字。欄位留空，或按該欄的「恢復預設」，就是使用原本的文字。儲存後整個網站立刻換上新文字。</p>
+            <div id="siteTitlesFields" class="space-y-5"></div>
+            <div class="rounded-2xl bg-sky-50 border border-sky-200 p-3 text-xs text-sky-900 leading-relaxed space-y-2">
+              <div><b>🌐 英文介面</b>：這裡只填中文。改過的名稱與標語，到「英文對照」按「同步新文字」後會出現在清單裡（名稱在「名稱」分頁、標語與聯絡資訊在「內容」分頁），填上英文就會顯示在英文介面；還沒填之前，英文介面暫時顯示中文。沒改過的欄位，英文介面維持原本的英文。</div>
+              <button type="button" onclick="switchAdminSubtab('translations')" class="px-3 py-1.5 rounded-xl bg-white border border-sky-200 text-sky-700 font-bold tap-bounce">前往「英文對照」</button>
+            </div>
+            <div class="flex flex-wrap items-center justify-end gap-2">
+              <button type="button" onclick="resetSiteTitlesForm()" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 tap-bounce">全部恢復預設</button>
+              <button type="button" id="siteTitlesSaveBtn" onclick="saveSiteTitleSettings()" class="px-4 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold tap-bounce">儲存</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="adminPanel-settings" class="admin-panel space-y-4 hidden">
           <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4 max-w-xl">
             <h4 class="font-black text-slate-800 text-base">密碼與系統設定</h4>
             <div>
@@ -2812,9 +2837,9 @@ const htmlContent = `<!DOCTYPE html>
   </div>
 
   <!-- ==================== 頁尾 FOOTER ==================== -->
-  <footer class="bg-white border-t border-rose-100/80 py-6 mt-12 text-center text-xs text-slate-400 space-y-1">
-    <p class="font-bold text-sm text-rose-600 tracking-wide">TEL：02-2668-8249｜FAX：02-2668-8245</p>
-    <p id="footerMotto" data-i18n="footer.motto">用愛陪伴孩子成長的每一步</p>
+  <footer class="bg-white border-t border-rose-100/80 py-6 px-4 mt-12 text-center text-xs text-slate-400 space-y-1">
+    <p id="footerContact" data-site-title="footerContact" class="font-bold text-sm text-rose-600 tracking-wide wrap-any">TEL：02-2668-8249｜FAX：02-2668-8245</p>
+    <p id="footerMotto" data-site-title="footerMotto" class="wrap-any">用愛陪伴孩子成長的每一步</p>
   </footer>
 
   <!-- 列印本週菜單用的容器（螢幕隱藏；列印時只輸出這一塊） -->
@@ -3586,6 +3611,38 @@ const htmlContent = `<!DOCTYPE html>
       return val;
     }
 
+    // ==================== 介面標題（頁首、頁尾文字；後台「系統 → 介面標題」設定）====================
+    // 自訂的值存在 state.settings（後端 getAppData 的 settings）；空白＝使用內建預設（中英文各一份）。
+    // 英文介面：沒自訂 → 內建英文；有自訂 → 名稱類查「英文對照→名稱」、內容類查「英文對照→內容」，查不到暫時顯示中文。
+    const SITE_TITLE_DEFS = [
+      { prop: 'headerFoundation', area: '頁首', label: '基金會名稱', kind: 'name', max: 30, zh: '三之三生命教育基金會', i18n: 'header.foundation', hint: '頁首最上面粉紅色圓角小標籤' },
+      { prop: 'headerSchool', area: '頁首', label: '學校名稱', kind: 'name', max: 40, zh: '新北市桃子腳非營利幼兒園', i18n: 'header.school', hint: '小標籤右邊的灰色文字' },
+      { prop: 'headerClass', area: '頁首', label: '班級名稱', kind: 'name', max: 20, zh: '諾貝爾 A 班', i18n: 'header.class', hint: '頁首最大的黑色粗體字' },
+      { prop: 'headerBadge', area: '頁首', label: '標籤', kind: 'name', max: 20, zh: 'Happy Life', i18n: '', hint: '班級名稱旁邊的紅色圓角標籤' },
+      { prop: 'footerContact', area: '頁尾', label: '聯絡資訊', kind: 'text', max: 80, zh: 'TEL：02-2668-8249｜FAX：02-2668-8245', i18n: '', hint: '頁尾第一行（紅色粗體）' },
+      { prop: 'footerMotto', area: '頁尾', label: '標語', kind: 'text', max: 60, zh: '用愛陪伴孩子成長的每一步', i18n: 'footer.motto', hint: '頁尾第二行（灰色）' }
+    ];
+    function siteTitleDef(prop) { return SITE_TITLE_DEFS.find(function(d) { return d.prop === prop; }); }
+    function siteTitleCustom(prop) {
+      const v = state.settings && state.settings[prop];
+      return (typeof v === 'string' || typeof v === 'number') ? String(v).trim() : '';
+    }
+    // 目前語言下這一段該顯示的文字
+    function siteTitleText(prop) {
+      const d = siteTitleDef(prop);
+      if (!d) return '';
+      const custom = siteTitleCustom(prop);
+      if (!custom || normName(custom) === normName(d.zh)) return d.i18n ? t(d.i18n) : d.zh;
+      if (state.lang === 'en') return d.kind === 'name' ? tn(custom) : tx(custom);
+      return custom;
+    }
+    function applySiteTitles() {
+      document.querySelectorAll('[data-site-title]').forEach(function(el) {
+        const txt = siteTitleText(el.getAttribute('data-site-title'));
+        if (txt && el.textContent !== txt) el.textContent = txt;
+      });
+    }
+
     function applyTranslations() {
       // 1. 靜態屬性元素更新
       document.querySelectorAll('[data-i18n]').forEach(function(el) {
@@ -3618,6 +3675,9 @@ const htmlContent = `<!DOCTYPE html>
           el.setAttribute('aria-label', t(key));
         }
       });
+
+      // 1.5 頁首、頁尾的介面標題（可在後台自訂；沒有 data-i18n，由 applySiteTitles 依語言與自訂內容設定）
+      try { applySiteTitles(); } catch (e) {}
 
       // 2. 側邊欄切換鈕文字與提示
       const langToggleText = document.getElementById('langToggleText');
@@ -3901,13 +3961,13 @@ const htmlContent = `<!DOCTYPE html>
     // 關掉分頁或 App 後重新開啟則從首頁開始。只接受下列已知的頁籤名稱，其他值一律忽略。
     const SAVED_TAB_KEY = 'nobel_a_current_tab', SAVED_SUBTAB_KEY = 'nobel_a_admin_subtab';
     const VALID_TABS = ['home', 'albums', 'songs', 'themes', 'tasks', 'transition', 'docs', 'admin'];
-    const VALID_ADMIN_SUBTABS = ['events', 'menu', 'uploadPhoto', 'songs', 'uploadDoc', 'themes', 'tasks', 'transition', 'spotlight', 'translations', 'settings'];
+    const VALID_ADMIN_SUBTABS = ['events', 'menu', 'uploadPhoto', 'songs', 'uploadDoc', 'themes', 'tasks', 'transition', 'spotlight', 'translations', 'mobileNav', 'siteTitles', 'settings'];
     // 後台兩層頁籤：組別（依更新頻率）→ 子頁籤。每個子頁籤只屬於一組，順序即畫面順序；點組別時回到該組上次停留的子頁籤（沒有就第一個）
     const ADMIN_SUBTAB_GROUPS = {
       daily: ['events', 'menu', 'spotlight'],
       media: ['uploadPhoto', 'songs', 'uploadDoc'],
       semester: ['themes', 'tasks', 'transition'],
-      system: ['translations', 'settings']
+      system: ['translations', 'mobileNav', 'siteTitles', 'settings']
     };
 
     function saveUiLocation(key, value) {
@@ -5339,6 +5399,7 @@ const htmlContent = `<!DOCTYPE html>
       
 
             setNameMap(data.nameMap);
+      try { applySiteTitles(); } catch (e) {}
             state.docCategories = data.docCategories || ['全部文件', '保健用藥', '學期行事曆', '餐飲菜單', '親師手冊'];
       state.eventTargets = data.eventTargets || [
         {targetName: '全園活動', displayName: '🏫 全園活動'},
@@ -10699,6 +10760,8 @@ const htmlContent = `<!DOCTYPE html>
         else renderAdminAlbumsTable();
       }
       if (subtab === 'settings') loadSettingsToForm();
+      if (subtab === 'mobileNav') renderMobileNavSettings();
+      if (subtab === 'siteTitles') renderSiteTitlesForm();
       if (subtab === 'translations') mapAdminOpen();
       if (subtab === 'songs') {
         renderSongCategoriesUI();
@@ -13438,6 +13501,76 @@ const htmlContent = `<!DOCTYPE html>
       }
     }
     function resetMobileNavSlots() { renderMobileNavSettings(DEFAULT_MOBILE_NAV); }
+
+    // ---------- 後台：介面標題表單 ----------
+    function renderSiteTitlesForm() {
+      const box = document.getElementById('siteTitlesFields');
+      if (!box) return;
+      box.innerHTML = '';
+      ['頁首', '頁尾'].forEach(function(area) {
+        const sec = document.createElement('div');
+        sec.className = 'space-y-3';
+        sec.innerHTML = '<div class="text-xs font-black text-slate-700 pb-1 border-b border-slate-100">' + esc(area) + '</div>';
+        SITE_TITLE_DEFS.filter(function(d) { return d.area === area; }).forEach(function(d) {
+          const cur = siteTitleCustom(d.prop);
+          const wrap = document.createElement('div');
+          wrap.setAttribute('data-site-field', d.prop);
+          wrap.innerHTML = '<div class="flex items-center justify-between gap-2 mb-1">' +
+            '<label for="siteTitle-' + d.prop + '" class="text-xs font-bold text-slate-600">' + esc(d.label) + ' <span class="font-normal text-slate-400">— ' + esc(d.hint) + '</span></label>' +
+            '<span class="text-[0.6875rem] font-bold text-slate-400 shrink-0" data-site-count="1"></span></div>' +
+            '<div class="flex items-center gap-2">' +
+            '<input type="text" id="siteTitle-' + d.prop + '" maxlength="' + d.max + '" class="flex-1 min-w-0 px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-emerald-500 focus:outline-none" oninput="siteTitleCount(this)">' +
+            '<button type="button" data-site-reset="1" onclick="siteTitleResetOne(this)" class="shrink-0 px-2.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-[0.6875rem] font-bold text-slate-600 tap-bounce">恢復預設</button></div>' +
+            '<div class="text-[0.6875rem] text-slate-400 mt-1 break-words wrap-any">預設：' + esc(d.zh) + '</div>';
+          const inp = wrap.querySelector('input');
+          inp.value = cur;
+          inp.placeholder = d.zh;
+          sec.appendChild(wrap);
+          siteTitleCount(inp);
+        });
+        box.appendChild(sec);
+      });
+    }
+    function siteTitleCount(inp) {
+      const wrap = inp && inp.closest ? inp.closest('[data-site-field]') : null;
+      if (!wrap) return;
+      const d = siteTitleDef(wrap.getAttribute('data-site-field'));
+      const c = wrap.querySelector('[data-site-count]');
+      const n = String(inp.value || '').trim().length;
+      if (c && d) c.textContent = (n === 0 ? '使用預設' : n + ' / ' + d.max + ' 字');
+    }
+    function siteTitleResetOne(btn) {
+      const wrap = btn && btn.closest ? btn.closest('[data-site-field]') : null;
+      const inp = wrap ? wrap.querySelector('input') : null;
+      if (inp) { inp.value = ''; siteTitleCount(inp); }
+    }
+    function resetSiteTitlesForm() {
+      document.querySelectorAll('#siteTitlesFields [data-site-field] input').forEach(function(inp) { inp.value = ''; siteTitleCount(inp); });
+    }
+    function siteTitleFormValues() {
+      const out = {};
+      SITE_TITLE_DEFS.forEach(function(d) { const el = document.getElementById('siteTitle-' + d.prop); out[d.prop] = el ? String(el.value || '').trim() : ''; });
+      return out;
+    }
+    function saveSiteTitleSettings() {
+      const titles = siteTitleFormValues();
+      const tooLong = SITE_TITLE_DEFS.filter(function(d) { return titles[d.prop].length > d.max; })[0];
+      if (tooLong) { showToast('「' + tooLong.label + '」最多 ' + tooLong.max + ' 字', '⚠️'); return; }
+      const btn = document.getElementById('siteTitlesSaveBtn'); if (btn) btn.disabled = true;
+      callBackend('saveSiteTitles', { titles: titles, password: getAdminPassword() }, function(res) {
+        if (btn) btn.disabled = false;
+        if (res && res.success) {
+          const before = Object.assign({}, state.settings);
+          state.settings = Object.assign({}, state.settings, res.titles || titles);
+          try { applySiteTitles(); } catch (e) {}
+          renderSiteTitlesForm();
+          const needEn = SITE_TITLE_DEFS.some(function(d) { return siteTitleCustom(d.prop) && String(before[d.prop] || '') !== siteTitleCustom(d.prop) && /[\u3400-\u9fff]/.test(siteTitleCustom(d.prop)); });
+          showToast('介面標題已更新！' + (needEn ? '英文介面請到「英文對照」同步並填上英文' : ''), '✅');
+        } else {
+          showToast('儲存失敗：' + ((res && res.error) || '未知錯誤'), '❌');
+        }
+      }, function() { if (btn) btn.disabled = false; showToast('網路連線逾時，請再試一次', '⚠️'); });
+    }
     function saveMobileNavSettings() {
       const tabs = [1, 2, 3, 4].map(function(i) { return (document.getElementById('mobileNavSlot-' + i) || {}).value || ''; });
       const dup = tabs.filter(function(k, i) { return tabs.indexOf(k) !== i; });
@@ -14525,8 +14658,6 @@ const htmlContent = `<!DOCTYPE html>
     }
     
     function loadSettingsToForm() {
-      renderMobileNavSettings();
-      
       const actFolderInput = document.getElementById('setting-activityFolderUrl');
       if (actFolderInput) {
         actFolderInput.value = (state.settings && (state.settings.activityFolderUrl || (state.settings.activityFolderId ? 'https://drive.google.com/drive/folders/' + state.settings.activityFolderId : ''))) || '';

@@ -51,8 +51,8 @@
   // D. 後台設定卡
   state.adminPassword = 'tok'.repeat(15);
   state.settings.mobileNavTabs = ['home', 'albums', 'themes', 'songs'];
-  switchTab('admin'); switchAdminSubtab('settings');
-  ok($('adminPanel-settings').contains($('mobileNavSettingsCard')) && [1, 2, 3, 4].map(i => $('mobileNavSlot-' + i).value).join() === 'home,albums,themes,songs' && $('mobileNavSlot-1').options.length === 7, '後台「密碼與設定」：4 格下拉帶入目前設定，每格 7 個頁面可選（沒有管理後台）');
+  switchTab('admin'); switchAdminSubtab('mobileNav');
+  ok($('adminPanel-mobileNav').contains($('mobileNavSettingsCard')) && [1, 2, 3, 4].map(i => $('mobileNavSlot-' + i).value).join() === 'home,albums,themes,songs' && $('mobileNavSlot-1').options.length === 7, '後台「密碼與設定」：4 格下拉帶入目前設定，每格 7 個頁面可選（沒有管理後台）');
   $('mobileNavSlot-2').value = 'home'; cbs.length = 0; saveMobileNavSettings();
   ok(cbs.length === 0 && /不能選兩次：班級日常/.test(toasts[toasts.length - 1]), '選到重複：提示，不送出');
   $('mobileNavSlot-2').value = 'tasks'; $('mobileNavSlot-4').value = 'docs'; saveMobileNavSettings();
