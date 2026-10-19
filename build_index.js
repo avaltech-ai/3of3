@@ -219,7 +219,7 @@ const htmlContent = `<!DOCTYPE html>
       #printMenuArea { display: block !important; color: #000; background: #fff; font-family: 'Noto Sans TC', sans-serif; }
       #printMenuArea h1 { font-size: 20pt; font-weight: 900; margin: 0 0 2mm; }
       #printMenuArea .print-sub { font-size: 11pt; color: #444; margin-bottom: 4mm; }
-      #printMenuArea table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+      #printMenuArea table { width: calc(100% - 1.5mm); border-collapse: collapse; table-layout: fixed; }
       #printMenuArea th, #printMenuArea td { border: 1px solid #333; padding: 2.5mm; font-size: 11pt; vertical-align: top; word-break: break-word; }
       #printMenuArea th { background: #eee; font-weight: 800; }
       #printMenuArea tr { page-break-inside: avoid; }
@@ -829,7 +829,7 @@ const htmlContent = `<!DOCTYPE html>
       <div id="weekViewContainer" class="skel-data hidden bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm space-y-4">
         <div class="flex items-center justify-between flex-wrap gap-x-3 gap-y-2 pb-3 border-b border-slate-100">
           <h4 class="text-base font-black text-slate-800 flex items-center gap-2">
-            <span>📋</span> <span data-i18n="cal.weekOverviewTitle">本週生活與餐點總覽（週日～週六）</span>
+            <span>📋</span> <span data-i18n="cal.weekOverviewTitle">本週生活與餐點總覽</span>
           </h4>
           <div class="flex items-center gap-3 shrink-0 whitespace-nowrap">
             <button type="button" onclick="printWeekMenu()" id="btnPrintWeekMenu" class="text-xs text-slate-600 font-bold px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-200 tap-bounce flex items-center gap-1 cursor-pointer">
@@ -2886,7 +2886,8 @@ const htmlContent = `<!DOCTYPE html>
           nutriVeg: '🥦 有機蔬菜',
           nutriFruit: '🍎 當季水果',
           menuNote: '註：本園餐點未使用主管機關公告之不合格油品。配合當令食材適時調整。',
-          weekOverviewTitle: '本週生活與餐點總覽（週日～週六）',
+          weekOverviewTitle: '本週生活與餐點總覽',
+          weekNoData: '本週沒有供餐，也沒有行事曆活動。',
           backToDayView: '返回單日點選',
           printWeekMenu: '列印本週菜單',
           subscribeBtn: '訂閱行事曆',
@@ -3244,6 +3245,7 @@ const htmlContent = `<!DOCTYPE html>
           nutriFruit: '🍎 Seasonal Fruits',
           menuNote: 'Note: Ingredients are prepared strictly following food safety regulations.',
           weekOverviewTitle: 'Weekly Routine & Meals Overview',
+          weekNoData: 'No meals or calendar events this week.',
           backToDayView: 'Back to Day View',
           printWeekMenu: 'Print weekly menu',
           subscribeBtn: 'Subscribe to calendar',
@@ -6875,6 +6877,7 @@ const htmlContent = `<!DOCTYPE html>
       const isEn = (state.lang === 'en');
       const daysArr = isEn ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] : ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
 
+      let listed = 0;
       for (let i = 0; i < 7; i++) {
         const d = new Date(sundayDate);
         d.setDate(sundayDate.getDate() + i);
@@ -6883,9 +6886,21 @@ const htmlContent = `<!DOCTYPE html>
         const dayMenu = getMenuForDate(dStr);
 
         const isToday = (dStr === state.selectedDateStr);
+        // 只列「有供餐」的日子；沒供餐但有活動的日子（連假、幸福廚房…）精簡成一行；兩者都沒有就不列
+        if (!dayMenu && dayEvents.length === 0) continue;
+        listed++;
+        if (!dayMenu) {
+          container.innerHTML += \`
+          <div class="px-3.5 py-2 rounded-2xl border \${isToday ? 'bg-peach-50/80 border-peach-300' : 'bg-slate-50 border-slate-100'} flex items-center gap-2 flex-wrap cursor-pointer hover:bg-peach-50 transition-colors" onclick="onDateClicked('\${dStr}')">
+            <span class="font-bold text-xs text-slate-700 shrink-0">\${dStr} (\${daysArr[i]})</span>
+            <span>\${dayEvents.map(e => \`<span class="px-2 py-0.5 rounded text-[0.6875rem] font-bold bg-peach-100 text-peach-700 mr-1">\${esc(tx(e.title))}</span>\`).join('')}</span>
+          </div>
+        \`;
+          continue;
+        }
 
         let eventsSummary = dayEvents.map(e => \`<span class="px-2 py-0.5 rounded text-[0.6875rem] font-bold bg-peach-100 text-peach-700 mr-1">\${esc(tx(e.title))}</span>\`).join('') || ('<span class="text-slate-400 text-xs">' + (isEn ? 'Regular Routine' : '常態作息') + '</span>');
-        let lunchSummary = dayMenu ? (isEn ? \`Staple:\${esc(tx(dayMenu.lunchStaple))} / Main:\${esc(tx(dayMenu.lunchMain))} / Snack:\${esc(tx(dayMenu.afternoonSnack))}\` : \`主食:\${esc(tx(dayMenu.lunchStaple))} / 主菜:\${esc(tx(dayMenu.lunchMain))} / 午點:\${esc(tx(dayMenu.afternoonSnack))}\`) : (isEn ? 'No meals/Family Day' : '未供餐/家庭日');
+        let lunchSummary = isEn ? \`Staple:\${esc(tx(dayMenu.lunchStaple))} / Main:\${esc(tx(dayMenu.lunchMain))} / Snack:\${esc(tx(dayMenu.afternoonSnack))}\` : \`主食:\${esc(tx(dayMenu.lunchStaple))} / 主菜:\${esc(tx(dayMenu.lunchMain))} / 午點:\${esc(tx(dayMenu.afternoonSnack))}\`;
 
         container.innerHTML += \`
           <div class="p-3.5 rounded-2xl border \${isToday ? 'bg-peach-50/80 border-peach-300' : 'bg-slate-50 border-slate-100'} flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 cursor-pointer hover:bg-peach-50 transition-colors" onclick="onDateClicked('\${dStr}')">
@@ -6905,6 +6920,7 @@ const htmlContent = `<!DOCTYPE html>
           </div>
         \`;
       }
+      if (!listed) container.innerHTML = '<div class="py-6 text-center text-xs text-slate-400">' + esc(t('cal.weekNoData')) + '</div>';
     }
 
     // ==================== 查看本月總覽 (MONTH VIEW) ====================
