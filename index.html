@@ -152,6 +152,7 @@
       #pinSidebarBtn { opacity: 1; }
     }
     /* 列印本週菜單：螢幕上隱藏列印區；列印時只輸出列印區（#printMenuArea 必須是 body 的直接子元素） */
+    .wrap-any { overflow-wrap: anywhere; word-break: break-word; }   /* 很長又沒有空白的檔名也要能換行（break-words 不會縮小最小寬度，會把版面撐出橫向捲動） */
     #printMenuArea, #printTransitionArea { display: none; }
     @media print {
       @page { size: A4 landscape; margin: 12mm; }
@@ -1740,11 +1741,10 @@
 
               <form id="docEditForm" onsubmit="event.preventDefault(); handleSaveDocModal(event)" class="space-y-3.5">
                 <input type="hidden" id="docModal-id">
-                <input type="hidden" id="docModal-driveFileId">
 
                 <div>
                   <label class="block text-xs font-bold text-slate-700 mb-1">文件名稱 *</label>
-                  <input type="text" id="docModal-fileName" required placeholder="如：幼兒用藥委託單.pdf" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-indigo-500 focus:outline-none">
+                  <input type="text" id="docModal-fileName" required placeholder="如：幼兒用藥委託單" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-indigo-500 focus:outline-none">
                 </div>
 
                 <div>
@@ -1764,40 +1764,57 @@
                   <textarea id="docModal-description" rows="2" placeholder="說明幼兒使用情況或列印注意事項..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-indigo-500 focus:outline-none"></textarea>
                 </div>
 
-                <div>
-                  <label class="block text-xs font-bold text-slate-700 mb-1">下載或雲端連結 (URL)</label>
-                  <input type="text" id="docModal-downloadUrl" placeholder="https://drive.google.com/..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-indigo-500 focus:outline-none">
-                </div>
+                <div id="docModal-filesBox">
+                  <div class="flex items-center justify-between mb-1">
+                    <label class="block text-xs font-bold text-slate-700">檔案（一份文件最多 10 個，每個最大 25 MB）</label>
+                    <span id="docModal-fileCount" class="text-[0.6875rem] font-bold text-slate-400">0 / 10</span>
+                  </div>
+                  <div id="docModal-fileList" class="space-y-2 rounded-2xl border border-slate-200 bg-slate-50/60 p-2"></div>
 
-                <div>
-                  <label class="block text-xs font-bold text-slate-700 mb-1">檔案類型（決定列表上的圖示）</label>
-                  <select id="docModal-fileType" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-indigo-500 focus:outline-none">
-                    <option value="">自動判斷</option>
-                    <option value="pdf">PDF</option>
-                    <option value="doc">DOC</option>
-                    <option value="docx">DOCX</option>
-                    <option value="xls">XLS</option>
-                    <option value="xlsx">XLSX</option>
-                    <option value="ppt">PPT</option>
-                    <option value="pptx">PPTX</option>
-                    <option value="csv">CSV</option>
-                    <option value="txt">TXT</option>
-                    <option value="jpg">JPG</option>
-                    <option value="jpeg">JPEG</option>
-                    <option value="png">PNG</option>
-                    <option value="zip">ZIP 壓縮檔</option>
-                    <option value="rar">RAR 壓縮檔</option>
-                    <option value="7z">7Z 壓縮檔</option>
-                  </select>
-                  <div class="text-[0.6875rem] text-slate-500 mt-1">「自動判斷」＝依上傳的檔案或文件名稱結尾的副檔名；貼雲端連結、名稱又沒寫副檔名時，請在這裡選，否則會顯示 PDF 圖示。</div>
-                </div>
+                  <div class="mt-2 border border-dashed border-indigo-200 rounded-2xl p-3 bg-indigo-50/40 text-center">
+                    <input type="file" id="docModal-fileInput" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.txt,.jpg,.jpeg,.png,.zip,.rar,.7z" class="hidden" onchange="handleDocModalFileChosen(event)">
+                    <div class="flex flex-wrap items-center justify-center gap-2">
+                      <button type="button" id="docModal-addFilesBtn" onclick="document.getElementById('docModal-fileInput').click()" class="text-xs font-bold text-indigo-700 bg-white border border-indigo-200 px-3.5 py-1.5 rounded-xl shadow-2xs hover:bg-indigo-50 tap-bounce inline-flex items-center gap-1.5">
+                        <span>📁</span> 選取檔案上傳（可一次選多個）
+                      </button>
+                      <button type="button" id="docModal-addLinkBtn" onclick="toggleDocLinkForm()" class="text-xs font-bold text-sky-700 bg-white border border-sky-200 px-3.5 py-1.5 rounded-xl shadow-2xs hover:bg-sky-50 tap-bounce inline-flex items-center gap-1.5">
+                        <span>🔗</span> 加入雲端連結
+                      </button>
+                    </div>
+                    <div class="text-[0.6875rem] text-slate-500 mt-1.5">可傳 PDF、Word、Excel、PowerPoint、文字、圖片、ZIP／RAR／7Z；每個檔案的圖示依副檔名自動判斷。選好的檔案要按下方「儲存」才會上傳。</div>
+                  </div>
 
-                <div class="border border-dashed border-indigo-200 rounded-2xl p-3.5 bg-indigo-50/40 text-center">
-                  <input type="file" id="docModal-fileInput" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.txt,.jpg,.jpeg,.png,.zip,.rar,.7z" class="hidden" onchange="handleDocModalFileChosen(event)">
-                  <button type="button" onclick="document.getElementById('docModal-fileInput').click()" class="text-xs font-bold text-indigo-700 bg-white border border-indigo-200 px-3.5 py-1.5 rounded-xl shadow-2xs hover:bg-indigo-50 tap-bounce inline-flex items-center gap-1.5">
-                    <span>📁</span> 選取檔案上傳至 Google Drive（選填，編輯時可替換原檔）
-                  </button>
-                  <div id="docModal-fileStatus" class="text-[0.6875rem] text-slate-500 mt-1">若已有網址可直接修改上欄，或選取新檔案覆蓋上傳（PDF、Word、Excel、PowerPoint、圖片、ZIP／RAR／7Z；單檔最大 25 MB）</div>
+                  <div id="docModal-linkForm" class="hidden mt-2 rounded-2xl border border-sky-200 bg-sky-50/50 p-3 space-y-2">
+                    <div class="text-xs font-bold text-sky-800">加入雲端連結（沒有上傳檔案、只貼 Google Drive 等連結時用）</div>
+                    <input type="text" id="docModal-linkName" placeholder="檔案名稱，如：注音學習卡.zip（可不填）" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-sky-500 focus:outline-none">
+                    <input type="text" id="docModal-linkUrl" placeholder="https://drive.google.com/..." class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-sky-500 focus:outline-none">
+                    <div>
+                      <label class="block text-[0.6875rem] font-bold text-slate-600 mb-1">檔案類型（決定圖示）</label>
+                      <select id="docModal-linkType" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:border-sky-500 focus:outline-none">
+                        <option value="">自動判斷</option>
+                        <option value="pdf">PDF</option>
+                        <option value="doc">DOC</option>
+                        <option value="docx">DOCX</option>
+                        <option value="xls">XLS</option>
+                        <option value="xlsx">XLSX</option>
+                        <option value="ppt">PPT</option>
+                        <option value="pptx">PPTX</option>
+                        <option value="csv">CSV</option>
+                        <option value="txt">TXT</option>
+                        <option value="jpg">JPG</option>
+                        <option value="jpeg">JPEG</option>
+                        <option value="png">PNG</option>
+                        <option value="zip">ZIP 壓縮檔</option>
+                        <option value="rar">RAR 壓縮檔</option>
+                        <option value="7z">7Z 壓縮檔</option>
+                      </select>
+                      <div class="text-[0.6875rem] text-slate-500 mt-1">「自動判斷」＝依上面名稱結尾的副檔名；連結看不出類型，名稱又沒寫副檔名時，請在這裡選，否則會顯示 PDF 圖示。</div>
+                    </div>
+                    <div class="flex items-center justify-end gap-2">
+                      <button type="button" onclick="toggleDocLinkForm(false)" class="px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-600 text-xs font-bold tap-bounce">取消</button>
+                      <button type="button" onclick="handleDocLinkAdd()" class="px-3.5 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold tap-bounce">加入清單</button>
+                    </div>
+                  </div>
                 </div>
 
                 <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
@@ -7824,8 +7841,12 @@
     }
 
     // ==================== 常用文件專區 (DOCS) ====================
-    let docModalSelectedFile = null;
-    let docModalOriginalFileName = '';
+    // 表單裡的檔案清單（一份文件可有多個檔案，最多 DOC_FILES_MAX 個）。每一項：
+    //   待上傳＝有 file（File 物件）；已在雲端或連結＝有 downloadUrl（driveFileId 有值代表傳到我們的 Drive 資料夾）
+    let docModalFiles = [];
+    let docModalKeySeq = 0;
+    let docModalUploading = false;
+    const DOC_FILES_MAX = 10;
 
     // 可上傳的檔案類型與大小（2026-10-19 起加入壓縮檔 zip／rar／7z）。選檔視窗的 accept 與這份清單要一致（測試會比對）；
     // 後端不限副檔名，限制只在前端（選檔當下就擋，不用等上傳到一半才失敗）。
@@ -7858,6 +7879,19 @@
       let e = String(ext || '').toLowerCase().trim();
       while (e.charAt(0) === '.') e = e.slice(1);
       return DOC_ALLOWED_EXT.indexOf(e) !== -1 ? e : '';
+    }
+    // 一份文件的檔案清單（公開資料的 files；沒有或舊快取沒這欄就是空陣列＝舊式單檔文件）
+    function docFilesOf(doc) {
+      return doc && Array.isArray(doc.files) ? doc.files.filter(function(f) { return f && f.downloadUrl; }) : [];
+    }
+    function docFormatSize(n) {
+      n = Number(n) || 0;
+      if (n <= 0) return '';
+      return n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB';
+    }
+    function docIsHttpUrl(u) {
+      const x = String(u == null ? '' : u).trim().toLowerCase();
+      return (x.indexOf('http://') === 0 || x.indexOf('https://') === 0) && x.length > 8 && x.indexOf(' ') === -1;
     }
     function docFileExt(name) {
       const s = String(name || '');
@@ -7903,7 +7937,7 @@
       return 'pdf';
     }
 
-    function getDocFileIconHtml(doc) {
+    function getDocFileIconHtml(doc, small) {
       const ext = getDocFileExtension(doc).toUpperCase();
       let pageColor = '#64748B';
       let foldColor = '#CBD5E1';
@@ -7957,7 +7991,7 @@
 
       const fontSize = (displayExt.length >= 4) ? '5.8' : '7';
 
-      return '<div class="w-12 h-12 rounded-2xl ' + bgClass + ' border flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform select-none">' +
+      return '<div class="' + (small ? 'w-10 h-10 rounded-xl' : 'w-12 h-12 rounded-2xl') + ' ' + bgClass + ' border flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform select-none">' +
         '<svg class="w-7 h-7 drop-shadow-2xs" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">' +
         '<path d="M6 3.5C4.89543 3.5 4 4.39543 4 5.5V26.5C4 27.6046 4.89543 28.5 6 28.5H26C27.1046 28.5 28 27.6046 28 26.5V11.5L20 3.5H6Z" fill="' + pageColor + '" />' +
         '<path d="M20 3.5L28 11.5H21C20.4477 11.5 20 11.0523 20 10.5V3.5Z" fill="' + foldColor + '" />' +
@@ -7967,6 +8001,18 @@
         '<text x="16" y="23.8" font-size="' + fontSize + '" font-weight="900" font-family="system-ui, sans-serif" text-anchor="middle" fill="' + badgeTextColor + '" letter-spacing="-0.2">' + esc(displayExt) + '</text>' +
         '</svg>' +
         '</div>';
+    }
+
+    // 多檔文件的圖示：三頁疊起來，最上面寫「×N」
+    function getDocMultiIconHtml(count) {
+      const label = '×' + count;
+      return '<div class="w-12 h-12 rounded-2xl bg-indigo-50/90 border border-indigo-100 flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform select-none" data-doc-multi-icon="1">' +
+        '<svg class="w-7 h-7 drop-shadow-2xs" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+        '<path d="M9 2.5H21L26 7.5V21.5C26 22.6 25.1 23.5 24 23.5H9C7.9 23.5 7 22.6 7 21.5V4.5C7 3.4 7.9 2.5 9 2.5Z" fill="#CBD5E1"/>' +
+        '<path d="M6 5.5H18L23 10.5V24.5C23 25.6 22.1 26.5 21 26.5H6C4.9 26.5 4 25.6 4 24.5V7.5C4 6.4 4.9 5.5 6 5.5Z" fill="#94A3B8"/>' +
+        '<path d="M3 8.5H15L20 13.5V27.5C20 28.6 19.1 29.5 18 29.5H3C1.9 29.5 1 28.6 1 27.5V10.5C1 9.4 1.9 8.5 3 8.5Z" fill="#6366F1"/>' +
+        '<text x="10.5" y="24.3" font-size="8" font-weight="900" font-family="system-ui, sans-serif" text-anchor="middle" fill="#FFFFFF">' + esc(label) + '</text>' +
+        '</svg></div>';
     }
 
     function renderDocsList(filterCat = '全部') {
@@ -8002,7 +8048,40 @@
       }
 
       filtered.forEach(doc => {
-        const url = doc.downloadUrl || 'https://drive.google.com/drive/folders/1Ie8medB2JPYdUA9LOryVnPAdko1t5rjR';
+        const docFiles = docFilesOf(doc);
+        if (docFiles.length >= 2) {
+          // 一份文件多個檔案：標題列＋下方直接展開每個檔案（各自的圖示、檔名、下載鈕）
+          const mcard = document.createElement('div');
+          mcard.className = 'p-4 rounded-3xl bg-white border border-slate-200/90 shadow-2xs hover:shadow-md transition-all group';
+          mcard.setAttribute('data-doc-multi', '1');
+          const en = state.lang === 'en';
+          mcard.innerHTML = '<div class="flex items-start gap-3">' +
+            getDocMultiIconHtml(docFiles.length) +
+            '<div class="min-w-0">' +
+            '<div class="flex items-center gap-2 flex-wrap">' +
+            '<h4 class="font-black text-slate-800 text-sm sm:text-base">' + (esc(tx(doc.fileName)) || (en ? 'Untitled Document' : '未命名文件')) + '</h4>' +
+            '<span class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-indigo-100 text-indigo-800">' + (esc(tn(doc.category)) || (en ? 'General' : '一般')) + '</span>' +
+            '<span class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-slate-100 text-slate-600">' + (en ? docFiles.length + ' files' : docFiles.length + ' 個檔案') + '</span>' +
+            newBadgeHtml(doc.updatedAt) +
+            '</div>' +
+            '<p class="text-xs text-slate-500 mt-1 leading-relaxed">' + (esc(tx(doc.description)) || (en ? 'Choose a file to download' : '請選擇要下載的檔案')) + '</p>' +
+            '<div class="text-[0.6875rem] text-slate-400 mt-1">' + (en ? 'Updated: ' : '更新日期：') + esc(doc.updatedAt || '2026-09-01') + '</div>' +
+            '</div></div>' +
+            '<ul class="mt-3 space-y-2 sm:pl-[3.75rem]">' +
+            docFiles.map(function(f) {
+              const size = docFormatSize(f.size);
+              return '<li data-doc-file="1" class="flex items-center gap-2.5 p-2 rounded-2xl bg-slate-50 border border-slate-100">' +
+                getDocFileIconHtml({ fileName: f.name, fileExtension: f.ext }, true) +
+                '<div class="min-w-0 flex-1"><div class="text-xs font-bold text-slate-800 wrap-any">' + esc(f.name) + '</div>' +
+                (size ? '<div class="text-[0.6875rem] text-slate-400">' + esc(size) + '</div>' : '') + '</div>' +
+                '<a href="' + (escUrl(f.downloadUrl) || '#') + '" target="_blank" rel="noopener noreferrer" class="shrink-0 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm flex items-center gap-1 tap-bounce">' +
+                '<span>⬇️</span> ' + (en ? 'Download' : '下載') + '</a></li>';
+            }).join('') +
+            '</ul>';
+          container.appendChild(mcard);
+          return;
+        }
+        const url = (docFiles[0] && docFiles[0].downloadUrl) || doc.downloadUrl || 'https://drive.google.com/drive/folders/1Ie8medB2JPYdUA9LOryVnPAdko1t5rjR';
         
         const card = document.createElement('div');
         card.className = 'p-4 rounded-3xl bg-white border border-slate-200/90 shadow-2xs hover:shadow-md transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 group';
@@ -8659,11 +8738,14 @@
         return;
       }
       info.rows.forEach(function(doc) {
-        const url = doc.downloadUrl || '';
+        const docFiles = docFilesOf(doc);
+        const multi = docFiles.length >= 2;
+        const url = multi ? '' : ((docFiles[0] && docFiles[0].downloadUrl) || doc.downloadUrl || '');
         const title = esc(doc.fileName || '') || '未命名文件';
         const row = document.createElement('div');
         row.className = 'p-3.5 rounded-2xl bg-white border border-slate-200 hover:shadow-sm transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3';
-        row.innerHTML = '<div class="flex items-start gap-3 min-w-0">' + getDocFileIconHtml(doc) +
+        if (multi) row.setAttribute('data-doc-multi', '1');
+        row.innerHTML = '<div class="flex items-start gap-3 min-w-0">' + (multi ? getDocMultiIconHtml(docFiles.length) : getDocFileIconHtml(doc)) +
           '<div class="min-w-0">' +
           '<div class="flex items-center gap-2 flex-wrap">' +
           (url ? '<a href="' + (escUrl(url) || '#') + '" target="_blank" rel="noopener noreferrer" class="font-black text-slate-800 text-sm hover:underline">' + title + '</a>' : '<span class="font-black text-slate-800 text-sm">' + title + '</span>') +
@@ -8671,6 +8753,7 @@
           newBadgeHtml(doc.updatedAt) +
           '</div>' +
           (doc.description ? '<p class="text-xs text-slate-500 mt-1 line-clamp-2">' + esc(doc.description) + '</p>' : '') +
+          (multi ? '<div class="text-[0.6875rem] text-slate-500 mt-1 wrap-any" data-doc-file-names="1">📎 ' + docFiles.length + ' 個檔案：' + esc(docFiles.map(function(f) { return f.name; }).join('、')) + '</div>' : '') +
           '<div class="text-[0.6875rem] text-slate-400 mt-1">更新日期：' + esc(doc.updatedAt || '') + '</div>' +
           '</div></div>' +
           '<div class="doc-admin-ops flex items-center gap-1.5 shrink-0 self-end sm:self-center"></div>';
@@ -8684,7 +8767,7 @@
 
     // ---------- 文件表單的模式（新增／編輯既有／以舊文件為範本新增）----------
     const docFormState = { mode: 'new', baseId: '', baseTitle: '', baseline: null };
-    const DOC_FORM_FIELDS = [['fileName', '文件名稱'], ['category', '文件分類'], ['description', '說明描述', true], ['downloadUrl', '下載或雲端連結'], ['fileType', '檔案類型'], ['newFile', '上傳的檔案']];
+    const DOC_FORM_FIELDS = [['fileName', '文件名稱'], ['category', '文件分類'], ['description', '說明描述', true], ['files', '檔案']];
     const DOC_FORM_CFG = {
       card: 'docModalBox', banner: 'docFormModeBanner', text: 'docFormModeText', save: 'docModalSaveBtn', saveLabel: 'docModalSaveLabel', asNew: 'docModalSaveAsNewBtn',
       texts: {
@@ -8701,7 +8784,7 @@
 
     function docFormSnapshot() {
       const v = function(id) { return (document.getElementById(id) || {}).value || ''; };
-      return { fileName: v('docModal-fileName').trim(), category: v('docModal-category'), description: v('docModal-description').trim(), downloadUrl: v('docModal-downloadUrl').trim(), fileType: v('docModal-fileType'), newFile: docModalSelectedFile ? ('已選取：' + docModalSelectedFile.name) : '' };
+      return { fileName: v('docModal-fileName').trim(), category: v('docModal-category'), description: v('docModal-description').trim(), files: docModalFiles.map(function(en) { return en.name + (en.file ? '（待上傳）' : ''); }).join('、') };
     }
 
     function docModalOpen() { const m = document.getElementById('docEditModal'); return !!m && !m.classList.contains('hidden'); }
@@ -8738,39 +8821,30 @@
 
     function openDocEditModal(id, forCopy) {
       if (!forCopy && docModalOpen() && !confirmDiscardDoc()) return;
-      docModalSelectedFile = null;
-      docModalOriginalFileName = '';
+      if (docModalUploading) { showToast('檔案上傳中，請稍候', '⏳'); return; }
       const fileInput = document.getElementById('docModal-fileInput');
       if (fileInput) fileInput.value = '';
-      const statusEl = document.getElementById('docModal-fileStatus');
-      if (statusEl) {
-        statusEl.textContent = '若已有網址可直接修改上欄，或選取新檔案覆蓋上傳（PDF、Word、Excel、PowerPoint、圖片、ZIP／RAR／7Z；單檔最大 25 MB）';
-        statusEl.className = 'text-[0.6875rem] text-slate-500 mt-1';
-      }
+      toggleDocLinkForm(false);
 
+      let loadDoc = null;
       if (id) {
         const doc = state.docs.find(d => String(d.id) === String(id));
         if (doc) {
-          docModalOriginalFileName = doc.fileName || '';
+          loadDoc = doc;
           document.getElementById('docModalTitle').innerHTML = '<span>✏️</span> 編輯文件：' + esc(doc.fileName || '');
           document.getElementById('docModal-id').value = doc.id || '';
-          document.getElementById('docModal-driveFileId').value = doc.driveFileId || '';
           document.getElementById('docModal-fileName').value = doc.fileName || '';
           document.getElementById('docModal-category').value = doc.category || '一般文件';
           document.getElementById('docModal-description').value = doc.description || '';
-          document.getElementById('docModal-downloadUrl').value = doc.downloadUrl || '';
-          document.getElementById('docModal-fileType').value = docTypeOptionFor(doc.fileExtension);
         }
       } else {
         document.getElementById('docModalTitle').innerHTML = '<span>➕</span> 新增常用文件';
         document.getElementById('docModal-id').value = '';
-        document.getElementById('docModal-driveFileId').value = '';
         document.getElementById('docModal-fileName').value = '';
         document.getElementById('docModal-category').value = '保健用藥';
         document.getElementById('docModal-description').value = '';
-        document.getElementById('docModal-downloadUrl').value = '';
-        document.getElementById('docModal-fileType').value = '';
       }
+      docModalLoadFrom(loadDoc);
 
       const modal = document.getElementById('docEditModal');
       if (modal) modal.classList.remove('hidden');
@@ -8783,6 +8857,7 @@
 
     // 使用者按 ✕／取消：有未儲存的內容先確認；程式內部（儲存完成後關閉）改呼叫 closeDocEditModalNow()
     function closeDocEditModal() {
+      if (docModalUploading) { showToast('檔案上傳中，請稍候', '⏳'); return; }
       if (!confirmDiscardDoc()) return;
       closeDocEditModalNow();
     }
@@ -8793,42 +8868,190 @@
       docFormState.baseline = null;
     }
 
-    function handleDocModalFileChosen(e) {
-      const files = e.target.files;
-      if (!files || files.length === 0) return;
-      const problem = docFileProblem(files[0]);
-      if (problem) { showToast(problem, '⚠️'); e.target.value = ''; return; }   // 擋下：維持原本已選的檔案（沒有就是沒選）
-      docModalSelectedFile = files[0];
-      const typeSel = document.getElementById('docModal-fileType');
-      if (typeSel) typeSel.value = docTypeOptionFor(docFileExt(files[0].name));   // 選了檔案就把類型帶成檔案的副檔名（使用者仍可自己改）
-      const statusEl = document.getElementById('docModal-fileStatus');
-      if (statusEl) {
-        statusEl.textContent = '已選取新檔案：' + docModalSelectedFile.name + ' (' + Math.round(docModalSelectedFile.size / 1024) + ' KB)';
-        statusEl.className = 'text-[0.6875rem] text-emerald-600 font-bold mt-1';
+    // ---------- 表單的檔案清單 ----------
+    function docNewEntry(o) {
+      return Object.assign({ key: 'f' + (++docModalKeySeq), name: '', ext: 'pdf', size: 0, driveFileId: '', downloadUrl: '', file: null, error: '', busy: false }, o);
+    }
+    function docModalLoadFrom(doc) {
+      docModalFiles = [];
+      if (doc) {
+        const fs = docFilesOf(doc);
+        if (fs.length) {
+          fs.forEach(function(f) { docModalFiles.push(docNewEntry({ name: f.name, ext: f.ext, size: f.size || 0, driveFileId: f.driveFileId || '', downloadUrl: f.downloadUrl })); });
+        } else if (doc.downloadUrl) {
+          // 舊式單檔文件：把原本的連結當成清單裡的第一個檔案
+          docModalFiles.push(docNewEntry({ name: doc.fileName || '檔案', ext: getDocFileExtension(doc), driveFileId: doc.driveFileId || '', downloadUrl: doc.downloadUrl }));
+        }
       }
+      renderDocModalFiles();
+    }
+
+    // 選了檔案：逐個檢查（格式、25 MB、重複、上限），通過的加入清單（還沒上傳，按「儲存」才會上傳）
+    function docModalAddFiles(list) {
+      const problems = [];
+      let added = 0;
+      Array.prototype.forEach.call(list || [], function(f) {
+        const p = docFileProblem(f);
+        if (p) { problems.push('「' + f.name + '」' + p); return; }
+        if (docModalFiles.some(function(x) { return x.file && x.name === f.name && x.size === f.size; })) { problems.push('「' + f.name + '」已經在清單裡'); return; }
+        if (docModalFiles.length >= DOC_FILES_MAX) { problems.push('「' + f.name + '」超過一份文件最多 ' + DOC_FILES_MAX + ' 個檔案的上限'); return; }
+        docModalFiles.push(docNewEntry({ name: f.name, ext: docExtFromName(f.name) || 'pdf', size: f.size, file: f }));
+        added++;
+      });
+      renderDocModalFiles();
       const nameInput = document.getElementById('docModal-fileName');
-      if (nameInput && !nameInput.value.trim()) {
-        nameInput.value = docModalSelectedFile.name;
+      if (added === 1 && docModalFiles.length === 1 && nameInput && !nameInput.value.trim()) nameInput.value = docModalFiles[0].name;
+      if (problems.length) showToast(problems.slice(0, 3).join('；') + (problems.length > 3 ? '…' : ''), '⚠️');
+      return { added: added, problems: problems };
+    }
+
+    function handleDocModalFileChosen(e) {
+      const input = e && e.target;
+      if (!input) return;
+      if (input.files && input.files.length) docModalAddFiles(input.files);
+      input.value = '';   // 清空，之後再選同一個檔案也會觸發
+    }
+
+    function toggleDocLinkForm(show) {
+      const f = document.getElementById('docModal-linkForm');
+      if (!f) return;
+      const want = (show === undefined) ? f.classList.contains('hidden') : !!show;
+      f.classList.toggle('hidden', !want);
+      if (!want) {
+        ['docModal-linkName', 'docModal-linkUrl', 'docModal-linkType'].forEach(function(id) { const el = document.getElementById(id); if (el) el.value = ''; });
       }
     }
 
-    // forceNew＝true（「另存為新文件」）：一律建立新的一筆（上傳新檔案時也是新檔案、新編號），原文件完全不動
+    // 回傳空字串＝成功；否則是原因
+    function docModalAddLink(name, url, type) {
+      url = String(url == null ? '' : url).trim();
+      name = String(name == null ? '' : name).trim();
+      if (!docIsHttpUrl(url)) return '連結請以 https:// 開頭';
+      if (url.length > 2000) return '連結太長（最多 2000 字）';
+      if (docModalFiles.length >= DOC_FILES_MAX) return '一份文件最多 ' + DOC_FILES_MAX + ' 個檔案';
+      if (docModalFiles.some(function(x) { return x.downloadUrl === url; })) return '這個連結已經在清單裡';
+      const label = name || ((document.getElementById('docModal-fileName') || {}).value || '').trim() || '連結';
+      docModalFiles.push(docNewEntry({ name: label, ext: docResolveExt(type, '', label, ''), downloadUrl: url }));
+      renderDocModalFiles();
+      return '';
+    }
+
+    function handleDocLinkAdd() {
+      const v = function(id) { return (document.getElementById(id) || {}).value || ''; };
+      const problem = docModalAddLink(v('docModal-linkName'), v('docModal-linkUrl'), v('docModal-linkType'));
+      if (problem) { showToast(problem, '⚠️'); return; }
+      toggleDocLinkForm(false);
+    }
+
+    // 按鈕傳進來的是按鈕本身（避免在 onclick 裡寫引號）；測試可直接傳 key 字串
+    function docEntryKeyOf(x) {
+      if (x && typeof x === 'object' && typeof x.closest === 'function') { const r = x.closest('[data-doc-entry]'); return r ? r.getAttribute('data-doc-entry') : ''; }
+      return String(x == null ? '' : x);
+    }
+    function docModalRemoveFile(arg) {
+      if (docModalUploading) return;
+      const key = docEntryKeyOf(arg);
+      docModalFiles = docModalFiles.filter(function(x) { return x.key !== key; });
+      renderDocModalFiles();
+    }
+    function docModalMoveFile(arg, dir) {
+      if (docModalUploading) return;
+      const key = docEntryKeyOf(arg);
+      const i = docModalFiles.findIndex(function(x) { return x.key === key; });
+      const j = i + dir;
+      if (i < 0 || j < 0 || j >= docModalFiles.length) return;
+      const t = docModalFiles[i]; docModalFiles[i] = docModalFiles[j]; docModalFiles[j] = t;
+      renderDocModalFiles();
+    }
+
+    function renderDocModalFiles() {
+      const box = document.getElementById('docModal-fileList');
+      if (!box) return;
+      const cnt = document.getElementById('docModal-fileCount');
+      if (cnt) cnt.textContent = docModalFiles.length + ' / ' + DOC_FILES_MAX;
+      const addBtn = document.getElementById('docModal-addFilesBtn'), linkBtn = document.getElementById('docModal-addLinkBtn');
+      const full = docModalFiles.length >= DOC_FILES_MAX;
+      [addBtn, linkBtn].forEach(function(b) { if (b) { b.disabled = full || docModalUploading; b.classList.toggle('opacity-50', full || docModalUploading); } });
+      if (docModalFiles.length === 0) {
+        box.innerHTML = '<div class="text-[0.6875rem] text-slate-400 text-center py-3" data-doc-file-empty="1">還沒有檔案。請選取檔案上傳，或加入雲端連結。</div>';
+        return;
+      }
+      box.innerHTML = '';
+      docModalFiles.forEach(function(en, i) {
+        let tag = '';
+        if (en.busy) tag = '<span class="text-amber-600">上傳中…</span>';
+        else if (en.error) tag = '<span class="text-rose-600 font-bold">' + esc(en.error) + '</span>';
+        else if (en.file) tag = '<span class="text-amber-700">待上傳</span>';
+        else if (en.driveFileId) tag = '<span class="text-emerald-600">已在雲端</span>';
+        else tag = '<span class="text-sky-600">連結</span>';
+        const size = docFormatSize(en.size);
+        const row = document.createElement('div');
+        row.className = 'flex items-center gap-2.5 p-2 rounded-xl bg-white border ' + (en.error ? 'border-rose-300' : 'border-slate-200');
+        row.setAttribute('data-doc-entry', en.key);
+        row.innerHTML = getDocFileIconHtml({ fileName: en.name, fileExtension: en.ext }, true) +
+          '<div class="min-w-0 flex-1"><div class="text-xs font-bold text-slate-800 wrap-any">' + esc(en.name) + '</div>' +
+          '<div class="text-[0.6875rem] text-slate-500">' + (size ? esc(size) + ' · ' : '') + tag + '</div></div>' +
+          '<div class="flex items-center gap-1 shrink-0">' +
+          (i > 0 ? '<button type="button" data-doc-act="up" onclick="docModalMoveFile(this, -1)" title="往前移（第一個檔案決定舊版相容的連結）" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold tap-bounce">↑</button>' : '') +
+          '<button type="button" data-doc-act="remove" onclick="docModalRemoveFile(this)" title="從清單移除（不會刪除雲端上的檔案）" class="w-8 h-8 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold tap-bounce">✕</button>' +
+          '</div>';
+        box.appendChild(row);
+      });
+    }
+
+    // 逐個上傳待上傳的檔案；成功的馬上變成「已在雲端」（失敗後再按儲存只會重傳還沒成功的）
+    function docModalUploadAll(saveBtn, done) {
+      const total = docModalFiles.filter(function(x) { return x.file; }).length + docModalFiles.filter(function(x) { return !x.file && x.uploadedNow; }).length;
+      const step = function() {
+        const en = docModalFiles.find(function(x) { return x.file; });
+        if (!en) { docModalUploading = false; renderDocModalFiles(); done(); return; }
+        const nth = docModalFiles.filter(function(x) { return x.uploadedNow; }).length + 1;
+        docModalUploading = true; en.busy = true; en.error = '';
+        renderDocModalFiles();
+        if (saveBtn) { saveBtn.disabled = true; saveBtn.innerHTML = '<span>⏳</span> 上傳檔案中（' + nth + '／' + total + '）...'; }
+        const fail = function(msg) {
+          docModalUploading = false; en.busy = false; en.error = msg;
+          if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = docSaveBtnHtml(); }
+          renderDocModalFiles();
+          showToast('「' + en.name + '」上傳失敗：' + msg + '（已上傳的檔案會保留，再按一次儲存只會重傳失敗的）', '❌');
+        };
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          const base64Data = String(evt.target.result || '').split(',')[1] || '';
+          callBackend('uploadDocFile', { file: { name: en.name, mimeType: docUploadMime(en.file), base64: base64Data }, password: getAdminPassword() }, function(res) {
+            if (res && res.success && res.file && res.file.downloadUrl) {
+              en.busy = false; en.name = res.file.name || en.name; en.ext = res.file.ext || en.ext; en.size = res.file.size || en.size;
+              en.driveFileId = res.file.driveFileId || ''; en.downloadUrl = res.file.downloadUrl; en.file = null; en.uploadedNow = true;
+              if (res.warning) showToast(res.warning, '⚠️');
+              step();
+            } else {
+              fail(res && res.error ? res.error : '未知錯誤');
+            }
+          }, function() { fail('網路連線逾時'); });
+        };
+        reader.onerror = function() { fail('讀取檔案失敗'); };
+        reader.readAsDataURL(en.file);
+      };
+      step();
+    }
+
+    // forceNew＝true（「另存為新文件」）：一律建立新的一筆（新編號），原文件完全不動；檔案清單沿用原文件的雲端檔案
     function handleSaveDocModal(e, forceNew) {
       if (e && typeof e.preventDefault === 'function') e.preventDefault();
+      if (docModalUploading) return;
       const saveBtn = document.getElementById('docModalSaveBtn');
       const id = forceNew ? '' : document.getElementById('docModal-id').value;
-      const driveFileId = document.getElementById('docModal-driveFileId').value;
       const fileName = document.getElementById('docModal-fileName').value.trim();
       const category = document.getElementById('docModal-category').value;
       const description = document.getElementById('docModal-description').value.trim();
-      const downloadUrl = document.getElementById('docModal-downloadUrl').value.trim();
-      const fileType = (document.getElementById('docModal-fileType') || {}).value || '';
       const todayStr = (typeof getTodayDateStr === 'function') ? getTodayDateStr() : new Date().toISOString().split('T')[0];
 
       if (!fileName) {
         showToast('請輸入文件名稱！', '⚠️');
         return;
       }
+      const badLink = docModalFiles.find(function(x) { return !x.file && !docIsHttpUrl(x.downloadUrl); });
+      if (badLink) { showToast('「' + badLink.name + '」的連結需以 https:// 開頭，請移除後重新加入', '⚠️'); return; }
 
       const isUpdate = !forceNew && docFormState.mode === 'edit' && !!id;
       if (isUpdate) {
@@ -8837,104 +9060,45 @@
         if (!formDiffConfirm('文件', docFormState.baseTitle, diffs, '另存為新文件')) return;
       }
 
-      let shouldUpload = false;
-      if (docModalSelectedFile) {
-        if (downloadUrl && docModalSelectedFile.name === docModalOriginalFileName) {
-          shouldUpload = false;
-        } else {
-          shouldUpload = true;
-        }
-      }
-
-      if (shouldUpload) {
-        if (saveBtn) { saveBtn.disabled = true; saveBtn.innerHTML = '<span>⏳</span> 上傳檔案中...'; }
-        showToast('檔案上傳 Google Drive 中...', '⏳');
-
-        const reader = new FileReader();
-        reader.onload = function(evt) {
-          const base64Data = evt.target.result.split(',')[1];
-          const fileObj = {
-            name: docModalSelectedFile.name,
-            mimeType: docUploadMime(docModalSelectedFile),
-            base64: base64Data
-          };
-
-          const modalExt = docResolveExt(fileType, docModalSelectedFile.name, fileName, '');
-
-          const docMeta = {
-            id: id,
-            fileName: fileName,
-            fileExtension: modalExt || 'pdf',
-            category: category,
-            description: description
-          };
-
-          callBackend('uploadDocument', {
-            meta: docMeta,
-            file: fileObj,
-            password: getAdminPassword()
-          }, res => {
-            if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = docSaveBtnHtml(); }
-            if (res && res.success) {
-              const newDoc = {
-                id: res.docId || id || ('DOC-' + Date.now()),
-                fileName: fileName,
-                fileExtension: res.fileExtension || modalExt || 'pdf',
-                category: category,
-                description: description,
-                driveFileId: res.fileId || driveFileId,
-                downloadUrl: res.downloadUrl || downloadUrl,
-                updatedAt: todayStr
-              };
-
-              updateLocalDocState(newDoc);
-              closeDocEditModalNow();
-              showToast((isUpdate ? '已更新原文件「' : '已新增文件「') + fileName + '」並上傳檔案', '🎉');
-              loadAppData();
-            } else {
-              showToast('上傳失敗: ' + (res ? res.error : '未知錯誤'), '❌');
-            }
-          }, err => {
-            if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = docSaveBtnHtml(); }
-            showToast('網路連線逾時，已保留修改', '⚠️');
-          });
+      const hadPending = docModalFiles.some(function(x) { return x.file; });
+      docModalFiles.forEach(function(x) { x.uploadedNow = false; });
+      const finish = function() {
+        const files = docModalFiles.map(function(x) { return { name: x.name, ext: x.ext, driveFileId: x.driveFileId || '', downloadUrl: x.downloadUrl, size: x.size || 0 }; });
+        const first = files[0];
+        const docData = {
+          id: id || ('DOC-' + Date.now()),
+          fileName: fileName,
+          fileExtension: first ? first.ext : 'pdf',   // 舊欄位同步成第一個檔案（後端也會同步）
+          category: category,
+          description: description,
+          driveFileId: first ? first.driveFileId : '',
+          downloadUrl: first ? first.downloadUrl : '',
+          files: files,
+          updatedAt: todayStr
         };
-        reader.readAsDataURL(docModalSelectedFile);
-        return;
-      }
 
-      const existingDoc = id ? (state.docs || []).find(d => String(d.id) === String(id)) : null;
-      const editExt = docResolveExt(fileType, '', fileName, existingDoc && existingDoc.fileExtension);
+        updateLocalDocState(docData);
+        closeDocEditModalNow();
+        showToast((isUpdate ? '已更新原文件「' : '已新增文件「') + fileName + '」' + (hadPending ? '並上傳檔案' : ''), hadPending ? '🎉' : '✅');
 
-      const docData = {
-        id: id || ('DOC-' + Date.now()),
-        fileName: fileName,
-        fileExtension: editExt || 'pdf',
-        category: category,
-        description: description,
-        driveFileId: driveFileId,
-        downloadUrl: downloadUrl,
-        updatedAt: todayStr
+        const pwd = getAdminPassword();
+        if (saveBtn) { saveBtn.disabled = true; saveBtn.innerHTML = '<span>⏳</span> 同步中...'; }
+        callBackend('saveDoc', { docData: docData, password: pwd }, res => {
+          if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = docSaveBtnHtml(); }
+          if (res && res.success) {
+            showToast(res.message || '文件已同步至雲端！', '✅');
+            loadAppData();
+          } else {
+            showToast((res && res.error) ? ('同步失敗: ' + res.error) : '文件已套用於前台！', (res && res.error) ? '❌' : '✅');
+          }
+        }, err => {
+          if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = docSaveBtnHtml(); }
+          showToast('網路連線逾時，文件已套用於前台', '⚠️');
+        });
       };
 
-      updateLocalDocState(docData);
-      closeDocEditModalNow();
-      showToast((isUpdate ? '已更新原文件「' : '已新增文件「') + fileName + '」', '✅');
-
-      const pwd = getAdminPassword();
-      if (saveBtn) { saveBtn.disabled = true; saveBtn.innerHTML = '<span>⏳</span> 同步中...'; }
-      callBackend('saveDoc', { docData: docData, password: pwd }, res => {
-        if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = docSaveBtnHtml(); }
-        if (res && res.success) {
-          showToast(res.message || '文件已同步至雲端！', '✅');
-          loadAppData();
-        } else {
-          showToast((res && res.error) ? ('同步失敗: ' + res.error) : '文件已套用於前台！', (res && res.error) ? '❌' : '✅');
-        }
-      }, err => {
-        if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = docSaveBtnHtml(); }
-        showToast('網路連線逾時，文件已套用於前台', '⚠️');
-      });
+      if (hadPending) { showToast('檔案上傳 Google Drive 中...', '⏳'); docModalUploadAll(saveBtn, finish); }
+      else finish();
     }
 
     function updateLocalDocState(docData) {

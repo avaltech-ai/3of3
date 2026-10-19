@@ -14,7 +14,7 @@
   window.callBackend = (a, p, okCb) => { cbs.push({ a: a, p: p }); if (okCb) okCb({ success: true }); };
   state.adminPassword = 'tok'.repeat(15);
   const mk = (i, extra) => Object.assign({ id: 'D' + i, fileName: '文件' + i + '.pdf', fileExtension: 'pdf', category: i % 2 ? '保健用藥' : '餐飲菜單', description: '說明' + i, driveFileId: 'F' + i, downloadUrl: 'https://drive.google.com/file/d/D' + i + '/view', updatedAt: '2026-10-01' }, extra || {});
-  const reset = () => { cbs.length = 0; confirms.length = 0; answer = true; adminLists.docs.query = ''; adminLists.docs.cat = ''; adminLists.docs.page = 0; adminLists.docs.size = 10; docModalSelectedFile = null; closeDocEditModalNow(); state.docs = []; for (let i = 1; i <= 12; i++) state.docs.push(mk(i)); };
+  const reset = () => { cbs.length = 0; confirms.length = 0; answer = true; adminLists.docs.query = ''; adminLists.docs.cat = ''; adminLists.docs.page = 0; adminLists.docs.size = 10; docModalFiles = []; closeDocEditModalNow(); state.docs = []; for (let i = 1; i <= 12; i++) state.docs.push(mk(i)); };
   const rows = () => [...document.querySelectorAll('#docAdminListContainer > div')].filter(r => r.querySelector('button[data-act]'));
   const titles = () => rows().map(r => r.querySelector('a, span.font-black').textContent.trim());
   const open = () => !$('docEditModal').classList.contains('hidden');

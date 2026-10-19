@@ -14,7 +14,7 @@
   window.callBackend = (a, p, okCb) => { cbs.push({ a: a, p: p }); if (okCb) okCb({ success: true }); };
   state.adminPassword = 'tok'.repeat(15);
   const mk = (id, name, extra) => Object.assign({ id: id, fileName: name, fileExtension: 'pdf', category: '保健用藥', description: '說明' + id, driveFileId: 'DRIVE' + id + 'abcdefghijklmnop', downloadUrl: 'https://drive.google.com/file/d/' + id + '/view', updatedAt: '2026-10-01' }, extra || {});
-  const reset = () => { toasts.length = 0; cbs.length = 0; confirms.length = 0; answer = true; state.docs = [mk('D1', '幼兒用藥委託單.pdf'), mk('D2', '學期行事曆.pdf', { category: '學期行事曆' })]; docModalSelectedFile = null; closeDocEditModalNow(); };
+  const reset = () => { toasts.length = 0; cbs.length = 0; confirms.length = 0; answer = true; state.docs = [mk('D1', '幼兒用藥委託單.pdf'), mk('D2', '學期行事曆.pdf', { category: '學期行事曆' })]; docModalFiles = []; closeDocEditModalNow(); };
   const cls = (el, c) => el.className.split(/\s+/).indexOf(c) >= 0;
   const txt = () => $('docFormModeText').textContent;
   const vis = el => !el.classList.contains('hidden');
@@ -55,7 +55,7 @@
   // F. 複製
   reset(); copyDocInAdmin('D1');
   ok(open() && /以「幼兒用藥委託單.pdf」為範本新增/.test(txt()) && /原文件不會改變/.test(txt()) && /檔案連結沿用原文件/.test(txt()) && cls($('docModalBox'), 'border-sky-300') && $('docModalSaveBtn').textContent.trim() === '➕ 新增這筆文件' && !vis($('docModalSaveAsNewBtn')), '複製：藍色橫幅（原文件不會改變、檔案連結沿用）、只有一顆「新增這筆文件」');
-  ok($('docModal-id').value === '' && $('docModal-fileName').value === '幼兒用藥委託單.pdf' && $('docModal-description').value === '說明D1' && $('docModal-downloadUrl').value === 'https://drive.google.com/file/d/D1/view' && /複製文件/.test($('docModalTitle').textContent), '複製：沒有編號，名稱、分類、說明、連結保留；標題「複製文件」');
+  ok($('docModal-id').value === '' && $('docModal-fileName').value === '幼兒用藥委託單.pdf' && $('docModal-description').value === '說明D1' && docModalFiles.length === 1 && docModalFiles[0].downloadUrl === 'https://drive.google.com/file/d/D1/view' && /複製文件/.test($('docModalTitle').textContent), '複製：沒有編號，名稱、分類、說明、連結保留；標題「複製文件」');
   $('docModal-fileName').value = '複製後的文件.pdf'; handleSaveDocModal({ preventDefault() {} });
   ok(confirms.length === 0 && !!saveCall() && /^DOC-/.test(saveCall().p.docData.id) && state.docs.length === 3 && state.docs.find(d => d.id === 'D1').fileName === '幼兒用藥委託單.pdf' && /已新增文件「複製後的文件.pdf」/.test(toasts.join('|')), '存檔：新的一筆、原文件 D1 不變、提示「已新增文件」');
 
@@ -65,8 +65,8 @@
   ok(confirms.length === 1 && /尚未儲存/.test(confirms[0]) && open() && $('docModal-description').value === '改到一半', '改到一半按關閉：先問，取消則彈窗與內容保留');
   copyDocInAdmin('D2'); openDocEditModal('D2'); ok(confirms.length === 3 && $('docModal-id').value === 'D1', '彈窗開著且有未儲存內容時按「複製」或編輯別份：先確認');
   answer = true; closeDocEditModal(); ok(!open(), '確定放棄：彈窗關閉');
-  openDocEditModal('D1'); docModalSelectedFile = { name: 'new.pdf', size: 1000 }; answer = false; confirms.length = 0; closeDocEditModal(); ok(confirms.length === 1 && docFormDirty(), '選了新檔案（尚未上傳）也算未儲存內容');
-  docModalSelectedFile = null; answer = true; closeDocEditModalNow();
+  openDocEditModal('D1'); docModalAddFiles([new File(['x'], 'new.pdf')]); answer = false; confirms.length = 0; closeDocEditModal(); ok(confirms.length === 1 && docFormDirty(), '選了新檔案（尚未上傳）也算未儲存內容');
+  docModalFiles = []; answer = true; closeDocEditModalNow();
 
   // H. 列表按鈕與安全
   reset(); state.docs[0].fileName = '<img src=x onerror=window.__docpwn=1>惡意.pdf'; openDocEditModal('D1');

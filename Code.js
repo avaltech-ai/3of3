@@ -597,6 +597,8 @@ function doPost(e) {
       result = deleteAlbum(postData.id || postData.albumId, postData.password);
     } else if (action === 'uploadDocument') {
       result = uploadDocument(postData.meta, postData.file, postData.password);
+    } else if (action === 'uploadDocFile') {
+      result = uploadDocFile(postData.file, postData.password);
     } else if (action === 'uploadSpotlightImage') {
       result = uploadSpotlightImage(postData.file, postData.password);
     } else if (action === 'getActivityImages') {
@@ -877,6 +879,8 @@ function getAppData() {
         doc.fileExtension = ext || 'pdf';
       }
     });
+    // 一份文件多個檔案：files 欄（JSON）解析成陣列；沒有就是空陣列（舊式單檔文件）
+    docs.forEach(function(d) { d.files = parseDocFiles_(d.files); });
     const settings = getSettingsObject(ss.getSheetByName('Settings'));
 
     // 確保 DocCategories 工作表存在
@@ -3096,6 +3100,133 @@ function deleteAlbum(albumId, password) {
   }
 }
 
+// ---------- 常用文件：一份文件多個檔案（2026-10-19）----------
+// Docs 工作表新增 files 欄：JSON 清單 [{name, ext, driveFileId, downloadUrl, size}]（最多 10 個）。
+// 舊的單檔欄位（fileExtension、driveFileId、downloadUrl）仍保留，並同步成「第一個檔案」，舊版前端與其他讀取者照常能用；
+// files 欄是空的就代表舊式單檔文件。檔案先用 uploadDocFile 一個一個傳到 Drive，最後由 saveDoc 一次登記整份清單。
+const DOC_FILES_MAX = 10;
+const DOC_FILE_MAX_BYTES = 25 * 1024 * 1024;
+const DOC_FILE_EXTS = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'csv', 'txt', 'jpg', 'jpeg', 'png', 'zip', 'rar', '7z'];
+const DOC_MIME_BY_EXT_ = {
+  pdf: 'application/pdf', doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  xls: 'application/vnd.ms-excel', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  ppt: 'application/vnd.ms-powerpoint', pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  csv: 'text/csv', txt: 'text/plain', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
+  zip: 'application/zip', rar: 'application/vnd.rar', '7z': 'application/x-7z-compressed'
+};
+
+function docFileExtOf_(name) {
+  const s = String(name == null ? '' : name);
+  const i = s.lastIndexOf('.');
+  return (i > -1 && i < s.length - 1) ? s.slice(i + 1).toLowerCase() : '';
+}
+
+// 檔名：控制字元（含換行）換成空白、斜線與反斜線換成底線、收斂空白；超過 200 字截短但保留副檔名
+function cleanDocFileName_(name) {
+  let s = String(name == null ? '' : name).replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/[\/\\]/g, '_').replace(/\s+/g, ' ').trim();
+  if (s.length > 200) {
+    const ext = docFileExtOf_(s);
+    const keep = ext && ext.length <= 10 ? '.' + ext : '';
+    s = s.slice(0, 200 - keep.length) + keep;
+  }
+  return s;
+}
+
+// 單一檔案項目：只留認得的欄位並清理；沒有名稱或下載網址不是 http(s) 就回傳 null
+function sanitizeDocFileEntry_(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const name = cleanDocFileName_(raw.name);
+  const url = typeof raw.downloadUrl === 'string' ? raw.downloadUrl.trim() : '';
+  if (!name || !url || url.length > 2000 || !/^https?:\/\/\S+$/i.test(url)) return null;
+  const extOk = function(x) { return /^(?=.*[a-z])[a-z0-9]{1,10}$/.test(x); };
+  let ext = String(raw.ext == null ? '' : raw.ext).toLowerCase().replace(/^\.+/, '').trim();
+  if (!extOk(ext)) {
+    ext = docFileExtOf_(name);
+    if (!extOk(ext)) ext = 'pdf';
+  }
+  const id = typeof raw.driveFileId === 'string' ? raw.driveFileId.trim() : '';
+  const size = Math.floor(Number(raw.size));
+  return {
+    name: name,
+    ext: ext,
+    driveFileId: /^[A-Za-z0-9_-]{10,100}$/.test(id) ? id : '',
+    downloadUrl: url,
+    size: isFinite(size) && size > 0 ? size : 0
+  };
+}
+
+// 儲存用：嚴格（有一筆不對就整份拒絕，不會悄悄丟掉）
+function normalizeDocFiles_(raw) {
+  if (!Array.isArray(raw)) return { error: '檔案清單格式不正確' };
+  if (raw.length > DOC_FILES_MAX) return { error: '一份文件最多 ' + DOC_FILES_MAX + ' 個檔案（目前 ' + raw.length + ' 個）' };
+  const out = [];
+  for (let i = 0; i < raw.length; i++) {
+    const f = sanitizeDocFileEntry_(raw[i]);
+    if (!f) return { error: '第 ' + (i + 1) + ' 個檔案的名稱或下載網址不正確' };
+    out.push(f);
+  }
+  return { files: out };
+}
+
+// 讀取用：寬鬆（儲存格損毀或有壞項目時略過，不能讓整個網站讀不到資料）
+function parseDocFiles_(v) {
+  let arr = v;
+  if (typeof v === 'string') {
+    const t = v.trim();
+    if (!t) return [];
+    try { arr = JSON.parse(t); } catch (e) { return []; }
+  }
+  if (!Array.isArray(arr)) return [];
+  const out = [];
+  for (let i = 0; i < arr.length && out.length < DOC_FILES_MAX; i++) {
+    const f = sanitizeDocFileEntry_(arr[i]);
+    if (f) out.push(f);
+  }
+  return out;
+}
+
+/**
+ * 上傳「一個」檔案到 Docs 資料夾（不寫試算表）。伺服器端也檢查副檔名與 25 MB，不能只靠前端。
+ * 回傳 file 清單項目，由前端收集後交給 saveDoc 一次登記。
+ */
+function uploadDocFile(fileObj, password) {
+  if (!checkPassword(password)) return authFail_();
+  try {
+    if (!fileObj || typeof fileObj !== 'object' || typeof fileObj.base64 !== 'string' || !fileObj.base64 || typeof fileObj.name !== 'string' || !fileObj.name.trim()) {
+      return { success: false, error: '缺少檔案內容或檔名' };
+    }
+    const name = cleanDocFileName_(fileObj.name);
+    const ext = docFileExtOf_(name);
+    if (DOC_FILE_EXTS.indexOf(ext) === -1) {
+      return { success: false, error: '不支援這種檔案格式（可傳 PDF、Word、Excel、PowerPoint、文字、圖片、ZIP／RAR／7Z）' };
+    }
+    const tooBig = { success: false, error: '檔案太大，單檔最大 25 MB' };
+    if (fileObj.base64.length > Math.ceil(DOC_FILE_MAX_BYTES / 3) * 4 + 4) return tooBig;   // 太大的不解碼
+    const bytes = Utilities.base64Decode(fileObj.base64);
+    if (bytes.length > DOC_FILE_MAX_BYTES) return tooBig;
+    const mime = (typeof fileObj.mimeType === 'string' && fileObj.mimeType.trim()) ? fileObj.mimeType.trim() : (DOC_MIME_BY_EXT_[ext] || 'application/octet-stream');
+
+    const folder = DriveApp.getFolderById(DOCS_FOLDER_ID);
+    const newFile = folder.createFile(Utilities.newBlob(bytes, mime, name));
+    let warning = '';
+    try {
+      newFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    } catch (e) {
+      warning = '檔案已上傳，但無法設成「知道連結的人可檢視」，家長可能下載不到，請到 Google Drive 手動分享。';
+    }
+    const fileId = newFile.getId();
+    const result = {
+      success: true,
+      message: '檔案已上傳',
+      file: { name: name, ext: ext, driveFileId: fileId, downloadUrl: 'https://drive.google.com/uc?export=download&id=' + fileId, size: bytes.length }
+    };
+    if (warning) result.warning = warning;
+    return result;
+  } catch (err) {
+    return { success: false, error: '上傳文件失敗: ' + err.toString() };
+  }
+}
+
 /**
  * 上傳文件至 Docs 資料夾並登記至 Docs 試算表
  */
@@ -3702,6 +3833,16 @@ function updateSpotlightsOrder(orderList, password) {
 function saveDoc(docData, password) {
   if (!checkPassword(password)) return authFail_();
   try {
+    // 先驗證檔案清單（有一筆不對就整份拒絕、什麼都不寫）；沒帶 files 的是舊版前端
+    let filesNorm = null;
+    if (docData && docData.files !== undefined) {
+      const n = normalizeDocFiles_(docData.files);
+      if (n.error) return { success: false, error: n.error };
+      filesNorm = n.files;
+    }
+    const filesJson = filesNorm && filesNorm.length ? JSON.stringify(filesNorm) : '';
+    if (filesJson.length > 45000) return { success: false, error: '檔案清單太長，請減少檔案數量或縮短檔名' };
+
     const ss = getSpreadsheet();
     let sheet = ss.getSheetByName('Docs');
     if (!sheet) sheet = ss.insertSheet('Docs');
@@ -3719,6 +3860,13 @@ function saveDoc(docData, password) {
       headers.push('fileExtension');
     }
 
+    // 確保 files 欄位存在
+    if (headers.indexOf('files') === -1) {
+      sheet.insertColumnAfter(headers.length);
+      sheet.getRange(1, headers.length + 1).setValue('files').setFontWeight('bold');
+      headers.push('files');
+    }
+
     let ext = docData.fileExtension || '';
     if (!ext && docData.fileName) {
       const m = String(docData.fileName).match(/\.([a-zA-Z0-9]+)$/);
@@ -3734,8 +3882,15 @@ function saveDoc(docData, password) {
       description: docData.description || '',
       driveFileId: docData.driveFileId || '',
       downloadUrl: docData.downloadUrl || '',
-      updatedAt: docData.updatedAt || todayStr
+      updatedAt: docData.updatedAt || todayStr,
+      files: filesJson
     };
+    // 有檔案清單：舊的單檔欄位同步成第一個檔案
+    if (filesNorm && filesNorm.length) {
+      fieldMap.fileExtension = filesNorm[0].ext;
+      fieldMap.driveFileId = filesNorm[0].driveFileId;
+      fieldMap.downloadUrl = filesNorm[0].downloadUrl;
+    }
 
     let targetRow = -1;
     if (idIndex !== -1) {
@@ -3744,6 +3899,16 @@ function saveDoc(docData, password) {
           targetRow = i + 1;
           break;
         }
+      }
+    }
+
+    // 舊版前端（沒帶 files）：連結沒變就保留既有的 files（只是改說明之類）；連結變了就清空，否則前台會顯示過期的檔案
+    if (filesNorm === null && targetRow > -1) {
+      const old = data[targetRow - 1];
+      const cellOf = function(h) { const k = headers.indexOf(h); return k > -1 && k < old.length ? String(old[k] || '') : ''; };
+      if (parseDocFiles_(cellOf('files')).length > 0 &&
+          String(docData.driveFileId || '') === cellOf('driveFileId') && String(docData.downloadUrl || '') === cellOf('downloadUrl')) {
+        delete fieldMap.files;
       }
     }
 
