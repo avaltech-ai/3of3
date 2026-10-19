@@ -16,7 +16,7 @@
   const DEF = { headerFoundation: '三之三生命教育基金會', headerSchool: '新北市桃子腳非營利幼兒園', headerClass: '諾貝爾 A 班', headerBadge: 'Happy Life', footerContact: 'TEL：02-2668-8249｜FAX：02-2668-8245', footerMotto: '用愛陪伴孩子成長的每一步' };
   const EN = { headerFoundation: '3&3 Life Education', headerSchool: 'Taozihjiao Kindergarten', headerClass: 'Nobel A Class', headerBadge: 'Happy Life', footerContact: 'TEL：02-2668-8249｜FAX：02-2668-8245', footerMotto: "Accompanying children's growth with love" };
   const PROPS = Object.keys(DEF);
-  const ALL = PROPS.concat(['footerLineUrl']);
+  const ALL = ['headerFoundation', 'headerSchool', 'headerClass', 'headerBadge', 'footerLineUrl', 'footerContact', 'footerMotto'];   // 表單由上而下的順序（頁尾：LINE 連結、聯絡資訊、標語）
   const shown = () => { const o = {}; PROPS.forEach(p => { o[p] = $(p).textContent; }); return o; };
   const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
   const reset = () => { toasts.length = 0; cbs.length = 0; respond = null; state.settings = Object.assign({}, saved.settings); ALL.forEach(p => { state.settings[p] = ''; }); state.lang = 'zh-TW'; state.nameMap = Object.create(null); state.textMap = {}; applyTranslations(); };
@@ -41,6 +41,7 @@
   const secs = Array.from($('siteTitlesFields').children);
   ok(secs.length === 2 && /頁首/.test(secs[0].textContent.slice(0, 4)) && /頁尾/.test(secs[1].textContent.slice(0, 4)) && secs[0].querySelectorAll('[data-site-field]').length === 4 && secs[1].querySelectorAll('[data-site-field]').length === 3, '兩個區段：頁首 4 段（基金會、學校、班級、標籤）、頁尾 3 段（聯絡資訊、標語、LINE 連結）');
   ok(PROPS.every(p => fld(p) && fld(p).placeholder === DEF[p] && fld(p).value === ''), '每段一個輸入框，空白時以預設文字當提示');
+  ok(same(Array.from($('siteTitlesFields').querySelectorAll('[data-site-field]')).map(w => w.getAttribute('data-site-field')), ALL) && same(Array.from(secs[1].querySelectorAll('[data-site-field]')).map(w => w.getAttribute('data-site-field')), ['footerLineUrl', 'footerContact', 'footerMotto']), '欄位由上而下：頁首（基金會、學校、班級、標籤）；頁尾（LINE 連結、聯絡資訊、標語）');
   ok(PROPS.every(p => /預設：/.test(fld(p).closest('[data-site-field]').textContent) && fld(p).closest('[data-site-field]').textContent.indexOf(DEF[p]) >= 0), '每段下方寫出「預設：…」');
   ok(fld('headerFoundation').maxLength === 30 && fld('headerSchool').maxLength === 40 && fld('headerClass').maxLength === 20 && fld('headerBadge').maxLength === 20 && fld('footerContact').maxLength === 80 && fld('footerMotto').maxLength === 60 && fld('footerLineUrl').maxLength === 300, '字數上限與後端一致（30／40／20／20／80／60／300）');
   ok(PROPS.every(p => fld(p).closest('[data-site-field]').querySelector('[data-site-count]').textContent === '使用預設') && fld('footerLineUrl').closest('[data-site-field]').querySelector('[data-site-count]').textContent === '不顯示', '空白時計數顯示「使用預設」；LINE 連結沒有預設文字，顯示「不顯示」');
@@ -159,6 +160,41 @@
   cbs.length = 0; fld('footerLineUrl').value = ''; $('siteTitlesSaveBtn').click(); ok(cbs.length === 1 && cbs[0].p.titles.footerLineUrl === '' && wrap.classList.contains('hidden'), '清空再存：LINE 連結從頁尾消失');
   fld('footerLineUrl').closest('[data-site-field]').querySelector('[data-site-reset]').click(); ok(fld('footerLineUrl').value === '' && fld('footerLineUrl').closest('[data-site-field]').querySelector('[data-site-count]').textContent === '不顯示', '該欄的「恢復預設」：清空並顯示「不顯示」');
   state.settings = Object.assign({}, saved.settings); ALL.forEach(p => { state.settings[p] = ''; }); applySiteTitles();
+
+  // K. 重新整理後欄位變空（使用者回報）：先還原到後台子頁籤並畫出表單，公開資料稍後才到 → 資料到達時要用新資料重畫
+  const emptyData = settings => ({ events: [], menus: [], spotlights: [], docs: [], themes: [], albums: [], songs: [], nameMap: {}, settings: settings });
+  const arrive = settings => { try { handleDataLoaded(emptyData(settings)); } catch (e) { ok(false, 'handleDataLoaded 拋錯：' + e.message); } };
+  const nav = i => $('mobileNavSlot-' + i);
+  reset(); state.currentTab = 'admin'; switchAdminSubtab('siteTitles');
+  ok(ALL.every(p => fld(p).value === ''), '（重現）重新整理後先畫出的表單：資料還沒到，欄位是空的');
+  arrive({ headerClass: '諾貝爾 B 班', footerMotto: '快樂學習每一天', footerLineUrl: 'https://lin.ee/izXkZCI', footerContact: '電話：02-1111' });
+  ok(fld('headerClass').value === '諾貝爾 B 班' && fld('footerMotto').value === '快樂學習每一天' && fld('footerLineUrl').value === 'https://lin.ee/izXkZCI' && fld('footerContact').value === '電話：02-1111' && fld('headerSchool').value === '', '資料到達：介面標題表單自動帶入已儲存的值（沒存過的欄位維持空白）');
+  ok($('headerClass').textContent === '諾貝爾 B 班' && $('footerMotto').textContent === '快樂學習每一天', '同時頁首頁尾也套用');
+  ok(fld('headerClass').closest('[data-site-field]').querySelector('[data-site-count]').textContent === '7 / 20 字', '計數也跟著更新');
+  arrive({ headerClass: '諾貝爾 C 班', footerMotto: '快樂學習每一天', footerLineUrl: 'https://lin.ee/izXkZCI', footerContact: '電話：02-1111' });
+  ok(fld('headerClass').value === '諾貝爾 C 班', '表單沒被改過、之後又來一次新資料：再次更新（以雲端最新為準）');
+  fld('headerSchool').value = '我正在輸入的學校名稱'; fld('headerClass').value = '改到一半的班名';
+  arrive({ headerClass: '雲端的班名', headerSchool: '雲端的學校', footerMotto: '', footerLineUrl: '', footerContact: '' });
+  ok(fld('headerSchool').value === '我正在輸入的學校名稱' && fld('headerClass').value === '改到一半的班名', '使用者已經在改：新資料到達不會覆蓋輸入中的內容');
+  ok($('headerClass').textContent === '雲端的班名' && state.settings.headerSchool === '雲端的學校', '（頁首頁尾仍以新資料為準，只有表單不被蓋掉）');
+  cbs.length = 0; $('siteTitlesSaveBtn').click(); ok(cbs.filter(c => c.a === 'saveSiteTitles').length === 1 && cbs.filter(c => c.a === 'saveSiteTitles')[0].p.titles.headerSchool === '我正在輸入的學校名稱', '之後按儲存：送出的是使用者輸入的內容');
+  reset(); state.currentTab = 'home'; renderSiteTitlesForm(); arrive({ headerClass: '在首頁時資料到達' }); ok(fld('headerClass').value === '', '不在後台頁面時資料到達：不動表單（切過去時才會用最新資料畫）');
+  switchTab('admin'); switchAdminSubtab('siteTitles'); ok(fld('headerClass').value === '在首頁時資料到達', '之後切到「介面標題」：表單是最新的值');
+  reset(); state.currentTab = 'admin'; switchAdminSubtab('mobileNav');
+  ok([1, 2, 3, 4].map(i => nav(i).value).join() === 'home,albums,themes,songs', '（重現）手機導覽列：資料沒到前顯示預設的四個');
+  arrive({ mobileNavTabs: ['docs', 'songs', 'tasks', 'transition'] });
+  ok([1, 2, 3, 4].map(i => nav(i).value).join() === 'docs,songs,tasks,transition', '資料到達：手機導覽列表單自動帶入已儲存的四個頁面');
+  nav(1).value = 'themes'; arrive({ mobileNavTabs: ['albums', 'songs', 'tasks', 'transition'] });
+  ok([1, 2, 3, 4].map(i => nav(i).value).join() === 'themes,songs,tasks,transition', '使用者已經改了第 1 格：新資料不覆蓋');
+  reset(); state.currentTab = 'admin'; switchAdminSubtab('mobileNav'); arrive({ mobileNavTabs: ['docs', 'songs', 'tasks', 'transition'] }); resetMobileNavSlots();
+  ok([1, 2, 3, 4].map(i => nav(i).value).join() === 'home,albums,themes,songs', '（前提）按了「恢復預設」');
+  arrive({ mobileNavTabs: ['docs', 'songs', 'tasks', 'transition'] });
+  ok([1, 2, 3, 4].map(i => nav(i).value).join() === 'home,albums,themes,songs', '按了「恢復預設」、還沒儲存時新資料到達：不覆蓋（它是還沒儲存的修改）');
+  reset(); state.settings.activityFolderUrl = ''; state.settings.activityFolderId = ''; state.currentTab = 'admin'; switchAdminSubtab('settings'); const af = $('setting-activityFolderUrl');
+  ok(af.value === '', '（重現）密碼與設定：資料沒到前，雲端資料夾網址是空的');
+  arrive({ activityFolderUrl: 'https://drive.google.com/drive/folders/ABC123' }); ok(af.value === 'https://drive.google.com/drive/folders/ABC123', '資料到達：Acticity 雲端資料夾網址自動帶入');
+  af.value = 'https://drive.google.com/drive/folders/我改到一半'; arrive({ activityFolderUrl: 'https://drive.google.com/drive/folders/NEW' }); ok(af.value === 'https://drive.google.com/drive/folders/我改到一半', '使用者已經改：不覆蓋');
+  state.currentTab = 'admin';
 
   // I. 其他
   ok(typeof saveMobileNavSettings === 'function' && typeof renderMobileNavSettings === 'function', '手機導覽列的儲存與載入函式仍在');

@@ -3595,9 +3595,9 @@
       { prop: 'headerSchool', area: '頁首', label: '學校名稱', kind: 'name', max: 40, zh: '新北市桃子腳非營利幼兒園', i18n: 'header.school', hint: '小標籤右邊的灰色文字' },
       { prop: 'headerClass', area: '頁首', label: '班級名稱', kind: 'name', max: 20, zh: '諾貝爾 A 班', i18n: 'header.class', hint: '頁首最大的黑色粗體字' },
       { prop: 'headerBadge', area: '頁首', label: '標籤', kind: 'name', max: 20, zh: 'Happy Life', i18n: '', hint: '班級名稱旁邊的紅色圓角標籤' },
+      { prop: 'footerLineUrl', area: '頁尾', label: 'LINE 連結', kind: 'url', max: 300, zh: '', i18n: '', placeholder: 'https://lin.ee/…', hint: 'LINE 官方帳號網址（https:// 開頭）。填了，頁尾聯絡資訊前面會出現綠色 LINE 圖示，點了開新分頁；留空就不顯示' },
       { prop: 'footerContact', area: '頁尾', label: '聯絡資訊', kind: 'text', max: 80, zh: 'TEL：02-2668-8249｜FAX：02-2668-8245', i18n: '', hint: '頁尾第一行（紅色粗體）' },
-      { prop: 'footerMotto', area: '頁尾', label: '標語', kind: 'text', max: 60, zh: '用愛陪伴孩子成長的每一步', i18n: 'footer.motto', hint: '頁尾第二行（灰色）' },
-      { prop: 'footerLineUrl', area: '頁尾', label: 'LINE 連結', kind: 'url', max: 300, zh: '', i18n: '', placeholder: 'https://lin.ee/…', hint: 'LINE 官方帳號網址（https:// 開頭）。填了，頁尾聯絡資訊前面會出現綠色 LINE 圖示，點了開新分頁；留空就不顯示' }
+      { prop: 'footerMotto', area: '頁尾', label: '標語', kind: 'text', max: 60, zh: '用愛陪伴孩子成長的每一步', i18n: 'footer.motto', hint: '頁尾第二行（灰色）' }
     ];
     function siteTitleDef(prop) { return SITE_TITLE_DEFS.find(function(d) { return d.prop === prop; }); }
     function siteTitleCustom(prop) {
@@ -5481,6 +5481,10 @@
         if (subtab === 'tasks') renderAdminTasksList();
         if (subtab === 'transition') renderAdminTransition();
         if (subtab === 'uploadPhoto') renderAdminAlbumsTable();
+        // 設定類頁面：重新整理後先還原到這個子頁籤、資料稍後才到，要用新資料重畫（使用者改到一半的不覆蓋）
+        if (subtab === 'siteTitles') refreshSiteTitlesForm();
+        if (subtab === 'mobileNav') refreshMobileNavSettings();
+        if (subtab === 'settings') refreshSettingsForm();
       }
     }
 
@@ -13501,6 +13505,14 @@
         sel.value = cur[i] || DEFAULT_MOBILE_NAV[i];
         lab.appendChild(cap); lab.appendChild(sel); box.appendChild(lab);
       }
+      if (!values) adminFormBaseline.mobileNav = mobileNavSnapshot();   // 「恢復預設」傳入 values：不更新（它是還沒儲存的修改）
+    }
+    function mobileNavSnapshot() { return [1, 2, 3, 4].map(function(i) { return (document.getElementById('mobileNavSlot-' + i) || {}).value || ''; }).join(','); }
+    function refreshMobileNavSettings() {
+      const box = document.getElementById('mobileNavSlots');
+      if (!box) return;
+      if (!box.children.length) { renderMobileNavSettings(); return; }
+      if (adminFormBaseline.mobileNav === mobileNavSnapshot() && mobileNavSnapshot() !== mobileNavTabs().join(',')) renderMobileNavSettings();
     }
     function resetMobileNavSlots() { renderMobileNavSettings(DEFAULT_MOBILE_NAV); }
 
@@ -13532,6 +13544,19 @@
         });
         box.appendChild(sec);
       });
+      adminFormBaseline.siteTitles = siteTitlesSnapshot();
+    }
+    // ---------- 後台設定類表單：資料晚到時用新資料重畫 ----------
+    // 重新整理頁面時，會先還原到上次的後台子頁籤並畫出表單，公開資料（含設定）稍後才到；資料到達時如果不重畫，表單會一直是空的
+    // （使用者回報「重新整理後欄位變成空值」）。但使用者已經開始改的內容不能被蓋掉：只有「表單內容還和剛畫好時一樣」才用新資料重畫。
+    const adminFormBaseline = {};
+    function siteTitlesSnapshot() { return JSON.stringify(siteTitleFormValues()); }
+    function siteTitlesWanted() { const o = {}; SITE_TITLE_DEFS.forEach(function(d) { o[d.prop] = siteTitleCustom(d.prop); }); return JSON.stringify(o); }
+    function refreshSiteTitlesForm() {
+      const box = document.getElementById('siteTitlesFields');
+      if (!box) return;
+      if (!box.children.length) { renderSiteTitlesForm(); return; }
+      if (adminFormBaseline.siteTitles === siteTitlesSnapshot() && siteTitlesSnapshot() !== siteTitlesWanted()) renderSiteTitlesForm();
     }
     function siteTitleCount(inp) {
       const wrap = inp && inp.closest ? inp.closest('[data-site-field]') : null;
@@ -14661,11 +14686,19 @@
       });
     }
     
+    function settingsFolderWanted() {
+      return (state.settings && (state.settings.activityFolderUrl || (state.settings.activityFolderId ? 'https://drive.google.com/drive/folders/' + state.settings.activityFolderId : ''))) || '';
+    }
     function loadSettingsToForm() {
       const actFolderInput = document.getElementById('setting-activityFolderUrl');
       if (actFolderInput) {
-        actFolderInput.value = (state.settings && (state.settings.activityFolderUrl || (state.settings.activityFolderId ? 'https://drive.google.com/drive/folders/' + state.settings.activityFolderId : ''))) || '';
+        actFolderInput.value = settingsFolderWanted();
+        adminFormBaseline.settingsFolder = actFolderInput.value;
       }
+    }
+    function refreshSettingsForm() {
+      const inp = document.getElementById('setting-activityFolderUrl');
+      if (inp && adminFormBaseline.settingsFolder === inp.value && inp.value !== settingsFolderWanted()) loadSettingsToForm();
     }
 
     function saveSystemSettings() {
