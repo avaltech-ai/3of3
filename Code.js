@@ -400,8 +400,6 @@ function doGet(e) {
         result = getAlbums();
       } else if (action === 'getAlbumPhotos') {
         result = getAlbumPhotos(e.parameter.albumId);
-      } else if (action === 'getActivityImages') {
-        result = getActivityImages();
       }
       // 安全性：doGet 為公開匿名入口，僅允許唯讀動作。
       // 任何會寫入、清除快取、初始化資料庫的動作一律不得放在這裡（需走 doPost 並驗證密碼）。
@@ -656,7 +654,7 @@ function doPost(e) {
     } else if (action === 'uploadSpotlightImage') {
       result = uploadSpotlightImage(postData.file, postData.password);
     } else if (action === 'getActivityImages') {
-      result = getActivityImages();
+      result = getActivityImages(postData.password);
     } else if (action === 'saveDoc') {
       result = saveDoc(postData.docData || postData.data, postData.password);
     } else if (action === 'deleteDoc') {
@@ -3400,9 +3398,11 @@ function uploadSpotlightImage(fileObj, password) {
 }
 
 /**
- * 取得 Google Drive Acticity 資料夾內現有的所有圖片檔案
+ * 取得 Google Drive Acticity 資料夾內現有的所有圖片檔案（後台選圖用，需要登入 token；
+ * 不提供匿名 GET，避免任何人列出資料夾內尚未公開的檔案）
  */
-function getActivityImages() {
+function getActivityImages(password) {
+  if (!checkPassword(password)) return authFail_();
   try {
     const folder = getActivityFolder_();
     if (!folder) return { success: false, error: '找不到或無法開啟 Acticity 資料夾', files: [] };

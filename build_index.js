@@ -4163,7 +4163,7 @@ const htmlContent = `<!DOCTYPE html>
         else if (action === 'deleteAlbum') runner.deleteAlbum(payload.id, payload.password);
         else if (action === 'uploadDocument') runner.uploadDocument(payload.meta, payload.file, payload.password);
         else if (action === 'uploadSpotlightImage') runner.uploadSpotlightImage(payload.file, payload.password);
-        else if (action === 'getActivityImages') runner.getActivityImages();
+        else if (action === 'getActivityImages') runner.getActivityImages(payload.password);
         else if (action === 'deleteDoc') runner.deleteDoc(payload.id, payload.password);
         else if (action === 'updateSettings') runner.updateSettings(payload.settings, payload.password);
         else if (action === 'uploadSong') runner.uploadSong(payload.meta, payload.file, payload.password);
@@ -4172,7 +4172,7 @@ const htmlContent = `<!DOCTYPE html>
       } else {
         // 外部環境模式 (Netlify / GitHub Pages)
         
-        if (action === 'getAppData' || action === 'getAlbums' || action === 'getAlbumPhotos' || action === 'getActivityImages' || action === 'getTextMap') {
+        if (action === 'getAppData' || action === 'getAlbums' || action === 'getAlbumPhotos' || action === 'getTextMap') {
           let url = GAS_API_URL + '?action=' + encodeURIComponent(action);
           if (payload && payload.albumId) url += '&albumId=' + encodeURIComponent(payload.albumId);
           
@@ -4216,7 +4216,7 @@ const htmlContent = `<!DOCTYPE html>
           attemptOnce(1);
         } else {
           // 寫入類動作附上冪等編號；之後 gasPostViaFetch 失敗降級為 iframe 重送時沿用同一個 payload（同一個編號）
-          if (payload && !payload.idempotencyKey && action !== 'verifyPassword' && action !== 'logout' && action !== 'checkSession') {
+          if (payload && !payload.idempotencyKey && action !== 'verifyPassword' && action !== 'logout' && action !== 'checkSession' && action !== 'getActivityImages') {
             payload = Object.assign({}, payload, { idempotencyKey: newIdempotencyKey() });
           }
           // 外部環境 POST 呼叫：優先使用標準 fetch POST (CORS 相容且無跨網域 iframe 阻擋問題)，失敗時自動降級至 iframe form POST
@@ -12885,7 +12885,7 @@ const htmlContent = `<!DOCTYPE html>
       grid.innerHTML = '';
       const wait = startWaitHint(loading);
 
-      callBackend('getActivityImages', {}, res => {
+      callBackend('getActivityImages', { password: state.adminPassword }, res => {
         wait.stop();
         loading.classList.add('hidden');
         if (res && res.success && res.files && res.files.length > 0) {

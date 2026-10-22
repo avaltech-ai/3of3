@@ -829,7 +829,8 @@ git push origin main
 - **逾時處理**：後端回傳 `authExpired: true` 時，前端先讓原本的 callback 還原畫面，再統一回到登入畫面並提示重新登入。
 - **變更密碼**：後台變更成功後，所有裝置的 token 立即失效（`AUTH_EPOCH`），需以新密碼重新登入。
 - **已知限制**：token 存在 `CacheService`，Google 在極少數情況可能提前清除快取，管理員會被要求重新登入（不影響資料）。`Settings` 內的密碼仍為明文（有試算表編輯權限者可見）。
-- **測試**：`node tests/auth.test.js`（模擬環境，92 項，含受信任裝置與公式字元開頭的密碼）、`node tests/security.test.js`（108 項：公開函式白名單、擁有者保護、預熱節流、選單先取 UI、網址驗證、公式注入）、`node tests/safeurl.test.js`（46 項）、`node tests/adminlogin.test.js`（21 項），修改認證、鎖定、備份、公開函式、寫入試算表相關程式後須全數通過才可部署。
+- **活動圖片清單需登入（2026-10-23 紅隊檢查 M-4）**：`getActivityImages(password)` 第一個動作驗證 token，GET 不再提供（token 不該放網址），前端改走 POST／`google.script.run` 並帶 token；它只有後台「從 Acticity 資料夾選取」會用。Albums／Music／Docs／Acticity 資料夾本身是「知道連結的任何人可檢視」（網站用個別檔案連結顯示，檔案上傳時也設為公開），這是設計；**不要把不想公開的檔案放進這些資料夾**。
+- **測試**：`node tests/auth.test.js`（模擬環境，92 項，含受信任裝置與公式字元開頭的密碼）、`node tests/security.test.js`（123 項，含 `getActivityImages` 需登入：公開函式白名單、擁有者保護、預熱節流、選單先取 UI、網址驗證、公式注入）、`node tests/safeurl.test.js`（46 項）、`node tests/adminlogin.test.js`（21 項），修改認證、鎖定、備份、公開函式、寫入試算表相關程式後須全數通過才可部署。
 
 ### 5.7 前端輸出跳脫（XSS 防護）
 
@@ -856,7 +857,7 @@ git push origin main
   | `albph_<資料夾id>`＋索引 `albph_keys` | 單本相簿的照片清單（`{id,name,size}`） | 1 小時（索引 6 小時） | 隨 `clearAppDataCache()` 一併清除；超過 90000 字元不快取 |
   | `tok_*`、`login_fails`、`idem_*` | 登入 token、鎖定計數、冪等結果 | 見 5.6、5.8 | — |
 - **預熱觸發器**：`warmAppDataCache()` 由時間觸發器每 5 分鐘執行，略過現有快取重建 `getAppData`（旗標 `APP_DATA_FORCE_REFRESH_` 只在該次執行內有效，不影響網頁請求），並補建最多 2 本沒有快取的相簿清單。建立方式：試算表選單「⚡ 啟用網頁快取預熱」（`setupWarmCacheTrigger`，冪等）。預熱失敗不影響網站，下一位使用者照舊現場讀取。
-- **讀取自動重試**：前端 `callBackend` 的 GET（`getAppData`／`getAlbums`／`getAlbumPhotos`／`getActivityImages`）每次嘗試逾時 30 秒，失敗（逾時、HTTP 錯誤、非 JSON）自動重試（`getAppData` 共 3 次、其他 2 次，間隔 1.5 秒），全部失敗才呼叫失敗回呼。伺服器即使這次來不及回應，仍會把結果存進快取，所以重試通常命中。
+- **讀取自動重試**：前端 `callBackend` 的 GET（`getAppData`／`getAlbums`／`getAlbumPhotos`／`getTextMap`）每次嘗試逾時 30 秒，失敗（逾時、HTTP 錯誤、非 JSON）自動重試（`getAppData` 共 3 次、其他 2 次，間隔 1.5 秒），全部失敗才呼叫失敗回呼。伺服器即使這次來不及回應，仍會把結果存進快取，所以重試通常命中。
 - **等待提示**：`startWaitHint(container, opts)`；讀取超過 3 秒才顯示「已等待 N 秒」，重試時附「網路較慢，正在重試（n/max）」，相簿視窗等 8 秒以上再加「大型相簿第一次開啟會比較久」。**誠實原則**：伺服器處理期間沒有進度資訊，不做假百分比。套用於首頁同步徽章／載入轉圈、相簿列表、相簿照片視窗、後台 Activity 資料夾選取。`callBackend` 第 5 參數 `hooks.onAttempt(n, max)` 回報嘗試次數。
 - **同步失敗提示**帶錯誤原因（`notifySyncFailed(err)`，例如 `[TypeError: Load failed]`），方便在手機上直接回報。
 - **診斷頁**：`diag.html`（`…/3of3/diag.html`）在手機上逐一呼叫 `getAlbums`、`getAppData` 兩次並顯示狀態碼、耗時、錯誤名稱；請只按一次按鈕（多按會讓輸出交錯）。

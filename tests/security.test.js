@@ -20,7 +20,7 @@ console.log('H-1. 公開函式白名單（名稱沒有結尾底線的函式，�
 const fns = topLevelFunctions();
 const pub = fns.filter(f => !f.name.endsWith('_'));
 const ENTRY = ['doGet', 'doPost', 'onOpen'];
-const READ_API = ['getAppData', 'getTextMap', 'getAlbums', 'getAlbumPhotos', 'getActivityImages'];   // 匿名唯讀 API（前台需要）
+const READ_API = ['getAppData', 'getTextMap', 'getAlbums', 'getAlbumPhotos'];   // 匿名唯讀 API（前台需要）
 const LOGIN = ['verifyPassword', 'adminLogout'];                                                       // 登入／登出本來就不需要 token
 const TRIGGERS = ['weeklyBackup', 'warmAppDataCache'];                                                  // 時間觸發器的處理函式（名稱必須公開）
 const OWNER_ONLY = ['setupWeeklyBackupTrigger', 'setupWarmCacheTrigger'];                              // 編輯器手動執行（名稱必須公開）
@@ -233,6 +233,33 @@ console.log('M-3. 試算表公式注入：寫進儲存格的文字不能被當�
   ok(/postData\s*=\s*neutralizeFormulas_\(postData\)/.test(src), 'doPost 在解析請求之後、分派動作之前，統一處理所有動作的文字欄位');
   const i = src.indexOf('const FORMULA_SKIP_KEYS_'), j = src.indexOf('};', i); const keys = (src.slice(i, j).match(/(\w+):\s*1/g) || []).map(x => x.split(':')[0]);
   ok(['data', 'docData', 'songData', 'albumData', 'album', 'meta', 'themeData', 'taskData', 'title', 'description', 'fileName', 'category', 'semester', 'link', 'fromSemester', 'toSemester', 'fromYear', 'toYear', 'orderList', 'ids', 'tabs'].every(k => keys.indexOf(k) === -1), '不處理的欄位清單裡沒有任何「會被寫進試算表」的資料欄位（略過清單：' + keys.join('、') + '）');
+})();
+
+console.log('M-4. getActivityImages（列出 Acticity 資料夾所有圖片）必須登入才能呼叫');
+(function () {
+  const fn = topLevelFunctions().find(f => f.name === 'getActivityImages');
+  ok(fn && /^if \(!checkPassword\(password\)\) return authFail_\(\);/.test(firstStatement(fn)) && /^function getActivityImages\(password\)/.test(fn.body), 'getActivityImages(password)：第一個動作是驗證 token，沒有白名單例外（匿名函式清單不再列它）');
+  const e = mkSsEnv({}); let touched = 0;
+  e.ctx.getActivityFolder_ = () => { touched++; return { getUrl: () => 'u', getFiles: () => ({ hasNext: () => false }) }; };
+  let r = e.ctx.getActivityImages(); ok(r.success === false && r.authExpired === true && touched === 0, '不帶 token（匿名經 google.script.run）：被拒絕，沒有碰 Drive');
+  r = e.ctx.getActivityImages('bogus'); ok(r.success === false && r.authExpired === true && touched === 0, '假 token：被拒絕，沒有碰 Drive');
+  r = e.ctx.getActivityImages('tok'); ok(r.success === true && touched === 1 && Array.isArray(r.files), '正確 token：照常列出');
+  const doGet = q => JSON.parse(e.ctx.doGet({ parameter: q }).text);
+  touched = 0; r = doGet({ action: 'getActivityImages' }); ok(r.success === false && r.error === '未知動作' && touched === 0, 'GET ?action=getActivityImages：不再提供（回「未知動作」，沒有碰 Drive）');
+  r = doGet({ action: 'getActivityImages', password: 'tok', token: 'tok' }); ok(r.success === false && touched === 0, 'GET 即使帶 token 參數也不提供（token 不該出現在網址）');
+  const post = body => JSON.parse(e.ctx.doPost({ postData: { contents: JSON.stringify(body) } }).text);
+  r = post({ action: 'getActivityImages' }); ok(r.success === false && r.authExpired === true && touched === 0, 'POST 不帶 token：被拒絕');
+  r = post({ action: 'getActivityImages', password: 'bogus' }); ok(r.success === false && r.authExpired === true && touched === 0, 'POST 假 token：被拒絕');
+  r = post({ action: 'getActivityImages', password: 'tok' }); ok(r.success === true && touched === 1, 'POST 正確 token：回傳圖片清單');
+  ok(!/action === 'getActivityImages'[\s\S]{0,80}getActivityImages\(\)/.test(src), '後端沒有任何路徑以無參數呼叫 getActivityImages()');
+})();
+(function () {
+  const fe = fs.readFileSync(path.join(__dirname, '..', 'build_index.js'), 'utf8');
+  ok(/runner\.getActivityImages\(payload\.password\)/.test(fe), '前端（google.script.run 模式）：把 token 傳給後端');
+  ok(/callBackend\('getActivityImages', \{ password: state\.adminPassword \}/.test(fe), '前端：後台選圖視窗呼叫時帶 token');
+  const m = fe.match(/if \(action === 'getAppData' \|\| [^)]*\) \{/);
+  ok(m && m[0].indexOf('getActivityImages') < 0, '前端（外部環境）：getActivityImages 不再走匿名 GET，改走 POST');
+  ok(/action !== 'getActivityImages'/.test(fe), '前端：getActivityImages 不附冪等編號（它是讀取，不是寫入）');
 })();
 
 console.log('\n結果：' + pass + ' 通過，' + fail + ' 失敗');
