@@ -7908,6 +7908,7 @@ const htmlContent = `<!DOCTYPE html>
     // ==================== 桃子腳幼兒園 完整 Google Drive 照片連結 ====================
     // ※ 之後每月新增時，只需在下方陣列新增當月項目即可（可直接在開頭新增）：
     let fullDriveMonthlyLinks = [
+      { label: '2026.10', url: 'https://drive.google.com/drive/folders/10zgzXcBtUGOJXn230xZA9wdRs45LHH1H' },
       { label: '2026.09', url: 'https://drive.google.com/drive/folders/1Wo6-HKTLyaxFCcvJ5A4SGaffLFLipPvE' },
       { label: '2026.08', url: 'https://drive.google.com/drive/folders/1sj6-ZfE6GF4Qj0BnyBlcdgFWf9OlW_nR' }
     ];
