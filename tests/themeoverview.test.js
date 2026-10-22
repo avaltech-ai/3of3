@@ -1,4 +1,4 @@
-// 學期「主題架構圖」後端測試：ThemeSemesters.overviewImage 欄（Drive 連結或檔案 ID）→ getThemesData().overviews → getAppData 的 themeOverviews。
+// 學期「主題架構圖」後端測試：ThemeSemesters.overviewImage 欄（Drive 連結或檔案 ID）→ getThemesData_().overviews → getAppData 的 themeOverviews。
 // 執行：node tests/themeoverview.test.js
 const fs = require('fs'), vm = require('vm');
 const src = fs.readFileSync(require('path').join(__dirname, '..', 'Code.js'), 'utf8');
@@ -21,7 +21,7 @@ function env(semRows, themeRows) { // semRows、themeRows：含標題列的 2D �
   const semSheet = mkSheet(sems), themeSheet = mkSheet(themes);
   const ctx = { console: { log() {}, warn() {}, error() {} }, CacheService: { getScriptCache: () => ({ get: () => null, put() {}, remove() {} }) }, PropertiesService: {}, Utilities: {}, LockService: {}, SpreadsheetApp: {}, ContentService: {}, HtmlService: {}, UrlFetchApp: {}, DriveApp: {}, Session: {}, ScriptApp: {} };
   vm.createContext(ctx); vm.runInContext(src, ctx);
-  ctx.getSpreadsheet = () => ({ getSheetByName: n => n === 'ThemeSemesters' ? semSheet : (n === 'Themes' ? themeSheet : null) });
+  ctx.getSpreadsheet_ = () => ({ getSheetByName: n => n === 'ThemeSemesters' ? semSheet : (n === 'Themes' ? themeSheet : null) });
   return { ctx, sems, themes };
 }
 const THEME_H = ['id', 'semester', 'week', 'startDate', 'endDate', 'themeName', 'themeConcept', 'goals', 'photos', 'updatedAt'];
@@ -45,18 +45,18 @@ ok(JSON.stringify(r) === JSON.stringify({ '115 學年上學期': ID, '114 學年
 ok(JSON.stringify(e.ctx.parseThemeOverviews_([])) === '{}' && JSON.stringify(e.ctx.parseThemeOverviews_(null)) === '{}' && JSON.stringify(e.ctx.parseThemeOverviews_([{ semesterName: 'x' }])) === '{}', '沒有資料：空物件，不出錯');
 
 console.log('C. 欄位標題自動補上');
-e = env([['semesterName'], ['115 學年上學期'], ['115 學年下學期']], [THEME_H]); e.ctx.ensureThemeSheetsExist();
+e = env([['semesterName'], ['115 學年上學期'], ['115 學年下學期']], [THEME_H]); e.ctx.ensureThemeSheetsExist_();
 ok(e.sems[0].join() === 'semesterName,overviewImage,tasksOverviewImage' && e.sems[1][0] === '115 學年上學期' && e.sems[2].length === 1, 'ThemeSemesters 只有一欄：在右邊補上 overviewImage（與學期任務的 tasksOverviewImage）標題，原有資料不動');
-e.ctx.ensureThemeSheetsExist(); ok(e.sems[0].length === 3, '再執行一次：不會重複新增欄位');
-e = env([['semesterName', 'overviewImage'], ['115 學年上學期', ID]], [THEME_H]); e.ctx.ensureThemeSheetsExist(); ok(e.sems[0].length === 3 && e.sems[1][1] === ID, '已有 overviewImage 欄：沿用，已貼的連結不動');
-e = env([['overviewImage', 'semesterName'], [ID, 'x']], [THEME_H]); e.ctx.ensureThemeSheetsExist(); ok(e.sems[0].length === 3 && e.sems[0].indexOf('overviewImage') === 0, '欄位順序不同也認得（以標題名稱判斷）');
+e.ctx.ensureThemeSheetsExist_(); ok(e.sems[0].length === 3, '再執行一次：不會重複新增欄位');
+e = env([['semesterName', 'overviewImage'], ['115 學年上學期', ID]], [THEME_H]); e.ctx.ensureThemeSheetsExist_(); ok(e.sems[0].length === 3 && e.sems[1][1] === ID, '已有 overviewImage 欄：沿用，已貼的連結不動');
+e = env([['overviewImage', 'semesterName'], [ID, 'x']], [THEME_H]); e.ctx.ensureThemeSheetsExist_(); ok(e.sems[0].length === 3 && e.sems[0].indexOf('overviewImage') === 0, '欄位順序不同也認得（以標題名稱判斷）');
 
-console.log('D. getThemesData / getAppData');
+console.log('D. getThemesData_ / getAppData');
 e = env([['semesterName', 'overviewImage'], ['115 學年上學期', 'https://drive.google.com/file/d/' + ID + '/view?usp=sharing'], ['115 學年下學期', '']], [THEME_H, ['T1', '115 學年上學期', '第一週', '2026-08-03', '2026-08-07', '我的班級新生活', '', '[]', '[]', '2026-08-01']]);
-let td = e.ctx.getThemesData();
+let td = e.ctx.getThemesData_();
 ok(td.semesters.join() === '115 學年上學期,115 學年下學期' && td.themes.length === 1, '原有的學期清單與主題不受影響（學期仍是字串清單）');
 ok(JSON.stringify(td.overviews) === JSON.stringify({ '115 學年上學期': ID }), 'getThemesData().overviews：只有 115 學年上學期，值是純 ID（不是連結）');
-e = env([['semesterName'], ['115 學年上學期']], [THEME_H]); td = e.ctx.getThemesData(); ok(JSON.stringify(td.overviews) === '{}' && td.semesters.length === 1, '尚未設定任何圖：overviews 為空物件');
+e = env([['semesterName'], ['115 學年上學期']], [THEME_H]); td = e.ctx.getThemesData_(); ok(JSON.stringify(td.overviews) === '{}' && td.semesters.length === 1, '尚未設定任何圖：overviews 為空物件');
 ok(/themeOverviews:\s*themeOverviews/.test(src) && /themeOverviews = themeData\.overviews \|\| \{\}/.test(src), 'getAppData 的回應含 themeOverviews（讀不到時退回空物件）');
 const gi = src.indexOf('function saveTheme('); ok(src.slice(gi, gi + 6000).indexOf('overviewImage') === -1, '儲存主題（saveTheme）不碰 overviewImage（不會被後台儲存覆蓋）');
 

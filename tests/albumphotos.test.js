@@ -18,7 +18,7 @@ function env(photoCounts, registered, sheetRows){ // photoCounts: {folderId: 張
   vm.createContext(ctx); vm.runInContext(src,ctx);
   if(registered) store['app_data_v4']=JSON.stringify({success:true,data:{albums:registered.map(id=>({id}))}});
   let sheetReads=0;
-  ctx.getSpreadsheet=()=>({getSheetByName:n=>{ if(sheetRows===Error) throw new Error('boom'); if(n!=='Albums'||!sheetRows) return null; sheetReads++; return {getDataRange:()=>({getValues:()=>[['id','title']].concat(sheetRows.map(i=>[i,'x']))})}; }});
+  ctx.getSpreadsheet_=()=>({getSheetByName:n=>{ if(sheetRows===Error) throw new Error('boom'); if(n!=='Albums'||!sheetRows) return null; sheetReads++; return {getDataRange:()=>({getValues:()=>[['id','title']].concat(sheetRows.map(i=>[i,'x']))})}; }});
   return {ctx,store,drive:()=>driveCalls,sheetReads:()=>sheetReads};
 }
 const A='AAAAAAAAAAAAAAAAAAAA', B='BBBBBBBBBBBBBBBBBBBB', C='CCCCCCCCCCCCCCCCCCCC', D='DDDDDDDDDDDDDDDDDDDD';
@@ -37,7 +37,7 @@ ok(e.drive()===1,'同一本相簿讀三次，只呼叫 Drive 1 次（實際：'+
 ok(e.ctx.getAlbumPhotos(A).photos.length===100,'命中快取的內容與第一次相同');
 
 console.log('C. 寫入（清快取）後重新讀取');
-e.ctx.clearAppDataCache(); e.ctx.getAlbumPhotos(A);
+e.ctx.clearAppDataCache_(); e.ctx.getAlbumPhotos(A);
 ok(e.drive()===2,'clearAppDataCache 之後重新向 Drive 讀取（實際：'+e.drive()+'）');
 
 console.log('D. 大型相簿與邊界');
@@ -66,7 +66,7 @@ e=env({[A]:5},null,[A]); ok(e.ctx.getAlbumPhotos(A).success===true && e.sheetRea
 e=env({[A]:5},[B],[A]); ok(e.ctx.getAlbumPhotos(A).success===true,'快取清單過期（沒有這本）但工作表有：允許');
 e=env({[A]:5},[B],[B]); ok(e.ctx.getAlbumPhotos(A).success===false,'快取與工作表都沒有：拒絕');
 e=env({[A]:5},null,Error); ok(e.ctx.getAlbumPhotos(A).success===false && e.drive()===0,'讀工作表出錯：一律拒絕（fail closed）');
-const rows=[A]; e=env({[A]:5},[A],rows); e.ctx.getAlbumPhotos(A); rows.length=0; e.ctx.clearAppDataCache();
+const rows=[A]; e=env({[A]:5},[A],rows); e.ctx.getAlbumPhotos(A); rows.length=0; e.ctx.clearAppDataCache_();
 ok(e.ctx.getAlbumPhotos(A).success===false,'相簿被刪除並清快取後：不再能列出');
 e=env({[A]:5},[A]); ok(e.ctx.getAlbumPhotos(' '+A+' ').success===true,'ID 前後有空白：照常處理（trim）');
 

@@ -60,8 +60,8 @@ function env(opts) {
   vm.createContext(ctx); vm.runInContext(src, ctx);
   ctx.__songsId = vm.runInContext('SONGS_FOLDER_ID', ctx);
   const ss = { getSheetByName: n => book[n] || null, insertSheet: n => { book[n] = mkSheet([]); return book[n]; } };
-  ctx.getSpreadsheet = () => ss; ctx.checkPassword = p => p === TOK;
-  ctx.clearAppDataCache = () => { clears++; };
+  ctx.getSpreadsheet_ = () => ss; ctx.checkPassword = p => p === TOK;
+  ctx.clearAppDataCache_ = () => { clears++; };
   return { ctx, book, drive, store, clears: () => clears, songRow: id => { const r = book.Songs.rows.find(x => x[0] === id); const o = {}; HEAD.forEach((h, i) => { o[h] = r ? r[i] : undefined; }); return o; } };
 }
 const driveOps = (e, kinds) => e.drive.ops.filter(o => kinds.indexOf(o[0]) !== -1);
@@ -83,10 +83,10 @@ ok(t0.songPublicView_(null) === null && t0.songPublicView_(undefined) === undefi
 console.log('B. getAppData 的公開歌曲');
 {
   const e = env(); const names = ['Events', 'Menus', 'Spotlight', 'Docs', 'DocCategories', 'Settings'];
-  const orig = e.ctx.getSpreadsheet();
+  const orig = e.ctx.getSpreadsheet_();
   const ss = { getSheetByName: n => e.book[n] || (names.indexOf(n) >= 0 ? (e.book[n] = mkSheet([['id']])) : null), insertSheet: n => (e.book[n] = mkSheet([])) };
-  e.ctx.getSpreadsheet = () => ss;
-  ['ensureDatabaseInitialized', 'ensureAlbumSheetsExist', 'getAlbums', 'getThemesData', 'getNameMapForApp_', 'getActivityFolder'].forEach(n => { e.ctx[n] = () => (n === 'getAlbums' ? { albums: [] } : n === 'getThemesData' ? { themes: [], semesters: [] } : n === 'getNameMapForApp_' ? {} : null); });
+  e.ctx.getSpreadsheet_ = () => ss;
+  ['ensureDatabaseInitialized_', 'ensureAlbumSheetsExist_', 'getAlbums', 'getThemesData_', 'getNameMapForApp_', 'getActivityFolder_'].forEach(n => { e.ctx[n] = () => (n === 'getAlbums' ? { albums: [] } : n === 'getThemesData' ? { themes: [], semesters: [] } : n === 'getNameMapForApp_' ? {} : null); });
   let r; try { r = e.ctx.getAppData(); } catch (err) { r = { success: false, error: String(err) }; }
   const songs = r && r.success ? r.data.songs : null;
   ok(!!songs && songs.length === 3, 'getAppData 回傳 3 首歌曲（' + (r && r.error ? r.error : 'ok') + '）');
@@ -113,23 +113,23 @@ console.log('C. adminSongList（後台專用，需 token）');
 
 console.log('D. saveSong：Drive 存取調整');
 {
-  let e = env(); let r = e.ctx.saveSong(base({ noDownload: true, fileName: 'a.mp3', fileSize: 100, driveFileId: 'F1', downloadUrl: 'D1' }), 'bad');
+  let e = env(); let r = e.ctx.saveSong(base({ noDownload: true, fileName: 'a.mp3', fileSize: 100, driveFileId: 'F1', downloadUrl: 'https://x.test/D1' }), 'bad');
   ok(r.success === false && r.authExpired === true && e.drive.ops.length === 0, '錯誤 token：拒絕，Drive 完全沒被動');
 
-  e = env(); r = e.ctx.saveSong(base({ noDownload: true, fileName: 'a.mp3', fileSize: 100, driveFileId: 'F1', downloadUrl: 'D1' }), TOK);
+  e = env(); r = e.ctx.saveSong(base({ noDownload: true, fileName: 'a.mp3', fileSize: 100, driveFileId: 'F1', downloadUrl: 'https://x.test/D1' }), TOK);
   ok(r.success && r.noDownload === true && !r.warning, '開放 → 不開放：成功');
   ok(e.drive.files.F1.access === 'PRIVATE' && e.drive.files.F1.parent === 'PRIVATE', '檔案設為私人，並搬到私人資料夾（唱跳音符資料夾是公開的，只改權限不夠）');
   ok(driveOps(e, ['createFolder']).length === 1 && e.drive.folders['唱跳音符_不開放下載'], '私人資料夾「唱跳音符_不開放下載」自動建立在根目錄');
-  ok(e.songRow('S1').noDownload === true && e.songRow('S1').driveFileId === 'F1' && e.songRow('S1').downloadUrl === 'D1', '試算表：noDownload 欄為 TRUE，檔案資訊保留');
+  ok(e.songRow('S1').noDownload === true && e.songRow('S1').driveFileId === 'F1' && e.songRow('S1').downloadUrl === 'https://x.test/D1', '試算表：noDownload 欄為 TRUE，檔案資訊保留');
   ok(e.clears() >= 1, '儲存後清除快取（公開資料立即更新）');
 
-  r = e.ctx.saveSong(base({ noDownload: false, fileName: 'a.mp3', fileSize: 100, driveFileId: 'F1', downloadUrl: 'D1' }), TOK);
+  r = e.ctx.saveSong(base({ noDownload: false, fileName: 'a.mp3', fileSize: 100, driveFileId: 'F1', downloadUrl: 'https://x.test/D1' }), TOK);
   ok(r.success && r.noDownload === false && e.drive.files.F1.access === 'ANYONE' && e.drive.files.F1.parent === 'SONGS', '不開放 → 開放：搬回唱跳音符資料夾並設為「知道連結者可檢視」');
   ok(e.songRow('S1').noDownload === '', '試算表：noDownload 欄清空');
 
-  e = env(); e.ctx.saveSong(base({ id: 'S2', title: '不開放的歌', youtubeUrl: 'https://youtu.be/bbbbbbbbbbb', noDownload: true, fileName: 'b.mp3', fileSize: 200, driveFileId: 'F2', downloadUrl: 'D2' }), TOK);
+  e = env(); e.ctx.saveSong(base({ id: 'S2', title: '不開放的歌', youtubeUrl: 'https://youtu.be/bbbbbbbbbbb', noDownload: true, fileName: 'b.mp3', fileSize: 200, driveFileId: 'F2', downloadUrl: 'https://x.test/D2' }), TOK);
   ok(e.drive.files.F2.parent === 'PRIVATE' && e.drive.files.F2.access === 'PRIVATE' && e.songRow('S2').noDownload === true, '原本就是不開放、檔案沒換、再儲存：再確認一次檔案是私人（自我修復），狀態維持不變');
-  e = env(); e.ctx.saveSong(base({ fileName: 'a.mp3', fileSize: 100, driveFileId: 'F1', downloadUrl: 'D1' }), TOK);
+  e = env(); e.ctx.saveSong(base({ fileName: 'a.mp3', fileSize: 100, driveFileId: 'F1', downloadUrl: 'https://x.test/D1' }), TOK);
   ok(driveOps(e, ['move', 'share', 'create', 'createFolder']).length === 0, '開放的歌照舊儲存：完全不動 Drive');
 
   e = env(); r = e.ctx.saveSong({ id: 'S2', category: '兒歌', title: '不開放的歌（改名）', youtubeUrl: 'https://youtu.be/bbbbbbbbbbb', duration: '03:00', noDownload: true }, TOK);
@@ -140,18 +140,18 @@ console.log('D. saveSong：Drive 存取調整');
   e = env(); e.ctx.saveSong({ id: 'S1', category: '兒歌', title: '開放的歌', youtubeUrl: 'https://youtu.be/abcdefghijk', duration: '02:00' }, TOK);
   ok(e.songRow('S1').noDownload === '' && e.songRow('S1').driveFileId === 'F1', '沒帶檔案資訊的開放歌曲：也保留檔案資訊');
 
-  e = env(); r = e.ctx.saveSong({ id: 'S1', category: '兒歌', title: '開放的歌', youtubeUrl: 'https://youtu.be/abcdefghijk', duration: '02:00', noDownload: true, fileName: 'new.mp3', fileSize: 5, driveFileId: 'F9', downloadUrl: 'D9' }, TOK);
+  e = env(); r = e.ctx.saveSong({ id: 'S1', category: '兒歌', title: '開放的歌', youtubeUrl: 'https://youtu.be/abcdefghijk', duration: '02:00', noDownload: true, fileName: 'new.mp3', fileSize: 5, driveFileId: 'F9', downloadUrl: 'https://x.test/D9' }, TOK);
   ok(e.drive.files.F1 && e.drive.files.F1.access === 'PRIVATE' && e.drive.files.F1.parent === 'PRIVATE', '換了檔案且設為不開放：舊檔（原本公開的）也一併設為私人');
 
   e = env(); e.drive.files.F9 = { parent: 'SONGS', access: 'ANYONE' };
-  r = e.ctx.saveSong(base({ id: 'NEW', title: '新歌', youtubeUrl: 'https://youtu.be/ddddddddddd', noDownload: true, fileName: 'n.mp3', fileSize: 5, driveFileId: 'F9', downloadUrl: 'D9' }), TOK);
+  r = e.ctx.saveSong(base({ id: 'NEW', title: '新歌', youtubeUrl: 'https://youtu.be/ddddddddddd', noDownload: true, fileName: 'n.mp3', fileSize: 5, driveFileId: 'F9', downloadUrl: 'https://x.test/D9' }), TOK);
   ok(r.success && e.drive.files.F9.access === 'PRIVATE' && e.drive.files.F9.parent === 'PRIVATE' && e.songRow('NEW').noDownload === true, '新增歌曲並直接設為不開放（檔案已存在）：搬到私人資料夾');
   e = env(); r = e.ctx.saveSong(base({ id: 'NEW2', title: '只有 YouTube', youtubeUrl: 'https://youtu.be/eeeeeeeeeee', noDownload: true }), TOK);
   ok(r.success && e.songRow('NEW2').noDownload === true && driveOps(e, ['move', 'share', 'createFolder']).length === 0, '沒有音樂檔的歌也可標示不開放：只存旗標，不動 Drive、不建資料夾');
 
-  e = env({ failOn: 'move' }); r = e.ctx.saveSong(base({ noDownload: true, fileName: 'a.mp3', fileSize: 100, driveFileId: 'F1', downloadUrl: 'D1' }), TOK);
+  e = env({ failOn: 'move' }); r = e.ctx.saveSong(base({ noDownload: true, fileName: 'a.mp3', fileSize: 100, driveFileId: 'F1', downloadUrl: 'https://x.test/D1' }), TOK);
   ok(r.success === true && /Google Drive 權限調整失敗/.test(r.warning || '') && e.songRow('S1').noDownload === true, 'Drive 調整失敗：仍存下「不開放」（公開資料已不含網址），並回報警告請手動處理');
-  e = env({ failOn: 'move' }); r = e.ctx.saveSong(base({ id: 'S2', title: '不開放的歌', youtubeUrl: 'https://youtu.be/bbbbbbbbbbb', noDownload: false, fileName: 'b.mp3', fileSize: 200, driveFileId: 'F2', downloadUrl: 'D2' }), TOK);
+  e = env({ failOn: 'move' }); r = e.ctx.saveSong(base({ id: 'S2', title: '不開放的歌', youtubeUrl: 'https://youtu.be/bbbbbbbbbbb', noDownload: false, fileName: 'b.mp3', fileSize: 200, driveFileId: 'F2', downloadUrl: 'https://x.test/D2' }), TOK);
   ok(r.success === true && !!r.warning && e.songRow('S2').noDownload === '', '改回開放時 Drive 失敗：同樣回報警告');
 }
 
@@ -159,27 +159,27 @@ console.log('D2. 讀回驗證與自我修復');
 {
   // 旗標是 TRUE 但檔案其實還公開（例如直接在試算表輸入 TRUE）→ 儲存時補救
   let e = env(); e.book.Songs.rows[1][11] = true;          // S1 旗標 TRUE，F1 仍在公開資料夾、公開連結
-  let r = e.ctx.saveSong(base({ noDownload: true, fileName: 'a.mp3', fileSize: 100, driveFileId: 'F1', downloadUrl: 'D1' }), TOK);
+  let r = e.ctx.saveSong(base({ noDownload: true, fileName: 'a.mp3', fileSize: 100, driveFileId: 'F1', downloadUrl: 'https://x.test/D1' }), TOK);
   ok(r.success && !r.warning && e.drive.files.F1.parent === 'PRIVATE' && e.drive.files.F1.access === 'PRIVATE', '旗標已是 TRUE 但檔案還公開：再儲存一次就補救成私人並搬走（自我修復）');
 
   // 設為私人被拒，但搬走成功且檔案本來就沒有直接公開 → 讀回驗證為私人 → 視為成功
   e = env({ failOn: 'share' }); e.drive.files.F1.access = 'PRIVATE';
-  r = e.ctx.saveSong(base({ noDownload: true, fileName: 'a.mp3', fileSize: 100, driveFileId: 'F1', downloadUrl: 'D1' }), TOK);
+  r = e.ctx.saveSong(base({ noDownload: true, fileName: 'a.mp3', fileSize: 100, driveFileId: 'F1', downloadUrl: 'https://x.test/D1' }), TOK);
   ok(r.success && !r.warning && e.drive.files.F1.parent === 'PRIVATE', '設為私人被拒，但搬走成功且讀回為私人 → 以實際狀態為準，視為成功');
 
   // 設為私人被拒，檔案仍有公開連結 → 讀回驗證失敗 → 警告要有步驟、目前狀態、擁有者／執行者
   e = env({ failOn: 'share' });
-  r = e.ctx.saveSong(base({ noDownload: true, fileName: 'a.mp3', fileSize: 100, driveFileId: 'F1', downloadUrl: 'D1' }), TOK);
+  r = e.ctx.saveSong(base({ noDownload: true, fileName: 'a.mp3', fileSize: 100, driveFileId: 'F1', downloadUrl: 'https://x.test/D1' }), TOK);
   ok(r.success === true && /設為私人失敗/.test(r.warning || '') && /目前狀態/.test(r.warning) && /擁有者 owner@example\.com/.test(r.warning) && /執行者 runner@example\.com/.test(r.warning) && /所在資料夾/.test(r.warning), '仍有公開連結：警告含失敗步驟、目前狀態、檔案擁有者、執行者與所在資料夾（方便判斷是權限還是位置問題）');
   ok(e.songRow('S1').noDownload === true, '失敗時仍存下「不開放」旗標（公開資料已不含網址）');
 
   // 搬不動、設私人成功，但仍在公開資料夾 → 繼承公開，不算成功
   e = env({ failOn: 'move' });
-  r = e.ctx.saveSong(base({ noDownload: true, fileName: 'a.mp3', fileSize: 100, driveFileId: 'F1', downloadUrl: 'D1' }), TOK);
+  r = e.ctx.saveSong(base({ noDownload: true, fileName: 'a.mp3', fileSize: 100, driveFileId: 'F1', downloadUrl: 'https://x.test/D1' }), TOK);
   ok(/搬到私人資料夾失敗/.test(r.warning || '') && /在唱跳音符（公開）資料夾/.test(r.warning), '仍在公開資料夾：就算檔案權限是私人也不算成功（資料夾公開會繼承），警告指出目前在公開資料夾');
 
   // 找不到檔案
-  e = env(); r = e.ctx.saveSong(base({ noDownload: true, fileName: 'x.mp3', fileSize: 1, driveFileId: 'NOPE', downloadUrl: 'DX' }), TOK);
+  e = env(); r = e.ctx.saveSong(base({ noDownload: true, fileName: 'x.mp3', fileSize: 1, driveFileId: 'NOPE', downloadUrl: 'https://x.test/DX' }), TOK);
   ok(r.success && /無法開啟檔案/.test(r.warning || ''), '檔案 ID 不存在：回報「無法開啟檔案」，不拋錯');
 }
 
@@ -257,7 +257,7 @@ console.log('F. doPost 路由');
   ok(r.success === false && r.authExpired === true, 'adminSongList：錯誤 token 一律拒絕');
   r = post({ action: 'adminSongList', password: TOK });
   ok(r.success === true && r.songs.length === 3 && r.songs.find(s => s.id === 'S2').downloadUrl, 'adminSongList：正確 token 回完整歌單');
-  r = post({ action: 'saveSong', password: TOK, songData: base({ noDownload: true, fileName: 'a.mp3', fileSize: 100, driveFileId: 'F1', downloadUrl: 'D1' }) });
+  r = post({ action: 'saveSong', password: TOK, songData: base({ noDownload: true, fileName: 'a.mp3', fileSize: 100, driveFileId: 'F1', downloadUrl: 'https://x.test/D1' }) });
   ok(r.success === true && r.noDownload === true && e.drive.files.F1.parent === 'PRIVATE', 'doPost saveSong：不開放走完整流程');
   r = post({ action: 'adminSongSetAccess', password: 'bad', ids: ['S1'], blocked: true });
   ok(r.success === false && r.authExpired === true && !e.drive.ops.some(o => o[0] === 'move' && o[1] === 'F1' && false), 'adminSongSetAccess：錯誤 token 一律拒絕');

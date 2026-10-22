@@ -14,9 +14,9 @@ function env() {
     HtmlService: { XFrameOptionsMode: { ALLOWALL: 'ALLOWALL' }, createHtmlOutput: mkHtml, createHtmlOutputFromFile() { calls.fromFile++; return mkHtml('FROMFILE') } },
     PropertiesService: {}, Utilities: {}, LockService: {}, SpreadsheetApp: {}, DriveApp: {}, UrlFetchApp: {}, Session: {}, ScriptApp: {} };
   vm.createContext(ctx); vm.runInContext(src, ctx);
-  ctx.getSpreadsheet = () => { calls.ss++; return null; };
-  ctx.ensureAlbumSheetsExist = () => { calls.ensureAlbum++; };
-  ctx.ensureDatabaseInitialized = () => { calls.ensureDb++; };
+  ctx.getSpreadsheet_ = () => { calls.ss++; return null; };
+  ctx.ensureAlbumSheetsExist_ = () => { calls.ensureAlbum++; };
+  ctx.ensureDatabaseInitialized_ = () => { calls.ensureDb++; };
   ctx.getAppData = () => { calls.getAppData++; return { success: true, data: 'D' }; };
   return { ctx, calls };
 }

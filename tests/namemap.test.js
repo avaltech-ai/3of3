@@ -40,7 +40,7 @@ function env(sheets) {
   };
   vm.createContext(ctx); vm.runInContext(src, ctx);
   const ss = { getSheetByName: n => book[n] || null, insertSheet: n => { book[n] = mkSheet([]); return book[n]; } };
-  ctx.getSpreadsheet = () => ss; ctx.clearAppDataCache = () => { calls.clearCache++; };
+  ctx.getSpreadsheet_ = () => ss; ctx.clearAppDataCache_ = () => { calls.clearCache++; };
   return { ctx, ss, book, calls };
 }
 // 代表性的資料：含真實遇到的問題（字典多一個空白、資料用了字典沒有的「雨果」、非中文名稱、全部文件）
@@ -133,6 +133,6 @@ const big = mkSheet([['zh', 'en']].concat(Array.from({ length: 900 }, (_, i) => 
 ok(Object.keys(e.ctx.getNameMapForApp_(e.ss)).length === 500, '筆數上限 500（避免資料異常膨脹）');
 e = env({}); ok(eq(e.ctx.getNameMapForApp_(e.ss), {}), '沒有 NameMap 工作表 → 空物件（不拋錯）');
 e = env({}); e.book.NameMap = mkSheet([['別的', '欄位'], ['a', 'b']]); ok(eq(e.ctx.getNameMapForApp_(e.ss), {}), 'NameMap 欄位名稱不對 → 空物件（不拋錯）');
-e = env({}); e.ctx.getSpreadsheet = () => { throw new Error('boom'); }; ok(eq(e.ctx.getNameMapForApp_(null), {}), 'ss 為 null → 空物件');
+e = env({}); e.ctx.getSpreadsheet_ = () => { throw new Error('boom'); }; ok(eq(e.ctx.getNameMapForApp_(null), {}), 'ss 為 null → 空物件');
 
 console.log('\n結果：' + pass + ' 通過，' + fail + ' 失敗'); process.exit(fail ? 1 : 0);

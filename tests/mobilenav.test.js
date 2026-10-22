@@ -18,10 +18,10 @@ function env(rows, opts) {
   };
   const ctx = { console: { log() {}, warn() {}, error() {} }, CacheService: { getScriptCache: () => ({ get: () => null, put() {}, remove() {} }) }, PropertiesService: {}, LockService: {}, SpreadsheetApp: {}, ContentService: {}, HtmlService: {}, UrlFetchApp: {}, DriveApp: {}, Session: {}, ScriptApp: {}, Utilities: {} };
   vm.createContext(ctx); vm.runInContext(src, ctx);
-  ctx.getSpreadsheet = () => ({ getSheetByName: n => n === 'Settings' ? sheet : null });
+  ctx.getSpreadsheet_ = () => ({ getSheetByName: n => n === 'Settings' ? sheet : null });
   ctx.checkPassword = tok => tok === 'good';
   ctx.authFail_ = () => ({ success: false, error: '登入已逾時或無效，請重新登入。' });
-  ctx.clearAppDataCache = () => { cleared++; };
+  ctx.clearAppDataCache_ = () => { cleared++; };
   return { ctx, data, formats, cleared: () => cleared };
 }
 const BASE = () => [['key', 'value'], ['CLASS_NAME', '諾貝爾 A 班'], ['TICKER_MESSAGE', '歡迎']];

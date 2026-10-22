@@ -29,10 +29,10 @@ function env(planRows, artRows, opts) {
   const ctx = { console: { log() {}, warn() {}, error() {} }, CacheService: { getScriptCache: () => ({ get: () => null, put() {}, remove() {} }) }, PropertiesService: {}, LockService: {}, SpreadsheetApp: {}, ContentService: {}, HtmlService: {}, UrlFetchApp: {}, DriveApp: {}, Session: {}, ScriptApp: {} };
   ctx.Utilities = { formatDate: () => '2026-10-17', getUuid: () => 'abcd' + (++uuid) + '-0000-0000-0000-000000000000' };
   vm.createContext(ctx); vm.runInContext(src, ctx);
-  ctx.getSpreadsheet = () => ({ getSheetByName: n => sheets[n] || null, insertSheet: n => { add(n, []); return sheets[n]; } });
+  ctx.getSpreadsheet_ = () => ({ getSheetByName: n => sheets[n] || null, insertSheet: n => { add(n, []); return sheets[n]; } });
   ctx.checkPassword = tok => tok === 'good';
   ctx.authFail_ = () => ({ success: false, error: '登入已逾時或無效，請重新登入。' });
-  ctx.clearAppDataCache = () => { cleared++; };
+  ctx.clearAppDataCache_ = () => { cleared++; };
   return { ctx, rows: rowsOf, formats, cleared: () => cleared };
 }
 const P = (id, year, cat, ord, kind, text) => [id, year, cat, ord, kind, text, '2026-10-01'];

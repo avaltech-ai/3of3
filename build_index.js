@@ -3963,7 +3963,12 @@ const htmlContent = `<!DOCTYPE html>
       return esc(j.split("'").join(BS + 'x27').split('<').join(BS + 'x3c'));
     }
     function safeUrl(u) {
-      const v = String(u === undefined || u === null ? '' : u).trim();
+      const raw = String(u === undefined || u === null ? '' : u).trim();
+      if (!raw) return '';
+      // 先拿掉所有 ASCII 控制字元與空白：瀏覽器解析網址時會吞掉 Tab、換行（也會忽略開頭的控制字元），
+      // 「java<Tab>script:」會變回 javascript:，如果先判斷協定再原樣輸出，就繞過了下面的白名單（紅隊檢查 M-1）。
+      let v = '';
+      for (let i = 0; i < raw.length; i++) { const c = raw.charCodeAt(i); if (c > 32 && c !== 127) v += raw.charAt(i); }
       if (!v) return '';
       if (/^[a-z][a-z0-9+.-]*:/i.test(v)) {
         return (/^https?:/i.test(v) || /^blob:/i.test(v) || /^data:image[/]/i.test(v)) ? v : '';
@@ -3977,6 +3982,15 @@ const htmlContent = `<!DOCTYPE html>
     var ADMIN_TOKEN_KEY = 'nobel_a_admin_token';
     function readStoredToken() {
       try { return sessionStorage.getItem(ADMIN_TOKEN_KEY) || ''; } catch (e) { return ''; }
+    }
+    // 裝置金鑰（2026-10-23 紅隊檢查 M-2）：登入成功時後端發給這台裝置的金鑰，存在 localStorage（關閉分頁也保留）。
+    // 登入鎖定期間，帶著有效金鑰又輸入正確密碼的裝置仍可登入，所以攻擊者故意輸錯密碼無法把老師鎖在外面。登出不會清除它。
+    var ADMIN_DEVICE_KEY = 'nobel_a_device_key';
+    function readDeviceKey() {
+      try { return localStorage.getItem(ADMIN_DEVICE_KEY) || ''; } catch (e) { return ''; }
+    }
+    function saveDeviceKey(k) {
+      try { if (typeof k === 'string' && k.length >= 32 && k.length <= 200) localStorage.setItem(ADMIN_DEVICE_KEY, k); } catch (e) {}
     }
     // 清除舊版本遺留在瀏覽器裡的明文管理員密碼
     try { localStorage.removeItem('nobel_a_admin_pwd'); sessionStorage.removeItem('nobel_a_admin_pwd'); } catch (e) {}
@@ -4134,7 +4148,7 @@ const htmlContent = `<!DOCTYPE html>
         else if (action === 'getAlbumPhotos') runner.getAlbumPhotos(payload.albumId);
         else if (action === 'clearAlbumListCache') runner.clearAlbumListCache(payload.password);
         else if (action === 'recountAlbum') runner.recountAlbum(payload.albumId, payload.password);
-        else if (action === 'verifyPassword') runner.verifyPassword(payload.password);
+        else if (action === 'verifyPassword') runner.verifyPassword(payload.password, payload.deviceKey);
         else if (action === 'logout') runner.adminLogout(payload.password);
         else if (action === 'checkSession') runner.adminCheckSession(payload.password);
         else if (action === 'initAlbumUpload') runner.initAlbumUpload(payload);
@@ -5901,7 +5915,8 @@ const htmlContent = `<!DOCTYPE html>
       // 原生 HTML5 影片檔
       const lower = str.toLowerCase();
       if (['.mp4', '.webm', '.ogg', '.mov'].some(ext => lower.includes(ext))) {
-        return { type: 'video', src: str };
+        const vs = safeUrl(str);   // 只收 http(s)／blob／相對路徑（網址裡的 javascript: 之類即使含有 .mp4 也不放行）
+        return vs ? { type: 'video', src: vs } : { type: 'none', src: '' };
       }
       return { type: 'none', src: '' };
     }
@@ -10683,8 +10698,9 @@ const htmlContent = `<!DOCTYPE html>
 
       showToast('驗證中...', '⏳');
 
-      callBackend('verifyPassword', { password: pwd }, res => {
+      callBackend('verifyPassword', { password: pwd, deviceKey: readDeviceKey() }, res => {
         if (res && res.success && res.token) {
+          saveDeviceKey(res.deviceKey);
           state.adminPassword = res.token;
           try { sessionStorage.setItem(ADMIN_TOKEN_KEY, res.token); } catch (e) {}
           input.value = '';

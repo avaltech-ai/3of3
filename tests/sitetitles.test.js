@@ -49,8 +49,8 @@ function env(sheets, opts) {
   };
   vm.createContext(ctx); vm.runInContext(src, ctx);
   const ss = { getSheetByName: n => book[n] || null, insertSheet: n => { book[n] = mkSheet([]); return book[n]; } };
-  ctx.getSpreadsheet = () => ss; ctx.checkPassword = p => p === TOK;
-  ctx.clearAppDataCache = () => { calls.clearApp++; };
+  ctx.getSpreadsheet_ = () => ss; ctx.checkPassword = p => p === TOK;
+  ctx.clearAppDataCache_ = () => { calls.clearApp++; };
   ctx.getAppData = () => ({ success: true, data: opts.data || {} });
   return { ctx, ss, book, store, calls };
 }

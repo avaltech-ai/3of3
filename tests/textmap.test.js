@@ -45,7 +45,7 @@ function env(sheets, opts) {
   };
   vm.createContext(ctx); vm.runInContext(src, ctx);
   const ss = { getSheetByName: n => book[n] || null, insertSheet: n => { book[n] = mkSheet([]); return book[n]; } };
-  ctx.getSpreadsheet = () => ss; ctx.ensureAlbumSheetsExist = () => { ensureCalls++; };
+  ctx.getSpreadsheet_ = () => ss; ctx.ensureAlbumSheetsExist_ = () => { ensureCalls++; };
   ctx.getAppData = () => ({ success: true, data: opts.data || {} });
   return { ctx, ss, book, store, ensureCalls: () => ensureCalls, translateCalls: () => translateCalls, translated };
 }
@@ -179,7 +179,7 @@ const e9 = env({ TextMap: mapSheet, Settings: [['key', 'value'], ['SHOW_MACHINE_
 ok(!('香蕉' in e9.ctx.getTextMap().map), 'SHOW_MACHINE_TRANSLATION = false → 不顯示');
 let ssReads = 0; const origGet = e.ss.getSheetByName; e.ss.getSheetByName = n => { ssReads++; return origGet(n); };
 e.ctx.getTextMap(); ok(ssReads === 0, '第二次呼叫命中快取：完全不讀試算表');
-e.ctx.clearAppDataCache(); ssReads = 0; e.ctx.getTextMap(); ok(ssReads > 0, 'clearAppDataCache（任何寫入）會一併清除英文對照快取');
+e.ctx.clearAppDataCache_(); ssReads = 0; e.ctx.getTextMap(); ok(ssReads > 0, 'clearAppDataCache（任何寫入）會一併清除英文對照快取');
 const bigRows = [['zh', 'en', 'draft']].concat(Array.from({ length: 1500 }, (_, i) => ['這是第' + i + '句很長的中文原文內容用來撐大回應', 'This is the long English sentence number ' + i + ' used to enlarge the payload', '']));
 const eb = env({ TextMap: bigRows }); const big1 = eb.ctx.getTextMap();
 const chunkKeys = Object.keys(eb.store).filter(k => /^text_map_v1_\d+$/.test(k));
@@ -189,7 +189,7 @@ eb.book.TextMap = null; eb.ss.getSheetByName = () => null;
 const big2 = eb.ctx.getTextMap(); ok(big2.count === 1500 && eq(big2.map, big1.map), '從分段快取還原，內容與原本完全相同');
 delete eb.store[chunkKeys[1]]; const big3 = eb.ctx.getTextMap(); ok(big3.count === 0, '少一段快取視為沒有快取（重新讀取，不會回傳殘缺資料）');
 e = env({ TextMap: mapSheet }); e.ctx.getTextMap(); e.ctx.clearTextMapCache_(); ok(Object.keys(e.store).filter(k => k.indexOf('text_map_v1') === 0).length === 0, 'clearTextMapCache_ 清除所有分段');
-e = env({}); e.ctx.getSpreadsheet = () => { throw new Error('boom'); }; res = e.ctx.getTextMap();
+e = env({}); e.ctx.getSpreadsheet_ = () => { throw new Error('boom'); }; res = e.ctx.getTextMap();
 ok(res.success === false && eq(res.map, {}), '讀取失敗：回傳 success:false 與空對照（前台退回中文）');
 
 console.log('H. doGet 唯讀動作');

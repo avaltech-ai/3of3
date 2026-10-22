@@ -36,7 +36,7 @@ function env(rows0, folders) { // rows：Albums 工作表（含標題列）；fo
   };
   vm.createContext(ctx); vm.runInContext(src, ctx);
   const ALBUMS_ROOT = vm.runInContext('ALBUMS_FOLDER_ID', ctx);
-  ctx.getSpreadsheet = () => ({ getSheetByName: n => n === 'Albums' ? sheet : null });
+  ctx.getSpreadsheet_ = () => ({ getSheetByName: n => n === 'Albums' ? sheet : null });
   ctx.checkPassword = t => t === 'good-token';
   return { ctx, rows, store, drive: () => driveCalls };
 }

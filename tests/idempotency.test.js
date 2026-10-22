@@ -18,7 +18,7 @@ function env() {
     console: { log() {}, warn() {}, error() {} },
     CacheService: { getScriptCache: () => cache },
     PropertiesService: { getScriptProperties: () => ({ getProperty: k => props[k] || null, setProperty: (k, v) => { props[k] = v; } }) },
-    Utilities: { getUuid: () => 'aaaaaaaa-bbbb-cccc-dddd-' + String(++uuid).padStart(12, '0') },
+    Utilities: { getUuid: () => 'aaaaaaaa-bbbb-cccc-dddd-' + String(++uuid).padStart(12, '0'), computeDigest: (alg, v) => Array.from(require('crypto').createHash('sha256').update(String(v)).digest()), DigestAlgorithm: { SHA_256: 'SHA_256' }, base64Encode: b => Buffer.from(b).toString('base64') },
     LockService: { getScriptLock: () => ({ tryLock: () => !ctx.__busy, releaseLock() {} }) },
     ContentService: { createTextOutput: t => ({ text: t, setMimeType() { return this; } }), MimeType: { JSON: 'J' } },
     HtmlService: { createHtmlOutput: () => ({ setXFrameOptionsMode() { return this; } }), XFrameOptionsMode: { ALLOWALL: 1 } },
@@ -27,7 +27,7 @@ function env() {
   ctx.Date = class extends Date { static now() { return now; } };
   vm.createContext(ctx); vm.runInContext(src, ctx);
   const settingsRows = [['key', 'value'], ['ADMIN_PASSWORD', 'CorrectHorse-99']];
-  ctx.getSpreadsheet = () => ({ getSheetByName: () => ({ getDataRange: () => ({ getValues: () => settingsRows.map(r => r.slice()) }) }) });
+  ctx.getSpreadsheet_ = () => ({ getSheetByName: () => ({ getDataRange: () => ({ getValues: () => settingsRows.map(r => r.slice()) }) }) });
   const token = ctx.verifyPassword('CorrectHorse-99').token;
   const calls = { save: 0, upload: 0 };
   ctx.saveEvent = (data, pw) => { if (!ctx.checkPassword(pw)) return ctx.authFail_(); calls.save++; return { success: true, id: 'EV-' + calls.save }; };

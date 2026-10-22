@@ -46,8 +46,8 @@ function env(opts) {
     SpreadsheetApp: { getUi: () => { throw new Error('no UI'); } }, HtmlService: {}, ContentService: {}, UrlFetchApp: {}, Session: {}, ScriptApp: {}
   };
   vm.createContext(ctx); vm.runInContext(src, ctx);
-  ctx.getSpreadsheet = () => ({ getSheetByName: n => (n === 'Albums' ? sheet : null), insertSheet: () => sheet });
-  ctx.clearAppDataCache = () => { calls.clearCache++; };
+  ctx.getSpreadsheet_ = () => ({ getSheetByName: n => (n === 'Albums' ? sheet : null), insertSheet: () => sheet });
+  ctx.clearAppDataCache_ = () => { calls.clearCache++; };
   return { ctx, sheet, calls };
 }
 const mkEntries = n => Array.from({ length: n }, (_, i) => ({ id: 'IMGID' + String(i).padStart(5, '0') + 'abcdef', name: 'IMG_' + String(i).padStart(4, '0') + '.jpg' }));

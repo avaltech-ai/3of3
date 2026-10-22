@@ -31,10 +31,10 @@ function env(taskRows, semRows, opts) {
   const ctx = { console: { log() {}, warn() {}, error() {} }, CacheService: { getScriptCache: () => ({ get: () => null, put() {}, remove() {} }) }, PropertiesService: {}, LockService: {}, SpreadsheetApp: {}, ContentService: {}, HtmlService: {}, UrlFetchApp: {}, DriveApp: {}, Session: {}, ScriptApp: {} };
   ctx.Utilities = { formatDate: () => '2026-10-14', getUuid: () => 'abcd' + (++uuid) + '-0000-0000-0000-000000000000' };
   vm.createContext(ctx); vm.runInContext(src, ctx);
-  ctx.getSpreadsheet = () => ({ getSheetByName: n => n === 'SemesterTasks' ? (opts.noTaskSheet ? null : taskSheet) : (n === 'ThemeSemesters' ? semSheet : (n === 'Themes' ? themeSheet : null)), insertSheet: n => { if (n === 'SemesterTasks') { opts.noTaskSheet = false; return taskSheet; } return null; } });
+  ctx.getSpreadsheet_ = () => ({ getSheetByName: n => n === 'SemesterTasks' ? (opts.noTaskSheet ? null : taskSheet) : (n === 'ThemeSemesters' ? semSheet : (n === 'Themes' ? themeSheet : null)), insertSheet: n => { if (n === 'SemesterTasks') { opts.noTaskSheet = false; return taskSheet; } return null; } });
   ctx.checkPassword = tok => tok === 'good';
   ctx.authFail_ = () => ({ success: false, error: '登入已逾時或無效，請重新登入。' });
-  ctx.clearAppDataCache = () => { cleared++; };
+  ctx.clearAppDataCache_ = () => { cleared++; };
   return { ctx, tasks, sems, formats, cleared: () => cleared };
 }
 const SEM_ROWS = () => [['semesterName', 'overviewImage', 'tasksOverviewImage'], [SEM, '', ''], [SEM2, '', '']];
@@ -68,10 +68,10 @@ e = env([], SEM_ROWS(), { noTaskSheet: true }); e.ctx.ensureSemesterTasksSheet_(
 ok(e.tasks[0] && e.tasks[0].join() === TASK_H.join(), '沒有 SemesterTasks 工作表：自動建立並寫入標題列');
 e = env([['id', 'semester', 'title']], SEM_ROWS()); e.ctx.ensureSemesterTasksSheet_();
 ok(e.tasks[0].join() === 'id,semester,title,group,order,icon,description,updatedAt', '缺少的欄位補在右邊，原有欄位不動');
-e = env([TASK_H], [['semesterName', 'overviewImage'], [SEM, '']]); e.ctx.ensureThemeSheetsExist();
+e = env([TASK_H], [['semesterName', 'overviewImage'], [SEM, '']]); e.ctx.ensureThemeSheetsExist_();
 ok(e.sems[0].join() === 'semesterName,overviewImage,tasksOverviewImage', 'ThemeSemesters 缺 tasksOverviewImage：補上標題，不動其他欄');
-e.ctx.ensureThemeSheetsExist(); ok(e.sems[0].length === 3, '再執行一次：不重複新增');
-e = env([TASK_H], [['semesterName'], [SEM]]); e.ctx.ensureThemeSheetsExist(); ok(e.sems[0].join() === 'semesterName,overviewImage,tasksOverviewImage', 'ThemeSemesters 只有學期名稱一欄：兩個欄位標題依序補在右邊，互不覆蓋');
+e.ctx.ensureThemeSheetsExist_(); ok(e.sems[0].length === 3, '再執行一次：不重複新增');
+e = env([TASK_H], [['semesterName'], [SEM]]); e.ctx.ensureThemeSheetsExist_(); ok(e.sems[0].join() === 'semesterName,overviewImage,tasksOverviewImage', 'ThemeSemesters 只有學期名稱一欄：兩個欄位標題依序補在右邊，互不覆蓋');
 
 console.log('D. getSemesterTasksData_ 與 getAppData 接線');
 e = env([TASK_H, row('a1', SEM, G2, 1, '📚', '每天共讀一本繪本')], [['semesterName', 'overviewImage', 'tasksOverviewImage'], [SEM, '', ID]]);

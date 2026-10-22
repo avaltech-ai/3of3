@@ -84,7 +84,7 @@ function env(rows) {
     ContentService: { MimeType: { JSON: 'JSON' }, createTextOutput: t => ({ text: t, setMimeType(m) { this.mime = m; return this; } }) } };
   vm.createContext(ctx); vm.runInContext(src, ctx);
   const ss = { getSheetByName: n => book[n] || null, insertSheet: n => (book[n] = mkSheet([])) };
-  ctx.getSpreadsheet = () => ss; ctx.checkPassword = p => p === 'tok'; ctx.clearAppDataCache = () => { clears++; };
+  ctx.getSpreadsheet_ = () => ss; ctx.checkPassword = p => p === 'tok'; ctx.clearAppDataCache_ = () => { clears++; };
   return { ctx, sheet: book.Spotlight, clears: () => clears, pri: id => { const r = book.Spotlight.rows.find(x => x[0] === id); return r ? r[10] : undefined; } };
 }
 const base = () => [{ id: 'A', title: 'a', priority: 2 }, { id: 'B', title: 'b', priority: 1 }, { id: 'D', title: 'd', priority: 5 }];

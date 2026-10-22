@@ -11,8 +11,8 @@ function env(cached) {
     ContentService: { MimeType: { ICAL: 'text/calendar', JSON: 'application/json' }, createTextOutput: t => ({ text: t, setMimeType(m) { this.mime = m; return this } }) },
     PropertiesService: {}, Utilities: {}, LockService: {}, SpreadsheetApp: {}, DriveApp: {}, HtmlService: {}, UrlFetchApp: {}, Session: {}, ScriptApp: {} };
   vm.createContext(ctx); vm.runInContext(src, ctx);
-  ctx.getSpreadsheet = () => { ssCalls++; return null; };
-  ctx.ensureAlbumSheetsExist = () => { ensureCalls++; };
+  ctx.getSpreadsheet_ = () => { ssCalls++; return null; };
+  ctx.ensureAlbumSheetsExist_ = () => { ensureCalls++; };
   return { ctx, ssCalls: () => ssCalls, ensureCalls: () => ensureCalls };
 }
 const NOW = new Date('2026-10-05T08:00:00Z');
