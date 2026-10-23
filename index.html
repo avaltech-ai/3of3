@@ -14156,6 +14156,7 @@ video {
     var SONG_DOWNLOAD_ICON = stickerSvg('download', 'sticker-sm w-6 h-6');   // 與文件的下載按鈕同一個圖示
 
     var songFormSelectedFile = null;
+    var songTempAudioUrl = '';   // 選檔時讀長度用的暫時網址（讀完就釋放）
     var songFormEditingId = '';
     var songSaving = false;
     var songUploadTimer = null;
@@ -15210,9 +15211,16 @@ video {
         songFormSelectedFile = null;
       } else {
         songFormSelectedFile = f;
+        // 讀歌曲長度用的暫時播放器：讀完（或讀不到）就釋放暫時網址，不要一直占著檔案（之後上傳還要再讀一次同一個檔案）
+        if (songTempAudioUrl) { try { URL.revokeObjectURL(songTempAudioUrl); } catch (err) {} songTempAudioUrl = ''; }
         try {
-          const tempAudio = new Audio(URL.createObjectURL(f));
+          const tempUrl = URL.createObjectURL(f);
+          songTempAudioUrl = tempUrl;
+          const tempAudio = new Audio(tempUrl);
+          const releaseTemp = function() { try { URL.revokeObjectURL(tempUrl); } catch (err) {} if (songTempAudioUrl === tempUrl) songTempAudioUrl = ''; };
+          tempAudio.onerror = releaseTemp;
           tempAudio.onloadedmetadata = function() {
+            releaseTemp();
             if (tempAudio.duration && !isNaN(tempAudio.duration) && tempAudio.duration > 0) {
               const sec = Math.round(tempAudio.duration);
               const m = Math.floor(sec / 60);
@@ -15420,6 +15428,28 @@ video {
       showToast('連線失敗：' + m, '❌');
     }
 
+    // 把音樂檔讀成 base64。先用 FileReader；Safari 偶爾對同一個檔案回報 NotReadableError（原因未確認），失敗時改用 file.arrayBuffer() 重試一次。
+    // 兩種都失敗就回報兩個錯誤代碼（例如 NotReadableError→NotFoundError），方便判斷。
+    function readSongFileBase64(file, onProgress, onDone, onFail) {
+      function viaBuffer(firstErr) {
+        if (!file.arrayBuffer) { onFail(firstErr || { name: 'Unknown' }); return; }
+        file.arrayBuffer().then(function(buf) {
+          const bytes = new Uint8Array(buf);
+          let bin = '';
+          for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+          onDone(btoa(bin));
+        }, function(err2) {
+          onFail({ name: ((firstErr && firstErr.name) || 'Unknown') + '→' + ((err2 && err2.name) || 'Unknown') });
+        });
+      }
+      const reader = new FileReader();
+      reader.onprogress = function(ev) { if (ev.lengthComputable) onProgress(ev.loaded, ev.total); };
+      reader.onerror = function() { viaBuffer(reader.error); };
+      reader.onabort = function() { viaBuffer(reader.error || { name: 'AbortError' }); };
+      reader.onload = function(ev) { onDone(String(ev.target.result).split(',')[1]); };
+      reader.readAsDataURL(file);
+    }
+
     function songFileReadFailed(err) {
       songFormSelectedFile = null;
       const fi = document.getElementById('songForm-fileInput');
@@ -15488,22 +15518,16 @@ video {
 
       const file = songFormSelectedFile;
       setSongProgress(1, '正在讀取音樂檔…', '');
-      const reader = new FileReader();
-      reader.onprogress = function(ev) {
-        if (ev.lengthComputable) setSongProgress(Math.max(1, Math.round(ev.loaded / ev.total * 8)), '正在讀取音樂檔…', '');
-      };
-      reader.onerror = function() { songFileReadFailed(reader.error); };
-      reader.onabort = function() { songFileReadFailed(reader.error || { name: 'AbortError' }); };
-      reader.onload = function(ev) {
-        const base64 = String(ev.target.result).split(',')[1];
+      readSongFileBase64(file, function(loaded, total) {
+        setSongProgress(Math.max(1, Math.round(loaded / total * 8)), '正在讀取音樂檔…', '');
+      }, function(base64) {
         startSongProgressEstimate(file.size);
         callBackend('uploadSong', {
           meta: { id: songData.id, category: category, title: title, youtubeUrl: youtubeUrl, duration: songData.duration, noDownload: noDownload },
           file: { name: file.name, mimeType: file.type || 'audio/mpeg', base64: base64 },
           password: state.adminPassword
         }, function(res) { finishSongSave(res, songData, true, isUpdate); }, failSongSave);
-      };
-      reader.readAsDataURL(file);
+      }, function(err) { songFileReadFailed(err); });
     }
 
     function deleteSongInAdmin(id, title) {
