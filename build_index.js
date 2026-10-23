@@ -584,7 +584,7 @@ const htmlContent = `<!DOCTYPE html>
         <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
           <!-- 焦點視覺/攻略圖或影片卡 -->
           <div class="md:col-span-5 bg-white p-2.5 rounded-2xl shadow-sm border border-rose-100 flex flex-col items-center justify-center group relative">
-            <div class="w-full aspect-[16/10] bg-rose-50 rounded-xl overflow-hidden relative flex items-center justify-center group/nav">
+            <div id="spotlightMediaFrame" class="w-full aspect-[16/10] bg-rose-50 rounded-xl overflow-hidden relative flex items-center justify-center group/nav">
               <button type="button" onclick="event.stopPropagation(); prevSpotlightSlide(event)" class="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 sm:w-11 sm:h-11 text-base sm:text-xl rounded-full bg-black/45 hover:bg-black/60 active:scale-95 text-white flex items-center justify-center font-black backdrop-blur-md shadow-lg transition-all tap-bounce z-10 hidden" id="spotlightOverlayPrevBtn" title="上一個焦點活動" data-i18n-title="ui.spotlightPrev">
                 ❮
               </button>
@@ -593,6 +593,10 @@ const htmlContent = `<!DOCTYPE html>
               </button>
               <!-- 圖片模式 -->
               <img id="spotlightImg" src="./spotlight-fluoride.jpg" alt="焦點活動" class="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300 cursor-pointer tap-bounce" onclick="openSpotlightModal()" data-i18n-alt="ui.spotlightImgAlt">
+              <!-- Drive 影片的 ▶：Drive 預覽沒有自動播放，首頁改顯示影片封面加這個圖示，點縮圖開彈窗（圖示不攔截點擊） -->
+              <div id="spotlightPlayBadge" class="hidden absolute inset-0 flex items-center justify-center pointer-events-none">
+                <span class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-black/55 text-white text-2xl sm:text-3xl flex items-center justify-center shadow-lg backdrop-blur-sm pl-1">▶</span>
+              </div>
               <!-- 影片播放器 (YouTube / Drive preview / HTML5 video) -->
               <div id="spotlightVideoBox" class="w-full h-full hidden">
                 <iframe id="spotlightIframe" class="w-full h-full border-0 rounded-xl pointer-events-none" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
@@ -6038,17 +6042,49 @@ const htmlContent = `<!DOCTYPE html>
       startSpotlightTimer(sp.duration || 5, activeList.length);
     }
 
+    // Drive 影片的封面網址：只用通過檢查的檔案編號組（編號只含英數、底線、連字號），其他一律回傳空字串
+    function drivePosterUrl(embedSrc) {
+      const m = /^https:\\/\\/drive\\.google\\.com\\/file\\/d\\/([A-Za-z0-9_-]+)\\/preview$/.exec(typeof embedSrc === 'string' ? embedSrc : '');
+      return m ? 'https://drive.google.com/thumbnail?id=' + m[1] + '&sz=w1600' : '';
+    }
+
     function renderSpotlightMedia(sp) {
       const imgEl = document.getElementById('spotlightImg');
       const videoBox = document.getElementById('spotlightVideoBox');
       const iframeEl = document.getElementById('spotlightIframe');
       const html5Video = document.getElementById('spotlightHtml5Video');
       const mediaHint = document.getElementById('spotlightMediaHint');
+      const badgeEl = document.getElementById('spotlightPlayBadge');
+      const frameEl = document.getElementById('spotlightMediaFrame');
+
+      // 每次先還原「Drive 影片封面」的狀態，輪播切到別的類型時不會留下隱藏的圖、▶ 或深色底
+      if (imgEl) { imgEl.onerror = null; imgEl.classList.remove('invisible'); }
+      if (badgeEl) badgeEl.classList.add('hidden');
+      if (frameEl) { frameEl.classList.remove('bg-slate-800'); frameEl.classList.add('bg-rose-50'); }
 
       const mediaKind = detectMediaKind(sp.imageUrl, sp.mediaType);
 
       if (mediaKind === 'video') {
         const vInfo = getEmbedVideoInfo(sp.imageUrl, true); // true for homepage
+        const poster = vInfo.type === 'iframe' ? drivePosterUrl(vInfo.src) : '';
+        if (poster) {
+          // Drive 影片：首頁顯示影片封面＋▶（封面還沒產生或載入失敗時，隱藏破圖，留深色底與 ▶）
+          if (videoBox) videoBox.classList.add('hidden');
+          if (iframeEl) iframeEl.src = '';
+          if (html5Video) {
+            try { if (typeof html5Video.pause === 'function') html5Video.pause(); } catch (e) {}
+            html5Video.classList.add('hidden');
+          }
+          if (frameEl) { frameEl.classList.remove('bg-rose-50'); frameEl.classList.add('bg-slate-800'); }
+          if (badgeEl) badgeEl.classList.remove('hidden');
+          if (imgEl) {
+            imgEl.classList.remove('hidden');
+            imgEl.onerror = function () { imgEl.classList.add('invisible'); };
+            imgEl.src = poster;
+          }
+          if (mediaHint) mediaHint.textContent = t('ui.spotlightPlayMedia');
+          return;
+        }
         if (imgEl) imgEl.classList.add('hidden');
         if (videoBox) videoBox.classList.remove('hidden');
 
