@@ -18,30 +18,34 @@
   // C. 四季外觀
   const bodyBg = () => getComputedStyle(document.body).backgroundColor;
   const barImg = () => getComputedStyle($('seasonBar')).backgroundImage;
-  const badge = () => getComputedStyle($('seasonBadge'), '::after').content.replace(/["']/g, '');
+  // 頁首右側的圖示是 ::after 的內嵌 SVG 圖片：解開後比對圖示庫，回傳圖示名稱（沒有圖片回傳 ''）
+  const badge = () => { const bg = getComputedStyle($('seasonBadge'), '::after').backgroundImage; const m = /url\("data:image\/svg\+xml,([^"]*)"\)/.exec(bg); if (!m) return ''; const svg = decodeURIComponent(m[1]); return Object.keys(STICKER_SVG).find(k => svg.indexOf(STICKER_SVG[k]) > 0) || '?'; };
   const peachBefore = getComputedStyle(document.querySelector('.bg-peach-500') || document.body).backgroundColor;
   const seen = { bg: new Set(), bar: new Set(), badge: new Set() };
-  const expectBadge = { spring: '🌸', summer: '🍉', autumn: '🍁', winter: '⛄' };
+  const expectBadge = { spring: 'blossom', summer: 'watermelon', autumn: 'maple', winter: 'snowman' };
   Object.keys(months).forEach(s => {
     applySeason(new Date(2027, months[s][0] - 1, 15));
     ok(html.getAttribute('data-season') === s, s + '：applySeason 依日期切換');
     seen.bg.add(bodyBg()); seen.bar.add(barImg()); seen.badge.add(badge());
-    ok(/gradient/.test(barImg()) && badge() === expectBadge[s], s + '：頂部色條是漸層、Logo 小圖示是 ' + expectBadge[s]);
+    ok(/gradient/.test(barImg()) && badge() === expectBadge[s], s + '：頂部色條是漸層、頁首右側圖示是 ' + expectBadge[s]);
     ok(getComputedStyle(document.querySelector('.bg-peach-500') || document.body).backgroundColor === peachBefore, s + '：主色（桃粉色按鈕）不變');
   });
   ok(seen.bg.size === 4 && seen.bar.size === 4 && seen.badge.size === 4, '四季的底色、色條、小圖示各不相同');
 
   // D. 沒有 data-season：維持原本外觀
   html.removeAttribute('data-season');
-  ok(bodyBg() === 'rgb(253, 251, 247)' && /gradient/.test(barImg()) && (badge() === 'none' || badge() === ''), '沒有季節設定：維持原本的米白底色與彩虹色條、沒有小圖示');
+  ok(bodyBg() === 'rgb(253, 251, 247)' && /gradient/.test(barImg()) && badge() === '' && getComputedStyle($('seasonBadge')).display === 'none', '沒有季節設定：維持原本的米白底色與彩虹色條、沒有圖示（也不佔位）');
 
-  // E. 小圖示不佔版面、裝飾性
+  // E. 圖示：頁首右側、38px、微微傾斜、裝飾性，不在 Logo 與膠囊裡
   applySeason(new Date(2027, 9, 1));
-  const logoBox = $('seasonBadge').parentElement;
-  ok(getComputedStyle($('seasonBadge')).position === 'absolute' && $('seasonBadge').getAttribute('aria-hidden') === 'true' && getComputedStyle($('seasonBadge')).pointerEvents === 'none',
-    '小圖示是浮貼的（不影響標頭排版）、對螢幕閱讀器隱藏、不擋點擊');
-  const w1 = logoBox.getBoundingClientRect().width; $('seasonBadge').style.display = 'none'; const w2 = logoBox.getBoundingClientRect().width; $('seasonBadge').style.display = '';
-  ok(Math.abs(w1 - w2) < 0.5, '有沒有小圖示，Logo 方塊寬度都一樣');
+  const sb = $('seasonBadge'), cs = getComputedStyle(sb), logoBox = document.querySelector('header .relative.w-11') || document.querySelector('header .rounded-2xl');
+  const r = sb.getBoundingClientRect(), hr = document.querySelector('header').getBoundingClientRect(), pr = $('headerBadge').getBoundingClientRect();
+  ok(Math.abs(r.width - 38) < 8 && Math.abs(r.height - 38) < 8 && cs.pointerEvents === 'none' && sb.getAttribute('aria-hidden') === 'true' && /matrix/.test(cs.transform), '圖示約 38px、傾斜（有 transform）、對螢幕閱讀器隱藏、不擋點擊');
+  ok(!logoBox.contains(sb) && !$('headerBadge').contains(sb), '圖示不在 Logo 方塊裡、也不在 Happy Life 膠囊裡');
+  ok(r.right > pr.right && r.left >= pr.right - 1 && r.right <= hr.right + 1 && r.top >= hr.top && r.bottom <= hr.bottom, '圖示在膠囊右邊、頁首範圍內（不超出頁首、不與膠囊重疊）');
+  const lr = logoBox.getBoundingClientRect(); ok(r.left > lr.right, '圖示完全在 Logo 右邊，沒有壓到 Logo');
+  const w1 = $('headerClass').getBoundingClientRect().width; sb.style.display = 'none'; const w2 = $('headerClass').getBoundingClientRect().width; sb.style.display = '';
+  ok(w2 >= w1 - 0.5, '拿掉圖示後班名那一行只會更寬或一樣（圖示是用右側空位，不會把班名擠短）：' + Math.round(w1) + ' → ' + Math.round(w2));
 
   // F. 跨月：回到前景時更新
   html.setAttribute('data-season', 'spring');

@@ -133,8 +133,8 @@ const STICKERS = {
   arrowRight: '<path d="M3.4 9.6h9V5.2L20.8 12l-8.4 6.8v-4.4h-9Z" fill="#34D399"/>',
   info: '<circle cx="12" cy="12" r="8.8" fill="#60A5FA"/><path d="M12 11v5.2" stroke="#FFFFFF" stroke-width="2.2"/><circle cx="12" cy="7.8" r="1.3" fill="#FFFFFF" stroke="none"/>'
 };
-// 給 CSS 偽元素用的內嵌圖片（::after 的 content 放不了 SVG 元素）：小尺寸版（隱藏細節線條）
-const stickerCssUrl = (name) => 'url("data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#6B4A44" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><style>.d{display:none}</style>' + STICKERS[name] + '</svg>') + '")';
+// 給 CSS 偽元素用的內嵌圖片（::after 的 content 放不了 SVG 元素）：完整版（頁首圖示 38px，細節線條保留）
+const stickerCssUrl = (name) => 'url("data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#6B4A44" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' + STICKERS[name] + '</svg>') + '")';
 const stickerSvg = (name, cls) => STICKERS[name] ? '<svg class="sticker ' + cls + '" viewBox="0 0 24 24" fill="none" stroke="#6B4A44" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' + STICKERS[name] + '</svg>' : '';
 
 // ---------- 載入骨架畫面（第一次開啟、手機裡還沒有資料時，資料到之前顯示的灰色區塊） ----------
@@ -339,8 +339,14 @@ const htmlContent = `<!DOCTYPE html>
     html[data-season="autumn"] { --season-bg: #FFF7EE; --season-bar: linear-gradient(to right, #FDBA74, #FCD34D, #D6A77A); }
     html[data-season="winter"] { --season-bg: #F5F8FC; --season-bar: linear-gradient(to right, #93C5FD, #E2E8F0, #FCA5A5); }
     .season-bar { background-image: var(--season-bar); }
-    /* 季節與節慶的小圖示（頁首標題旁）：用自己畫的貼紙圖示，以內嵌圖片放進偽元素 */
-    #seasonBadge::after { content: ''; display: inline-block; width: 1.5em; height: 1.5em; background-repeat: no-repeat; background-position: center; background-size: contain; vertical-align: middle; }
+    /* 季節與節慶的圖示（頁首最右側）：自己畫的貼紙圖示，38px、微微傾斜、不放底色。圖片以內嵌 SVG 放進 ::after。
+       有季節或節慶設定才顯示並佔位；手機的 App 模式下重新整理鈕貼在右上角，圖示往下移一點避免遮住。 */
+    #seasonBadge { display: none; position: absolute; right: 10px; top: 50%; width: 38px; height: 38px; transform: translateY(-50%) rotate(10deg); pointer-events: none; user-select: none; }
+    html[data-season] #seasonBadge, html[data-festival] #seasonBadge { display: block; }
+    #seasonBadge::after { content: ''; display: block; width: 100%; height: 100%; background-repeat: no-repeat; background-position: center; background-size: contain; }
+    @media (max-width: 767px) { #appRefreshBtn:not(.hidden) ~ #seasonBadge { top: calc(50% + 14px); } }
+    @media (min-width: 768px) { #seasonBadge { position: static; transform: rotate(10deg); } }
+    @media (max-width: 767px) { #globalAdminStatus:not(.hidden) ~ #seasonBadge { display: none !important; } }   /* 手機上管理員已登入：右側要給登出鈕，裝飾圖示先隱藏，免得頁首變高 */
     html[data-season="spring"] #seasonBadge::after { background-image: ${stickerCssUrl('blossom')}; }
     html[data-season="summer"] #seasonBadge::after { background-image: ${stickerCssUrl('watermelon')}; }
     html[data-season="autumn"] #seasonBadge::after { background-image: ${stickerCssUrl('maple')}; }
@@ -506,7 +512,7 @@ const htmlContent = `<!DOCTYPE html>
     <!-- Main Content -->
     <div class="flex-1 flex flex-col min-w-0 transition-all duration-300 relative pb-[calc(4.25rem+env(safe-area-inset-bottom))] md:pb-0">
       <header class="bg-white/90 backdrop-blur-md border-b border-rose-100 shadow-sm sticky top-1.5 z-30 flex-shrink-0">
-        <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+        <div class="relative max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <!-- 園所與班級 Logo 識別 -->
           <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
             <!-- 手機原本的 ☰ 漢堡選單已移除（2026-10-18）：所有頁面與工具都在底部導覽列與「更多」裡 -->
@@ -514,10 +520,9 @@ const htmlContent = `<!DOCTYPE html>
               <!-- 圖三 Logo (參照圖四設計) -->
               <div class="relative w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-white border-2 border-rose-200 p-1 flex items-center justify-center shrink-0 shadow-xs">
                 <img src="${logoB64}" class="w-full h-full object-contain" alt="三之三生命教育基金會" data-i18n-alt="ui.logoAlt">
-                <span id="seasonBadge" class="absolute -bottom-1.5 -left-1.5 text-sm sm:text-base leading-none pointer-events-none select-none" aria-hidden="true"></span>
               </div>
               <div class="flex flex-col justify-center min-w-0">
-                <div class="flex items-center gap-x-2 gap-y-1 flex-wrap min-w-0">
+                <div class="flex items-center gap-x-2 gap-y-1 flex-wrap min-w-0 pr-11 md:pr-0">
                   <span id="headerFoundation" data-site-title="headerFoundation" class="text-[11px] sm:text-xs font-bold text-rose-500 bg-rose-50/80 border border-rose-300 px-2.5 py-0.5 rounded-full whitespace-nowrap min-w-0 max-w-full truncate">三之三生命教育基金會</span>
                   <span id="headerSchool" data-site-title="headerSchool" class="text-xs sm:text-sm font-semibold text-slate-500 min-w-0 max-w-full truncate">新北市桃子腳非營利幼兒園</span>
                 </div>
@@ -542,6 +547,9 @@ const htmlContent = `<!DOCTYPE html>
               <span id="headerLogoutText" data-i18n="header.logout">登出</span>
             </button>
           </div>
+          <!-- 季節／節慶圖示（2026-10-23）：頁首最右側、上下置中、38px、微微傾斜。手機用絕對定位浮在右側，不增加頁首高度；管理員已登入時手機先隱藏圖示；
+               電腦版改在版面流程內排列，不會和管理員狀態、登出鈕互相疊住。圖片由 CSS 依 data-season／data-festival 給 -->
+          <span id="seasonBadge" class="shrink-0" aria-hidden="true"></span>
           </div>
         </div>
       </header>

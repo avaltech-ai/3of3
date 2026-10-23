@@ -6,7 +6,7 @@
   await wait(2500);
   const html = document.documentElement, $ = id => document.getElementById(id);
   const shown = el => !!el && getComputedStyle(el).display !== 'none' && el.getClientRects().length > 0;
-  const badge = () => getComputedStyle($('seasonBadge'), '::after').content.replace(/["']/g, '');
+  const badge = () => { const bg = getComputedStyle($('seasonBadge'), '::after').backgroundImage; const m = /url\("data:image\/svg\+xml,([^"]*)"\)/.exec(bg); if (!m) return ''; const svg = decodeURIComponent(m[1]); return Object.keys(STICKER_SVG).find(k => svg.indexOf(STICKER_SVG[k]) > 0) || '?'; };   // 圖示名稱
   const saved = { tab: state.currentTab, y: state.viewYear, m: state.viewMonth, sel: state.selectedDateStr };
 
   // A. 平常（今天不是節慶期間時）不下載節慶圖片
@@ -17,8 +17,8 @@
   ok(/data-festival/.test(Array.from(document.head.querySelectorAll('script')).map(s => s.textContent).join('\n')), '<head> 有及早設定節慶的程式（避免先閃季節色）');
 
   // B. 各節慶外觀
-  const cases = { lny: [2026, 1, 17, '🧧'], children: [2027, 3, 4, '🎈'], mother: [2026, 4, 10, '💐'], dragon: [2026, 5, 19, '🐲'], father: [2026, 7, 8, '👔'],
-    moon: [2026, 8, 25, '🥮'], teacher: [2026, 8, 28, '🍎'], halloween: [2026, 9, 31, '🎃'], xmas: [2026, 11, 25, '🎄'] };
+  const cases = { lny: [2026, 1, 17, 'envelope'], children: [2027, 3, 4, 'pinwheel'], mother: [2026, 4, 10, 'bouquet'], dragon: [2026, 5, 19, 'zongzi'], father: [2026, 7, 8, 'tie'],
+    moon: [2026, 8, 25, 'moon'], teacher: [2026, 8, 28, 'apple'], halloween: [2026, 9, 31, 'pumpkin'], xmas: [2026, 11, 25, 'tree'] };
   const bgs = new Set();
   for (const k of Object.keys(cases)) {
     const c = cases[k];
@@ -62,8 +62,9 @@
   // F. 今天小卡：節日當天
   const p = todayPanelEl('2026-10-31', '今天', true);
   document.body.appendChild(p); p.style.width = '300px';
+  await new Promise(r => setTimeout(r, 60));   // 等 Emoji 自動轉成圖示的 MutationObserver 跑完
   const chip = p.querySelector('.today-festival-chip'), st = p.querySelector('.today-festival-sticker');
-  ok(!!chip && chip.textContent.indexOf('萬聖節') !== -1 && chip.textContent.indexOf('快樂') === -1, '節日當天：標頭有「🎃 萬聖節」標籤（只寫節日名稱，不是祝福語）');
+  ok(!!chip && chip.textContent.indexOf('萬聖節') !== -1 && chip.textContent.indexOf('快樂') === -1 && chip.querySelectorAll('svg.sticker').length === 1, '節日當天：標頭有「南瓜圖示＋萬聖節」標籤（只寫節日名稱，不是祝福語）');
   ok(!!st && /halloween-sticker\.svg/.test(st.style.background || st.style.backgroundImage) && st.getAttribute('aria-hidden') === 'true', '節日當天：右上角萬聖節插圖');
   const sr = st ? st.getBoundingClientRect() : { left: 0, right: 0, top: 0, bottom: 0 };
   const overlap = !st || Array.from(p.querySelectorAll('span, div')).filter(e => e !== st && e.children.length === 0 && e.textContent.trim()).some(e => { const r = e.getBoundingClientRect(); return r.left < sr.right - 1 && sr.left < r.right - 1 && r.top < sr.bottom - 1 && sr.top < r.bottom - 1; });
@@ -72,16 +73,17 @@
   const p2 = todayPanelEl('2026-10-30', '明天', false);
   ok(!p2.querySelector('.today-festival-chip') && !p2.querySelector('.today-festival-sticker') && !p2.style.paddingRight, '不是節日當天（10/30）：沒有標籤與插圖');
   const p3 = todayPanelEl('2026-03-03', '今天', true);
+  document.body.appendChild(p3); await new Promise(r => setTimeout(r, 60));
   const chip3 = p3.querySelector('.today-festival-chip');
-  ok(!!chip3 && chip3.textContent.indexOf('🏮 元宵節') !== -1, '元宵當天：標籤是「🏮 元宵節」');
+  ok(!!chip3 && chip3.textContent.trim() === '元宵節' && chip3.querySelectorAll('svg.sticker').length === 1 && chip3.textContent.indexOf('🏮') === -1, '元宵當天：標籤是燈籠圖示＋「元宵節」（Emoji 已由自動轉換換成圖示，所以文字裡不會有 🏮）');
 
   // G. 元宵階段、節慶結束
   applyFestival(new Date(2026, 1, 28));
-  ok(html.getAttribute('data-festival') === 'lny' && html.getAttribute('data-festival-phase') === 'lantern' && badge() === '🏮', '元宵前 3 天：小圖示換成 🏮');
+  ok(html.getAttribute('data-festival') === 'lny' && html.getAttribute('data-festival-phase') === 'lantern' && badge() === 'lantern', '元宵前 3 天：圖示換成燈籠');
   applyFestival(new Date(2026, 1, 20));
-  ok(!html.hasAttribute('data-festival-phase') && badge() === '🧧', '春節期間：🧧');
+  ok(!html.hasAttribute('data-festival-phase') && badge() === 'envelope', '春節期間：紅包');
   applyFestival(new Date(2026, 10, 15)); applySeason(new Date(2026, 10, 15));
-  ok(!html.hasAttribute('data-festival') && !shown($('festivalGarland')) && !shown(s0) && badge() === '🍁', '節慶結束：掛飾與淡圖消失，回到季節（秋天 🍁）');
+  ok(!html.hasAttribute('data-festival') && !shown($('festivalGarland')) && !shown(s0) && badge() === 'maple', '節慶結束：掛飾與淡圖消失，回到季節（秋天楓葉）');
 
   // H. 英文介面標籤
   const realLang = state.lang; state.lang = 'en';

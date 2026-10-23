@@ -192,7 +192,7 @@ ok(/b\.onclick = function\(\) \{ const inp = document\.getElementById\('taskForm
 
 console.log('J. 第 4 批：季節與節慶徽章（CSS 偽元素，不能放 SVG 元素，改用內嵌圖片）');
 ok(!/#seasonBadge::after\s*\{[^}]*content:\s*'[^']/.test(html), '#seasonBadge::after 的 content 不再放 Emoji');
-ok(/#seasonBadge::after\s*\{[^}]*content:\s*'';[^}]*display:\s*inline-block;[^}]*width:\s*1\.5em;[^}]*height:\s*1\.5em;[^}]*background-size:\s*contain/.test(html), '徽章基本樣式：空內容、行內區塊、1.5em 見方（楓葉等細節在 1.15em 時看不清楚）、圖片縮放到包含');
+ok(/#seasonBadge::after\s*\{[^}]*content:\s*'';[^}]*display:\s*block;[^}]*width:\s*100%;[^}]*height:\s*100%;[^}]*background-size:\s*contain/.test(html), '徽章圖片：填滿 #seasonBadge 整個方塊（::after 100%×100%、縮放到包含）');
 const seasonMap = { 'data-season="spring"': 'blossom', 'data-season="summer"': 'watermelon', 'data-season="autumn"': 'maple', 'data-season="winter"': 'snowman', 'data-festival="lny"]': 'envelope', 'data-festival="children"]': 'pinwheel', 'data-festival="mother"]': 'bouquet', 'data-festival="dragon"]': 'zongzi', 'data-festival="father"]': 'tie', 'data-festival="moon"]': 'moon', 'data-festival="teacher"]': 'apple', 'data-festival="halloween"]': 'pumpkin', 'data-festival="xmas"]': 'tree', 'data-festival="lny"][data-festival-phase="lantern"]': 'lantern' };
 Object.keys(seasonMap).forEach(sel => {
   const re = new RegExp('html\\[' + sel.replace(/[\[\]"]/g, m => '\\' + m).replace(/\\\]$/, '') + '[^{]*#seasonBadge::after\\s*\\{\\s*background-image:\\s*url\\("data:image/svg\\+xml,([^"]*)"\\);');
@@ -200,7 +200,9 @@ Object.keys(seasonMap).forEach(sel => {
   const svgText = m ? decodeURIComponent(m[1]) : '';
   ok(!!m && svgText.indexOf('xmlns="http://www.w3.org/2000/svg"') > 0 && svgText.indexOf(LIB[seasonMap[sel]]) > 0 && !/<script|on\w+=|href/i.test(svgText), sel + ' → ' + seasonMap[sel] + '：內嵌的是完整、乾淨的 SVG');
 });
-ok(/\.d\s*\{\s*display:\s*none\s*\}/.test(decodeURIComponent((html.match(/#seasonBadge::after\s*\{\s*background-image:\s*url\("data:image\/svg\+xml,([^"]*)"\)/) || [0, ''])[1])), '徽章用小尺寸：內嵌 SVG 隱藏細節線條');
+const firstUri = decodeURIComponent((html.match(/#seasonBadge::after\s*\{\s*background-image:\s*url\("data:image\/svg\+xml,([^"]*)"\)/) || [0, ''])[1]);
+const autumnUri = decodeURIComponent((html.match(/data-season="autumn"\] #seasonBadge::after\s*\{\s*background-image:\s*url\("data:image\/svg\+xml,([^"]*)"\)/) || [0, ''])[1]);
+ok(firstUri.indexOf('<style>') < 0 && firstUri.indexOf('stroke-width="1.5"') > 0 && autumnUri.indexOf('class="d"') > 0 && autumnUri.indexOf('<style>') < 0, '徽章現在是 38px 大圖示：內嵌 SVG 用完整版（線寬 1.5、保留細節線條，不再隱藏）');
 ok(!/content:\s*'[\u{1F300}-\u{1FAFF}\u2600-\u27BF]/u.test(html), '整份頁面沒有 CSS content 放 Emoji 了');
 
 console.log('K. 後台「手機底部導覽列」設定：下拉選單的選項放不進圖畫，改成選單旁邊顯示目前選的圖示');
@@ -233,6 +235,23 @@ for (const m2 of html.matchAll(/\p{Extended_Pictographic}/gu)) { const ch = m2[0
 ok(Object.keys(strays).length === 0, '頁面裡沒有「不在對照表、也沒登記為不處理」的 Emoji（新增文字時又冒出新的會在這裡被擋下）。未處理：' + (Object.keys(strays).map(k => k + '×' + strays[k]).join('、') || '無'));
 const stale = [...NOT_CONVERTED].filter(ch => html.indexOf(ch) < 0);
 ok(stale.length === 0, '「已知不處理」清單沒有過期項目：' + (stale.join('、') || '無'));
+
+console.log('M. 季節／節慶圖示：放在頁首右側、38px、微微傾斜（不放進膠囊、不壓住 Logo；使用者選 B＋傾斜）');
+const hdrHtml = html.slice(html.indexOf('<header '), html.indexOf('</header>'));
+const logoBox = hdrHtml.slice(hdrHtml.indexOf('<div class="relative w-11 h-11'), hdrHtml.indexOf('<div class="flex flex-col justify-center min-w-0">'));
+ok(hdrHtml.indexOf('id="seasonBadge"') > 0 && logoBox.indexOf('seasonBadge') < 0, '#seasonBadge 在頁首裡，但不在 Logo 方塊內（不壓住 Logo）');
+const pillAt = hdrHtml.indexOf('id="headerBadge"'), pillEnd = hdrHtml.indexOf('</span>', pillAt);
+ok(hdrHtml.slice(pillAt, pillEnd).indexOf('seasonBadge') < 0, '#seasonBadge 不在 Happy Life 膠囊內（介面標題改文字時不會被清掉）');
+const rightGroup = hdrHtml.slice(hdrHtml.indexOf('<div class="flex items-center gap-2 shrink-0">'));
+ok(rightGroup.indexOf('id="seasonBadge"') > rightGroup.indexOf('id="appRefreshBtn"') && rightGroup.indexOf('id="seasonBadge"') > rightGroup.indexOf('id="globalAdminStatus"'), '圖示在頁首右側群組裡、排在重新整理鈕與管理員狀態之後（最右邊；有管理員狀態時在流程內排列，不會互相疊住）');
+ok(/<span id="seasonBadge" class="shrink-0" aria-hidden="true"><\/span>/.test(hdrHtml), '圖示是裝飾：aria-hidden、不縮小（shrink-0）');
+ok(/#seasonBadge\s*\{[^}]*display:\s*none;[^}]*position:\s*absolute;[^}]*right:\s*10px;[^}]*top:\s*50%;[^}]*width:\s*38px;[^}]*height:\s*38px;[^}]*transform:\s*translateY\(-50%\) rotate\(10deg\);[^}]*pointer-events:\s*none;/.test(html), '#seasonBadge：預設不顯示、手機絕對定位在頁首右側上下置中（不增加頁首高度）、38×38、傾斜 10 度、不擋點擊');
+ok(/html\[data-season\] #seasonBadge,\s*html\[data-festival\] #seasonBadge\s*\{\s*display:\s*block;\s*\}/.test(html), '有季節或節慶設定才顯示');
+ok(/@media \(max-width: 767px\)\s*\{\s*#appRefreshBtn:not\(\.hidden\) ~ #seasonBadge\s*\{\s*top:\s*calc\(50% \+ \d+px\);/.test(html), '手機的 App 模式：重新整理鈕貼在右上角，圖示往下移一點避免互相遮住');
+ok(/@media \(min-width: 768px\)\s*\{\s*#seasonBadge\s*\{\s*position:\s*static;\s*transform:\s*rotate\(10deg\);\s*\}\s*\}/.test(html), '電腦版（768px 以上）：圖示改在版面流程內排列，位在管理員狀態與登出鈕之後（不疊住）');
+ok(/@media \(max-width: 767px\)\s*\{\s*#globalAdminStatus:not\(\.hidden\) ~ #seasonBadge\s*\{\s*display:\s*none !important;\s*\}\s*\}/.test(html), '手機上管理員已登入：圖示先隱藏（右側要給登出鈕，否則頁首會變高）');
+ok(/<div class="relative max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">/.test(hdrHtml.replace(/\s+/g, ' ')) || /<div class="relative max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">/.test(hdrHtml), '頁首列是 relative（圖示以它為定位基準）');
+ok(/class="flex items-center gap-x-2 gap-y-1 flex-wrap min-w-0 pr-11 md:pr-0"/.test(hdrHtml), '基金會與學校那兩行右側在手機留 44px 給圖示（過長會截斷，不會疊到圖示）；班名與膠囊那行不留，維持原本的換行位置'); 
 
 console.log('\n結果：' + pass + ' 通過，' + fail + ' 失敗');
 process.exit(fail ? 1 : 0);
