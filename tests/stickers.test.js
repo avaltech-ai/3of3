@@ -203,5 +203,13 @@ Object.keys(seasonMap).forEach(sel => {
 ok(/\.d\s*\{\s*display:\s*none\s*\}/.test(decodeURIComponent((html.match(/#seasonBadge::after\s*\{\s*background-image:\s*url\("data:image\/svg\+xml,([^"]*)"\)/) || [0, ''])[1])), '徽章用小尺寸：內嵌 SVG 隱藏細節線條');
 ok(!/content:\s*'[\u{1F300}-\u{1FAFF}\u2600-\u27BF]/u.test(html), '整份頁面沒有 CSS content 放 Emoji 了');
 
+console.log('K. 後台「手機底部導覽列」設定：下拉選單的選項放不進圖畫，改成選單旁邊顯示目前選的圖示');
+const mn = html.slice(html.indexOf('    function renderMobileNavSettings('), html.indexOf('    function mobileNavSnapshot('));
+ok(mn.indexOf('o.textContent = t(NAV_TAB_META[k].label);') > 0 && mn.indexOf('NAV_TAB_META[k].icon') < 0, '選項文字只有頁面名稱（不再放 Emoji：<option> 放不進圖畫）');
+ok(/function mobileNavSlotIcon\(k, cls\)/.test(html) && /stickerSvg\(NAV_TAB_META\[k\]\.sticker, 'sticker-sm ' \+ cls\)/.test(html), 'mobileNavSlotIcon：依頁面代號取得圖示');
+ok(/sel\.value = cur\[i\] \|\| DEFAULT_MOBILE_NAV\[i\];[\s\S]{0,260}pv\.innerHTML = mobileNavSlotIcon\(sel\.value, 'w-6 h-6'\);\n        sel\.onchange/.test(mn), '初始：設好選單值之後先放一次預覽圖示（打開設定頁就看得到）');
+ok(/sel\.onchange = function\(\) \{ pv\.innerHTML = mobileNavSlotIcon\(sel\.value, 'w-6 h-6'\); \};/.test(mn) && /pv\.innerHTML = mobileNavSlotIcon\(sel\.value, 'w-6 h-6'\)/.test(mn) && /row\.appendChild\(pv\); row\.appendChild\(sel\);/.test(mn), '每一格：選單旁邊有預覽圖示，換選項時預覽跟著換，初始值也顯示');
+ok(/id="mobileNavSlot-' \+ \(i \+ 1\)|sel\.id = 'mobileNavSlot-' \+ \(i \+ 1\);/.test(mn) && /function mobileNavSnapshot\(\) \{ return \[1, 2, 3, 4\]\.map\(function\(i\) \{ return \(document\.getElementById\('mobileNavSlot-' \+ i\) \|\| \{\}\)\.value/.test(html), '選單的 id 與「讀取目前選擇」的程式不變（儲存、恢復預設、是否有改動的判斷都靠它）');
+
 console.log('\n結果：' + pass + ' 通過，' + fail + ' 失敗');
 process.exit(fail ? 1 : 0);

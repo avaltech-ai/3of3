@@ -13738,6 +13738,7 @@ const htmlContent = `<!DOCTYPE html>
     function mobileMoreEsc(e) { if (e.key === 'Escape') closeMobileMore(); }
 
     // ---------- 後台「手機底部導覽列」設定 ----------
+    function mobileNavSlotIcon(k, cls) { return NAV_TAB_META[k] ? stickerSvg(NAV_TAB_META[k].sticker, 'sticker-sm ' + cls) : ''; }
     function renderMobileNavSettings(values) {
       const box = document.getElementById('mobileNavSlots');
       if (!box) return;
@@ -13748,9 +13749,16 @@ const htmlContent = `<!DOCTYPE html>
         const cap = document.createElement('span'); cap.className = 'block text-[0.6875rem] font-bold text-slate-500 mb-1'; cap.textContent = '第 ' + (i + 1) + ' 格';
         const sel = document.createElement('select'); sel.id = 'mobileNavSlot-' + (i + 1);
         sel.className = 'w-full px-2.5 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-700 bg-white';
-        NAV_TAB_ORDER.forEach(function(k) { const o = document.createElement('option'); o.value = k; o.textContent = NAV_TAB_META[k].icon + ' ' + t(NAV_TAB_META[k].label); sel.appendChild(o); });
+        // <option> 放不進圖畫，所以選項只放頁面名稱，目前選的頁面圖示顯示在選單旁邊
+        NAV_TAB_ORDER.forEach(function(k) { const o = document.createElement('option'); o.value = k; o.textContent = t(NAV_TAB_META[k].label); sel.appendChild(o); });
         sel.value = cur[i] || DEFAULT_MOBILE_NAV[i];
-        lab.appendChild(cap); lab.appendChild(sel); box.appendChild(lab);
+        const row = document.createElement('div'); row.className = 'flex items-center gap-1.5';
+        const pv = document.createElement('span'); pv.className = 'shrink-0 inline-flex'; pv.setAttribute('aria-hidden', 'true');
+        pv.innerHTML = mobileNavSlotIcon(sel.value, 'w-6 h-6');
+        sel.onchange = function() { pv.innerHTML = mobileNavSlotIcon(sel.value, 'w-6 h-6'); };
+        sel.className += ' min-w-0 flex-1';
+        row.appendChild(pv); row.appendChild(sel);
+        lab.appendChild(cap); lab.appendChild(row); box.appendChild(lab);
       }
       if (!values) adminFormBaseline.mobileNav = mobileNavSnapshot();   // 「恢復預設」傳入 values：不更新（它是還沒儲存的修改）
     }
