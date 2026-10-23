@@ -168,7 +168,7 @@ ok(/\.sticker-emoji\s*\{[^}]*display:\s*inline-flex/.test(html) && /\.sticker-in
 console.log('I. 第 4 批：提示訊息、人物、節慶、季節、餐點與其他（含沿用前三批的圖示）');
 const NEW4 = ['check', 'cross', 'warn', 'hourglass', 'party', 'gift', 'dotGreen', 'dotRed', 'dotYellow', 'dotWhite', 'heartYellow', 'girl', 'boy', 'woman', 'man', 'envelope', 'lantern', 'pinwheel', 'bouquet', 'zongzi', 'tie', 'moon', 'pumpkin', 'tree', 'blossom', 'watermelon', 'maple', 'snowman', 'stew', 'bowl', 'milk', 'curry', 'cakeSlice', 'tooth', 'stethoscope', 'peach', 'mushroom', 'antenna', 'headphones', 'flag', 'robot', 'sad', 'wave', 'key', 'sponge', 'abc', 'traffic', 'dice', 'ruler', 'scale', 'shirt', 'pants', 'teddy', 'loveFace', 'palette', 'runner', 'soap'];
 ok(NEW4.every(k => typeof LIB[k] === 'string' && LIB[k].length > 20), '第 4 批 ' + NEW4.length + ' 個新圖示都在庫裡');
-ok(Object.keys(LIB).length === BATCH1.length + BATCH2.length + BATCH3.length + NEW4.length + 9, '圖示庫總數 = 13 + 25 + 22 + ' + NEW4.length + ' + 9（補強）= ' + (BATCH1.length + BATCH2.length + BATCH3.length + NEW4.length + 9) + '（實際 ' + Object.keys(LIB).length + '）');
+ok(Object.keys(LIB).length === BATCH1.length + BATCH2.length + BATCH3.length + NEW4.length + 9 + 7, '圖示庫總數 = 13 + 25 + 22 + ' + NEW4.length + ' + 9（補強）+ 7（第 5 批）= ' + (BATCH1.length + BATCH2.length + BATCH3.length + NEW4.length + 9 + 7) + '（實際 ' + Object.keys(LIB).length + '）');
 const WANT4 = { '✅': 'check', '❌': 'cross', '⚠': 'warn', '⏳': 'hourglass', '🎉': 'party', '🎁': 'gift', '🟢': 'dotGreen', '🔴': 'dotRed', '🟡': 'dotYellow', '⚪': 'dotWhite', '💛': 'heartYellow', '👧': 'girl', '👦': 'boy', '👩': 'woman', '👨': 'man', '👨‍👩‍👧': 'together', '❤': 'heart',
   '🧧': 'envelope', '🏮': 'lantern', '🎈': 'pinwheel', '💐': 'bouquet', '🐲': 'zongzi', '👔': 'tie', '🥮': 'moon', '🎃': 'pumpkin', '🎄': 'tree', '🌸': 'blossom', '🍉': 'watermelon', '🍁': 'maple', '⛄': 'snowman',
   '🍲': 'stew', '🥣': 'bowl', '🥛': 'milk', '🍛': 'curry', '🍰': 'cakeSlice', '🦷': 'tooth', '🩺': 'stethoscope', '🍑': 'peach', '🍄': 'mushroom', '📡': 'antenna', '🎧': 'headphones', '🏁': 'flag', '🤖': 'robot', '😢': 'sad', '👋': 'wave', '🔑': 'key', '🧽': 'sponge',
@@ -231,7 +231,8 @@ ok(/var SONG_DOWNLOAD_ICON = stickerSvg\('download', 'sticker-sm w-6 h-6'\);/.te
 // 守門：頁面（含所有程式裡的字串）裡出現的 Emoji 一定是「在對照表裡」或「已知不處理」
 const NOT_CONVERTED = new Set(['▶', '☑', '↗', '↔', '🔥']);   // ▶ ☑ ↗ ↔ 是字型符號；🔥 只出現在程式註解
 const strays = {};
-for (const m2 of html.matchAll(/\p{Extended_Pictographic}/gu)) { const ch = m2[0]; if (EMOJI_TEXT[ch] || NOT_CONVERTED.has(ch)) continue; strays[ch] = (strays[ch] || 0) + 1; }
+for (const m2 of html.matchAll(/\p{Extended_Pictographic}/gu)) { const ch = m2[0]; if (EMOJI_TEXT[ch] || NOT_CONVERTED.has(ch)) continue; if (html[m2.index - 1] === '\u200D') continue;   // ZWJ 後面的 ♀ ♂ 是 🙋‍♀ 這類組合的一部分
+    strays[ch] = (strays[ch] || 0) + 1; }
 ok(Object.keys(strays).length === 0, '頁面裡沒有「不在對照表、也沒登記為不處理」的 Emoji（新增文字時又冒出新的會在這裡被擋下）。未處理：' + (Object.keys(strays).map(k => k + '×' + strays[k]).join('、') || '無'));
 const stale = [...NOT_CONVERTED].filter(ch => html.indexOf(ch) < 0);
 ok(stale.length === 0, '「已知不處理」清單沒有過期項目：' + (stale.join('、') || '無'));
@@ -252,6 +253,20 @@ ok(/@media \(min-width: 768px\)\s*\{\s*#seasonBadge\s*\{\s*position:\s*static;\s
 ok(/@media \(max-width: 767px\)\s*\{\s*#globalAdminStatus:not\(\.hidden\) ~ #seasonBadge\s*\{\s*display:\s*none !important;\s*\}\s*\}/.test(html), '手機上管理員已登入：圖示先隱藏（右側要給登出鈕，否則頁首會變高）');
 ok(/<div class="relative max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">/.test(hdrHtml.replace(/\s+/g, ' ')) || /<div class="relative max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">/.test(hdrHtml), '頁首列是 relative（圖示以它為定位基準）');
 ok(/class="flex items-center gap-x-2 gap-y-1 flex-wrap min-w-0 pr-11 md:pr-0"/.test(hdrHtml), '基金會與學校那兩行右側在手機留 44px 給圖示（過長會截斷，不會疊到圖示）；班名與膠囊那行不留，維持原本的換行位置'); 
+
+console.log('N. 第 5 批：試算表內容裡的 7 個符號（行事曆提示、幼小銜接文章、頁尾聯絡資訊）');
+// 這些符號不在網頁程式裡，是老師在試算表打的內容，執行時由 stickerizeNode 轉成圖示。句子取自正式站 2026-10-23 的資料。
+const B5 = { '\u{1F315}': 'fullMoon', '\u{1F38A}': 'confetti', '\u{1F4DD}': 'memo', '\u{1F64B}': 'hand', '\u{1F914}': 'think', '☎': 'phoneDesk', '\u{1F4E0}': 'fax' };
+ok(Object.values(B5).every(k => typeof LIB[k] === 'string' && LIB[k].length > 40), '圖示庫有這 7 個：' + Object.values(B5).join('、'));
+Object.keys(B5).forEach(e => ok(EMOJI_TEXT[e] === B5[e], 'EMOJI_TEXT：U+' + e.codePointAt(0).toString(16).toUpperCase() + ' → ' + B5[e]));
+ok(EMOJI_TEXT['\u{1F64B}‍♀'] === 'hand' && EMOJI_TEXT['\u{1F64B}‍♂'] === 'hand', '🙋‍♀️、🙋‍♂️（老師換性別版本）也轉成同一個舉手圖示');
+const split5 = (t) => JSON.stringify(emojiSplit(t));
+ok(sp('中秋節連假\u{1F315} 休園') === JSON.stringify([{ t: '中秋節連假' }, { k: 'fullMoon' }, { t: ' 休園' }]), '行事曆提示「中秋節連假🌕 休園」：滿月換成圖示，前後文字不變');
+ok(sp('元旦假期\u{1F38A}休園') === JSON.stringify([{ t: '元旦假期' }, { k: 'confetti' }, { t: '休園' }]), '行事曆提示「元旦假期🎊休園」：彩帶換成圖示');
+ok(sp('\u{1F4DD} 第一次面對要打分數的正式評量 \u{1F64B} 第一次在全班面前被點名回答 \u{1F914} 第一次發現自己不會') === JSON.stringify([{ k: 'memo' }, { t: ' 第一次面對要打分數的正式評量 ' }, { k: 'hand' }, { t: ' 第一次在全班面前被點名回答 ' }, { k: 'think' }, { t: ' 第一次發現自己不會' }]), '幼小銜接文章：📝🙋🤔 同一段文字裡都換成圖示');
+ok(sp('｜☎️ 02-2668-8249｜\u{1F4E0} 02-2668-8245') === JSON.stringify([{ t: '｜' }, { k: 'phoneDesk' }, { t: ' 02-2668-8249｜' }, { k: 'fax' }, { t: ' 02-2668-8245' }]), '頁尾聯絡資訊：☎️（帶變體符）與 📠 換成圖示，電話號碼不變');
+ok(/\.sticker-emoji\s*\{/.test(html) && /MutationObserver/.test(html), '轉換機制（stickerizeNode＋MutationObserver）仍在，試算表資料晚到也會被轉換');
+ok(LIB.fullMoon.indexOf('<g fill="#FCD34D"') > 0 && LIB.fullMoon.indexOf('class="d"') > 0, '滿月：兩個大坑洞不是細節線條（縮小時仍看得出是月亮，不會變成單純黃點）');
 
 console.log('\n結果：' + pass + ' 通過，' + fail + ' 失敗');
 process.exit(fail ? 1 : 0);

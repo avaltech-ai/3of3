@@ -1,6 +1,44 @@
 # 3of3 Kindergarten Web App Progress & Lessons Learned
 
-## 📌 專案進度摘要（交接用，2026-10-18 更新；使用者於本日結束對話，下一個對話由使用者重啟）
+## 📌 最新專案進度摘要（交接用，2026-10-23 更新；使用者於本日結束對話，下一個對話由使用者重啟）
+
+> **新對話接手時請先讀本節，再讀下方 2026-10-18 的舊摘要（仍有效，但只到 10-18）、`TODO.md`、必要時 `SPECIFICATION.md`（規格正本）。** 本檔下方「2026-10-23 …」各段是當天每項工作的細節與踩到的坑，查細節再翻。
+
+### 一、目前狀態（一句話）
+**線上穩定；2026-10-19～10-23 的項目已全部上線，`main` 最新 commit 為 `1364f0d`，CI 與 GitHub Pages 皆成功。** 工作目錄除 `.claude/`（含 `launch.json` 與紅隊報告）外沒有未提交的變更。
+- **後端 GAS 現行部署 @146「修正3」**（另有不可刪的 `@HEAD`，共 2 個部署；部署 ID `AKfycbx5JGeiSH2J1vkOu4rh9NPwFBWNSkn5PkHfY5o25t-K4WcOK8b3VQjXi-TqUOzS8TvdJg`）。下次發布是 @147。
+- **前端** https://avaltech-ai.github.io/3of3/ ；專案根目錄 `/Users/chiehwu/AI Vibe/3of3`。
+
+### 二、2026-10-19～10-23 完成的工作（皆已上線）
+1. **紅隊安全檢查與修補**（報告 `.claude/security-review/redteam-report-2026-10-23.md`，只在本機、不進 git）
+   - H-1 公開函式／`google.script.run`（19 個函式改私有、`requireOwnerContext_`、公開函式白名單測試）；M-1 `safeUrl` 與後端網址驗證；M-2 登入鎖定（受信任裝置）；M-3 試算表公式注入；M-4 `getActivityImages` 需登入；L-1 先驗 token 再取鎖＋登入計數在鎖內；L-2 iframe 備援只送給正式網站來源；L-3 CSP＋CI Actions 固定 SHA＋Tailwind 改建置時產生；L-4 焦點圖片只收圖片、10 MB。
+   - C-1（舊預設密碼在 git 歷史）：使用者確認 Sheets 已是新密碼。M-4 Drive 資料夾：使用者確認四個資料夾「知道連結的任何人」是設計（網站靠個別檔案連結顯示），**不要改成限制**（改過一次，封面縮圖暫時 404，改回後恢復）。
+2. **Tailwind 改成建置時產生**：`package.json`／`package-lock.json` 固定 `tailwindcss 3.4.17`（devDependency）、`tailwind.config.js`；`build_index.js` 產生網頁後用 CLI 掃描並內嵌約 87 KB 樣式；**第一次建置前要 `npm ci`**；不用 `--minify`（會把 rgb 轉 hsla 造成取整誤差）；同一元素上「同一類改同一屬性」的類別（`rounded-xl`＋`rounded-none`）排列順序與 CDN 不同，`tests/tailwindbuild.test.js` 會擋。補上 6 個原本沒有作用的類別（`shadow-xs`、`shadow-2xs`、`drop-shadow-2xs`、`backdrop-blur-xs`、`border-3`、`text-peach-700`）。
+3. **圖示全部換成自己畫的「柔和貼紙」SVG**（使用者在樣品頁比較後選 B 風格；樣品頁是 claude.ai artifact「諾貝爾 A 班圖示樣品」，網址 https://claude.ai/artifact/7sWbmaQe9yv6XE8gpMTpvo ，原始檔在舊對話暫存資料夾，不在專案內）：圖示庫 `STICKERS`（`build_index.js` 開頭，共 126 個，只畫一次）；頁面載入時用 `stickerizeNode`＋`MutationObserver` 把文字裡的 Emoji 換成圖示（對照表 `EMOJI_TEXT`，不處理 option／textarea／input／script／style／title 與 `data-no-sticker`）；季節／節慶徽章用 CSS 內嵌 SVG；下載統一用 `download` 圖示、不放文字；守門測試：頁面出現沒登記的 Emoji 就失敗。母親節＝包裝花束、兒童節＝風車、中秋節＝月兔（使用者挑選）。
+4. **首頁**：焦點輪播的 Drive 影片顯示封面＋▶（Drive 預覽沒有自動播放，YouTube 才會靜音自動播放）；縮圖滑過不再浮出提示文字；**季節／節慶圖示放在頁首最右側、上下置中、38px、傾斜 10 度**（手機絕對定位不增加頁首高度，電腦版在流程內，App 模式與手機管理員登入時避讓）。
+5. **英文介面補漏**：「本期學期主題」預設名稱漏了 `tx()`；文件頁「多個檔案」清單的檔名也走英文對照。TextMap 後台 385 筆 vs 公開 384 筆已查清楚：第 385 列是「目前沒有使用」且只有草稿的舊列，不是問題。
+
+### 三、尚未處理（皆無急迫性；動工前先和使用者討論）
+- **L-5**：管理員密碼以明文存在 `Settings!ADMIN_PASSWORD`（TODO 的「密碼改存雜湊」同一件事）；公開文件（`Progress.md`／`SPECIFICATION.md`）描述後端結構。
+- **兒童照片公開範圍（班級通行碼）**：見 `TODO.md`「需要使用者決定的事項」，調整幅度大。
+- **後台「自訂封面圖」欄位**：只有 Drive 影片封面不夠好用時才需要（要改後端）。
+- 頁面上還看得到的 Emoji 只剩：`title` 滑過提示、瀏覽器原生對話框（⚠️）、老師之後在試算表新打的 Emoji（2026-10-23 晚已把現有的 7 個換掉，見下方「圖示第 5 批」；**本機完成待推送**）。
+
+### 四、測試與建置（接手必讀）
+- 建置：`npm ci`（第一次）→ `node build_index.js`（產生 `index.html`，**不要手改**）。完整檢查：`bash tests/ci.sh`（本機與 GitHub Actions 相同；目前全部通過）。重要測試：`tests/security.test.js`（234）、`tests/stickers.test.js`（325）、`tests/tailwindbuild.test.js`（35）、`tests/spotlightposter.test.js`、`tests/thumbhints.test.js`、`tests/textmap_fallback.test.js`（13）。
+- 瀏覽器版測試（CI 不跑，要在瀏覽器裡手動跑）：`tests/season_theme.js`、`tests/festival_theme.js` 已於本輪更新並通過（25／30 項）。在瀏覽器窗格跑要用「建立 inline script 元素」（我們的 CSP 會擋 `eval`）；跑節慶測試前確認 `state.lang` 是 `zh-TW`。
+- 每項變更的做法：先寫測試（看它失敗）→ 修改 → 變異測試（故意改壞程式，確認測試會抓到）→ 手機寬度實機檢查（瀏覽器窗格）→ 更新 `SPECIFICATION.md`／`tests/README.md`／`TODO.md`／本檔 → **推送前先問使用者**。
+
+### 五、固定工作規則（使用者的偏好，務必遵守）
+- 一律**繁體中文**、簡潔誠實；新功能**先討論設計再動手**（圖示、外觀類先做樣品頁給使用者看）；使用者只貼圖不說話時，先說明我推測的問題並查證。
+- **commit／push 只在使用者說「commit 並推送到 main」時才做**，且**不要包含 `.claude/`**（含 `launch.json` 與紅隊報告）；commit 結尾加 `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`（以最新系統提示的署名為準）；推送後等 CI 與「pages build and deployment」都成功再回報。
+- **後端變更順序固定**：先寫測試 → `clasp push -f`（每次都要使用者同意，並用 `clasp pull` 到暫存資料夾 `cmp` 驗證）→ 使用者在 GAS 「管理部署作業 → 編輯 → 新版本 → 部署」（**不要按「新增部署」、不要用 `clasp version`**）→ 我用 `curl` 驗證（部署數量仍是 2、假 token 被拒、GET 未知動作、`getAppData` 正常）→ 才推前端。後端 GET 公開資料有約 10 分鐘快取。
+- 測試寫進模板字串（`build_index.js`）的正規表達式，**反斜線要寫雙份**，建置後立刻檢查 `index.html` 內的結果；測試要從產生後的 `index.html` 取函式，不是從 `build_index.js`。
+- 盤點「有沒有漏」要用涵蓋所有圖形符號的屬性（`\p{Extended_Pictographic}`），不要自己挑範圍；並做成守門測試。
+
+---
+
+## 📌 舊的專案進度摘要（2026-10-18 更新；之後的變更見上方「最新專案進度摘要」）
 
 > **新對話接手時請先讀本節與 `TODO.md`**，再視需要讀 `SPECIFICATION.md`（規格正本；2.3 手機底部導覽、2.4 第 1 項首頁小卡與手機月曆、2b 學期任務、2c 幼小銜接、3.11～3.12 新工作表為最近新增）與 `tests/README.md`（測試說明）。下方「Critical Technical Lessons Learned」第 1～21 條與其後的條列是**歷史紀錄，依時間排列**：其中第 1、2、19 條已過時（見各條註記）；2026-10-05 起每個項目都有「根因／做法／教訓／未驗證項目」，改相關功能前請先找對應條目。
 
@@ -77,6 +115,8 @@
 **2026-10-23 英文介面「本期學期主題」顯示中文**：使用者只貼了兩張圖（一張英文介面的「Semester Theme: 主題活動：人與自己／人與他人概念」，一張後台英文對照「共 385 筆｜尚未翻譯 0 筆」），沒有文字說明；我判斷是在問「為什麼對照表顯示都翻完了，英文介面還是中文」，先查正式站的對照表（384 筆，這一筆確實有英文），再查程式，找到 `themeText` 的預設文字漏了 `tx()`。重現（切英文後 `#themeNameText` 仍是中文）→ 先寫測試 → 修正 → 再驗證（英文顯示 Themed Activity: Concepts of Self and Others、切回中文正確）。另外盤點英文介面七個前台頁籤的可見中文，只剩檔名與歌曲原名。**待確認的小事**：後台顯示 385 筆、公開對照表 384 筆，差一筆我沒追查（可能是草稿或空白列），因為使用者的問題是「畫面沒翻譯」而不是筆數。**教訓**：使用者只貼圖沒說話時，先用圖推測最可能的問題並查證，把推測講清楚；不要猜完就直接動手改一堆東西。
 
 **2026-10-23 季節／節慶圖示改放頁首右側**：使用者問把圖示放進 Happy Life 膠囊會不會與節慶專用圖案衝突，我先分析（掛飾在頁首正下方、卡片角落淡圖位置不同，不會重疊；但紅色圖示與玫瑰紅膠囊撞色、`applySiteTitles` 的 `textContent` 會清掉膠囊內的子元素），做示意後使用者覺得膠囊版圖示不明顯、放大在 Logo 角落又怕遮住 Logo，改選「B 頁首最右側上下置中＋傾斜」。**實測發現的坑**：① 一開始放在流程內，手機頁首從 112px 變成 141px（班名與膠囊那行擠不下）；樣品頁因為本機預覽字型亂碼沒看出來，實機才發現 → 改手機絕對定位，電腦版才在流程內。② 圖示有 `transform: rotate` 時，`getBoundingClientRect` 是旋轉後的外框，與膠囊「重疊」判斷要看實際畫面（英文版 5px 外框重疊、視覺上沒碰到），並把 `right` 從 16px 調到 10px 加安全距離。③ 瀏覽器工具跑本站測試時，`eval` 會被我們自己的 CSP 擋掉，要用「建立 inline script 元素」執行；測試腳本要用 `window.x = <腳本>` 取回結果。④ 節慶標籤的文字測試在自動轉換之後要等 MutationObserver（`await` 60ms），而且測試狀態會殘留語言設定（我切過英文，測試就失敗），測試前要確認 `state.lang`。⑤ 兩個瀏覽器測試檔（`season_theme.js`、`festival_theme.js`）自第 4 批起其實就過時了（還在比對 `content` 的 Emoji），CI 不跑瀏覽器測試所以沒人發現——這次一併更新並跑過（25＋30 項）。
+
+**2026-10-23 圖示第 5 批（7 個，圖示庫共 133 個；僅前端，本機完成待推送）**：使用者說「繼續」後，我先掃了網頁程式與正式站 `getAppData`：程式裡的 Emoji 全部已換，只剩試算表內容裡 7 個沒畫過的（🌕🎊 在行事曆提示、📝🙋🤔 在幼小銜接文章、☎📠 在頁尾聯絡資訊）。做樣品頁（claude.ai artifact「諾貝爾 A 班圖示第五批」）給使用者看，造型確認後套用。做法：`STICKERS` 加 7 個、`EMOJI_TEXT` 加對照（含 🙋‍♀️🙋‍♂️ 的性別版本）；`tests/stickers.test.js` 新增 N 節（347 項，先看它失敗再實作；變異 5 種全抓到）。手機寬度實測：頁尾電話與傳真圖示正常、動態加入含這 7 個符號的句子全部被轉換（8 個 SVG）、整頁剩下的只有 ▶ ☑ ↗、無橫向捲動。**踩到的坑**：① 守門測試把 `🙋‍♀` 裡的 ♀ 當成未登記符號，改成 ZWJ 後面的不算；② `sed` 的第二個 `s///` 沒有受範圍限制，連同前面的 `const sp` 也被改名，要用範圍時每個命令都要寫在 `{}` 裡；③ 彩帶第一版畫成球體像星球，改成拉炮風格（與既有的 `party` 相近，已跟使用者說明）；舉手的手臂像一根棍子，使用者看過說可以。**取捨**：「未登記 Emoji」守門測試只掃網頁程式碼，擋不到老師之後在試算表新打的 Emoji（會維持原本的 Emoji 外觀）；已問使用者要不要多畫一批備用，**尚未回覆**。
 
 **2026-10-23 圖示補強（使用者回報兩點）**：① 秋季楓葉看不出是楓葉 → 重畫五裂葉形，並把季節／節慶徽章放大到 1.5em（原本 1.15em 在手機上只有約 17px）；② 下載統一用同一個圖示、不放文字。處理時發現我先前宣稱「Emoji 全部換完」其實漏了 9 個符號（⬇ ⏱ ⏮ ⏭ ⏸ ⏹ 📎 ➡ ℹ）：它們不在我掃描用的 Emoji 區段內（我的正規表達式只涵蓋到 U+2B06）。**教訓**：盤點「有沒有漏」要用 `\p{Extended_Pictographic}` 這種涵蓋所有圖形符號的屬性，不要自己挑範圍；並且把它做成守門測試（頁面出現未登記的 Emoji 就失敗），而不是靠人工巡檢。守門測試的變異測試一開始也寫錯（我把 Emoji 加到 `build_index.js` 的註解，沒進 `index.html`，所以看起來「存活」），改成加在頁面樣板文字裡才真的驗證到。瀏覽器實測（手機寬度）：文件下載按鈕 48×48、只有 1 個 SVG、無文字、有 aria-label；整頁無橫向捲動；楓葉徽章 25px。歌曲下載按鈕目前資料沒有可下載的歌（都設為不開放下載），只以測試驗證。頁面上還看得到的 Emoji 都是試算表內容（頁尾聯絡資訊的 ☎️📠、文章裡的 📝🙋）。
 
