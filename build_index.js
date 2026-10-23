@@ -7161,7 +7161,7 @@ const htmlContent = `<!DOCTYPE html>
 
       // 學期主題名稱
       const firstEvent = dayEvents[0];
-      const themeText = (firstEvent && firstEvent.theme) ? tx(firstEvent.theme) : '主題活動：人與自己／人與他人概念';
+      const themeText = (firstEvent && firstEvent.theme) ? tx(firstEvent.theme) : tx('主題活動：人與自己／人與他人概念');
       document.getElementById('themeNameText').textContent = themeText;
 
       // 2. 渲染菜單卡片
