@@ -8436,9 +8436,9 @@ const htmlContent = `<!DOCTYPE html>
               const size = docFormatSize(f.size);
               return '<li data-doc-file="1" class="flex items-center gap-2.5 p-2 rounded-2xl bg-slate-50 border border-slate-100">' +
                 getDocFileIconHtml({ fileName: f.name, fileExtension: f.ext }, true) +
-                '<div class="min-w-0 flex-1"><div class="text-xs font-bold text-slate-800 wrap-any">' + esc(f.name) + '</div>' +
+                '<div class="min-w-0 flex-1"><div class="text-xs font-bold text-slate-800 wrap-any">' + esc(tx(f.name)) + '</div>' +
                 (size ? '<div class="text-[0.6875rem] text-slate-400">' + esc(size) + '</div>' : '') + '</div>' +
-                '<a href="' + (escUrl(f.downloadUrl) || '#') + '" target="_blank" rel="noopener noreferrer" title="' + esc((en ? 'Download ' : '下載 ') + f.name) + '" aria-label="' + esc((en ? 'Download ' : '下載 ') + f.name) + '" class="w-10 h-10 rounded-full bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 flex items-center justify-center shrink-0 tap-bounce">' +
+                '<a href="' + (escUrl(f.downloadUrl) || '#') + '" target="_blank" rel="noopener noreferrer" title="' + esc((en ? 'Download ' : '下載 ') + tx(f.name)) + '" aria-label="' + esc((en ? 'Download ' : '下載 ') + tx(f.name)) + '" class="w-10 h-10 rounded-full bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 flex items-center justify-center shrink-0 tap-bounce">' +
                 stickerSvg('download', 'sticker-sm w-6 h-6') + '</a></li>';
             }).join('') +
             '</ul>';

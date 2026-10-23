@@ -225,7 +225,7 @@ const docDl = html.slice(html.indexOf("' <a href=\"' + (escUrl(url) || '#')") > 
 ok(/class="w-10 h-10 rounded-full bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 flex items-center justify-center shrink-0 tap-bounce"[^>]*>' \+\s*stickerSvg\('download', 'sticker-sm w-6 h-6'\) \+ '<\/a>'/.test(html.replace(/\n\s+/g, ' ')) || /stickerSvg\('download', 'sticker-sm w-6 h-6'\)/.test(html), '文件卡片的下載按鈕：只放下載圖示');
 ok(html.indexOf('<span>⬇️</span>') < 0 && !/'<span>' \+ stickerSvg\('download'/.test(html) && !/stickerSvg\('download', 'sticker-sm w-6 h-6'\) \+ ' ' \+/.test(html), '文件的下載按鈕沒有「⬇️」，圖示後面也沒有跟可見的文字');
 ok(/aria-label="' \+ esc\(state\.lang === 'en' \? 'Download' : '下載文件'\) \+ '"/.test(html) && /title="' \+ esc\(state\.lang === 'en' \? 'Download' : '下載文件'\) \+ '"/.test(html), '文件的下載按鈕：aria-label 與 title 仍有文字（螢幕閱讀器與滑過提示）');
-ok(/aria-label="' \+ esc\(\(en \? 'Download ' : '下載 '\) \+ f\.name\) \+ '"/.test(html), '文件裡每個檔案的下載按鈕：aria-label 帶檔名（「下載 檔名」）');
+ok(/aria-label="' \+ esc\(\(en \? 'Download ' : '下載 '\) \+ tx\(f\.name\)\) \+ '"/.test(html), '文件裡每個檔案的下載按鈕：aria-label 帶檔名（「下載 檔名」，檔名走英文對照）');
 ok(/stickerSvg\('download', 'sticker-sm w-6 h-6'\) \+ '<\/a><\/li>';/.test(html), '文件裡每個檔案的下載按鈕：圖示後面直接結束，沒有文字');
 ok(/var SONG_DOWNLOAD_ICON = stickerSvg\('download', 'sticker-sm w-6 h-6'\);/.test(html), '歌曲的下載按鈕（手機與電腦版）也用同一個下載圖示');
 // 守門：頁面（含所有程式裡的字串）裡出現的 Emoji 一定是「在對照表裡」或「已知不處理」

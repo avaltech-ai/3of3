@@ -26,5 +26,15 @@ ok(theme(undefined) === '主題活動：人與自己／人與他人概念', '中
 state.lang = 'en'; state.textMap = {};
 ok(theme(undefined) === '主題活動：人與自己／人與他人概念', '英文但對照表沒有這筆：退回中文（與其他文字一致，不會空白）');
 
+console.log('C. 文件頁「多個檔案」清單：檔名在英文介面也走英文對照（使用者要求；2026-10-23）');
+const li = html.slice(html.indexOf("getDocFileIconHtml({ fileName: f.name, fileExtension: f.ext }, true)"));
+const seg = li.slice(0, li.indexOf("'</a></li>';") + 12);
+ok(/wrap-any">' \+ esc\(tx\(f\.name\)\) \+ '<\/div>/.test(seg), '檔名顯示：esc(tx(f.name))（對照表有就顯示英文，沒有就維持原檔名）');
+ok(/title="' \+ esc\(\(en \? 'Download ' : '下載 '\) \+ tx\(f\.name\)\) \+ '"/.test(seg) && /aria-label="' \+ esc\(\(en \? 'Download ' : '下載 '\) \+ tx\(f\.name\)\) \+ '"/.test(seg), '下載按鈕的提示與螢幕閱讀器標籤也用同一個名稱');
+ok(!/esc\(f\.name\)/.test(seg), '這一段不再直接顯示原始檔名');
+ok(/docFiles\.map\(function\(f\) \{ return f\.name; \}/.test(html), '後台的檔案摘要（只有管理員看、中文）維持原檔名，不受影響');
+state.lang = 'en'; state.textMap = { '注音學習卡（形狀口訣）v2': 'Mandarin Phonetic Symbols Learning Cards (Shape Mnemonics) v2' };
+ok(tx('注音學習卡（形狀口訣）v2') === 'Mandarin Phonetic Symbols Learning Cards (Shape Mnemonics) v2' && tx('沒登記的檔名.pdf') === '沒登記的檔名.pdf', '行為：有對照的檔名顯示英文，沒對照的維持原樣（下載到的檔案名稱不受影響）');
+
 console.log('\n結果：' + pass + ' 通過，' + fail + ' 失敗');
 process.exit(fail ? 1 : 0);
