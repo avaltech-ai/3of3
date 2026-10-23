@@ -116,14 +116,12 @@ ok(/icon: '🏫'/.test(html) && /icon: '🏡'/.test(html), 'Emoji 欄位（icon�
 console.log('H. 第 3 批：執行時把文字裡的 Emoji 換成圖示（按鈕、表單標題、提示訊息等 150 多處動態文字）');
 const BATCH3 = ['add', 'minus', 'save', 'refresh', 'trash', 'pencil', 'folderOpen', 'doc', 'print', 'link', 'lock', 'unlock', 'image', 'play', 'shuffle', 'repeat', 'tag', 'phone', 'door', 'textSize', 'cookie', 'camera'];
 ok(BATCH3.every(k => typeof LIB[k] === 'string' && LIB[k].length > 20), '第 3 批 22 個新圖示都在庫裡');
-ok(Object.keys(LIB).length === BATCH1.length + BATCH2.length + BATCH3.length, '圖示庫總數 = 13 + 25 + 22 = ' + (BATCH1.length + BATCH2.length + BATCH3.length) + '（實際 ' + Object.keys(LIB).length + '）');
 const mt = /const EMOJI_TEXT = (\{[^\n]*\});/.exec(html);
 ok(!!mt, '有 EMOJI_TEXT 對照表（文字裡的 Emoji → 圖示名稱）');
 var EMOJI_TEXT = mt ? JSON.parse(mt[1].replace(/'/g, '"')) : {};
 const WANT = { '➕': 'add', '➖': 'minus', '💾': 'save', '🔄': 'refresh', '🗑': 'trash', '✏': 'pencil', '📂': 'folderOpen', '📄': 'doc', '🖨': 'print', '🔗': 'link', '🔒': 'lock', '🔓': 'unlock', '🖼': 'image', '🎬': 'play', '🔀': 'shuffle', '🔁': 'repeat', '🏷': 'tag', '📱': 'phone', '🚪': 'door', '🔠': 'textSize', '🍪': 'cookie', '📸': 'camera', '🌐': 'globe', '🔍': 'magnifier' };
 Object.keys(WANT).forEach(e => ok(EMOJI_TEXT[e] === WANT[e] && !!LIB[WANT[e]], 'EMOJI_TEXT：' + e + ' → ' + WANT[e]));
 ok(Object.keys(EMOJI_TEXT).every(e => !!LIB[EMOJI_TEXT[e]]), '對照表裡每個圖示名稱都真的存在');
-['✅', '❌', '⚠', '🎉', '💛', '❤', '⏳'].forEach(e => ok(!(e in EMOJI_TEXT), '提示訊息與資料用的 ' + e + ' 不在這一批（維持文字）'));
 var STICKER_SVG = LIB;
 var EMOJI_TEXT_RE = eval(/const EMOJI_TEXT_RE = (new RegExp\([^\n]*\));/.exec(html)[1]);   // 用頁面裡真正的那一行建立
 eval(grab('emojiSplit'));
@@ -131,7 +129,7 @@ const sp = t => JSON.stringify(emojiSplit(t));
 ok(sp('💾 儲存變更（3）') === JSON.stringify([{ k: 'save' }, { t: ' 儲存變更（3）' }]), 'emojiSplit：開頭的 Emoji → 圖示＋文字');
 ok(sp('🗑️ 刪除選取') === JSON.stringify([{ k: 'trash' }, { t: ' 刪除選取' }]) && sp('✏️ 編輯') === JSON.stringify([{ k: 'pencil' }, { t: ' 編輯' }]), 'emojiSplit：帶 U+FE0F 變體選擇符的寫法也認得，且變體符不會殘留');
 ok(sp('➕ 新增 ➕') === JSON.stringify([{ k: 'add' }, { t: ' 新增 ' }, { k: 'add' }]), 'emojiSplit：一段文字裡有多個');
-ok(emojiSplit('沒有圖示的文字') === null && emojiSplit('✅ 已儲存') === null && emojiSplit('') === null && emojiSplit(null) === null, 'emojiSplit：沒有對應的 Emoji（包含 ✅）→ null，不改動');
+ok(emojiSplit('沒有圖示的文字') === null && emojiSplit('✓ 完成 ❮ ❯ ✕') === null && emojiSplit('') === null && emojiSplit(null) === null, 'emojiSplit：沒有對應的 Emoji（文字型符號 ✓ ❮ ❯ ✕）→ null，不改動');
 ok(sp('<b>🔒 不開放下載</b>') === JSON.stringify([{ t: '<b>' }, { k: 'lock' }, { t: ' 不開放下載</b>' }]), 'emojiSplit：HTML 符號原樣留在文字裡（之後用文字節點放，不會被當成標籤）');
 ok(sp('📸🌐') === JSON.stringify([{ k: 'camera' }, { k: 'globe' }]), 'emojiSplit：連續兩個');
 
@@ -166,6 +164,44 @@ ok(evil.childNodes.every(c => c.nodeType === 3 || c.className === 'sticker-emoji
 ok(/\n    startStickerize\(\);\n  <\/script>\n<\/body>/.test(html), '主 script 最後有呼叫 startStickerize()');
 ok(/stickerizeNode\(document\.body\)/.test(html) && /new MutationObserver/.test(html) && /observe\(document\.body, \{ childList: true, subtree: true, characterData: true \}\)/.test(html) && /takeRecords\(\)/.test(html), '啟動：先處理整個頁面，再用 MutationObserver 監看新增與改變的文字；處理完用 takeRecords 丟掉自己造成的變動');
 ok(/\.sticker-emoji\s*\{[^}]*display:\s*inline-flex/.test(html) && /\.sticker-inline\s*\{[^}]*width:\s*1\.15em[^}]*height:\s*1\.15em/.test(html), 'CSS：sticker-inline 隨文字大小（1.15em）、sticker-emoji 行內對齊');
+
+console.log('I. 第 4 批：提示訊息、人物、節慶、季節、餐點與其他（含沿用前三批的圖示）');
+const NEW4 = ['check', 'cross', 'warn', 'hourglass', 'party', 'gift', 'dotGreen', 'dotRed', 'dotYellow', 'dotWhite', 'heartYellow', 'girl', 'boy', 'woman', 'man', 'envelope', 'lantern', 'pinwheel', 'bouquet', 'zongzi', 'tie', 'moon', 'pumpkin', 'tree', 'blossom', 'watermelon', 'maple', 'snowman', 'stew', 'bowl', 'milk', 'curry', 'cakeSlice', 'tooth', 'stethoscope', 'peach', 'mushroom', 'antenna', 'headphones', 'flag', 'robot', 'sad', 'wave', 'key', 'sponge', 'abc', 'traffic', 'dice', 'ruler', 'scale', 'shirt', 'pants', 'teddy', 'loveFace', 'palette', 'runner', 'soap'];
+ok(NEW4.every(k => typeof LIB[k] === 'string' && LIB[k].length > 20), '第 4 批 ' + NEW4.length + ' 個新圖示都在庫裡');
+ok(Object.keys(LIB).length === BATCH1.length + BATCH2.length + BATCH3.length + NEW4.length, '圖示庫總數 = 13 + 25 + 22 + ' + NEW4.length + ' = ' + (BATCH1.length + BATCH2.length + BATCH3.length + NEW4.length) + '（實際 ' + Object.keys(LIB).length + '）');
+const WANT4 = { '✅': 'check', '❌': 'cross', '⚠': 'warn', '⏳': 'hourglass', '🎉': 'party', '🎁': 'gift', '🟢': 'dotGreen', '🔴': 'dotRed', '🟡': 'dotYellow', '⚪': 'dotWhite', '💛': 'heartYellow', '👧': 'girl', '👦': 'boy', '👩': 'woman', '👨': 'man', '👨‍👩‍👧': 'together', '❤': 'heart',
+  '🧧': 'envelope', '🏮': 'lantern', '🎈': 'pinwheel', '💐': 'bouquet', '🐲': 'zongzi', '👔': 'tie', '🥮': 'moon', '🎃': 'pumpkin', '🎄': 'tree', '🌸': 'blossom', '🍉': 'watermelon', '🍁': 'maple', '⛄': 'snowman',
+  '🍲': 'stew', '🥣': 'bowl', '🥛': 'milk', '🍛': 'curry', '🍰': 'cakeSlice', '🦷': 'tooth', '🩺': 'stethoscope', '🍑': 'peach', '🍄': 'mushroom', '📡': 'antenna', '🎧': 'headphones', '🏁': 'flag', '🤖': 'robot', '😢': 'sad', '👋': 'wave', '🔑': 'key', '🧽': 'sponge',
+  '🔤': 'abc', '🚦': 'traffic', '🎲': 'dice', '📏': 'ruler', '⚖': 'scale', '👕': 'shirt', '👖': 'pants', '🧸': 'teddy', '🥰': 'loveFace', '🎨': 'palette', '🏃': 'runner', '🧼': 'soap',
+  '📅': 'cal', '📚': 'books', '🎵': 'song', '📋': 'clipboard', '⚙': 'set', '🌟': 'star', '⭐': 'star', '🎯': 'target', '🎒': 'bag', '📖': 'bookOpen', '📁': 'folder', '🍎': 'apple', '🍱': 'meal', '🥐': 'chef', '🎂': 'cake', '🏫': 'school', '🏡': 'home', '🏠': 'home', '🤝': 'together', '🧹': 'broom', '⏰': 'clock', '🕘': 'clock', '💬': 'speech', '🤸': 'jump', '🧩': 'puzzle', '💞': 'hearts', '🌏': 'globe', '✨': 'sparkle', '🌱': 'sprout', '🌾': 'grain', '🥩': 'fish', '🥦': 'broccoli', '📌': 'pin', '💡': 'bulb', '🔔': 'bell', '🗓': 'calMonth', '📆': 'calSub', '📷': 'camera' };
+Object.keys(WANT4).forEach(e => { if (EMOJI_TEXT[e] !== WANT4[e]) ok(false, 'EMOJI_TEXT：' + e + ' → ' + WANT4[e] + '（實際 ' + EMOJI_TEXT[e] + '）'); });
+ok(Object.keys(WANT4).every(e => EMOJI_TEXT[e] === WANT4[e]), '對照表：第 4 批新增的 ' + Object.keys(WANT4).length + ' 個 Emoji（含沿用前三批圖示的）都對到指定圖示');
+ok(Object.keys(EMOJI_TEXT).every(e => !!LIB[EMOJI_TEXT[e]]), '對照表裡每個圖示名稱都存在（共 ' + Object.keys(EMOJI_TEXT).length + ' 個 Emoji）');
+['✓', '✕', '❮', '❯', '➔', '➡', '☑', '☐', '☰', '↻', '↗', '⋯', '→'].forEach(e => ok(!(e in EMOJI_TEXT), '文字型符號 ' + e + ' 不轉成圖示（本來就是字型符號）'));
+EMOJI_TEXT_RE = eval(/const EMOJI_TEXT_RE = (new RegExp\([^\n]*\));/.exec(html)[1]);
+eval(grab('emojiSplit'));
+const sp4 = t => JSON.stringify(emojiSplit(t));
+ok(sp4('👨‍👩‍👧 家人') === JSON.stringify([{ k: 'together' }, { t: ' 家人' }]), 'emojiSplit：👨‍👩‍👧（家庭，由三個字加連接符組成）整組換成一個圖示，不會被拆成三個人');
+ok(sp4('👨 爸爸 👩 媽媽') === JSON.stringify([{ k: 'man' }, { t: ' 爸爸 ' }, { k: 'woman' }, { t: ' 媽媽' }]), 'emojiSplit：單獨的 👨、👩 仍各自對應');
+ok(sp4('⚖️ 天秤') === JSON.stringify([{ k: 'scale' }, { t: ' 天秤' }]) && sp4('❤️ 諾貝爾 A') === JSON.stringify([{ k: 'heart' }, { t: ' 諾貝爾 A' }]), 'emojiSplit：⚖️、❤️（帶變體符）');
+ok(sp4('✅ 已儲存！') === JSON.stringify([{ k: 'check' }, { t: ' 已儲存！' }]) && sp4('❌ 失敗') === JSON.stringify([{ k: 'cross' }, { t: ' 失敗' }]) && sp4('⚠️ 注意') === JSON.stringify([{ k: 'warn' }, { t: ' 注意' }]), 'emojiSplit：提示訊息的 ✅ ❌ ⚠️');
+const picker = /const TASK_EMOJI_CHOICES = \[([^\]]*)\];/.exec(html);
+const pickList = picker ? picker[1].split(',').map(x => x.trim().replace(/^'|'$/g, '').replace(/\uFE0F/g, '')).filter(Boolean) : [];
+ok(pickList.length === 24 && pickList.every(e => !!EMOJI_TEXT[e]), '任務圖示挑選器的 24 個 Emoji 都有對應圖示（老師挑的任務圖示顯示一致）：' + pickList.filter(e => !EMOJI_TEXT[e]).join('、'));
+ok(/b\.onclick = function\(\) \{ const inp = document\.getElementById\('taskForm-icon'\); if \(inp\) inp\.value = em; \};/.test(html), '挑選器按下去寫入的是原本的 Emoji 變數（不是讀畫面上的文字）：資料仍存 Emoji');
+
+console.log('J. 第 4 批：季節與節慶徽章（CSS 偽元素，不能放 SVG 元素，改用內嵌圖片）');
+ok(!/#seasonBadge::after\s*\{[^}]*content:\s*'[^']/.test(html), '#seasonBadge::after 的 content 不再放 Emoji');
+ok(/#seasonBadge::after\s*\{[^}]*content:\s*'';[^}]*display:\s*inline-block;[^}]*width:\s*1\.15em;[^}]*height:\s*1\.15em;[^}]*background-size:\s*contain/.test(html), '徽章基本樣式：空內容、行內區塊、1.15em 見方、圖片縮放到包含');
+const seasonMap = { 'data-season="spring"': 'blossom', 'data-season="summer"': 'watermelon', 'data-season="autumn"': 'maple', 'data-season="winter"': 'snowman', 'data-festival="lny"]': 'envelope', 'data-festival="children"]': 'pinwheel', 'data-festival="mother"]': 'bouquet', 'data-festival="dragon"]': 'zongzi', 'data-festival="father"]': 'tie', 'data-festival="moon"]': 'moon', 'data-festival="teacher"]': 'apple', 'data-festival="halloween"]': 'pumpkin', 'data-festival="xmas"]': 'tree', 'data-festival="lny"][data-festival-phase="lantern"]': 'lantern' };
+Object.keys(seasonMap).forEach(sel => {
+  const re = new RegExp('html\\[' + sel.replace(/[\[\]"]/g, m => '\\' + m).replace(/\\\]$/, '') + '[^{]*#seasonBadge::after\\s*\\{\\s*background-image:\\s*url\\("data:image/svg\\+xml,([^"]*)"\\);');
+  const m = html.match(re);
+  const svgText = m ? decodeURIComponent(m[1]) : '';
+  ok(!!m && svgText.indexOf('xmlns="http://www.w3.org/2000/svg"') > 0 && svgText.indexOf(LIB[seasonMap[sel]]) > 0 && !/<script|on\w+=|href/i.test(svgText), sel + ' → ' + seasonMap[sel] + '：內嵌的是完整、乾淨的 SVG');
+});
+ok(/\.d\s*\{\s*display:\s*none\s*\}/.test(decodeURIComponent((html.match(/#seasonBadge::after\s*\{\s*background-image:\s*url\("data:image\/svg\+xml,([^"]*)"\)/) || [0, ''])[1])), '徽章用小尺寸：內嵌 SVG 隱藏細節線條');
+ok(!/content:\s*'[\u{1F300}-\u{1FAFF}\u2600-\u27BF]/u.test(html), '整份頁面沒有 CSS content 放 Emoji 了');
 
 console.log('\n結果：' + pass + ' 通過，' + fail + ' 失敗');
 process.exit(fail ? 1 : 0);
