@@ -18,7 +18,32 @@ const STICKERS = {
   heart: '<path d="M12 20.5S3 15.2 3 9.2A4.6 4.6 0 0 1 12 7.3a4.6 4.6 0 0 1 9 1.9c0 6-9 11.3-9 11.3Z" fill="#FF7A85"/><path class="d" d="M6.3 8.6a2.3 2.3 0 0 1 2.2-1.6" stroke="#FFFFFF"/>',
   meal: '<path class="d" d="M14 2.8l-3.2 7.4M18.2 3.8l-4.6 6.4" stroke="#F59E0B" stroke-width="1.8"/><path d="M5.2 11a6.8 4.6 0 0 1 13.6 0Z" fill="#FFFFFF"/><path d="M3 11h18a9 7.5 0 0 1-18 0Z" fill="#FF7A85"/><path class="d" d="M6 14.4h12" stroke="#FFFFFF" stroke-opacity=".7"/><path d="M9.5 20.5h5"/>',
   chef: '<path d="M7 14.2a3.6 3.6 0 0 1-.6-7.1A4.2 4.2 0 0 1 12 4.3a4.2 4.2 0 0 1 5.6 2.8 3.6 3.6 0 0 1-.6 7.1Z" fill="#FFFFFF"/><rect x="7" y="14.2" width="10" height="5.8" rx="1.2" fill="#FED7D7"/><path class="d" d="M12 18.4s-1.6-.9-1.6-1.9a.8.8 0 0 1 1.6-.3.8.8 0 0 1 1.6.3c0 1-1.6 1.9-1.6 1.9Z" fill="#FF7A85" stroke="none"/>',
-  cake: '<path d="M2.5 20.5h19"/><rect x="4" y="11" width="16" height="9.5" rx="2" fill="#FED7D7"/><path d="M4 13a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v1.6c-1.3 1-2.7 1-4 0s-2.7-1-4 0-2.7 1-4 0-2.7-1-4 0Z" fill="#FF7A85"/><rect x="11" y="6.6" width="2" height="4.4" rx=".6" fill="#34D399"/><path class="d" d="M12 2.9c1.2 1 1.2 2.3 0 2.9-1.2-.6-1.2-1.9 0-2.9Z" fill="#FBBF24"/>'
+  cake: '<path d="M2.5 20.5h19"/><rect x="4" y="11" width="16" height="9.5" rx="2" fill="#FED7D7"/><path d="M4 13a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v1.6c-1.3 1-2.7 1-4 0s-2.7-1-4 0-2.7 1-4 0-2.7-1-4 0Z" fill="#FF7A85"/><rect x="11" y="6.6" width="2" height="4.4" rx=".6" fill="#34D399"/><path class="d" d="M12 2.9c1.2 1 1.2 2.3 0 2.9-1.2-.6-1.2-1.9 0-2.9Z" fill="#FBBF24"/>',
+  sparkle: '<path d="M11 3c.8 4.2 2.8 6.2 7 7-4.2.8-6.2 2.8-7 7-.8-4.2-2.8-6.2-7-7 4.2-.8 6.2-2.8 7-7Z" fill="#FBBF24"/><path class="d" d="M18.5 14.5c.3 1.5 1 2.2 2.5 2.5-1.5.3-2.2 1-2.5 2.5-.3-1.5-1-2.2-2.5-2.5 1.5-.3 2.2-1 2.5-2.5Z" fill="#FF7A85"/>',
+  clock: '<circle cx="12" cy="12.5" r="8.5" fill="#FEF3C7"/><path d="M12 8v4.5l3 2"/><path class="d" d="M12 5.2v.8M19.3 12.5h-.8M12 19.8V19M4.7 12.5h.8" stroke-width="1.4"/>',
+  clipboard: '<rect x="4.5" y="4.5" width="15" height="17" rx="2.2" fill="#FBBF24"/><rect x="7" y="7.2" width="10" height="12" rx="1" fill="#FFFFFF"/><rect x="9" y="3" width="6" height="3.4" rx="1.2" fill="#A78BFA"/><path class="d" d="M9.3 11h5.4M9.3 13.8h5.4M9.3 16.6h3.4"/>',
+  cal: '<rect x="3" y="5" width="18" height="16" rx="3" fill="#FFFFFF"/><path d="M3 8a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v2H3Z" fill="#FF7A85"/><path d="M8 3v4M16 3v4"/><path d="M12 18.4s-2.7-1.5-2.7-3.2a1.35 1.35 0 0 1 2.7-.4 1.35 1.35 0 0 1 2.7.4c0 1.7-2.7 3.2-2.7 3.2Z" fill="#FF7A85"/>',
+  calMonth: '<rect x="3" y="5" width="18" height="16" rx="3" fill="#FFFFFF"/><path d="M3 8a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v2H3Z" fill="#34D399"/><path d="M8 3v4M16 3v4"/><g stroke="none" fill="#FEB2B2"><rect x="6" y="12.3" width="3" height="2.6" rx=".6"/><rect x="10.5" y="12.3" width="3" height="2.6" rx=".6"/><rect class="d" x="15" y="12.3" width="3" height="2.6" rx=".6"/><rect class="d" x="6" y="16.2" width="3" height="2.6" rx=".6"/><rect x="10.5" y="16.2" width="3" height="2.6" rx=".6"/><rect x="15" y="16.2" width="3" height="2.6" rx=".6" fill="#FF7A85"/></g>',
+  calSub: '<rect x="3" y="5" width="16" height="15" rx="3" fill="#FFFFFF"/><path d="M3 8a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v2H3Z" fill="#A78BFA"/><path d="M7.5 3v4M14.5 3v4"/><path class="d" d="M6.5 13.5h6M6.5 16.5h4"/><circle cx="18" cy="18" r="4" fill="#34D399"/><path d="M18 16v4M16 18h4" stroke="#FFFFFF" stroke-width="1.6"/>',
+  star: '<path d="M12 3.2l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.6l-5.2 2.8 1-5.9-4.3-4.1 5.9-.8Z" fill="#FBBF24"/><path class="d" d="M8.6 10.2l1.8-.3" stroke="#FFFFFF"/>',
+  sprout: '<path d="M12 21v-8.5"/><path d="M12 14C7.5 14 5 11.5 5 7c4.5 0 7 2.5 7 7Z" fill="#34D399"/><path d="M12 12c0-4 2.4-6.5 7-6.5 0 4-2.4 6.5-7 6.5Z" fill="#10B981"/><path d="M7.5 21h9"/>',
+  grain: '<path d="M12 21.5V5"/><g fill="#FBBF24"><path d="M12 9.5C9.6 9.5 8 8 8 5.5c2.4 0 4 1.5 4 4Z"/><path d="M12 9.5c2.4 0 4-1.5 4-4-2.4 0-4 1.5-4 4Z"/><path d="M12 14C9.6 14 8 12.5 8 10c2.4 0 4 1.5 4 4Z"/><path d="M12 14c2.4 0 4-1.5 4-4-2.4 0-4 1.5-4 4Z"/><path class="d" d="M12 18.5c-2.4 0-4-1.5-4-4 2.4 0 4 1.5 4 4Z"/><path class="d" d="M12 18.5c2.4 0 4-1.5 4-4-2.4 0-4 1.5-4 4Z"/><path d="M12 5c-.9-1-.9-2.2 0-3 .9.8.9 2 0 3Z"/></g>',
+  fish: '<path d="M3 12c2.6-4.2 6.8-5.6 11-3.4l4.5-3.3v13.4L14 15.4C9.8 17.6 5.6 16.2 3 12Z" fill="#FDBA74"/><path class="d" d="M10.5 9.3c.8 1.7.8 3.7 0 5.4"/><circle cx="7.2" cy="11.2" r=".9" fill="#6B4A44" stroke="none"/>',
+  broccoli: '<path d="M10 12h4l1.2 8.5a.8.8 0 0 1-.8.9h-4.8a.8.8 0 0 1-.8-.9Z" fill="#DCFCE7"/><circle cx="8" cy="10" r="4" fill="#34D399"/><circle cx="16" cy="10" r="4" fill="#34D399"/><circle cx="12" cy="7" r="4.4" fill="#10B981"/><circle class="d" cx="10.6" cy="5.8" r=".8" fill="#FFFFFF" stroke="none"/>',
+  apple: '<path d="M12 8.2c-1.6-1.2-4.5-1.3-6 .6-2 2.5-1 7.5 1.5 10.2 1.3 1.4 2.8 1.6 4.5.8 1.7.8 3.2.6 4.5-.8 2.5-2.7 3.5-7.7 1.5-10.2-1.5-1.9-4.4-1.8-6-.6Z" fill="#FF7A85"/><path d="M12 8.2c0-2 .6-3.4 2-4.5"/><path class="d" d="M13.4 5.6c1.6-1.6 3.6-1.6 4.6-.8-1 1.6-2.9 2-4.6.8Z" fill="#34D399"/><path class="d" d="M7.6 11.2a2.4 2.4 0 0 1 1.4-1.6" stroke="#FFFFFF"/>',
+  bookOpen: '<path d="M12 6.8C10 5.3 7 4.8 3.2 5.3v13.6c3.8-.5 6.8 0 8.8 1.5Z" fill="#FFFFFF"/><path d="M12 6.8c2-1.5 5-2 8.8-1.5v13.6c-3.8-.5-6.8 0-8.8 1.5Z" fill="#EDE9FE"/><path class="d" d="M5.5 9.2c1.6-.1 3 .2 4.3.8M5.5 12.2c1.6-.1 3 .2 4.3.8M14.2 10c1.3-.6 2.7-.9 4.3-.8M14.2 13c1.3-.6 2.7-.9 4.3-.8"/>',
+  school: '<rect x="4.5" y="10.5" width="15" height="10" rx="1" fill="#FFF1E6"/><path d="M3 11L12 5.5 21 11Z" fill="#34D399"/><path d="M12 5.5V2.3"/><path d="M12 2.3l3 1-3 1.1Z" fill="#FF7A85"/><rect x="10" y="15" width="4" height="5.5" rx="1" fill="#FBBF24"/><g class="d" fill="#A78BFA"><rect x="6.3" y="13" width="2.4" height="2.4" rx=".5"/><rect x="15.3" y="13" width="2.4" height="2.4" rx=".5"/></g>',
+  together: '<path d="M2.8 20.5a4.7 4.7 0 0 1 9.4 0Z" fill="#34D399"/><path d="M11.8 20.5a4.7 4.7 0 0 1 9.4 0Z" fill="#FBBF24"/><circle cx="7.5" cy="10.5" r="2.8" fill="#FED7D7"/><circle cx="16.5" cy="10.5" r="2.8" fill="#FED7D7"/><path class="d" d="M12 6.4s-1.7-1-1.7-2a.85.85 0 0 1 1.7-.3.85.85 0 0 1 1.7.3c0 1-1.7 2-1.7 2Z" fill="#FF7A85" stroke="none"/>',
+  broom: '<path d="M18.5 2.8l-5.6 9.2"/><path d="M11.2 10.8l4 2.4-2 7.8H4.4Z" fill="#FBBF24"/><path class="d" d="M8.2 15.2l-1.4 5.6M10.8 16.2l-.8 4.6"/><path d="M10.6 11.5l4.2 2.6" stroke-width="2.2" stroke="#FF7A85"/>',
+  speech: '<path d="M4 4.5h16A1.5 1.5 0 0 1 21.5 6v9.5A1.5 1.5 0 0 1 20 17h-8.5l-4.8 3.6V17H4a1.5 1.5 0 0 1-1.5-1.5V6A1.5 1.5 0 0 1 4 4.5Z" fill="#EDE9FE"/><g fill="#8B5CF6" stroke="none"><circle cx="8" cy="10.8" r="1.2"/><circle cx="12" cy="10.8" r="1.2"/><circle cx="16" cy="10.8" r="1.2"/></g>',
+  jump: '<path d="M4.5 6.5L10 10M19.5 6.5L14 10M9 21l1.6-6M15 21l-1.6-6" stroke-width="1.8"/><rect x="9.6" y="8.6" width="4.8" height="7.4" rx="2.2" fill="#34D399"/><circle cx="12" cy="5" r="2.5" fill="#FED7D7"/>',
+  puzzle: '<path d="M4.5 8.5h4a2.2 2.2 0 1 1 4.4 0h4v4a2.2 2.2 0 1 1 0 4.4v4h-4a2.2 2.2 0 1 0-4.4 0h-4v-4a2.2 2.2 0 1 0 0-4.4Z" fill="#2DD4BF"/>',
+  magnifier: '<path d="M15 15l5.5 5.5" stroke-width="3"/><circle cx="10.5" cy="10.5" r="6.2" fill="#EDE9FE"/><path class="d" d="M7.4 9a3.4 3.4 0 0 1 2.4-2.2" stroke="#FFFFFF" stroke-width="1.6"/>',
+  hearts: '<path d="M17 11.5s-3.6-2-3.6-4.6a1.8 1.8 0 0 1 3.6-.8 1.8 1.8 0 0 1 3.6.8c0 2.6-3.6 4.6-3.6 4.6Z" fill="#FEB2B2"/><path d="M10 20s-6.5-3.8-6.5-8.4A3.4 3.4 0 0 1 10 10.2a3.4 3.4 0 0 1 6.5 1.4C16.5 16.2 10 20 10 20Z" fill="#FF7A85"/>',
+  globe: '<circle cx="12" cy="12" r="8.6" fill="#BFDBFE"/><path d="M6.6 6.8c1.8-.3 3.4.6 3.2 2.2-.2 1.4-1.8 1.8-1.4 3.4.3 1.5-1.4 2.4-2.6 1.5A8.6 8.6 0 0 1 6.6 6.8Z" fill="#34D399"/><path d="M14.2 5.2c2 .3 4 1.7 4.8 3.6-1.5.4-2.7-.4-3.6.6-.8.9.2 2.6-1.3 3.1-1.1.4-1.7-1.4-1.3-2.8.4-1.3-.7-2.8 1.4-4.5Z" fill="#34D399"/><path class="d" d="M11 17.4c1-.8 2.4-.9 3.4-.1-.6 1.3-2.4 1.6-3.4.1Z" fill="#34D399"/>',
+  bell: '<path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.6 2.1H4.4Z" fill="#FBBF24"/><path d="M10 20.5a2 2 0 0 0 4 0"/><circle class="d" cx="12" cy="4.3" r="1" fill="#FBBF24"/><path class="d" d="M8.8 10.4a3.4 3.4 0 0 1 1.6-2.3" stroke="#FFFFFF"/>',
+  bulb: '<path d="M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.4 1.1 2.2h5c0-.8.4-1.6 1.1-2.2A6 6 0 0 0 12 3Z" fill="#FDE68A"/><rect x="9.5" y="16" width="5" height="3.4" rx="1" fill="#CBD5E1"/><path d="M10.6 21.2h2.8"/><path class="d" d="M10.3 9.4a2.2 2.2 0 0 1 1.6-1.8" stroke="#FFFFFF"/>',
+  pin: '<path d="M8.5 15.5L3.5 20.5"/><path d="M14 3.2l6.8 6.8-2.2 1-2.6 2.6.5 3.6-1.6 1.6-8.1-8.1L8.4 9.1l3.6.5 2.6-2.6Z" fill="#FF7A85"/><path class="d" d="M14.6 6.4l2.8 2.8" stroke="#FFFFFF"/>'
 };
 const stickerSvg = (name, cls) => STICKERS[name] ? '<svg class="sticker ' + cls + '" viewBox="0 0 24 24" fill="none" stroke="#6B4A44" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' + STICKERS[name] + '</svg>' : '';
 
@@ -548,10 +573,10 @@ const htmlContent = `<!DOCTYPE html>
         <div class="flex flex-wrap items-center justify-between gap-x-2 gap-y-2 mb-3">
           <div class="flex items-center gap-1.5 sm:gap-2 min-w-0">
             <span class="bg-peach-500 text-white text-xs font-extrabold px-2.5 sm:px-3 py-1 rounded-full shadow-sm flex items-center gap-1 sm:gap-1.5 whitespace-nowrap">
-              <span>✨</span> <span data-i18n="cal.spotlightTag">焦點活動</span>
+              ${stickerSvg('sparkle', 'sticker-sm w-4 h-4')} <span data-i18n="cal.spotlightTag">焦點活動</span>
             </span>
             <button type="button" id="spotlightHistoryBtn" onclick="openSpotlightHistory()" class="bg-white/80 hover:bg-white text-peach-600 border border-peach-200 text-xs font-extrabold px-2.5 sm:px-3 py-1 rounded-full shadow-sm flex items-center gap-1 sm:gap-1.5 tap-bounce cursor-pointer whitespace-nowrap">
-              <span>🕘</span> <span data-i18n="ui.spotHistBtn">歷史焦點</span>
+              ${stickerSvg('clock', 'sticker-sm w-4 h-4')} <span data-i18n="ui.spotHistBtn">歷史焦點</span>
             </button>
           </div>
 
@@ -661,19 +686,19 @@ const htmlContent = `<!DOCTYPE html>
           <!-- 檢視模式選擇按鈕 (每日點選 / 本週行程 / 本月活動) -->
           <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-2xl w-full sm:w-auto justify-center">
             <button onclick="setCalViewMode('day')" id="viewModeBtn-day" class="cal-view-btn flex-auto sm:flex-none px-1.5 sm:px-3 py-1 min-w-0 truncate max-[359px]:text-[13px] rounded-xl text-xs font-bold transition-all bg-white text-slate-800 shadow-xs">
-              <span class="hidden sm:inline" aria-hidden="true">📅</span> <span data-i18n="cal.dayView">單日點選</span>
+              <span class="hidden sm:inline" aria-hidden="true">${stickerSvg('cal', 'sticker-sm w-4 h-4')}</span> <span data-i18n="cal.dayView">單日點選</span>
             </button>
             <button onclick="setCalViewMode('week')" id="viewModeBtn-week" class="cal-view-btn flex-auto sm:flex-none px-1.5 sm:px-3 py-1 min-w-0 truncate max-[359px]:text-[13px] rounded-xl text-xs font-bold transition-all text-slate-600 hover:text-slate-900">
-              <span class="hidden sm:inline" aria-hidden="true">📋</span> <span data-i18n="cal.weekView">查看本週</span>
+              <span class="hidden sm:inline" aria-hidden="true">${stickerSvg('clipboard', 'sticker-sm w-4 h-4')}</span> <span data-i18n="cal.weekView">查看本週</span>
             </button>
             <button onclick="setCalViewMode('month')" id="viewModeBtn-month" class="cal-view-btn flex-auto sm:flex-none px-1.5 sm:px-3 py-1 min-w-0 truncate max-[359px]:text-[13px] rounded-xl text-xs font-bold transition-all text-slate-600 hover:text-slate-900">
-              <span class="hidden sm:inline" aria-hidden="true">🗓️</span> <span data-i18n="cal.monthView">本月總覽</span>
+              <span class="hidden sm:inline" aria-hidden="true">${stickerSvg('calMonth', 'sticker-sm w-4 h-4')}</span> <span data-i18n="cal.monthView">本月總覽</span>
             </button>
           </div>
         </div>
         <div class="flex justify-end -mt-1 mb-1">
           <button type="button" onclick="openCalendarSubscribe()" id="btnCalendarSubscribe" class="text-xs font-bold text-slate-600 hover:text-peach-600 px-2.5 py-1 rounded-lg bg-slate-50 hover:bg-peach-50 border border-slate-200 tap-bounce flex items-center gap-1 cursor-pointer">
-            <span>📆</span> <span data-i18n="cal.subscribeBtn">訂閱行事曆</span>
+            ${stickerSvg('calSub', 'sticker-sm w-4 h-4')} <span data-i18n="cal.subscribeBtn">訂閱行事曆</span>
           </button>
         </div>
 
@@ -725,7 +750,7 @@ const htmlContent = `<!DOCTYPE html>
         <!-- 當日選取抬頭 -->
         <div class="flex items-center justify-between bg-white px-4 py-3 rounded-2xl border border-rose-100 shadow-2xs hidden">
           <div class="flex items-center gap-2">
-            <span class="text-xl">🌟</span>
+            <span aria-hidden="true">${stickerSvg('star', 'sticker-sm w-6 h-6')}</span>
             <div>
               <div class="text-xs text-slate-400 font-medium" data-i18n="ui.linkedSubtitle">生活動態與餐點資訊</div>
               <div id="selectedDateHeader" class="text-base sm:text-lg font-black text-slate-800">
@@ -747,7 +772,7 @@ const htmlContent = `<!DOCTYPE html>
               <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
                 <div class="flex items-center gap-2">
                   <div class="w-8 h-8 rounded-xl bg-rose-100 text-peach-600 flex items-center justify-center font-bold text-sm">
-                    📅
+                    ${stickerSvg('cal', 'sticker-sm w-5 h-5')}
                   </div>
                   <div>
                     <h4 data-i18n="cal.todayEventsTitle" class="font-black text-slate-800 text-base">當日活動與行程</h4>
@@ -767,7 +792,7 @@ const htmlContent = `<!DOCTYPE html>
 
             <!-- 底部主題資訊 -->
             <div id="semesterThemeNotice" class="mt-4 pt-3 border-t border-slate-100 text-xs text-slate-500 flex items-center gap-1.5">
-              <span>🌱</span>
+              ${stickerSvg('sprout', 'sticker-sm w-4 h-4')}
               <span><span data-i18n="cal.semesterThemePrefix">本期學期主題：</span><strong id="themeNameText" class="text-slate-700">主題活動：人與自己／人與他人概念</strong></span>
             </div>
           </div>
@@ -778,7 +803,7 @@ const htmlContent = `<!DOCTYPE html>
               <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
                 <div class="flex items-center gap-2">
                   <div class="w-8 h-8 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center font-bold text-sm">
-                    🍱
+                    ${stickerSvg('meal', 'sticker-sm w-5 h-5')}
                   </div>
                   <div>
                     <h4 data-i18n="cal.todayMenuTitle" class="font-black text-slate-800 text-base">每日營養美味菜單</h4>
@@ -800,10 +825,10 @@ const htmlContent = `<!DOCTYPE html>
             <div class="mt-4 pt-3 border-t border-slate-100 space-y-2">
               <div class="flex items-center gap-1.5 flex-wrap">
                 <span data-i18n="cal.nutriCheckTitle" class="text-xs font-bold text-slate-500">營養類別檢核：</span>
-                <span data-i18n="cal.nutriGrain" class="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded-md font-bold">🌾 全穀雜糧</span>
-                <span data-i18n="cal.nutriProtein" class="bg-rose-100 text-rose-800 text-xs px-2 py-0.5 rounded-md font-bold">🥩 豆魚蛋肉</span>
-                <span data-i18n="cal.nutriVeg" class="bg-emerald-100 text-emerald-800 text-xs px-2 py-0.5 rounded-md font-bold">🥦 有機蔬菜</span>
-                <span data-i18n="cal.nutriFruit" class="bg-purple-100 text-purple-800 text-xs px-2 py-0.5 rounded-md font-bold">🍎 當季水果</span>
+                <span data-i18n="cal.nutriGrain" class="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded-md font-bold inline-flex items-center">${stickerSvg('grain', 'sticker-sm w-3.5 h-3.5 mr-0.5')} 全穀雜糧</span>
+                <span data-i18n="cal.nutriProtein" class="bg-rose-100 text-rose-800 text-xs px-2 py-0.5 rounded-md font-bold inline-flex items-center">${stickerSvg('fish', 'sticker-sm w-3.5 h-3.5 mr-0.5')} 豆魚蛋肉</span>
+                <span data-i18n="cal.nutriVeg" class="bg-emerald-100 text-emerald-800 text-xs px-2 py-0.5 rounded-md font-bold inline-flex items-center">${stickerSvg('broccoli', 'sticker-sm w-3.5 h-3.5 mr-0.5')} 有機蔬菜</span>
+                <span data-i18n="cal.nutriFruit" class="bg-purple-100 text-purple-800 text-xs px-2 py-0.5 rounded-md font-bold inline-flex items-center">${stickerSvg('apple', 'sticker-sm w-3.5 h-3.5 mr-0.5')} 當季水果</span>
               </div>
               <p data-i18n="cal.menuNote" class="text-xs text-slate-400">
                 註：本園餐點未使用主管機關公告之不合格油品。配合當令食材適時調整。
@@ -819,7 +844,7 @@ const htmlContent = `<!DOCTYPE html>
       <div id="weekViewContainer" class="skel-data hidden bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm space-y-4">
         <div class="flex items-center justify-between flex-wrap gap-x-3 gap-y-2 pb-3 border-b border-slate-100">
           <h4 class="text-base font-black text-slate-800 flex items-center gap-2">
-            <span>📋</span> <span data-i18n="cal.weekOverviewTitle">本週生活與餐點總覽</span>
+            ${stickerSvg('clipboard', 'sticker-sm w-5 h-5')} <span data-i18n="cal.weekOverviewTitle">本週生活與餐點總覽</span>
           </h4>
           <div class="flex items-center gap-3 shrink-0 whitespace-nowrap">
             <button type="button" onclick="printWeekMenu()" id="btnPrintWeekMenu" class="text-xs text-slate-600 font-bold px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-200 tap-bounce flex items-center gap-1 cursor-pointer">
@@ -839,7 +864,7 @@ const htmlContent = `<!DOCTYPE html>
       <div id="monthViewContainer" class="skel-data hidden bg-white rounded-3xl p-5 border border-slate-200/80 shadow-sm space-y-4">
         <div class="flex items-center justify-between pb-3 border-b border-slate-100">
           <h4 class="text-base font-black text-slate-800 flex items-center gap-2">
-            <span>🗓️</span> <span id="monthViewTitle">2026年10月份 全月重點活動列表</span>
+            ${stickerSvg('calMonth', 'sticker-sm w-5 h-5')} <span id="monthViewTitle">2026年10月份 全月重點活動列表</span>
           </h4>
           <button onclick="setCalViewMode('day')" data-i18n="cal.backToDayView" class="text-xs text-peach-600 font-bold hover:underline">
             返回單日點選
@@ -859,7 +884,7 @@ const htmlContent = `<!DOCTYPE html>
         <div class="festival-shadow" aria-hidden="true"></div>
         <div>
           <div class="flex items-center gap-2">
-            <span class="text-2xl">📸</span>
+            <span aria-hidden="true">${stickerSvg('photo', 'w-8 h-8')}</span>
             <h2 data-i18n="albums.title" class="text-xl font-black text-slate-800 tracking-tight">影像記錄</h2>
           </div>
           <p data-i18n="albums.subtitle" class="text-xs sm:text-sm text-slate-600 mt-1">
@@ -930,7 +955,7 @@ const htmlContent = `<!DOCTYPE html>
         <div class="festival-shadow" aria-hidden="true"></div>
         <div>
           <div class="flex items-center gap-2">
-            <span class="text-2xl">🎵</span>
+            <span aria-hidden="true">${stickerSvg('song', 'w-8 h-8')}</span>
             <h2 data-i18n="songs.title" class="text-xl font-black text-slate-800 tracking-tight">唱跳音符</h2>
           </div>
           <p data-i18n="songs.subtitle" class="text-xs sm:text-sm text-slate-600 mt-1">
@@ -1003,7 +1028,7 @@ const htmlContent = `<!DOCTYPE html>
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 class="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight flex items-center gap-2">
-            <span class="text-rose-500">📚</span>
+            <span aria-hidden="true">${stickerSvg('books', 'w-7 h-7')}</span>
             <span data-i18n="themes.title">主題活動成果</span>
           </h2>
           <p data-i18n="themes.subtitle" class="text-sm text-slate-500 font-medium mt-1">
@@ -1030,7 +1055,7 @@ const htmlContent = `<!DOCTYPE html>
       
       <!-- 空狀態 -->
       <div id="themesEmptyState" class="skel-data hidden flex flex-col items-center justify-center py-16 bg-white/50 backdrop-blur rounded-3xl border border-slate-200 border-dashed">
-        <div class="text-5xl mb-3 opacity-50 grayscale">📚</div>
+        <div class="mb-3 opacity-50 grayscale" aria-hidden="true">${stickerSvg('books', 'w-14 h-14')}</div>
         <p data-i18n="themes.empty" class="text-slate-500 font-bold">目前還沒有主題活動紀錄喔</p>
       </div>
     </section>
@@ -1040,7 +1065,7 @@ const htmlContent = `<!DOCTYPE html>
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 class="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight flex items-center gap-2">
-            <span class="text-rose-500">🎯</span>
+            <span aria-hidden="true">${stickerSvg('target', 'w-7 h-7')}</span>
             <span data-i18n="tasks.title">學期任務</span>
             <span id="taskSemesterBadge" class="hidden text-xs sm:text-sm font-bold text-rose-600 bg-rose-50 border border-rose-200 px-3 py-0.5 rounded-full"></span>
           </h2>
@@ -1058,7 +1083,7 @@ const htmlContent = `<!DOCTYPE html>
       <div id="tasksGroups" class="skel-data space-y-6"></div>
 
       <div id="tasksEmptyState" class="skel-data hidden flex flex-col items-center justify-center py-16 bg-white/50 backdrop-blur rounded-3xl border border-slate-200 border-dashed">
-        <div class="text-5xl mb-3 opacity-50 grayscale">🎯</div>
+        <div class="mb-3 opacity-50 grayscale" aria-hidden="true">${stickerSvg('target', 'w-14 h-14')}</div>
         <p data-i18n="tasks.empty" class="text-slate-500 font-bold">這學期的任務還在準備中，請稍後再來看看</p>
       </div>
     </section>
@@ -1068,7 +1093,7 @@ const htmlContent = `<!DOCTYPE html>
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 class="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight flex items-center gap-2 flex-wrap">
-            <span class="text-rose-500">🎒</span>
+            <span aria-hidden="true">${stickerSvg('bag', 'w-7 h-7')}</span>
             <span data-i18n="transition.title">幼小銜接</span>
             <span id="trYearBadge" class="hidden text-xs sm:text-sm font-bold text-sky-700 bg-sky-50 border border-sky-200 px-3 py-0.5 rounded-full"></span>
           </h2>
@@ -1078,8 +1103,8 @@ const htmlContent = `<!DOCTYPE html>
       </div>
 
       <div class="inline-flex p-1 rounded-2xl bg-white border border-slate-200 shadow-2xs gap-1" role="tablist">
-        <button type="button" id="trViewBtn-plan" onclick="switchTransitionView('plan')" role="tab" class="tr-view-btn px-4 py-2 rounded-xl text-sm font-black transition-all tap-bounce"><span aria-hidden="true">📋</span> <span data-i18n="transition.viewPlan">銜接計畫</span></button>
-        <button type="button" id="trViewBtn-article" onclick="switchTransitionView('article')" role="tab" class="tr-view-btn px-4 py-2 rounded-xl text-sm font-black transition-all tap-bounce"><span aria-hidden="true">📖</span> <span data-i18n="transition.viewArticle">為什麼重要</span></button>
+        <button type="button" id="trViewBtn-plan" onclick="switchTransitionView('plan')" role="tab" class="tr-view-btn px-4 py-2 rounded-xl text-sm font-black transition-all tap-bounce"><span aria-hidden="true">${stickerSvg('clipboard', 'sticker-sm w-4 h-4')}</span> <span data-i18n="transition.viewPlan">銜接計畫</span></button>
+        <button type="button" id="trViewBtn-article" onclick="switchTransitionView('article')" role="tab" class="tr-view-btn px-4 py-2 rounded-xl text-sm font-black transition-all tap-bounce"><span aria-hidden="true">${stickerSvg('bookOpen', 'sticker-sm w-4 h-4')}</span> <span data-i18n="transition.viewArticle">為什麼重要</span></button>
       </div>
 
       ${skelTextList(3, 'border-sky-100')}
@@ -1103,7 +1128,7 @@ const htmlContent = `<!DOCTYPE html>
         </div>
         <div id="trPlanCards" class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start"></div>
         <div id="trPlanEmpty" class="hidden flex flex-col items-center justify-center py-16 bg-white/50 rounded-3xl border border-slate-200 border-dashed">
-          <div class="text-5xl mb-3 opacity-50 grayscale">🎒</div>
+          <div class="mb-3 opacity-50 grayscale" aria-hidden="true">${stickerSvg('bag', 'w-14 h-14')}</div>
           <p data-i18n="transition.planEmpty" class="text-slate-500 font-bold">銜接計畫還在準備中，請稍後再來看看</p>
         </div>
       </div>
@@ -1111,7 +1136,7 @@ const htmlContent = `<!DOCTYPE html>
       <div id="trArticleView" class="skel-data hidden space-y-5">
         <div id="trArticleList" class="space-y-5"></div>
         <div id="trArticleEmpty" class="hidden flex flex-col items-center justify-center py-16 bg-white/50 rounded-3xl border border-slate-200 border-dashed">
-          <div class="text-5xl mb-3 opacity-50 grayscale">📖</div>
+          <div class="mb-3 opacity-50 grayscale" aria-hidden="true">${stickerSvg('bookOpen', 'w-14 h-14')}</div>
           <p data-i18n="transition.articleEmpty" class="text-slate-500 font-bold">文章整理中，請稍後再來看看</p>
         </div>
       </div>
@@ -1124,7 +1149,7 @@ const htmlContent = `<!DOCTYPE html>
         <div class="festival-shadow" aria-hidden="true"></div>
         <div>
           <div class="flex items-center gap-2">
-            <span class="text-2xl">📁</span>
+            <span aria-hidden="true">${stickerSvg('folder', 'w-8 h-8')}</span>
             <h2 data-i18n="docs.title" class="text-xl font-black text-slate-800 tracking-tight">常用文件</h2>
           </div>
           <p data-i18n="docs.subtitle" class="text-xs sm:text-sm text-slate-600 mt-1">
@@ -3006,8 +3031,8 @@ const htmlContent = `<!DOCTYPE html>
           viewArticle: '為什麼重要',
           planIntro: '這是園方今年為大班孩子安排的銜接計畫。標示「在家」和「一起」的項目可以勾選，勾選只記在這台手機或電腦上，也能列印成 PDF 貼在家裡。',
           filterAll: '全部',
-          filterHome: '🏡 在家陪伴',
-          filterSchool: '🏫 在園練習',
+          filterHome: '在家陪伴',
+          filterSchool: '在園練習',
           kindSchool: '在園',
           kindHome: '在家',
           kindBoth: '一起',
@@ -3361,8 +3386,8 @@ const htmlContent = `<!DOCTYPE html>
           viewArticle: 'Why it matters',
           planIntro: 'This is this year\u2019s transition plan for our senior class. Items marked Home or Together can be checked off. Your checks are saved only on this phone or computer, and you can print the list as a PDF to keep at home.',
           filterAll: 'All',
-          filterHome: '🏡 At home',
-          filterSchool: '🏫 At school',
+          filterHome: 'At home',
+          filterSchool: 'At school',
           kindSchool: 'School',
           kindHome: 'Home',
           kindBoth: 'Together',
@@ -6663,9 +6688,10 @@ const htmlContent = `<!DOCTYPE html>
       if (svg) { s.className = 'inline-flex'; s.innerHTML = svg; } else { s.textContent = icon; }
       return s;
     }
-    // 日曆用的圖示代號（🍱／🥐／🎂，由 calendarDayIcons 判斷）→ 貼紙圖示；其他（節慶，之後的批次再換）照舊顯示文字
-    function calIconHtml(ic, cls) {
-      const key = { '🍱': 'meal', '🥐': 'chef', '🎂': 'cake' }[ic];
+    // 圖示代號（Emoji 字元，例如日曆的 🍱／🥐／🎂、幼小銜接的 🏫／🏡／🤝）→ 貼紙圖示；不在對照表的（節慶等，之後的批次再換）照舊顯示文字（會跳脫）
+    const EMOJI_STICKER = { '🍱': 'meal', '🥐': 'chef', '🎂': 'cake', '🏫': 'school', '🏡': 'home', '🤝': 'together', '🧹': 'broom', '⏰': 'clock', '💬': 'speech', '🤸': 'jump', '🧩': 'puzzle', '🔍': 'magnifier', '💞': 'hearts', '🌏': 'globe' };
+    function emojiIconHtml(ic, cls) {
+      const key = Object.prototype.hasOwnProperty.call(EMOJI_STICKER, ic) ? EMOJI_STICKER[ic] : '';
       return key ? stickerSvg(key, 'sticker-sm ' + cls) : '<span>' + esc(ic) + '</span>';
     }
 
@@ -6799,7 +6825,7 @@ const htmlContent = `<!DOCTYPE html>
         const festDay = festivalDayOf(dayStr);   // 節日當天加節慶圖示（例如中秋 🥮）
         if (festDay) calIcons.push(festDay.icon);
         if (calIcons.length) {
-          menuIcons = \`<span class="inline-flex items-center gap-1.5">\${calIcons.map(ic => calIconHtml(ic, 'w-4 h-4')).join('')}</span>\`;
+          menuIcons = \`<span class="inline-flex items-center gap-1.5">\${calIcons.map(ic => emojiIconHtml(ic, 'w-4 h-4')).join('')}</span>\`;
         }
 
         // 格子下方：若有填寫「行事曆提示」則顯示提示標籤；未填寫則不顯示（不另外顯示 [十月壽星..]、[幸福廚房..] 等常用標籤）
@@ -13382,7 +13408,7 @@ const htmlContent = `<!DOCTYPE html>
       const title = t('themes.overviewTitle', { semester: tx(semester) || semester });
       return '<div class="theme-overview bg-white border border-amber-200/80 rounded-2xl shadow-sm overflow-hidden" data-semester="' + esc(semester) + '">' +
         '<div class="px-4 py-3 bg-amber-50/60">' +
-          '<h3 class="font-black text-slate-800 text-base sm:text-lg">📌 ' + esc(title) + '</h3>' +
+          '<h3 class="font-black text-slate-800 text-base sm:text-lg inline-flex items-center gap-1.5">' + stickerSvg('pin', 'sticker-sm w-5 h-5') + ' ' + esc(title) + '</h3>' +
         '</div>' +
         '<button type="button" onclick="openThemeOverview(this)" data-semester="' + esc(semester) + '" class="block w-full p-3 bg-white cursor-zoom-in tap-bounce text-left" aria-label="' + esc(title) + '">' +
           '<img src="' + escUrl('https://drive.google.com/thumbnail?id=' + fid + '&sz=w1200') + '" alt="' + esc(title) + '" loading="lazy" class="w-full h-auto rounded-xl border border-slate-100 select-none">' +
@@ -13748,7 +13774,7 @@ const htmlContent = `<!DOCTYPE html>
       head.appendChild(chip); head.appendChild(dt);
       calendarDayIcons(dayEvents, dayMenu, offDay).filter(function(ic) { return ic !== '🍱'; }).forEach(function(ic) {
         const b = document.createElement('span'); b.className = 'today-icon inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800';
-        b.innerHTML = calIconHtml(ic, 'w-4 h-4') + ' ' + esc(t(ic === '🥐' ? 'today.kitchen' : 'today.birthday')); head.appendChild(b);
+        b.innerHTML = emojiIconHtml(ic, 'w-4 h-4') + ' ' + esc(t(ic === '🥐' ? 'today.kitchen' : 'today.birthday')); head.appendChild(b);
       });
       const festDay = festivalDayOf(key);
       if (festDay) {
@@ -13767,7 +13793,7 @@ const htmlContent = `<!DOCTYPE html>
       if (dayEvents.length) {
         dayEvents.slice(0, 4).forEach(function(ev) {
           const row = document.createElement('div'); row.className = 'today-event text-sm text-slate-700 leading-snug';
-          if (ev.calendarPrompt) { const p = document.createElement('span'); p.className = 'today-prompt inline-block text-xs font-black px-2 py-0.5 mr-1.5 rounded-lg bg-rose-100 text-rose-700'; p.textContent = '🔔 ' + tx(ev.calendarPrompt); row.appendChild(p); }
+          if (ev.calendarPrompt) { const p = document.createElement('span'); p.className = 'today-prompt inline-flex items-center gap-1 text-xs font-black px-2 py-0.5 mr-1.5 rounded-lg bg-rose-100 text-rose-700'; p.innerHTML = stickerSvg('bell', 'sticker-sm w-4 h-4') + ' ' + esc(tx(ev.calendarPrompt)); row.appendChild(p); }
           const ti = document.createElement('span'); ti.className = 'font-bold'; ti.textContent = tx(ev.title); row.appendChild(ti);
           if (ev.timeLocation) { const tl = document.createElement('span'); tl.className = 'text-xs text-slate-500 ml-1.5'; tl.textContent = tx(ev.timeLocation); row.appendChild(tl); }
           evBox.appendChild(row);
@@ -13878,15 +13904,15 @@ const htmlContent = `<!DOCTYPE html>
     // 勾選只存在這台裝置的 localStorage（不會上傳，所以沒有孩子個資外流的問題）；以項目編號為鍵。
     const TR_CHECK_KEY = 'nobel_a_transition_checks';
     const TR_KIND_META = {
-      '在園': { label: 'transition.kindSchool', title: 'transition.kindSchoolTitle', icon: '🏫', chip: 'bg-emerald-100 text-emerald-800', checkable: false },
-      '在家': { label: 'transition.kindHome', title: 'transition.kindHomeTitle', icon: '🏡', chip: 'bg-amber-100 text-amber-800', checkable: true },
-      '一起': { label: 'transition.kindBoth', title: 'transition.kindBothTitle', icon: '🤝', chip: 'bg-sky-100 text-sky-800', checkable: true }
+      '在園': { label: 'transition.kindSchool', title: 'transition.kindSchoolTitle', icon: '🏫', sticker: 'school', chip: 'bg-emerald-100 text-emerald-800', checkable: false },
+      '在家': { label: 'transition.kindHome', title: 'transition.kindHomeTitle', icon: '🏡', sticker: 'home', chip: 'bg-amber-100 text-amber-800', checkable: true },
+      '一起': { label: 'transition.kindBoth', title: 'transition.kindBothTitle', icon: '🤝', sticker: 'together', chip: 'bg-sky-100 text-sky-800', checkable: true }
     };
     // 常見能力類別的圖示與顏色；其他類別用預設
     const TR_CATEGORY_STYLE = {
-      '生活自理能力': { icon: '🧹', tone: 'emerald' }, '規律生活': { icon: '⏰', tone: 'sky' }, '語文能力': { icon: '💬', tone: 'violet' },
-      '大小肌肉能力': { icon: '🤸', tone: 'orange' }, '視覺動作整合能力': { icon: '🧩', tone: 'teal' }, '專注力能力': { icon: '🔍', tone: 'indigo' },
-      '人際互動情緒管理': { icon: '💞', tone: 'rose' }, '社會能力': { icon: '🌏', tone: 'lime' }
+      '生活自理能力': { icon: '🧹', sticker: 'broom', tone: 'emerald' }, '規律生活': { icon: '⏰', sticker: 'clock', tone: 'sky' }, '語文能力': { icon: '💬', sticker: 'speech', tone: 'violet' },
+      '大小肌肉能力': { icon: '🤸', sticker: 'jump', tone: 'orange' }, '視覺動作整合能力': { icon: '🧩', sticker: 'puzzle', tone: 'teal' }, '專注力能力': { icon: '🔍', sticker: 'magnifier', tone: 'indigo' },
+      '人際互動情緒管理': { icon: '💞', sticker: 'hearts', tone: 'rose' }, '社會能力': { icon: '🌏', sticker: 'globe', tone: 'lime' }
     };
     const TR_TONES = {
       emerald: 'border-emerald-200 bg-emerald-50/60', sky: 'border-sky-200 bg-sky-50/60', violet: 'border-violet-200 bg-violet-50/60', orange: 'border-orange-200 bg-orange-50/60',
@@ -13906,7 +13932,7 @@ const htmlContent = `<!DOCTYPE html>
       (items || []).forEach(function(it) { if (it && it.year && !seen[it.year]) { seen[it.year] = true; list.push(it.year); } });
       return list.map(function(y, i) { return { y: y, k: semesterSortKey(y), i: i }; }).sort(function(a, b) { return (b.k - a.k) || (b.i - a.i); }).map(function(x) { return x.y; });
     }
-    function trCategoryStyle(cat) { return TR_CATEGORY_STYLE[cat] || { icon: '🌟', tone: 'slate' }; }
+    function trCategoryStyle(cat) { return TR_CATEGORY_STYLE[cat] || { icon: '🌟', sticker: 'star', tone: 'slate' }; }
     function trVisible(kind, filter) { return filter === 'all' || kind === '一起' || (filter === 'home' && kind === '在家') || (filter === 'school' && kind === '在園'); }
     function trYearItems() { return (state.transitionPlan || []).filter(function(it) { return it && it.year === currentTransitionYear; }); }
 
@@ -13964,11 +13990,11 @@ const htmlContent = `<!DOCTYPE html>
       const chips = document.getElementById('trFilterChips');
       if (chips) {
         chips.innerHTML = '';
-        [['all', 'transition.filterAll'], ['home', 'transition.filterHome'], ['school', 'transition.filterSchool']].forEach(function(c) {
+        [['all', 'transition.filterAll', ''], ['home', 'transition.filterHome', 'home'], ['school', 'transition.filterSchool', 'school']].forEach(function(c) {
           const b = document.createElement('button');
-          b.type = 'button'; b.textContent = t(c[1]); b.setAttribute('data-filter', c[0]);
+          b.type = 'button'; b.innerHTML = (c[2] ? stickerSvg(c[2], 'sticker-sm w-4 h-4') + ' ' : '') + esc(t(c[1])); b.setAttribute('data-filter', c[0]);
           b.setAttribute('aria-pressed', currentTransitionFilter === c[0] ? 'true' : 'false');
-          b.className = 'px-3 py-1.5 rounded-xl text-xs font-bold tap-bounce border ' + (currentTransitionFilter === c[0] ? 'bg-sky-50 text-sky-800 border-sky-300' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50');
+          b.className = 'inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold tap-bounce border ' + (currentTransitionFilter === c[0] ? 'bg-sky-50 text-sky-800 border-sky-300' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50');
           b.onclick = function() { setTransitionFilter(c[0]); };
           chips.appendChild(b);
         });
@@ -13989,7 +14015,7 @@ const htmlContent = `<!DOCTYPE html>
         card.setAttribute('data-category', cat);
         const head = document.createElement('h3');
         head.className = 'flex items-center gap-2 text-base sm:text-lg font-black text-slate-800 mb-2';
-        const ic = document.createElement('span'); ic.className = 'w-9 h-9 rounded-full bg-white border border-white/80 shadow-2xs flex items-center justify-center text-xl'; ic.setAttribute('aria-hidden', 'true'); ic.textContent = st.icon;
+        const ic = document.createElement('span'); ic.className = 'w-9 h-9 rounded-full bg-white border border-white/80 shadow-2xs flex items-center justify-center text-xl'; ic.setAttribute('aria-hidden', 'true'); ic.innerHTML = stickerSvg(st.sticker, 'sticker-sm w-5 h-5');
         const nm = document.createElement('span'); nm.textContent = tx(cat);
         head.appendChild(ic); head.appendChild(nm); card.appendChild(head);
         const ul = document.createElement('ul'); ul.className = 'space-y-1.5';
@@ -14015,12 +14041,12 @@ const htmlContent = `<!DOCTYPE html>
             const lab = document.createElement('label'); lab.className = 'flex items-start gap-2.5 flex-1 cursor-pointer';
             lab.appendChild(cb); lab.appendChild(textSpan); li.appendChild(lab);
           } else {
-            const dot = document.createElement('span'); dot.className = 'w-5 h-5 mt-0.5 shrink-0 flex items-center justify-center text-sm'; dot.setAttribute('aria-hidden', 'true'); dot.textContent = meta.icon;
+            const dot = document.createElement('span'); dot.className = 'w-5 h-5 mt-0.5 shrink-0 flex items-center justify-center text-sm'; dot.setAttribute('aria-hidden', 'true'); dot.innerHTML = stickerSvg(meta.sticker, 'sticker-sm w-4 h-4');
             li.appendChild(dot); li.appendChild(textSpan);
           }
           const tag = document.createElement('span');
           tag.className = 'tr-tag text-[0.6875rem] font-black px-2 py-0.5 rounded-full whitespace-nowrap shrink-0 mt-0.5 ' + meta.chip;
-          tag.textContent = meta.icon + ' ' + t(meta.label); tag.title = t(meta.title);
+          tag.innerHTML = stickerSvg(meta.sticker, 'sticker-sm w-4 h-4') + ' ' + esc(t(meta.label)); tag.title = t(meta.title);
           li.appendChild(tag);
           ul.appendChild(li);
         });
@@ -14226,7 +14252,7 @@ const htmlContent = `<!DOCTYPE html>
           });
           html += '</div></div>';
         }
-        if (a.quote) html += '<blockquote class="tr-quote rounded-2xl bg-gradient-to-r from-emerald-50 to-sky-50 border border-emerald-200 px-4 py-3 text-sm sm:text-base font-black text-emerald-800 flex items-start gap-2"><span aria-hidden="true">💡</span><span>' + esc(tx(a.quote)) + '</span></blockquote>';
+        if (a.quote) html += '<blockquote class="tr-quote rounded-2xl bg-gradient-to-r from-emerald-50 to-sky-50 border border-emerald-200 px-4 py-3 text-sm sm:text-base font-black text-emerald-800 flex items-start gap-2"><span aria-hidden="true" class="shrink-0 mt-0.5">' + stickerSvg('bulb', 'sticker-sm w-5 h-5') + '</span><span>' + esc(tx(a.quote)) + '</span></blockquote>';
         const url = safeUrl(a.url);
         if (url && /^https?:/i.test(url)) html += '<div class="text-right"><a href="' + escUrl(url) + '" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-sm font-bold text-sky-700 hover:underline">' + esc(t('transition.readOriginal')) + ' ↗</a></div>';
         html += '</div>';
@@ -14239,8 +14265,8 @@ const htmlContent = `<!DOCTYPE html>
     // 資料：state.semesterTasks（後端已依類別、順序排好）、state.taskOverviews（學期 → 總覽圖檔 ID）。
     // 學期新舊：名稱裡的第一組數字（學年）＋上學期＝1、下學期＝2；看不出來的排最舊，同分依清單順序（後面較新）。
     const TASK_GROUPS = [
-      { key: '班級小任務', i18n: 'tasks.groupClass', sub: 'tasks.groupClassSub', icon: '🏫', box: 'bg-emerald-50/70 border-emerald-200', head: 'text-emerald-800', chip: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-100' },
-      { key: '家長配合事項', i18n: 'tasks.groupParent', sub: 'tasks.groupParentSub', icon: '🏡', box: 'bg-amber-50/70 border-amber-200', head: 'text-amber-800', chip: 'bg-amber-100 text-amber-700', dot: 'bg-amber-100' }
+      { key: '班級小任務', i18n: 'tasks.groupClass', sub: 'tasks.groupClassSub', icon: '🏫', sticker: 'school', box: 'bg-emerald-50/70 border-emerald-200', head: 'text-emerald-800', chip: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-100' },
+      { key: '家長配合事項', i18n: 'tasks.groupParent', sub: 'tasks.groupParentSub', icon: '🏡', sticker: 'home', box: 'bg-amber-50/70 border-amber-200', head: 'text-amber-800', chip: 'bg-amber-100 text-amber-700', dot: 'bg-amber-100' }
     ];
     let currentTaskSemester = '';
 
@@ -14323,7 +14349,7 @@ const htmlContent = `<!DOCTYPE html>
         const sec = document.createElement('div');
         sec.className = 'task-group rounded-3xl border p-4 sm:p-5 ' + g.box;
         sec.setAttribute('data-group', g.key);
-        let html = '<h3 class="text-lg sm:text-xl font-black flex items-center gap-2 ' + g.head + '"><span aria-hidden="true">' + g.icon + '</span><span>' + esc(t(g.i18n)) + '</span></h3>' +
+        let html = '<h3 class="text-lg sm:text-xl font-black flex items-center gap-2 ' + g.head + '"><span aria-hidden="true">' + stickerSvg(g.sticker, 'sticker-sm w-6 h-6') + '</span><span>' + esc(t(g.i18n)) + '</span></h3>' +
           '<p class="text-xs sm:text-sm text-slate-500 font-medium mt-0.5 mb-3">' + esc(t(g.sub, { n: items.length })) + '</p>' +
           '<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">';
         items.forEach(function(tk) {
