@@ -57,17 +57,27 @@ const ownCss = [...html.matchAll(/<style>([\s\S]*?)<\/style>/g)].map(x => x[1]).
 const own = new Set((ownCss.match(/\.[A-Za-z_][\w-]*/g) || []).map(x => x.slice(1)));
 // 只給 JavaScript 當標記用（沒有樣式）的 class
 const HOOKS = new Set(['sidebar-text', 'sidebar-pin-btn', 'no-scrollbar', 'tab-btn', 'group/btn', 'group/nav', 'custom-scrollbar', 'cal-view-btn', 'tr-view-btn', 'doc-cat-btn', 'admin-group-btn', 'admin-subtab-btn', 'admin-panel', 'tr-print-card', 'event-minor', 'new-badge', 'tr-admin-ops', 'task-admin-ops', 'doc-admin-ops', 'admin-song-lock', 'song-batch-cb', 'sp-no-rank', 'sp-order-select', 'theme-overview', 'tr-point', 'tr-quote', 'task-overview', 'task-card', 'goal-activity', 'goal-course']);
-// 原本就沒有作用的類別（Tailwind 3.4.17 沒有這些名稱：shadow-xs、shadow-2xs、drop-shadow-2xs、backdrop-blur-xs 是 Tailwind 4 才有；border-3 與 text-peach-700 不在預設／自訂的值裡）。
-// CDN 版同樣不會產生，所以畫面一直沒有這些效果；列在這裡是為了「不再增加新的」，要修的話另外討論（會改變畫面）。
-const NOOP = new Set(['shadow-xs', 'shadow-2xs', 'drop-shadow-2xs', 'backdrop-blur-xs', 'border-3', 'text-peach-700']);
+// 網頁用到、但 Tailwind 3.4.17 預設沒有的名稱（shadow-xs、shadow-2xs、drop-shadow-2xs、backdrop-blur-xs 是 Tailwind 4 的名稱；
+// border-3、text-peach-700 不在預設值裡）：改成在 tailwind.config.js 補上定義（2026-10-23 使用者同意），所以現在都必須產生樣式。
+const MUST_EXIST = ['shadow-xs', 'shadow-2xs', 'drop-shadow-2xs', 'backdrop-blur-xs', 'border-3', 'text-peach-700'];
+const NOOP = new Set();   // 沒有作用的類別清單：現在是空的，新增的類別打錯字或名稱不存在會直接被抓到
 const staticAttrs = new Set(); let mm; const reAttr = /\sclass="([^"]*)"/g;
 while ((mm = reAttr.exec(html))) { const v = mm[1]; if (/['`$+]/.test(v)) continue; staticAttrs.add(v); }
 const unknown = new Map();
 staticAttrs.forEach(a => a.split(/\s+/).filter(Boolean).forEach(t => { if (!known.has(t) && !own.has(t) && !HOOKS.has(t) && !NOOP.has(t)) unknown.set(t, (unknown.get(t) || 0) + 1); }));
 ok(staticAttrs.size > 800 && known.size > 800, '（健全性）掃到 ' + staticAttrs.size + ' 組靜態 class、樣式表有 ' + known.size + ' 個 class');
 ok(unknown.size === 0, '每個 class 都有樣式、是頁面自己的 CSS、或是已登記的標記／無作用類別。沒有對應的：' + ([...unknown.keys()].join('、') || '無'));
-const noopUsed = [...NOOP].filter(t => !known.has(t)); ok(noopUsed.length === NOOP.size, '「無作用」清單裡的類別確實都沒有被產生樣式（有一天產生了就該從清單拿掉）');
-const known2 = [...NOOP].filter(t => known.has(t)); ok(known2.length === 0, '無作用清單沒有過期的項目：' + (known2.join('、') || '無'));
+const missingDefs = MUST_EXIST.filter(t => !known.has(t)); ok(missingDefs.length === 0, '原本沒有作用的 6 個類別現在都有樣式：' + (missingDefs.length ? '缺 ' + missingDefs.join('、') : MUST_EXIST.join('、')));
+const eq = (sel, prop, want) => { const r = rulesFor(sel)[0]; return !!r && nz(decl(r, prop) || '') === nz(want); };
+ok(eq('.shadow-xs', 'box-shadow', 'var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)') && /0 1px 2px 0 rgb\(0 0 0 \/ 0\.05\)/.test(decl(rulesFor('.shadow-xs')[0], '--tw-shadow') || ''), 'shadow-xs：0 1px 2px 0，透明度 5%（等同 Tailwind 3 的 shadow-sm）');
+ok(/^0 1px rgb\(0 0 0 \/ 0\.05\)$/.test(decl(rulesFor('.shadow-2xs')[0], '--tw-shadow') || ''), 'shadow-2xs：0 1px，透明度 5%');
+ok(eq('.backdrop-blur-xs', '--tw-backdrop-blur', 'blur(4px)'), 'backdrop-blur-xs：4px 模糊');
+ok(/drop-shadow\(0 1px 0 rgb\(0 0 0 \/ 0\.05\)\)/.test(decl(rulesFor('.drop-shadow-2xs')[0], '--tw-drop-shadow') || ''), 'drop-shadow-2xs：0 1px 0，透明度 5%');
+ok(eq('.border-3', 'border-width', '3px'), 'border-3：3px（載入中的旋轉圈圈才看得到）');
+ok(eq('.text-peach-700', 'color', 'rgb(176 48 64 / var(--tw-text-opacity, 1))') || /rgb\(176 48 64/.test(decl(rulesFor('.text-peach-700')[0], 'color') || ''), 'text-peach-700：#B03040');
+(function () { const lum = h => { const c = [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16) / 255).map(v => v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; }; const cr = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+  const fg = require('../tailwind.config.js').theme.extend.colors.peach[700];
+  ok(cr(fg, '#FED7D7') >= 4.5 && cr(fg, '#FFF5F5') >= 4.5, 'peach-700 在 peach-100／peach-50 底色上的對比度都 ≥ 4.5（' + cr(fg, '#FED7D7').toFixed(2) + '／' + cr(fg, '#FFF5F5').toFixed(2) + '）'); })();
 
 console.log('D. 同一個元素上不能有「同一類、改同一個屬性」的兩個類別（排列順序不可靠）');
 const props = new Map();   // class → Set(內容|變體|屬性)
