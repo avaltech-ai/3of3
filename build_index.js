@@ -10799,12 +10799,29 @@ const htmlContent = `<!DOCTYPE html>
       }
     }
 
-    function failSongSave(err) {
+    // 瀏覽器讀不到本機的音樂檔（還沒送出任何東西）：常見原因是檔案還在 iCloud 沒下載、被移動或損毀。
+    // 說清楚怎麼辦，並清掉已選的檔案，免得再按儲存又拿同一個壞檔案。
+    var SONG_READ_FAIL_MSG = '讀不到這個音樂檔。請確認檔案還在原位置、已從 iCloud 下載完成、能正常播放，再重新選取；或先不選檔案，只用 YouTube 新增（資料庫沒有被修改）';
+    function failSongSave(err, readFailed) {
       if (songUploadTimer) { clearInterval(songUploadTimer); songUploadTimer = null; }
       setSongSaving(false);
       const m = (err && err.message) ? err.message : String(err || '連線逾時');
+      if (readFailed) {
+        setSongProgress(100, '❌ ' + m, '', true);
+        showToast('讀不到這個音樂檔，請重新選取', '❌');
+        return;
+      }
       setSongProgress(100, '❌ ' + m + '（資料庫可能未更新，請重新整理確認後再試）', '', true);
       showToast('連線失敗：' + m, '❌');
+    }
+
+    function songFileReadFailed(err) {
+      songFormSelectedFile = null;
+      const fi = document.getElementById('songForm-fileInput');
+      if (fi) fi.value = '';
+      const existing = songFormEditingId ? adminSongFull((state.songs || []).find(function(s) { return String(s.id) === String(songFormEditingId); })) : null;
+      setSongFormFileStatus(existing);
+      failSongSave(new Error(SONG_READ_FAIL_MSG + (err && err.name ? '（錯誤代碼：' + err.name + '）' : '')), true);
     }
 
     function handleSaveSong(e) {
@@ -10870,7 +10887,8 @@ const htmlContent = `<!DOCTYPE html>
       reader.onprogress = function(ev) {
         if (ev.lengthComputable) setSongProgress(Math.max(1, Math.round(ev.loaded / ev.total * 8)), '正在讀取音樂檔…', '');
       };
-      reader.onerror = function() { failSongSave(new Error('讀取音樂檔失敗')); };
+      reader.onerror = function() { songFileReadFailed(reader.error); };
+      reader.onabort = function() { songFileReadFailed(reader.error || { name: 'AbortError' }); };
       reader.onload = function(ev) {
         const base64 = String(ev.target.result).split(',')[1];
         startSongProgressEstimate(file.size);
