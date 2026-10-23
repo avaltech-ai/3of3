@@ -593,9 +593,6 @@ const htmlContent = `<!DOCTYPE html>
               </button>
               <!-- 圖片模式 -->
               <img id="spotlightImg" src="./spotlight-fluoride.jpg" alt="焦點活動" class="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300 cursor-pointer tap-bounce" onclick="openSpotlightModal()" data-i18n-alt="ui.spotlightImgAlt">
-              <div id="spotlightImgHoverHint" class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" data-i18n="ui.spotlightHoverHint">
-                <span class="bg-white/90 text-slate-800 text-xs font-bold px-3 py-1.5 rounded-full shadow">點擊放大檢視攻略</span>
-              </div>
               <!-- 影片播放器 (YouTube / Drive preview / HTML5 video) -->
               <div id="spotlightVideoBox" class="w-full h-full hidden">
                 <iframe id="spotlightIframe" class="w-full h-full border-0 rounded-xl pointer-events-none" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
@@ -3134,7 +3131,6 @@ const htmlContent = `<!DOCTYPE html>
           spotlightEnded: "活動結束",
           spotlightDuration: "⏱️ {n}s 輪播",
           spotlightPlayMedia: "🎬 播放影音",
-          spotlightHoverHint: "點擊放大檢視攻略",
           spotlightModalTitle: "焦點活動攻略圖",
           spotlightModalDesc: "請務必留意焦點活動提醒與須知！",
           spotlightDotTitle: "切換至第 {n} 個焦點活動",
@@ -3173,7 +3169,6 @@ const htmlContent = `<!DOCTYPE html>
           albumRecountFail: "，{f} 本失敗",
           albumPhotosTotal: "（共 {n} 張）",
           albumPhotosTotalMixed: "（共 {n} 張・{m} 部影片）",
-          photoClickPlay: "點擊播放影片",
           viewerOpenDrive: "影片無法播放？在 Google 雲端硬碟開啟 ↗",
           albumModalDefault: "相簿照片",
           albumDefaultTitle: "活動相簿",
@@ -3191,7 +3186,6 @@ const htmlContent = `<!DOCTYPE html>
           waitRetry: "網路較慢，正在重試（{n}/{max}）",
           waitBigAlbum: "大型相簿第一次開啟會比較久，請稍候",
           thumbProgress: "縮圖載入 {i} / {n}",
-          photoClickEnlarge: "🔍 點擊放大",
           photoAlt: "照片",
           viewerAlt: "相簿照片",
           viewerLoading: "載入高畫質相片中...",
@@ -3492,7 +3486,6 @@ const htmlContent = `<!DOCTYPE html>
           spotlightEnded: "Ended",
           spotlightDuration: "⏱️ {n}s Auto",
           spotlightPlayMedia: "🎬 Play Video",
-          spotlightHoverHint: "Click to enlarge",
           spotlightModalTitle: "Highlight Guide",
           spotlightModalDesc: "Please read the highlight reminders and notes carefully!",
           spotlightDotTitle: "Go to highlight {n}",
@@ -3531,7 +3524,6 @@ const htmlContent = `<!DOCTYPE html>
           albumRecountFail: ", {f} failed",
           albumPhotosTotal: "({n} photos)",
           albumPhotosTotalMixed: "({n} photos, {m} videos)",
-          photoClickPlay: "Click to play video",
           viewerOpenDrive: "Video won't play? Open in Google Drive ↗",
           albumModalDefault: "Album Photos",
           albumDefaultTitle: "Photo Album",
@@ -3549,7 +3541,6 @@ const htmlContent = `<!DOCTYPE html>
           waitRetry: "Slow connection, retrying ({n}/{max})",
           waitBigAlbum: "Large albums take longer the first time",
           thumbProgress: "Loading thumbnails {i} / {n}",
-          photoClickEnlarge: "🔍 Click to enlarge",
           photoAlt: "Photo",
           viewerAlt: "Album photo",
           viewerLoading: "Loading high-resolution photo...",
@@ -6049,7 +6040,6 @@ const htmlContent = `<!DOCTYPE html>
 
     function renderSpotlightMedia(sp) {
       const imgEl = document.getElementById('spotlightImg');
-      const imgHint = document.getElementById('spotlightImgHoverHint');
       const videoBox = document.getElementById('spotlightVideoBox');
       const iframeEl = document.getElementById('spotlightIframe');
       const html5Video = document.getElementById('spotlightHtml5Video');
@@ -6060,7 +6050,6 @@ const htmlContent = `<!DOCTYPE html>
       if (mediaKind === 'video') {
         const vInfo = getEmbedVideoInfo(sp.imageUrl, true); // true for homepage
         if (imgEl) imgEl.classList.add('hidden');
-        if (imgHint) imgHint.classList.add('hidden');
         if (videoBox) videoBox.classList.remove('hidden');
 
         if (vInfo.type === 'iframe') {
@@ -6095,7 +6084,6 @@ const htmlContent = `<!DOCTYPE html>
           imgEl.classList.remove('hidden');
           imgEl.src = safeUrl(sp.imageUrl) || './spotlight-fluoride.jpg';
         }
-        if (imgHint) imgHint.classList.remove('hidden');
         if (mediaHint) mediaHint.textContent = '🔍 ' + t('cal.spotlightEnlarge');
       }
     }
@@ -7621,10 +7609,6 @@ const htmlContent = `<!DOCTYPE html>
             \${p.isVideo ? '<div class="absolute inset-0 flex items-center justify-center text-3xl text-slate-400 select-none">🎬</div>' : ''}
             <img src="\${escUrl(thumbUrl)}" alt="\${esc(p.name || t('ui.photoAlt'))}" loading="\${idx < ALBUM_FIRST_BATCH ? 'eager' : 'lazy'}" class="relative w-full h-full object-cover transition-transform group-hover:scale-105 duration-200"\${p.isVideo ? ' onerror="this.style.visibility=\\'hidden\\'"' : ''}>
             \${p.isVideo ? '<div class="absolute bottom-1.5 right-1.5 w-7 h-7 rounded-full bg-black/60 text-white text-[0.625rem] flex items-center justify-center pointer-events-none shadow">▶</div>' : ''}
-            <div class="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-xs font-bold gap-1 p-2 text-center">
-              <span>\${esc(p.isVideo ? t('ui.photoClickPlay') : t('ui.photoClickEnlarge'))}</span>
-              <span class="text-[0.625rem] opacity-80 truncate w-full max-w-[90%]">\${esc(p.name || '')}</span>
-            </div>
           </div>
         \`);
       });
