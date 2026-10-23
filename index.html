@@ -2,6 +2,10 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
+  <!-- 內容安全政策（紅隊檢查 L-3）：腳本只能來自本站、Tailwind CDN、YouTube；擋掉其他網站的腳本與外掛物件。
+       只限制 script／object／base，不限制圖片、影片、GAS 呼叫與 iframe（這些維持原樣）。meta 必須放在所有外部腳本之前才有效。
+       Tailwind CDN 腳本沒有 CORS 標頭，無法用 SRI，所以改用這個限制來源的方式。 -->
+  <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://www.youtube.com; object-src 'none'; base-uri 'self'">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>桃子腳幼兒園 - 諾貝爾 A 班</title>
   <script>try { if (localStorage.getItem('nobel_a_big_text') === '1') document.documentElement.classList.add('big-text'); } catch (e) {}</script>
@@ -4239,7 +4243,7 @@
 
     function gasPostViaIframe(action, payload, successCb, errorCb) {
       const requestId = 'req_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
-      const bodyStr = JSON.stringify({ action, requestId, ...payload });
+      const bodyStr = JSON.stringify({ action, requestId, origin: location.origin, ...payload });   // origin：後端只把結果送給正式網站（紅隊檢查 L-2）
       const frameId = 'gasPostFrame_' + (++gasIframeCounter);
 
       // 建立隱藏 iframe
@@ -4254,10 +4258,11 @@
       const timeoutMs = 120000; // 2 分鐘逾時
 
       const messageHandler = (event) => {
-        // 安全性：只接受來自 Google 網域的回傳，並比對 requestId 避免串音
+        // 安全性（紅隊檢查 L-2）：只接受來自 Google 網域的回傳，且 requestId 必須與這次請求相符（requestId 只有本頁與後端知道）
         if (responded) return;
+        if (!/^https:\/\/([a-z0-9-]+\.googleusercontent\.com|script\.google\.com)$/.test(String(event.origin))) return;
         if (event.data && typeof event.data === 'object' && ('success' in event.data || 'error' in event.data)) {
-          if (event.data.requestId && event.data.requestId !== requestId) {
+          if (event.data.requestId !== requestId) {
             return;
           }
           responded = true;

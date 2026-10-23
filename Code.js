@@ -564,14 +564,40 @@ function neutralizeFormulas_(v, depth) {
   return v;
 }
 
+// ---------- iframe 備援回傳（2026-10-23 紅隊檢查 L-2）----------
+// form 模式的回應是一個 HTML 頁面，用 postMessage 把結果交給外層網站。原本目標來源寫 "*"：只要網站被別人的頁面
+// 用 iframe 包住，登入成功的 token 就會被外層頁面收到。現在前端把自己的來源（origin）一起送來，後端只在
+// 來源是正式網站（或本機開發）時才把結果送給該來源；其他來源只回一個不含任何資料的錯誤。
+const FRONTEND_ORIGIN_ = 'https://avaltech-ai.github.io';
+function trustedPostOrigin_(origin) {
+  if (typeof origin !== 'string') return '';
+  if (origin === FRONTEND_ORIGIN_) return origin;
+  return /^http:\/\/(localhost|127\.0\.0\.1)(:\d{1,5})?$/.test(origin) ? origin : '';
+}
+function formModeResponse_(result, origin) {
+  const target = trustedPostOrigin_(origin);
+  let payload = result;
+  if (!target) {
+    payload = { success: false, error: '來源不受信任，請從正式網站操作。' };
+    if (result && result.requestId) payload.requestId = result.requestId;
+  }
+  const json = JSON.stringify(payload).replace(/</g, '\\u003c').replace(/>/g, '\\u003e');
+  const to = JSON.stringify(target || '*');
+  const html = '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>' +
+    '<script>try{window.top.postMessage(' + json + ',' + to + ');}catch(e){}try{window.parent.postMessage(' + json + ',' + to + ');}catch(e){}try{window.parent.parent.postMessage(' + json + ',' + to + ');}catch(e){}</script>' +
+    '</body></html>';
+  return HtmlService.createHtmlOutput(html)
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
 /**
  * REST API POST 入口（支援 google.script.run 內部呼叫、GitHub Pages 跨域 iframe form 呼叫）
  */
 function doPost(e) {
   let isFormMode = false;
   let lock = null;
+  let postData = {};
   try {
-    let postData = {};
 
     // 優先檢查 form 表單欄位 'payload'（來自 GitHub Pages 隱藏 iframe form 提交）
     if (e && e.parameter && e.parameter.payload) {
@@ -587,8 +613,12 @@ function doPost(e) {
 
     // 互斥鎖：所有寫入類動作一次只允許一個執行，避免兩位管理員同時儲存造成資料互蓋、列錯位或重複列。
     // 等待上限 20 秒（需小於前端 25 秒逾時，否則前端會自動重送而重複寫入）。
+    // 沒有有效 token 的請求（含未知動作）連鎖都不取（2026-10-23 紅隊檢查 L-1）：否則任何人持續送請求就能佔住鎖，
+    // 讓老師儲存時一直出現「系統忙碌」。登入、登出、檢查登入狀態不需要 token，也不取這把鎖。
+    const noTokenActions = action === 'verifyPassword' || action === 'logout' || action === 'checkSession';
+    const authRejected = !noTokenActions && !checkPassword(postData.password);
     let lockBusy = false;
-    if (action !== 'verifyPassword' && action !== 'logout' && action !== 'checkSession') {
+    if (!noTokenActions && !authRejected) {
       lock = LockService.getScriptLock();
       if (!lock.tryLock(20000)) { lockBusy = true; lock = null; }
     }
@@ -609,7 +639,9 @@ function doPost(e) {
       }
     }
 
-    if (lockBusy) {
+    if (authRejected) {
+      result = authFail_();
+    } else if (lockBusy) {
       result = { success: false, error: '系統目前忙碌（可能有其他管理員正在儲存），請稍候 10 秒再試一次。' };
     } else if (dupResult) {
       result = dupResult;   // 已處理過：直接回傳上次結果，不再執行
@@ -734,33 +766,15 @@ function doPost(e) {
     }
 
     // 若為 form 模式（來自 GitHub Pages iframe），回傳帶有 postMessage 的 HTML 頁面
-    if (isFormMode) {
-      const resultJson = JSON.stringify(result).replace(/</g, '\\u003c').replace(/>/g, '\\u003e');
-      const html = '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>' +
-        '<script>try{window.top.postMessage(' + resultJson + ',"*");}catch(e){}try{window.parent.postMessage(' + resultJson + ',"*");}catch(e){}try{window.parent.parent.postMessage(' + resultJson + ',"*");}catch(e){}</script>' +
-        '</body></html>';
-      return HtmlService.createHtmlOutput(html)
-        .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-    }
+    if (isFormMode) return formModeResponse_(result, postData.origin);
 
     return ContentService.createTextOutput(JSON.stringify(result))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     const errObj = { success: false, error: err.toString() };
-    try {
-      if (typeof postData !== 'undefined' && postData && postData.requestId) {
-        errObj.requestId = postData.requestId;
-      }
-    } catch (e) {}
-    const errResult = JSON.stringify(errObj);
-    if (isFormMode) {
-      const html = '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>' +
-        '<script>try{window.top.postMessage(' + errResult.replace(/</g, '\\u003c').replace(/>/g, '\\u003e') + ',"*");}catch(e){}try{window.parent.postMessage(' + errResult.replace(/</g, '\\u003c').replace(/>/g, '\\u003e') + ',"*");}catch(e){}try{window.parent.parent.postMessage(' + errResult.replace(/</g, '\\u003c').replace(/>/g, '\\u003e') + ',"*");}catch(e){}</script>' +
-        '</body></html>';
-      return HtmlService.createHtmlOutput(html)
-        .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-    }
-    return ContentService.createTextOutput(errResult)
+    if (postData && postData.requestId) errObj.requestId = postData.requestId;
+    if (isFormMode) return formModeResponse_(errObj, postData && postData.origin);
+    return ContentService.createTextOutput(JSON.stringify(errObj))
       .setMimeType(ContentService.MimeType.JSON);
   } finally {
     if (lock) {
@@ -3358,6 +3372,8 @@ function uploadDocument(docMeta, fileObj, password) {
 /**
  * 上傳 Spotlight 圖片至 Google Drive Acticity 資料夾
  */
+const SPOTLIGHT_IMAGE_MAX_BYTES = 10 * 1024 * 1024;
+const SPOTLIGHT_IMAGE_MIME_ = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', gif: 'image/gif' };
 function uploadSpotlightImage(fileObj, password) {
   if (!checkPassword(password)) {
     return authFail_();
@@ -3367,9 +3383,19 @@ function uploadSpotlightImage(fileObj, password) {
     const folder = getActivityFolder_();
     if (!folder) throw new Error('無法取得或建立 Google Drive Acticity 資料夾！');
 
+    // 只收圖片、有大小上限（2026-10-23 紅隊檢查 L-4）：檔案類型依副檔名決定，不採用前端傳來的 mimeType
+    if (!fileObj || typeof fileObj !== 'object' || typeof fileObj.base64 !== 'string' || !fileObj.base64) {
+      return { success: false, error: '缺少圖片內容' };
+    }
+    const rawName = (typeof fileObj.name === 'string' && fileObj.name.trim()) ? fileObj.name : ('Spotlight_' + Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyyMMdd_HHmmss') + '.jpg');
+    const fileName = cleanDocFileName_(rawName);
+    const mime = SPOTLIGHT_IMAGE_MIME_[docFileExtOf_(fileName)];
+    if (!mime) return { success: false, error: '不支援這種檔案格式（只能上傳 JPG、PNG、WebP、GIF 圖片）' };
+    const tooBig = { success: false, error: '圖片太大，單張最大 10 MB' };
+    if (fileObj.base64.length > Math.ceil(SPOTLIGHT_IMAGE_MAX_BYTES / 3) * 4 + 4) return tooBig;   // 太大的不解碼
     const decodedBytes = Utilities.base64Decode(fileObj.base64);
-    const fileName = fileObj.name || ('Spotlight_' + Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyyMMdd_HHmmss') + '.jpg');
-    const blob = Utilities.newBlob(decodedBytes, fileObj.mimeType || 'image/jpeg', fileName);
+    if (decodedBytes.length > SPOTLIGHT_IMAGE_MAX_BYTES) return tooBig;
+    const blob = Utilities.newBlob(decodedBytes, mime, fileName);
     const newFile = folder.createFile(blob);
     try {
       newFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
@@ -3435,6 +3461,7 @@ function getActivityImages(password) {
 const AUTH_TOKEN_TTL_SEC = 7200;            // token 閒置 2 小時失效（每次使用會延長）
 const AUTH_TOKEN_ABS_MAX_MS = 8 * 3600000;  // 不論是否活躍，最長 8 小時必須重新登入
 const AUTH_MAX_FAILS = 5;                   // 連續輸錯幾次後鎖定
+const AUTH_LOGIN_LOCK_WAIT_MS = 8000;       // 登入比對等待全域鎖的上限（需小於前端逾時）
 const AUTH_LOCK_SEC = 900;                  // 鎖定時間（秒）= 15 分鐘
 const AUTH_ERROR_MSG = '登入已逾時或無效，請重新登入。';
 const AUTH_MIN_PASSWORD_LENGTH = 10;        // 後台變更密碼時的最短長度
@@ -3513,6 +3540,19 @@ function checkPassword(token) {
  * 連續輸錯 AUTH_MAX_FAILS 次後鎖定 AUTH_LOCK_SEC 秒，鎖定期間連正確密碼也不接受，且不再累計。
  */
 function verifyPassword(password, deviceKey) {
+  // 「讀失敗次數 → 比對密碼 → 寫回次數」要在鎖內完成（2026-10-23 紅隊檢查 L-1）：否則同時送出很多請求，
+  // 每一個都在別人寫回之前讀到舊的次數，就能在被鎖定前多試很多次。鎖被佔住時回「稍後再試」，不比對、不計次。
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(AUTH_LOGIN_LOCK_WAIT_MS)) {
+    return { success: false, busy: true, error: '系統目前忙碌，請稍候幾秒再登入一次。' };
+  }
+  try {
+    return verifyPasswordLocked_(password, deviceKey);
+  } finally {
+    try { lock.releaseLock(); } catch (releaseErr) {}
+  }
+}
+function verifyPasswordLocked_(password, deviceKey) {
   const cache = CacheService.getScriptCache();
   const fails = Number(cache.get('login_fails') || 0);
   const trusted = isTrustedDevice_(deviceKey);

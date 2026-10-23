@@ -830,7 +830,12 @@ git push origin main
 - **變更密碼**：後台變更成功後，所有裝置的 token 立即失效（`AUTH_EPOCH`），需以新密碼重新登入。
 - **已知限制**：token 存在 `CacheService`，Google 在極少數情況可能提前清除快取，管理員會被要求重新登入（不影響資料）。`Settings` 內的密碼仍為明文（有試算表編輯權限者可見）。
 - **活動圖片清單需登入（2026-10-23 紅隊檢查 M-4）**：`getActivityImages(password)` 第一個動作驗證 token，GET 不再提供（token 不該放網址），前端改走 POST／`google.script.run` 並帶 token；它只有後台「從 Acticity 資料夾選取」會用。Albums／Music／Docs／Acticity 資料夾本身是「知道連結的任何人可檢視」（網站用個別檔案連結顯示，檔案上傳時也設為公開），這是設計；**不要把不想公開的檔案放進這些資料夾**。
-- **測試**：`node tests/auth.test.js`（模擬環境，92 項，含受信任裝置與公式字元開頭的密碼）、`node tests/security.test.js`（123 項，含 `getActivityImages` 需登入：公開函式白名單、擁有者保護、預熱節流、選單先取 UI、網址驗證、公式注入）、`node tests/safeurl.test.js`（46 項）、`node tests/adminlogin.test.js`（21 項），修改認證、鎖定、備份、公開函式、寫入試算表相關程式後須全數通過才可部署。
+- **低風險項目補強（2026-10-23 紅隊檢查 L-1～L-4）**：
+  - **L-1 全域鎖與登入計數**：`doPost` 在取全域寫入鎖**之前**先驗證 token，沒有有效 token（含未知動作）的請求直接回「登入逾時」、完全不取鎖，避免有人持續送請求佔住鎖讓老師儲存失敗；登入／登出／檢查登入狀態不需要 token，也不取這把鎖。`verifyPassword` 的「讀失敗次數 → 比對 → 寫回」在鎖內完成（等待上限 8 秒，拿不到回「系統目前忙碌」，不比對、不計次、不算鎖定；`finally` 一定放鎖），並行猜密碼不能在被鎖定前多試。
+  - **L-2 iframe 備援**：前端送出時附上 `origin: location.origin`；後端 `formModeResponse_` 只在來源是 `https://avaltech-ai.github.io`（或 `http://localhost`／`127.0.0.1` 本機開發）時，用該來源當 `postMessage` 的目標；其他來源只回一個不含資料的「來源不受信任」錯誤（送給 `"*"`，沒有 token）。前端收訊息時：`event.origin` 必須是 `https://*.googleusercontent.com` 或 `https://script.google.com`，且 `requestId` 必須相符（不能省略）。`doPost` 例外路徑的 `postData` 搬到 `try` 外面，錯誤回傳也帶 `requestId`（原本 `typeof postData` 檢查永遠取不到，錯誤回傳少了 requestId）。**相容性**：尚未更新頁面的舊前端（沒送 origin）走 iframe 備援時會收到「來源不受信任」，重新整理即可；主要路徑（fetch）不受影響。
+  - **L-3 供應鏈**：`index.html` 開頭（所有外部腳本之前）加 CSP meta：`script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://www.youtube.com; object-src 'none'; base-uri 'self'`，**只**限制腳本、外掛物件與 base，不限制圖片、影片、GAS 呼叫、iframe。Tailwind CDN 腳本沒有 CORS 標頭，無法加 SRI。**限制說明**：頁面有大量內嵌腳本與 `onclick`，所以必須保留 `'unsafe-inline'`，這個政策只能擋「從其他網站載入腳本」，擋不了已經注入的內嵌腳本。CI 的 `actions/checkout`、`actions/setup-node` 固定到完整 commit SHA（註解寫明 v4）。**尚未做**：Tailwind 改成建置時產生 CSS 隨網站發布（會移除最大的外部腳本，但要引入 Tailwind CLI 並確認所有動態組出的 class 都被掃到，屬於較大的改動，另行討論）。
+  - **L-4 焦點圖片上傳**：`uploadSpotlightImage` 只收 jpg／jpeg／png／webp／gif（依副檔名），單張上限 10 MB（字串長度超過上限不解碼），檔案類型依副檔名決定、不採用前端傳來的 `mimeType`，檔名經 `cleanDocFileName_` 清理，檔名不是字串時用預設檔名。前端本來就把圖片壓成 JPG，不受影響。
+- **測試**：`node tests/auth.test.js`（模擬環境，92 項，含受信任裝置與公式字元開頭的密碼）、`node tests/security.test.js`（234 項，含 `getActivityImages` 需登入與 L-1～L-4：公開函式白名單、擁有者保護、預熱節流、選單先取 UI、網址驗證、公式注入）、`node tests/safeurl.test.js`（46 項）、`node tests/adminlogin.test.js`（21 項），修改認證、鎖定、備份、公開函式、寫入試算表相關程式後須全數通過才可部署。
 
 ### 5.7 前端輸出跳脫（XSS 防護）
 

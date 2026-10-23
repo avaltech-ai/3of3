@@ -103,8 +103,10 @@ console.log('H-1. 匿名者（網頁環境）呼叫公開名稱：沒有任何�
 })();
 (function () {
   const e = mkEnv(); const post = body => JSON.parse(e.ctx.doPost({ postData: { contents: JSON.stringify(body) } }).text);
-  const r = post({ action: 'ensureAlbumSheets' });
-  ok(r.success === false && /未知/.test(r.error) && e.calls.ensure === 0 && e.calls.ss === 0, '已移除的 POST 動作 ensureAlbumSheets：回「未知 POST 動作」，沒有碰試算表');
+  let r = post({ action: 'ensureAlbumSheets' });
+  ok(r.success === false && r.authExpired === true && e.calls.ensure === 0 && e.calls.ss === 0, '已移除的 POST 動作 ensureAlbumSheets：沒有 token 先被拒絕，沒有碰試算表');
+  e.ctx.checkPassword = p => p === 'tok'; r = post({ action: 'ensureAlbumSheets', password: 'tok' });
+  ok(r.success === false && /未知/.test(r.error) && e.calls.ensure === 0 && e.calls.ss === 0, '已移除的 POST 動作 ensureAlbumSheets：即使有 token 也回「未知 POST 動作」，沒有碰試算表');
   ok(MOVED.every(n => e.ctx[n] === undefined), '舊的公開名稱在執行環境裡都不存在了（google.script.run 呼叫不到）');
 })();
 
@@ -260,6 +262,175 @@ console.log('M-4. getActivityImages（列出 Acticity 資料夾所有圖片）�
   const m = fe.match(/if \(action === 'getAppData' \|\| [^)]*\) \{/);
   ok(m && m[0].indexOf('getActivityImages') < 0, '前端（外部環境）：getActivityImages 不再走匿名 GET，改走 POST');
   ok(/action !== 'getActivityImages'/.test(fe), '前端：getActivityImages 不附冪等編號（它是讀取，不是寫入）');
+})();
+
+// ================= L-1～L-4（低風險項目補強）=================
+function lockEnv(opts) {
+  opts = opts || {};
+  const e = mkSsEnv(opts.sheets || {});
+  e.ev = []; e.lock = { tries: 0, released: 0, busy: false };
+  e.ctx.LockService = { getScriptLock: () => ({ tryLock: () => { e.lock.tries++; e.ev.push('lock'); if (e.lock.busy) return false; return true; }, releaseLock: () => { e.lock.released++; e.ev.push('unlock'); } }) };
+  const base = {}; const raw = e.ctx.CacheService.getScriptCache();
+  e.ctx.CacheService = { getScriptCache: () => ({
+    get: k => { e.ev.push('get:' + k); return raw.get(k); }, put: (k, v, t) => { e.ev.push('put:' + k); raw.put(k, v, t); }, remove: k => { e.ev.push('remove:' + k); raw.remove(k); },
+    putAll() {}, removeAll() {} }) };
+  e.pwChecks = 0; e.ctx.verifyAdminPassword_ = p => { e.pwChecks++; if (e.throwOnCheck) throw new Error('boom'); return p === 'right'; };
+  e.ctx.isTrustedDevice_ = () => false; e.ctx.trustDevice_ = () => ''; e.ctx.issueToken_ = () => 'T'.repeat(64);
+  return e;
+}
+const postJson = (e, b) => JSON.parse(e.ctx.doPost({ postData: { contents: JSON.stringify(b) } }).text);
+
+console.log('L-1. 沒有有效 token 的請求不取全域寫入鎖（不能佔住鎖讓老師儲存失敗）');
+(function () {
+  const e = lockEnv();
+  [{ action: 'saveEvent', data: { id: 'x' } }, { action: 'saveEvent', password: 'bogus' }, { action: 'nope' }, { action: 'nope', password: 'bogus' }, { action: 'ensureAlbumSheets' }, { action: 'getActivityImages', password: '' }].forEach(b => {
+    const r = postJson(e, b);
+    ok(r.success === false && r.authExpired === true && r.error === '登入已逾時或無效，請重新登入。', '無效 token：直接拒絕 ' + JSON.stringify(b).slice(0, 60));
+  });
+  ok(e.lock.tries === 0, '以上請求一次都沒有取鎖（取鎖 ' + e.lock.tries + ' 次）');
+  const r = postJson(e, { action: 'nope', password: 'tok' });
+  ok(r.success === false && r.error === '未知 POST 動作' && e.lock.tries === 1 && e.lock.released === 1, '有效 token：照常取鎖、處理、釋放（未知動作仍回「未知 POST 動作」）');
+  e.lock.tries = 0; e.lock.busy = true; const rb = postJson(e, { action: 'nope', password: 'tok' });
+  ok(rb.success === false && /忙碌/.test(rb.error) && e.lock.tries === 1, '有效 token 但鎖被佔：回「系統目前忙碌」');
+  const e2 = lockEnv(); const before = e2.lock.tries;
+  postJson(e2, { action: 'checkSession', password: 'bogus' }); postJson(e2, { action: 'logout', password: 'bogus' });
+  ok(e2.lock.tries === before, 'checkSession／logout：不取全域鎖（維持原行為）');
+  const dp = src.slice(src.indexOf('function doPost(e)'), src.indexOf('function getSpreadsheet_'));
+  ok(dp.indexOf('checkPassword(postData.password)') > 0 && dp.indexOf('checkPassword(postData.password)') < dp.indexOf('LockService.getScriptLock()'), '原始碼：doPost 在取鎖之前先驗證 token');
+})();
+
+console.log('L-1. 登入失敗次數的「讀取 → 比對 → 寫回」在鎖內完成（並行請求不能多試密碼）');
+(function () {
+  let e = lockEnv(); let r = e.ctx.verifyPassword('wrong', '');
+  const i = n => e.ev.indexOf(n);
+  ok(r.success === false && i('lock') >= 0 && i('lock') < i('get:login_fails') && i('get:login_fails') < i('put:login_fails') && i('put:login_fails') < i('unlock'), '失敗：取鎖 → 讀次數 → 寫次數 → 放鎖（順序：' + e.ev.join(' ') + '）');
+  e = lockEnv(); r = e.ctx.verifyPassword('right', '');
+  ok(r.success === true && r.token === 'T'.repeat(64) && e.lock.tries === 1 && e.lock.released === 1, '成功：一樣在鎖內，結束後放鎖');
+  e = lockEnv(); e.lock.busy = true; r = e.ctx.verifyPassword('right', '');
+  ok(r.success === false && /忙碌|稍後/.test(r.error) && e.pwChecks === 0 && !e.ev.some(x => /login_fails/.test(x)) && r.locked !== true, '鎖被佔：回「稍後再試」，不比對密碼、不動次數、不算鎖定');
+  e = lockEnv(); e.throwOnCheck = true; let threw = false; try { e.ctx.verifyPassword('x', ''); } catch (x) { threw = true; }
+  ok(threw && e.lock.released === 1, '比對過程拋錯：鎖一定會放開（try／finally）');
+  e = lockEnv(); for (let k = 0; k < 5; k++) e.ctx.verifyPassword('wrong', ''); r = e.ctx.verifyPassword('right', '');
+  ok(r.locked === true && r.success === false && e.lock.tries === 6 && e.lock.released === 6, '第 5 次錯誤後鎖定：正確密碼也被擋，每次都有放鎖');
+})();
+
+console.log('L-2. 後端：iframe 備援的回傳只送給正式網站（不再 postMessage 到 "*"）');
+function formEnv() {
+  const e = lockEnv(); e.html = ''; e.ctx.HtmlService = { createHtmlOutput: h => { e.html = h; return { setXFrameOptionsMode() { return this; } }; }, XFrameOptionsMode: { ALLOWALL: 1 } };
+  e.form = b => { e.ctx.doPost({ parameter: { payload: typeof b === 'string' ? b : JSON.stringify(b) } }); return e.html; };
+  return e;
+}
+(function () {
+  const e = formEnv(); const OK = 'https://avaltech-ai.github.io';
+  let h = e.form({ action: 'nope', password: 'tok', requestId: 'r1', origin: OK });
+  ok((h.match(/postMessage\(/g) || []).length === 3 && (h.match(/,"https:\/\/avaltech-ai\.github\.io"\)/g) || []).length === 3 && h.indexOf('"*"') < 0, '正式網站來源：top／parent／parent.parent 三個 postMessage 都指定該來源，沒有 "*"');
+  ok(/"requestId":"r1"/.test(h), '回傳帶 requestId');
+  ['http://localhost:8765', 'http://localhost', 'http://127.0.0.1:3000'].forEach(o => {
+    h = e.form({ action: 'nope', password: 'tok', requestId: 'r2', origin: o });
+    ok(h.indexOf(',"' + o + '")') >= 0 && h.indexOf('"*"') < 0, '本機開發來源可用：' + o);
+  });
+  e.ctx.verifyPassword = () => ({ success: true, token: 'S'.repeat(64), deviceKey: 'DEVICEKEY', message: 'ok' });
+  ['https://evil.example', 'https://avaltech-ai.github.io.evil.com', 'http://avaltech-ai.github.io', 'https://evil.com/?https://avaltech-ai.github.io', 'https://avaltech-ai.github.io/', 'null', '*', '', 'HTTPS://AVALTECH-AI.GITHUB.IO', 'https://x.github.io', 'http://localhost.evil.com', 'http://localhost:80a', 'xhttp://localhost:3000', 'https://evil.com#http://localhost', 'http://localhost/evil', 'http://localhost:3000/x', 'http://localhost:123456'].forEach(o => {
+    h = e.form({ action: 'verifyPassword', password: 'x', requestId: 'r3', origin: o });
+    ok(h.indexOf('SSSSSSSS') < 0 && h.indexOf('DEVICEKEY') < 0 && h.indexOf('"success":false') >= 0 && /來源/.test(h.replace(/\\u([0-9a-f]{4})/gi, (m, x) => String.fromCharCode(parseInt(x, 16)))) && /"requestId":"r3"/.test(h), '不受信任的來源 ' + JSON.stringify(o) + '：結果（含 token）不會送出，只回「來源不受信任」');
+  });
+  [{ action: 'verifyPassword', password: 'x', requestId: 'r4' }, { action: 'verifyPassword', password: 'x', requestId: 'r4', origin: 123 }, { action: 'verifyPassword', password: 'x', requestId: 'r4', origin: { a: 1 } }].forEach((b, k) => {
+    h = e.form(b); ok(h.indexOf('SSSSSSSS') < 0 && h.indexOf('DEVICEKEY') < 0 && /"requestId":"r4"/.test(h), '沒有或不是字串的 origin（' + k + '）：不送出 token');
+  });
+  h = e.form('{ not json'); ok(h.indexOf('SSSSSSSS') < 0 && h.indexOf('"success":false') >= 0, '請求內容不是 JSON：只回錯誤，沒有例外外洩');
+  e.ctx.saveEvent = () => { throw new Error('內部錯誤 SECRET-DETAIL'); };
+  h = e.form({ action: 'saveEvent', password: 'tok', requestId: 'r5', origin: OK });
+  ok(h.indexOf(',"' + OK + '")') >= 0 && /"requestId":"r5"/.test(h) && /內部錯誤|\\u5167\\u90e8/.test(h) || /SECRET-DETAIL/.test(h), '後端拋例外：錯誤回傳一樣帶 requestId 與指定來源（前端才收得到錯誤）');
+  h = e.form({ action: 'saveEvent', password: 'tok', requestId: 'r6', origin: 'https://evil.example' });
+  ok(h.indexOf('SECRET-DETAIL') < 0 && h.indexOf('"*"') >= 0 && /"requestId":"r6"/.test(h), '後端拋例外＋不受信任來源：不洩漏錯誤內容');
+  const j = e.ctx.doPost({ postData: { contents: JSON.stringify({ action: 'saveEvent', password: 'tok', requestId: 'r7' }) } });
+  ok(/"requestId":"r7"/.test(j.text) && /SECRET-DETAIL/.test(j.text), 'JSON（fetch）模式的錯誤回傳也帶 requestId');
+})();
+
+console.log('L-2. 前端：iframe 備援只接受 Google 來源且 requestId 必須相符');
+(function () {
+  const fe = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');   // 產生後的網頁（build_index.js 是模板字串，反斜線要還原後才是真正執行的程式）
+  const i = fe.indexOf('function gasPostViaIframe('); let d = 0, k = fe.indexOf('{', i), j = k;
+  for (; j < fe.length; j++) { if (fe[j] === '{') d++; else if (fe[j] === '}') { d--; if (!d) break; } }
+  const fnSrc = fe.slice(i, j + 1);
+  // 取得 requestId：從送出的 textarea 內容
+  function runWithSent() {
+    const created = []; const listeners = []; const out = { ok: [], err: [] };
+    const mkEl = t => { const el = { tagName: t.toUpperCase(), style: {}, children: [], appendChild(c) { this.children.push(c); }, remove() {}, submit() {} }; created.push(el); return el; };
+    const sandbox = { document: { createElement: mkEl, body: { appendChild() {} }, getElementById: () => null }, window: { addEventListener: (n, f) => { if (n === 'message') listeners.push(f); }, removeEventListener: (n, f) => { const x = listeners.indexOf(f); if (x >= 0) listeners.splice(x, 1); } }, location: { origin: 'https://avaltech-ai.github.io' },
+      setTimeout: () => 1, clearTimeout() {}, GAS_API_URL: 'https://script.google.com/x/exec', gasIframeCounter: 0 };
+    const f = new Function(...Object.keys(sandbox), fnSrc + '\nreturn gasPostViaIframe;')(...Object.values(sandbox));
+    f('saveEvent', { password: 'tok', data: { a: 1 } }, r => out.ok.push(r), e => out.err.push(e));
+    const ta = created.find(x => x.tagName === 'TEXTAREA'); const sent = JSON.parse(ta.value);
+    return { sent, out, fire: (origin, data) => listeners.slice().forEach(l => l({ origin, data })), listeners };
+  }
+  let t = runWithSent(); const G = 'https://n-abc123-0lu-script.googleusercontent.com';
+  ok(t.sent.origin === 'https://avaltech-ai.github.io' && t.sent.action === 'saveEvent' && /^req_/.test(t.sent.requestId) && t.sent.password === 'tok', '送出的內容帶 origin（本頁來源）、requestId，其餘欄位不變');
+  ['https://evil.example', 'https://googleusercontent.com.evil.com', 'http://n-abc-script.googleusercontent.com', 'https://evilgoogleusercontent.com', 'https://avaltech-ai.github.io', 'null', '', undefined, 'https://n-abc.googleusercontent.com.evil.com', 'https://script.google.com.evil.com'].forEach(o => {
+    t = runWithSent(); t.fire(o, { success: true, token: 'X', requestId: t.sent.requestId });
+    ok(t.out.ok.length === 0 && t.listeners.length === 1, '來源不是 Google：忽略 ' + JSON.stringify(o) + '（仍在等真正的回應）');
+  });
+  t = runWithSent(); t.fire(G, { success: true, token: 'X' }); ok(t.out.ok.length === 0, 'Google 來源但沒有 requestId：忽略');
+  t = runWithSent(); t.fire(G, { success: true, requestId: 'req_other' }); ok(t.out.ok.length === 0, 'Google 來源但 requestId 不符：忽略');
+  t = runWithSent(); t.fire(G, 'just a string'); t.fire(G, null); t.fire(G, { foo: 1, requestId: t.sent.requestId }); ok(t.out.ok.length === 0, '不是結果物件：忽略');
+  t = runWithSent(); t.fire('https://evil.example', { success: true, requestId: t.sent.requestId }); t.fire(G, { success: true, message: 'ok', requestId: t.sent.requestId });
+  ok(t.out.ok.length === 1 && t.out.ok[0].message === 'ok' && t.listeners.length === 0, '先被忽略的偽造訊息不影響之後真正的回應；成功後解除監聽');
+  t = runWithSent(); t.fire(G, { success: false, error: '登入已逾時', requestId: t.sent.requestId }); ok(t.out.ok.length === 1 && t.out.ok[0].error === '登入已逾時', '錯誤回傳（success:false）同樣收得到');
+  ['https://script.google.com', 'https://n-1-script.googleusercontent.com', 'https://abc.googleusercontent.com'].forEach(o => { t = runWithSent(); t.fire(o, { success: true, requestId: t.sent.requestId }); ok(t.out.ok.length === 1, 'Google 來源可用：' + o); });
+})();
+
+console.log('L-3. 外部腳本與 CI：內容安全政策、Actions 固定 commit');
+(function () {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8'), fe = fs.readFileSync(path.join(__dirname, '..', 'build_index.js'), 'utf8');
+  [['index.html', html], ['build_index.js', fe]].forEach(([n, t]) => {
+    const m = t.match(/<meta http-equiv="Content-Security-Policy" content="([^"]*)">/);
+    ok(!!m, n + '：有 Content-Security-Policy meta');
+    if (!m) return;
+    const c = m[1]; const dirs = {}; c.split(';').forEach(x => { const a = x.trim().split(/\s+/); if (a[0]) dirs[a[0]] = a.slice(1); });
+    ok(dirs['script-src'] && dirs['script-src'].indexOf("'self'") >= 0 && dirs['script-src'].indexOf('https://cdn.tailwindcss.com') >= 0 && dirs['script-src'].indexOf('https://www.youtube.com') >= 0, n + "：script-src 只列 'self'、Tailwind CDN、YouTube");
+    ok(dirs['script-src'].every(v => /^('self'|'unsafe-inline'|https:\/\/[a-z.]+)$/.test(v)) && dirs['script-src'].indexOf("'unsafe-eval'") < 0 && dirs['script-src'].indexOf('*') < 0 && dirs['script-src'].indexOf('https:') < 0, n + "：沒有 'unsafe-eval'、沒有萬用字元");
+    ok(JSON.stringify(dirs['object-src']) === '["\'none\'"]' && JSON.stringify(dirs['base-uri']) === '["\'self\'"]', n + "：object-src 'none'、base-uri 'self'");
+    ok(c.indexOf('default-src') < 0 && c.indexOf('connect-src') < 0 && c.indexOf('frame-src') < 0, n + '：不限制 connect／frame／圖片等（影片、Drive、GAS 呼叫維持原樣）');
+  });
+  ok(html.indexOf('Content-Security-Policy') < html.indexOf('cdn.tailwindcss.com'), 'CSP 在第一個外部腳本之前（meta 要放在前面才有效）');
+  const srcs = (html.match(/<script[^>]*\ssrc="([^"]+)"/g) || []).map(x => x.match(/src="([^"]+)"/)[1]).concat((fe.match(/\.src = 'https:\/\/[^']+iframe_api'/g) || []).map(x => x.match(/'([^']+)'/)[1]));
+  const allowedHosts = ['cdn.tailwindcss.com', 'www.youtube.com'];
+  ok(srcs.length >= 2 && srcs.every(u => allowedHosts.indexOf(new URL(u).host) >= 0), '頁面實際載入的外部腳本主機都在 CSP 允許清單內：' + srcs.join('、'));
+  const yml = fs.readFileSync(path.join(__dirname, '..', '.github', 'workflows', 'ci.yml'), 'utf8');
+  const uses = (yml.match(/^\s*-?\s*uses:\s*\S+/gm) || []).map(x => x.replace(/^\s*-?\s*uses:\s*/, ''));
+  ok(uses.length >= 2 && uses.every(u => /@[0-9a-f]{40}$/.test(u)), 'CI 的每個 uses 都固定到完整 commit SHA：' + uses.join('、'));
+  ok(/permissions:\s*\n\s*contents: read/.test(yml), 'CI 權限維持 contents: read');
+})();
+
+console.log('L-4. 焦點活動圖片上傳：副檔名白名單、大小上限、不信任前端 mimeType');
+(function () {
+  function env() {
+    const e = mkSsEnv({}); e.created = []; e.shared = 0;
+    e.ctx.getActivityFolder_ = () => ({ getUrl: () => 'u', createFile: blob => { e.created.push(blob); return { setSharing: () => { e.shared++; }, getId: () => 'FID' }; } });
+    e.ctx.Utilities.base64Decode = b => Array.from(Buffer.from(b, 'base64'));
+    e.ctx.Utilities.newBlob = (bytes, mime, name) => ({ bytes, mime, name });
+    e.ctx.DriveApp = { Access: { ANYONE_WITH_LINK: 1 }, Permission: { VIEW: 1 } };
+    return e;
+  }
+  const b64 = n => Buffer.alloc(n, 1).toString('base64');
+  const up = (e, f, pw) => e.ctx.uploadSpotlightImage(f, pw === undefined ? 'tok' : pw);
+  let e = env(); let r = up(e, { name: 'a.jpg', mimeType: 'image/jpeg', base64: b64(1000) });
+  ok(r.success === true && e.created.length === 1 && e.created[0].name === 'a.jpg' && e.created[0].mime === 'image/jpeg' && e.shared === 1 && r.imageUrl === 'https://drive.google.com/thumbnail?id=FID&sz=w1600', '正常 jpg：照常上傳、設為公開、回傳縮圖網址');
+  [['b.JPEG', 'image/jpeg'], ['c.png', 'image/png'], ['d.webp', 'image/webp'], ['e.gif', 'image/gif']].forEach(([n, m]) => { e = env(); r = up(e, { name: n, mimeType: 'text/html', base64: b64(10) }); ok(r.success === true && e.created[0].mime === m, n + '：接受，檔案類型依副檔名決定（前端傳 text/html 也不採用）→ ' + m); });
+  ['evil.html', 'evil.svg', 'evil.exe', 'evil.js', 'evil.pdf', 'evil.mp4', 'noext', 'evil.jpg.html', 'evil.', '.jpg.exe', 'evil.php.'].forEach(n => { e = env(); r = up(e, { name: n, mimeType: 'image/jpeg', base64: b64(10) }); ok(r.success === false && /格式|圖片/.test(r.error) && e.created.length === 0 && e.shared === 0, n + '：拒絕，不建立檔案、不公開'); });
+  e = env(); e.ctx.Utilities.formatDate = () => '20261023_101010'; r = up(e, { mimeType: 'image/jpeg', base64: b64(10) });
+  ok(r.success === true && e.created[0].name === 'Spotlight_20261023_101010.jpg', '沒有檔名：用 Spotlight_時間.jpg');
+  e = env(); r = up(e, { name: 'big.jpg', mimeType: 'image/jpeg', base64: b64(10 * 1024 * 1024 + 1) }); ok(r.success === false && /太大|10 MB/.test(r.error) && e.created.length === 0, '超過 10 MB：拒絕');
+  e = env(); r = up(e, { name: 'ok.jpg', mimeType: 'image/jpeg', base64: b64(10 * 1024 * 1024) }); ok(r.success === true, '剛好 10 MB：接受');
+  e = env(); let decoded = 0; e.ctx.Utilities.base64Decode = b => { decoded++; return Array.from(Buffer.from(b, 'base64')); };
+  r = up(e, { name: 'huge.jpg', mimeType: 'image/jpeg', base64: 'A'.repeat(20 * 1024 * 1024) }); ok(r.success === false && decoded === 0, '字串長度已經超過上限：不解碼（避免耗盡記憶體）');
+  [null, undefined, 'str', 5, {}, { name: 'a.jpg' }, { name: 'a.jpg', base64: '' }, { name: 'a.jpg', base64: 123 }].forEach((f, k) => { e = env(); r = up(e, f); ok(r.success === false && e.created.length === 0, '內容不完整或型別錯誤（' + k + '）：拒絕，不拋例外'); });
+  e = env(); e.ctx.Utilities.formatDate = () => '20261023_101010'; r = up(e, { name: ['evil.html'], mimeType: 'image/jpeg', base64: b64(10) });
+  ok(r.success === true && e.created[0].name === 'Spotlight_20261023_101010.jpg' && e.created[0].mime === 'image/jpeg', '檔名不是字串：不採用，改用預設檔名（不會被當成 evil.html）');
+  e = env(); r = up(e, { name: 'a/b\\c\nd.jpg', mimeType: 'image/jpeg', base64: b64(10) }); ok(r.success === true && !/[\/\\\n]/.test(e.created[0].name), '檔名裡的斜線與換行被清理');
+  e = env(); r = up(e, { name: 'a.jpg', base64: b64(10) }, 'bogus'); ok(r.success === false && r.authExpired === true && e.created.length === 0, '假 token：照樣拒絕');
+  const fn = topLevelFunctions().find(f => f.name === 'uploadSpotlightImage');
+  ok(/^if \(!checkPassword\(password\)\)/.test(firstStatement(fn)), '驗證 token 仍是第一個動作');
 })();
 
 console.log('\n結果：' + pass + ' 通過，' + fail + ' 失敗');
