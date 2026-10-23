@@ -168,7 +168,7 @@ ok(/\.sticker-emoji\s*\{[^}]*display:\s*inline-flex/.test(html) && /\.sticker-in
 console.log('I. 第 4 批：提示訊息、人物、節慶、季節、餐點與其他（含沿用前三批的圖示）');
 const NEW4 = ['check', 'cross', 'warn', 'hourglass', 'party', 'gift', 'dotGreen', 'dotRed', 'dotYellow', 'dotWhite', 'heartYellow', 'girl', 'boy', 'woman', 'man', 'envelope', 'lantern', 'pinwheel', 'bouquet', 'zongzi', 'tie', 'moon', 'pumpkin', 'tree', 'blossom', 'watermelon', 'maple', 'snowman', 'stew', 'bowl', 'milk', 'curry', 'cakeSlice', 'tooth', 'stethoscope', 'peach', 'mushroom', 'antenna', 'headphones', 'flag', 'robot', 'sad', 'wave', 'key', 'sponge', 'abc', 'traffic', 'dice', 'ruler', 'scale', 'shirt', 'pants', 'teddy', 'loveFace', 'palette', 'runner', 'soap'];
 ok(NEW4.every(k => typeof LIB[k] === 'string' && LIB[k].length > 20), '第 4 批 ' + NEW4.length + ' 個新圖示都在庫裡');
-ok(Object.keys(LIB).length === BATCH1.length + BATCH2.length + BATCH3.length + NEW4.length, '圖示庫總數 = 13 + 25 + 22 + ' + NEW4.length + ' = ' + (BATCH1.length + BATCH2.length + BATCH3.length + NEW4.length) + '（實際 ' + Object.keys(LIB).length + '）');
+ok(Object.keys(LIB).length === BATCH1.length + BATCH2.length + BATCH3.length + NEW4.length + 9, '圖示庫總數 = 13 + 25 + 22 + ' + NEW4.length + ' + 9（補強）= ' + (BATCH1.length + BATCH2.length + BATCH3.length + NEW4.length + 9) + '（實際 ' + Object.keys(LIB).length + '）');
 const WANT4 = { '✅': 'check', '❌': 'cross', '⚠': 'warn', '⏳': 'hourglass', '🎉': 'party', '🎁': 'gift', '🟢': 'dotGreen', '🔴': 'dotRed', '🟡': 'dotYellow', '⚪': 'dotWhite', '💛': 'heartYellow', '👧': 'girl', '👦': 'boy', '👩': 'woman', '👨': 'man', '👨‍👩‍👧': 'together', '❤': 'heart',
   '🧧': 'envelope', '🏮': 'lantern', '🎈': 'pinwheel', '💐': 'bouquet', '🐲': 'zongzi', '👔': 'tie', '🥮': 'moon', '🎃': 'pumpkin', '🎄': 'tree', '🌸': 'blossom', '🍉': 'watermelon', '🍁': 'maple', '⛄': 'snowman',
   '🍲': 'stew', '🥣': 'bowl', '🥛': 'milk', '🍛': 'curry', '🍰': 'cakeSlice', '🦷': 'tooth', '🩺': 'stethoscope', '🍑': 'peach', '🍄': 'mushroom', '📡': 'antenna', '🎧': 'headphones', '🏁': 'flag', '🤖': 'robot', '😢': 'sad', '👋': 'wave', '🔑': 'key', '🧽': 'sponge',
@@ -177,7 +177,7 @@ const WANT4 = { '✅': 'check', '❌': 'cross', '⚠': 'warn', '⏳': 'hourglass
 Object.keys(WANT4).forEach(e => { if (EMOJI_TEXT[e] !== WANT4[e]) ok(false, 'EMOJI_TEXT：' + e + ' → ' + WANT4[e] + '（實際 ' + EMOJI_TEXT[e] + '）'); });
 ok(Object.keys(WANT4).every(e => EMOJI_TEXT[e] === WANT4[e]), '對照表：第 4 批新增的 ' + Object.keys(WANT4).length + ' 個 Emoji（含沿用前三批圖示的）都對到指定圖示');
 ok(Object.keys(EMOJI_TEXT).every(e => !!LIB[EMOJI_TEXT[e]]), '對照表裡每個圖示名稱都存在（共 ' + Object.keys(EMOJI_TEXT).length + ' 個 Emoji）');
-['✓', '✕', '❮', '❯', '➔', '➡', '☑', '☐', '☰', '↻', '↗', '⋯', '→'].forEach(e => ok(!(e in EMOJI_TEXT), '文字型符號 ' + e + ' 不轉成圖示（本來就是字型符號）'));
+['✓', '✕', '❮', '❯', '➔', '☑', '☐', '☰', '↻', '↗', '⋯', '→'].forEach(e => ok(!(e in EMOJI_TEXT), '文字型符號 ' + e + ' 不轉成圖示（本來就是字型符號）'));
 EMOJI_TEXT_RE = eval(/const EMOJI_TEXT_RE = (new RegExp\([^\n]*\));/.exec(html)[1]);
 eval(grab('emojiSplit'));
 const sp4 = t => JSON.stringify(emojiSplit(t));
@@ -192,7 +192,7 @@ ok(/b\.onclick = function\(\) \{ const inp = document\.getElementById\('taskForm
 
 console.log('J. 第 4 批：季節與節慶徽章（CSS 偽元素，不能放 SVG 元素，改用內嵌圖片）');
 ok(!/#seasonBadge::after\s*\{[^}]*content:\s*'[^']/.test(html), '#seasonBadge::after 的 content 不再放 Emoji');
-ok(/#seasonBadge::after\s*\{[^}]*content:\s*'';[^}]*display:\s*inline-block;[^}]*width:\s*1\.15em;[^}]*height:\s*1\.15em;[^}]*background-size:\s*contain/.test(html), '徽章基本樣式：空內容、行內區塊、1.15em 見方、圖片縮放到包含');
+ok(/#seasonBadge::after\s*\{[^}]*content:\s*'';[^}]*display:\s*inline-block;[^}]*width:\s*1\.5em;[^}]*height:\s*1\.5em;[^}]*background-size:\s*contain/.test(html), '徽章基本樣式：空內容、行內區塊、1.5em 見方（楓葉等細節在 1.15em 時看不清楚）、圖片縮放到包含');
 const seasonMap = { 'data-season="spring"': 'blossom', 'data-season="summer"': 'watermelon', 'data-season="autumn"': 'maple', 'data-season="winter"': 'snowman', 'data-festival="lny"]': 'envelope', 'data-festival="children"]': 'pinwheel', 'data-festival="mother"]': 'bouquet', 'data-festival="dragon"]': 'zongzi', 'data-festival="father"]': 'tie', 'data-festival="moon"]': 'moon', 'data-festival="teacher"]': 'apple', 'data-festival="halloween"]': 'pumpkin', 'data-festival="xmas"]': 'tree', 'data-festival="lny"][data-festival-phase="lantern"]': 'lantern' };
 Object.keys(seasonMap).forEach(sel => {
   const re = new RegExp('html\\[' + sel.replace(/[\[\]"]/g, m => '\\' + m).replace(/\\\]$/, '') + '[^{]*#seasonBadge::after\\s*\\{\\s*background-image:\\s*url\\("data:image/svg\\+xml,([^"]*)"\\);');
@@ -210,6 +210,29 @@ ok(/function mobileNavSlotIcon\(k, cls\)/.test(html) && /stickerSvg\(NAV_TAB_MET
 ok(/sel\.value = cur\[i\] \|\| DEFAULT_MOBILE_NAV\[i\];[\s\S]{0,260}pv\.innerHTML = mobileNavSlotIcon\(sel\.value, 'w-6 h-6'\);\n        sel\.onchange/.test(mn), '初始：設好選單值之後先放一次預覽圖示（打開設定頁就看得到）');
 ok(/sel\.onchange = function\(\) \{ pv\.innerHTML = mobileNavSlotIcon\(sel\.value, 'w-6 h-6'\); \};/.test(mn) && /pv\.innerHTML = mobileNavSlotIcon\(sel\.value, 'w-6 h-6'\)/.test(mn) && /row\.appendChild\(pv\); row\.appendChild\(sel\);/.test(mn), '每一格：選單旁邊有預覽圖示，換選項時預覽跟著換，初始值也顯示');
 ok(/id="mobileNavSlot-' \+ \(i \+ 1\)|sel\.id = 'mobileNavSlot-' \+ \(i \+ 1\);/.test(mn) && /function mobileNavSnapshot\(\) \{ return \[1, 2, 3, 4\]\.map\(function\(i\) \{ return \(document\.getElementById\('mobileNavSlot-' \+ i\) \|\| \{\}\)\.value/.test(html), '選單的 id 與「讀取目前選擇」的程式不變（儲存、恢復預設、是否有改動的判斷都靠它）');
+
+console.log('L. 補強：楓葉、下載圖示（只留圖示）、漏換的符號，以及「頁面上不可再有未轉換的彩色 Emoji」守門');
+const NEW5 = ['download', 'timer', 'skipPrev', 'skipNext', 'pause', 'stop', 'clip', 'arrowRight', 'info'];
+ok(NEW5.every(k => typeof LIB[k] === 'string' && LIB[k].length > 20), '新增 9 個圖示都在庫裡：' + NEW5.join('、'));
+ok(/M12 2\.4l2\.2 4 2\.2-1\.2/.test(LIB.maple) && LIB.maple.indexOf('class="d"') > 0 && /fill="#F97316"/.test(LIB.maple), '楓葉：重畫的五裂葉形（有葉柄與細節葉脈，小尺寸會隱藏葉脈）');
+const W5 = { '⬇': 'download', '⏱': 'timer', '⏮': 'skipPrev', '⏭': 'skipNext', '⏸': 'pause', '⏹': 'stop', '📎': 'clip', '➡': 'arrowRight', 'ℹ': 'info' };
+Object.keys(W5).forEach(e => ok(EMOJI_TEXT[e] === W5[e], 'EMOJI_TEXT：' + e + ' → ' + W5[e]));
+ok(emojiSplit('⬇️ 下載') !== null && JSON.stringify(emojiSplit('⏱️ 5s 輪播')) === JSON.stringify([{ k: 'timer' }, { t: ' 5s 輪播' }]) && JSON.stringify(emojiSplit('ℹ️')) === JSON.stringify([{ k: 'info' }]), 'emojiSplit：⬇️、⏱️、ℹ️（帶變體符）');
+// 下載按鈕：只留圖示，沒有文字標籤，但保留給螢幕閱讀器與滑過提示
+const docDl = html.slice(html.indexOf("' <a href=\"' + (escUrl(url) || '#')") > 0 ? html.indexOf("' <a href=\"' + (escUrl(url) || '#')") : html.indexOf("'<a href=\"' + (escUrl(url) || '#')"));
+ok(/class="w-10 h-10 rounded-full bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 flex items-center justify-center shrink-0 tap-bounce"[^>]*>' \+\s*stickerSvg\('download', 'sticker-sm w-6 h-6'\) \+ '<\/a>'/.test(html.replace(/\n\s+/g, ' ')) || /stickerSvg\('download', 'sticker-sm w-6 h-6'\)/.test(html), '文件卡片的下載按鈕：只放下載圖示');
+ok(html.indexOf('<span>⬇️</span>') < 0 && !/'<span>' \+ stickerSvg\('download'/.test(html) && !/stickerSvg\('download', 'sticker-sm w-6 h-6'\) \+ ' ' \+/.test(html), '文件的下載按鈕沒有「⬇️」，圖示後面也沒有跟可見的文字');
+ok(/aria-label="' \+ esc\(state\.lang === 'en' \? 'Download' : '下載文件'\) \+ '"/.test(html) && /title="' \+ esc\(state\.lang === 'en' \? 'Download' : '下載文件'\) \+ '"/.test(html), '文件的下載按鈕：aria-label 與 title 仍有文字（螢幕閱讀器與滑過提示）');
+ok(/aria-label="' \+ esc\(\(en \? 'Download ' : '下載 '\) \+ f\.name\) \+ '"/.test(html), '文件裡每個檔案的下載按鈕：aria-label 帶檔名（「下載 檔名」）');
+ok(/stickerSvg\('download', 'sticker-sm w-6 h-6'\) \+ '<\/a><\/li>';/.test(html), '文件裡每個檔案的下載按鈕：圖示後面直接結束，沒有文字');
+ok(/var SONG_DOWNLOAD_ICON = stickerSvg\('download', 'sticker-sm w-6 h-6'\);/.test(html), '歌曲的下載按鈕（手機與電腦版）也用同一個下載圖示');
+// 守門：頁面（含所有程式裡的字串）裡出現的 Emoji 一定是「在對照表裡」或「已知不處理」
+const NOT_CONVERTED = new Set(['▶', '☑', '↗', '↔', '🔥']);   // ▶ ☑ ↗ ↔ 是字型符號；🔥 只出現在程式註解
+const strays = {};
+for (const m2 of html.matchAll(/\p{Extended_Pictographic}/gu)) { const ch = m2[0]; if (EMOJI_TEXT[ch] || NOT_CONVERTED.has(ch)) continue; strays[ch] = (strays[ch] || 0) + 1; }
+ok(Object.keys(strays).length === 0, '頁面裡沒有「不在對照表、也沒登記為不處理」的 Emoji（新增文字時又冒出新的會在這裡被擋下）。未處理：' + (Object.keys(strays).map(k => k + '×' + strays[k]).join('、') || '無'));
+const stale = [...NOT_CONVERTED].filter(ch => html.indexOf(ch) < 0);
+ok(stale.length === 0, '「已知不處理」清單沒有過期項目：' + (stale.join('、') || '無'));
 
 console.log('\n結果：' + pass + ' 通過，' + fail + ' 失敗');
 process.exit(fail ? 1 : 0);

@@ -90,7 +90,7 @@ const STICKERS = {
   tree: '<path d="M12 3.4l4.2 6.2h-2.4l4.2 5.8h-3l3.6 4.4H5.4L9 15.4H6l4.2-5.8H7.8Z" fill="#34D399"/><rect x="10.4" y="19.8" width="3.2" height="2.2" fill="#B45309"/><path d="M12 2.2l.5 1.2 1.2.1-.9.8.3 1.2-1.1-.7-1.1.7.3-1.2-.9-.8 1.2-.1Z" fill="#FBBF24" stroke="none"/>',
   blossom: '<g fill="#FBCFE8"><circle cx="12" cy="6.2" r="3.4"/><circle cx="17.5" cy="10.2" r="3.4"/><circle cx="15.4" cy="16.7" r="3.4"/><circle cx="8.6" cy="16.7" r="3.4"/><circle cx="6.5" cy="10.2" r="3.4"/></g><circle cx="12" cy="12.2" r="2.1" fill="#FBBF24"/>',
   watermelon: '<path d="M3 9.4a9 9 0 0 0 18 0Z" fill="#34D399"/><path d="M4.6 9.4a7.4 7.4 0 0 0 14.8 0Z" fill="#FB7185"/><g fill="#6B4A44" stroke="none"><circle cx="9" cy="12" r=".8"/><circle cx="12" cy="14" r=".8"/><circle cx="15" cy="12" r=".8"/></g>',
-  maple: '<path d="M12 3l2 4.2 3-1-.6 4.2 3.4-.8-2 3.2 2.6 1.2-4.6 1.4.4 2.6-4.2-1.2V21h0-0.2v-5.2l-4.2 1.2.4-2.6L3.6 13.2 6.2 12 4.2 8.8l3.4.8L7 5.4l3 1Z" fill="#F97316"/>',
+  maple: '<path d="M12 17V21.6"/><path d="M12 2.4l2.2 4 2.2-1.2-.6 4.6 3.8-1.6-1.4 3.8 3.4 1.2-4.6 3.2.6 2.4-5.6-.8L12 17l-.0 0-.6-.4-5.6.8.6-2.4-4.6-3.2 3.4-1.2-1.4-3.8 3.8 1.6-.6-4.6 2.2 1.2Z" fill="#F97316"/><path class="d" d="M12 17V8.4M12 14l-4.6-3M12 14l4.6-3M12 11.2L9.6 7.6M12 11.2l2.4-3.6" stroke="#FED7AA" stroke-width="1.2"/>',
   snowman: '<circle cx="12" cy="16.2" r="5.2" fill="#FFFFFF"/><circle cx="12" cy="8.8" r="3.8" fill="#FFFFFF"/><path d="M9 6.4h6M10 6.4V4h4v2.4" fill="#6B4A44"/><path d="M12 9l2.6.8" stroke="#F97316"/><g class="d" fill="#6B4A44" stroke="none"><circle cx="10.8" cy="8.2" r=".6"/><circle cx="13.2" cy="8.2" r=".6"/><circle cx="12" cy="15" r=".7"/><circle cx="12" cy="17.4" r=".7"/></g>',
   stew: '<path d="M4 10h16v3.6A6.4 6.4 0 0 1 13.6 20h-3.2A6.4 6.4 0 0 1 4 13.6Z" fill="#FDBA74"/><path d="M2.6 10.4h18.8M20 11.6c1.8.2 2.6 1 2.4 2.4" /><path d="M8 3.6c-1 1-1 2 0 3M12 2.8c-1 1.2-1 2.6 0 3.8M16 3.6c-1 1-1 2 0 3" class="d"/>',
   bowl: '<path d="M3.5 11h17a8.5 8.5 0 0 1-17 0Z" fill="#FED7AA"/><path d="M6 11c0-3 2.6-4.6 6-4.6s6 1.6 6 4.6" fill="#FFFFFF"/><path d="M9 20.5h6"/><path class="d" d="M9.4 9.4c.8-.8 1.6-.8 2.4 0M12.8 9c.8-.8 1.6-.8 2.4 0"/>',
@@ -122,7 +122,16 @@ const STICKERS = {
   runner: '<path d="M14.4 9l3.6 2.4 2.2-1.6M13 9.4l-3.6 1.6-1.4 3.2M11.6 14.6l3.6 1.8.4 4.2M11 14.6l-3.2 2.6-3.4.6" stroke-width="2.2"/><path d="M12.4 7.4l3.8 1.6-2.8 6.4-3.8-1.6Z" fill="#34D399"/><circle cx="15.8" cy="4.4" r="2.5" fill="#FED7D7"/><path class="d" d="M3 7.4h3.4M2 10.4h3" stroke="#93C5FD"/>',
   soap: '<path d="M3 3.4h9a2.8 2.8 0 0 1 2.8 2.8v1.4h-3V6.4a.2.2 0 0 0-.2-.2H3Z" fill="#CBD5E1"/><path d="M14.2 9.4c.6 1 .4 1.8-.4 2.2-.8-.4-1-1.2-.4-2.2Z" fill="#60A5FA" stroke="none"/><path class="d" d="M14.2 12.6c.4.6.3 1.1-.2 1.4-.5-.3-.6-.8-.2-1.4Z" fill="#60A5FA" stroke="none"/><g transform="translate(6 10) scale(.66)"><path d="M8 12.4V6.2a1.4 1.4 0 0 1 2.8 0v4M10.8 10V4.6a1.4 1.4 0 0 1 2.8 0V10M13.6 10V5.6a1.4 1.4 0 0 1 2.8 0v6.2M16.4 9.4a1.4 1.4 0 0 1 2.8 0v5.2c0 3.6-2.6 6.4-6.2 6.4-2.4 0-4-1-5.4-2.6L3.8 14c-.8-1 .4-2.4 1.6-1.6L8 14.2" fill="#FED7AA" stroke-width="2.2"/></g><circle cx="5.4" cy="14.6" r="1.8" fill="#E0F2FE"/><circle cx="19.4" cy="11" r="2" fill="#E0F2FE"/><circle cx="20" cy="16.6" r="1.3" fill="#E0F2FE" class="d"/>',
   bouquet: '<path d="M12 21.4L4.8 11.2h14.4Z" fill="#FFF1E6"/><path class="d" d="M12 21.4V11.2M8.6 16.2l3.4 5.2M15.4 16.2L12 21.4" stroke="#FBCFE8"/><path d="M9.8 11.6L12 13.8l2.2-2.2" fill="#FF7A85" stroke-width="1.4"/><circle cx="8" cy="7.6" r="3.4" fill="#FF7A85"/><circle cx="16" cy="7.6" r="3.4" fill="#FDBA74"/><circle cx="12" cy="5" r="3.2" fill="#FECACA"/><g fill="#FBBF24" stroke="none"><circle cx="8" cy="7.6" r="1.2"/><circle cx="16" cy="7.6" r="1.2"/><circle cx="12" cy="5" r="1.1"/></g><path d="M5.4 12.4c-1.6-.2-2.6-1-2.8-2.4 1.8 0 2.8.8 2.8 2.4ZM18.6 12.4c1.6-.2 2.6-1 2.8-2.4-1.8 0-2.8.8-2.8 2.4Z" fill="#34D399" stroke-width="1.2"/>',
-  pinwheel: '<path d="M12 10.4V21.4"/><g><path d="M12 9L12 2.6 18.2 5.8Z" fill="#FF7A85"/><path d="M12 9L12 2.6 18.2 5.8Z" fill="#FBBF24" transform="rotate(90 12 9)"/><path d="M12 9L12 2.6 18.2 5.8Z" fill="#34D399" transform="rotate(180 12 9)"/><path d="M12 9L12 2.6 18.2 5.8Z" fill="#60A5FA" transform="rotate(270 12 9)"/></g><circle cx="12" cy="9" r="1.5" fill="#FFFFFF"/>'
+  pinwheel: '<path d="M12 10.4V21.4"/><g><path d="M12 9L12 2.6 18.2 5.8Z" fill="#FF7A85"/><path d="M12 9L12 2.6 18.2 5.8Z" fill="#FBBF24" transform="rotate(90 12 9)"/><path d="M12 9L12 2.6 18.2 5.8Z" fill="#34D399" transform="rotate(180 12 9)"/><path d="M12 9L12 2.6 18.2 5.8Z" fill="#60A5FA" transform="rotate(270 12 9)"/></g><circle cx="12" cy="9" r="1.5" fill="#FFFFFF"/>',
+  download: '<path d="M9.8 3.2h4.4v6.2h3.6L12 15.6 6.2 9.4h3.6Z" fill="#60A5FA"/><path d="M3.4 14.6h17.2v3.8a2.2 2.2 0 0 1-2.2 2.2H5.6a2.2 2.2 0 0 1-2.2-2.2Z" fill="#FBBF24"/>',
+  timer: '<rect x="9.6" y="2.6" width="4.8" height="2.2" rx=".8" fill="#FBBF24"/><path d="M12 4.8v1.8M18.2 7.6l1.4-1.4"/><circle cx="12" cy="13.6" r="7.4" fill="#FEF3C7"/><path d="M12 13.6V9.4"/><circle cx="12" cy="13.6" r="1.1" fill="#6B4A44" stroke="none"/><path class="d" d="M12 7.8v.8M18 13.6h-.8M12 19.4v-.8M6 13.6h.8" stroke-width="1.2"/>',
+  skipPrev: '<rect x="4" y="5.4" width="3" height="13.2" rx="1.2" fill="#FBBF24"/><path d="M20 6.2v11.6a1 1 0 0 1-1.6.8L10 12.8a1 1 0 0 1 0-1.6l8.4-5.8a1 1 0 0 1 1.6.8Z" fill="#A78BFA"/>',
+  skipNext: '<rect x="17" y="5.4" width="3" height="13.2" rx="1.2" fill="#FBBF24"/><path d="M4 6.2v11.6a1 1 0 0 0 1.6.8L14 12.8a1 1 0 0 0 0-1.6L5.6 5.4A1 1 0 0 0 4 6.2Z" fill="#A78BFA"/>',
+  pause: '<rect x="5.6" y="4.6" width="4.6" height="14.8" rx="1.6" fill="#A78BFA"/><rect x="13.8" y="4.6" width="4.6" height="14.8" rx="1.6" fill="#A78BFA"/>',
+  stop: '<rect x="5" y="5" width="14" height="14" rx="3" fill="#FF7A85"/>',
+  clip: '<path d="M16.6 8.2l-6.8 6.8a2.4 2.4 0 0 1-3.4-3.4l7.2-7.2a4 4 0 0 1 5.6 5.6l-7.6 7.6a5.6 5.6 0 0 1-7.9-7.9" stroke-width="2"/>',
+  arrowRight: '<path d="M3.4 9.6h9V5.2L20.8 12l-8.4 6.8v-4.4h-9Z" fill="#34D399"/>',
+  info: '<circle cx="12" cy="12" r="8.8" fill="#60A5FA"/><path d="M12 11v5.2" stroke="#FFFFFF" stroke-width="2.2"/><circle cx="12" cy="7.8" r="1.3" fill="#FFFFFF" stroke="none"/>'
 };
 // 給 CSS 偽元素用的內嵌圖片（::after 的 content 放不了 SVG 元素）：小尺寸版（隱藏細節線條）
 const stickerCssUrl = (name) => 'url("data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#6B4A44" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><style>.d{display:none}</style>' + STICKERS[name] + '</svg>') + '")';
@@ -331,7 +340,7 @@ const htmlContent = `<!DOCTYPE html>
     html[data-season="winter"] { --season-bg: #F5F8FC; --season-bar: linear-gradient(to right, #93C5FD, #E2E8F0, #FCA5A5); }
     .season-bar { background-image: var(--season-bar); }
     /* 季節與節慶的小圖示（頁首標題旁）：用自己畫的貼紙圖示，以內嵌圖片放進偽元素 */
-    #seasonBadge::after { content: ''; display: inline-block; width: 1.15em; height: 1.15em; background-repeat: no-repeat; background-position: center; background-size: contain; vertical-align: middle; }
+    #seasonBadge::after { content: ''; display: inline-block; width: 1.5em; height: 1.5em; background-repeat: no-repeat; background-position: center; background-size: contain; vertical-align: middle; }
     html[data-season="spring"] #seasonBadge::after { background-image: ${stickerCssUrl('blossom')}; }
     html[data-season="summer"] #seasonBadge::after { background-image: ${stickerCssUrl('watermelon')}; }
     html[data-season="autumn"] #seasonBadge::after { background-image: ${stickerCssUrl('maple')}; }
@@ -6779,7 +6788,7 @@ const htmlContent = `<!DOCTYPE html>
     // 所以頁面載入時掃過整個畫面，並用 MutationObserver 監看之後新增或改變的文字，把對照表裡的 Emoji 換成圖示（SVG）。
     // 字串、字典、試算表資料都不變；不處理 select／option、textarea、input、script、style、title 裡的文字，也不處理標了 data-no-sticker 的區塊。
     // 只換「文字節點」裡的 Emoji；用 createTextNode 放文字，所以文字裡的 < > 不會變成標籤。
-    const EMOJI_TEXT = {'➕': 'add', '➖': 'minus', '💾': 'save', '🔄': 'refresh', '🗑': 'trash', '✏': 'pencil', '📂': 'folderOpen', '📄': 'doc', '🖨': 'print', '🔗': 'link', '🔒': 'lock', '🔓': 'unlock', '🖼': 'image', '🎬': 'play', '🔀': 'shuffle', '🔁': 'repeat', '🏷': 'tag', '📱': 'phone', '🚪': 'door', '🔠': 'textSize', '🍪': 'cookie', '📸': 'camera', '🌐': 'globe', '🔍': 'magnifier', '✅': 'check', '❌': 'cross', '⚠': 'warn', '⏳': 'hourglass', '🎉': 'party', '🎁': 'gift', '🟢': 'dotGreen', '🔴': 'dotRed', '🟡': 'dotYellow', '⚪': 'dotWhite', '💛': 'heartYellow', '👧': 'girl', '👦': 'boy', '👩': 'woman', '👨': 'man', '👨‍👩‍👧': 'together', '❤': 'heart', '🧧': 'envelope', '🏮': 'lantern', '🎈': 'pinwheel', '💐': 'bouquet', '🐲': 'zongzi', '👔': 'tie', '🥮': 'moon', '🎃': 'pumpkin', '🎄': 'tree', '🌸': 'blossom', '🍉': 'watermelon', '🍁': 'maple', '⛄': 'snowman', '🍲': 'stew', '🥣': 'bowl', '🥛': 'milk', '🍛': 'curry', '🍰': 'cakeSlice', '🦷': 'tooth', '🩺': 'stethoscope', '🍑': 'peach', '🍄': 'mushroom', '📡': 'antenna', '🎧': 'headphones', '🏁': 'flag', '🤖': 'robot', '😢': 'sad', '👋': 'wave', '🔑': 'key', '🧽': 'sponge', '🔤': 'abc', '🚦': 'traffic', '🎲': 'dice', '📏': 'ruler', '⚖': 'scale', '👕': 'shirt', '👖': 'pants', '🧸': 'teddy', '🥰': 'loveFace', '🎨': 'palette', '🏃': 'runner', '🧼': 'soap', '📅': 'cal', '📚': 'books', '🎵': 'song', '📋': 'clipboard', '⚙': 'set', '🌟': 'star', '⭐': 'star', '🎯': 'target', '🎒': 'bag', '📖': 'bookOpen', '📁': 'folder', '🍎': 'apple', '🍱': 'meal', '🥐': 'chef', '🎂': 'cake', '🏫': 'school', '🏡': 'home', '🏠': 'home', '🤝': 'together', '🧹': 'broom', '⏰': 'clock', '🕘': 'clock', '💬': 'speech', '🤸': 'jump', '🧩': 'puzzle', '💞': 'hearts', '🌏': 'globe', '✨': 'sparkle', '🌱': 'sprout', '🌾': 'grain', '🥩': 'fish', '🥦': 'broccoli', '📌': 'pin', '💡': 'bulb', '🔔': 'bell', '🗓': 'calMonth', '📆': 'calSub', '📷': 'camera'};
+    const EMOJI_TEXT = {'➕': 'add', '➖': 'minus', '💾': 'save', '🔄': 'refresh', '🗑': 'trash', '✏': 'pencil', '📂': 'folderOpen', '📄': 'doc', '🖨': 'print', '🔗': 'link', '🔒': 'lock', '🔓': 'unlock', '🖼': 'image', '🎬': 'play', '🔀': 'shuffle', '🔁': 'repeat', '🏷': 'tag', '📱': 'phone', '🚪': 'door', '🔠': 'textSize', '🍪': 'cookie', '📸': 'camera', '🌐': 'globe', '🔍': 'magnifier', '✅': 'check', '❌': 'cross', '⚠': 'warn', '⏳': 'hourglass', '🎉': 'party', '🎁': 'gift', '🟢': 'dotGreen', '🔴': 'dotRed', '🟡': 'dotYellow', '⚪': 'dotWhite', '💛': 'heartYellow', '👧': 'girl', '👦': 'boy', '👩': 'woman', '👨': 'man', '👨‍👩‍👧': 'together', '❤': 'heart', '🧧': 'envelope', '🏮': 'lantern', '🎈': 'pinwheel', '💐': 'bouquet', '🐲': 'zongzi', '👔': 'tie', '🥮': 'moon', '🎃': 'pumpkin', '🎄': 'tree', '🌸': 'blossom', '🍉': 'watermelon', '🍁': 'maple', '⛄': 'snowman', '🍲': 'stew', '🥣': 'bowl', '🥛': 'milk', '🍛': 'curry', '🍰': 'cakeSlice', '🦷': 'tooth', '🩺': 'stethoscope', '🍑': 'peach', '🍄': 'mushroom', '📡': 'antenna', '🎧': 'headphones', '🏁': 'flag', '🤖': 'robot', '😢': 'sad', '👋': 'wave', '🔑': 'key', '🧽': 'sponge', '🔤': 'abc', '🚦': 'traffic', '🎲': 'dice', '📏': 'ruler', '⚖': 'scale', '👕': 'shirt', '👖': 'pants', '🧸': 'teddy', '🥰': 'loveFace', '🎨': 'palette', '🏃': 'runner', '🧼': 'soap', '📅': 'cal', '📚': 'books', '🎵': 'song', '📋': 'clipboard', '⚙': 'set', '🌟': 'star', '⭐': 'star', '🎯': 'target', '🎒': 'bag', '📖': 'bookOpen', '📁': 'folder', '🍎': 'apple', '🍱': 'meal', '🥐': 'chef', '🎂': 'cake', '🏫': 'school', '🏡': 'home', '🏠': 'home', '🤝': 'together', '🧹': 'broom', '⏰': 'clock', '🕘': 'clock', '💬': 'speech', '🤸': 'jump', '🧩': 'puzzle', '💞': 'hearts', '🌏': 'globe', '✨': 'sparkle', '🌱': 'sprout', '🌾': 'grain', '🥩': 'fish', '🥦': 'broccoli', '📌': 'pin', '💡': 'bulb', '🔔': 'bell', '🗓': 'calMonth', '📆': 'calSub', '📷': 'camera', '⬇': 'download', '⏱': 'timer', '⏮': 'skipPrev', '⏭': 'skipNext', '⏸': 'pause', '⏹': 'stop', '📎': 'clip', '➡': 'arrowRight', 'ℹ': 'info'};
     const EMOJI_TEXT_RE = new RegExp('(' + Object.keys(EMOJI_TEXT).sort(function(a, c) { return c.length - a.length; }).join('|') + ')' + String.fromCharCode(0xFE0F) + '?', 'g');
     const STICKER_SKIP = { 'SCRIPT': 1, 'STYLE': 1, 'TEXTAREA': 1, 'OPTION': 1, 'SELECT': 1, 'TITLE': 1, 'INPUT': 1, 'NOSCRIPT': 1 };
     // 把一段文字切成 [{t: 文字}, {k: 圖示名稱}, ...]；沒有對照表裡的 Emoji 就回傳 null
@@ -8421,8 +8430,8 @@ const htmlContent = `<!DOCTYPE html>
                 getDocFileIconHtml({ fileName: f.name, fileExtension: f.ext }, true) +
                 '<div class="min-w-0 flex-1"><div class="text-xs font-bold text-slate-800 wrap-any">' + esc(f.name) + '</div>' +
                 (size ? '<div class="text-[0.6875rem] text-slate-400">' + esc(size) + '</div>' : '') + '</div>' +
-                '<a href="' + (escUrl(f.downloadUrl) || '#') + '" target="_blank" rel="noopener noreferrer" class="shrink-0 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm flex items-center gap-1 tap-bounce">' +
-                '<span>⬇️</span> ' + (en ? 'Download' : '下載') + '</a></li>';
+                '<a href="' + (escUrl(f.downloadUrl) || '#') + '" target="_blank" rel="noopener noreferrer" title="' + esc((en ? 'Download ' : '下載 ') + f.name) + '" aria-label="' + esc((en ? 'Download ' : '下載 ') + f.name) + '" class="w-10 h-10 rounded-full bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 flex items-center justify-center shrink-0 tap-bounce">' +
+                stickerSvg('download', 'sticker-sm w-6 h-6') + '</a></li>';
             }).join('') +
             '</ul>';
           container.appendChild(mcard);
@@ -8445,8 +8454,8 @@ const htmlContent = `<!DOCTYPE html>
           '</div>' +
           '</div>' +
           '<div class="flex items-center gap-2 w-full sm:w-auto justify-end shrink-0 pt-2 sm:pt-0">' +
-          '<a href="' + (escUrl(url) || '#') + '" target="_blank" rel="noopener noreferrer" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm flex items-center gap-1.5 tap-bounce">' +
-          '<span>⬇️</span> ' + (state.lang === 'en' ? 'Download' : '下載文件') +
+          '<a href="' + (escUrl(url) || '#') + '" target="_blank" rel="noopener noreferrer" title="' + esc(state.lang === 'en' ? 'Download' : '下載文件') + '" aria-label="' + esc(state.lang === 'en' ? 'Download' : '下載文件') + '" class="w-10 h-10 rounded-full bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 flex items-center justify-center shrink-0 tap-bounce">' +
+          stickerSvg('download', 'sticker-sm w-6 h-6') +
           '</a>' +
           '</div>';
 
@@ -9523,7 +9532,7 @@ const htmlContent = `<!DOCTYPE html>
       'bg-orange-100 text-orange-900 border border-orange-300/80',
       'bg-teal-100 text-teal-900 border border-teal-300/80'
     ];
-    var SONG_DOWNLOAD_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M7 11l5 5 5-5"/><path d="M4 19h16"/></svg>';
+    var SONG_DOWNLOAD_ICON = stickerSvg('download', 'sticker-sm w-6 h-6');   // 與文件的下載按鈕同一個圖示
 
     var songFormSelectedFile = null;
     var songFormEditingId = '';
