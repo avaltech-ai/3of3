@@ -19,5 +19,7 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '24'
+      - name: 安裝建置套件（依 package-lock.json，固定版本與雜湊）
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: 語法、建置一致與 Node 測試
         run: bash tests/ci.sh

@@ -54,6 +54,12 @@
 
 ---
 
+## 🛠️ 開發與建置
+
+* `index.html` 是由 `build_index.js` 產生的，**不要手改**。第一次使用（或換電腦）先安裝建置套件：`npm ci`；之後修改 `build_index.js`，執行 `node build_index.js`（或 `npm run build`）重新產生。
+* Tailwind 樣式在建置時產生並內嵌在 `index.html`（不再載入 `cdn.tailwindcss.com`）；`tailwindcss` 固定在 3.4.17，只在建置時使用，不會送到網站。
+* 完整檢查：`bash tests/ci.sh`（GitHub Actions 也跑同樣的檢查）。
+
 ## 🚀 首次使用授權指引（Google OAuth 驗證）
 
 由於 Google Apps Script 涉及存取您的 Google 試算表與 Google Drive 雲端資料夾：

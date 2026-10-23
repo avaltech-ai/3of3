@@ -4,7 +4,10 @@ const logoB64 = fs.readFileSync('logo_b64.txt', 'utf8').trim();
 
 // ---------- 載入骨架畫面（第一次開啟、手機裡還沒有資料時，資料到之前顯示的灰色區塊） ----------
 // 只在 <html> 有 app-loading class 時顯示（見 CSS 的 .app-skel）；資料到了 handleDataLoaded() 會拿掉。
-const SKEL = 'bg-slate-200/70 rounded-xl motion-safe:animate-pulse';
+// 骨架色塊。同一個元素不能同時有兩個圓角類別（rounded-xl 與 rounded-2xl／rounded-none）：兩者誰生效取決於樣式表裡的排列順序，
+// 建置時這個順序和以前不同，所以改成互斥（維持目前畫面上實際看到的圓角）。
+const SKEL_BASE = 'bg-slate-200/70 motion-safe:animate-pulse';
+const SKEL = SKEL_BASE + ' rounded-xl';
 const skelLine = (w, h) => '<div class="' + SKEL + ' ' + (h || 'h-3.5') + ' ' + w + '"></div>';
 const skelWrap = (inner, extra) => '<div class="app-skel ' + (extra || '') + '" aria-busy="true"><span class="sr-only" data-i18n="ui.skelLoading">正在載入最新資料…</span>' + inner + '</div>';
 const skelCard = (body, border) => '<div class="bg-white rounded-3xl p-4 sm:p-5 border ' + (border || 'border-slate-200/80') + ' shadow-xs space-y-3">' + body + '</div>';
@@ -12,16 +15,16 @@ const skelTextCard = (border) => skelCard(skelLine('w-1/3', 'h-5') + skelLine('w
 function skelHome() {
   const small = skelCard(skelLine('w-28', 'h-6') + skelLine('w-3/4') + skelLine('w-1/2'));
   const spot = '<div class="bg-white/70 rounded-3xl p-4 sm:p-5 border-2 border-rose-100 shadow-xs space-y-3">' + skelLine('w-32', 'h-6') +
-    '<div class="' + SKEL + ' w-full aspect-video rounded-2xl"></div>' + skelLine('w-2/3', 'h-5') + skelLine('w-1/2') + '</div>';
+    '<div class="' + SKEL + ' w-full aspect-video"></div>' + skelLine('w-2/3', 'h-5') + skelLine('w-1/2') + '</div>';
   let cells = '';
   for (let i = 0; i < 7; i++) cells += '<div class="' + SKEL + ' h-4"></div>';
-  for (let i = 0; i < 14; i++) cells += '<div class="' + SKEL + ' h-12 sm:h-16 rounded-2xl"></div>';
+  for (let i = 0; i < 14; i++) cells += '<div class="' + SKEL + ' h-12 sm:h-16"></div>';
   const cal = skelCard('<div class="flex justify-center">' + skelLine('w-40', 'h-7') + '</div>' + skelLine('w-full', 'h-9') +
     '<div class="grid grid-cols-7 gap-1 sm:gap-1.5">' + cells + '</div>');
   return skelWrap('<div class="grid grid-cols-1 md:grid-cols-2 gap-3">' + small + small + '</div>' + spot + cal, 'space-y-6');
 }
 function skelAlbums() {
-  const card = '<div class="bg-white rounded-3xl border border-teal-100 shadow-xs overflow-hidden"><div class="' + SKEL + ' rounded-none aspect-[4/3]"></div>' +
+  const card = '<div class="bg-white rounded-3xl border border-teal-100 shadow-xs overflow-hidden"><div class="' + SKEL_BASE + ' rounded-none aspect-[4/3]"></div>' +
     '<div class="p-4 space-y-2.5">' + skelLine('w-3/4', 'h-5') + skelLine('w-1/2') + '</div></div>';
   return skelWrap('<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">' + card.repeat(6) + '</div>');
 }
@@ -36,10 +39,11 @@ const htmlContent = `<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <!-- 內容安全政策（紅隊檢查 L-3）：腳本只能來自本站、Tailwind CDN、YouTube；擋掉其他網站的腳本與外掛物件。
+  <!-- 內容安全政策（紅隊檢查 L-3）：腳本只能來自本站與 YouTube（播放器 API）；擋掉其他網站的腳本與外掛物件。
        只限制 script／object／base，不限制圖片、影片、GAS 呼叫與 iframe（這些維持原樣）。meta 必須放在所有外部腳本之前才有效。
-       Tailwind CDN 腳本沒有 CORS 標頭，無法用 SRI，所以改用這個限制來源的方式。 -->
-  <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://www.youtube.com; object-src 'none'; base-uri 'self'">
+       因為頁面有大量內嵌腳本與 onclick，必須保留 unsafe-inline，所以這個政策只能擋「從其他網站載入腳本」。
+       Tailwind 已改成建置時產生（不再載入外部腳本），所以這裡不用再允許它。 -->
+  <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' https://www.youtube.com; object-src 'none'; base-uri 'self'">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>桃子腳幼兒園 - 諾貝爾 A 班</title>
   <script>try { if (localStorage.getItem('nobel_a_big_text') === '1') document.documentElement.classList.add('big-text'); } catch (e) {}</script>
@@ -125,55 +129,10 @@ const htmlContent = `<!DOCTYPE html>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="諾貝爾A">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <!-- Tailwind CSS CDN -->
-  <!-- 固定 Tailwind 版本網址：未固定的 cdn.tailwindcss.com 會先 302 轉址到 /3.4.17（轉址只快取 4 小時，之後每次回訪多一次網路來回），
-       且會在不知情下隨官方升級而改變樣式行為。此 CDN 不回 CORS 標頭，因此無法加 SRI（加了會被瀏覽器擋掉）。 -->
-  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <!-- Tailwind 樣式在建置時產生，放在 head 結尾前（見 build_index.js 最下方的建置步驟），頁面不再載入外部的 Tailwind 腳本 -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700;900&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            peach: {
-              50: '#FFF5F5',
-              100: '#FED7D7',
-              200: '#FEB2B2',
-              400: '#F87171',
-              500: '#FF7A85',
-              600: '#E05362',
-            },
-            mint: {
-              50: '#F0FDF4',
-              100: '#DCFCE7',
-              400: '#34D399',
-              500: '#10B981',
-              600: '#059669',
-            },
-            sun: {
-              50: '#FFFBEB',
-              100: '#FEF3C7',
-              400: '#FBBF24',
-              500: '#F59E0B',
-            },
-            berry: {
-              50: '#F5F3FF',
-              100: '#EDE9FE',
-              400: '#A78BFA',
-              500: '#8B5CF6',
-              600: '#7C3AED',
-            },
-            warmbg: '#FDFBF7'
-          },
-          fontFamily: {
-            sans: ['"Zen Maru Gothic"', '"Noto Sans TC"', 'sans-serif'],
-          }
-        }
-      }
-    }
-  </script>
   <style>
     
     html {
@@ -639,7 +598,7 @@ const htmlContent = `<!DOCTYPE html>
                 </div>
                 <div class="text-slate-600">每六個月定期專業口腔保健，細心守護孩子健康小乳牙。</div>
               </div>
-              <div class="bg-white/80 p-2.5 rounded-xl border border-amber-200 bg-amber-50/70 shadow-2xs col-span-1 sm:col-span-2">
+              <div class="p-2.5 rounded-xl border border-amber-200 bg-amber-50/70 shadow-2xs col-span-1 sm:col-span-2">
                 <div class="font-bold text-amber-700 flex items-center gap-1 mb-0.5">
                   <span>⚠️</span> 【重要注意事項】
                 </div>
@@ -14848,6 +14807,35 @@ const htmlContent = `<!DOCTYPE html>
 </html>
 `;
 
-fs.writeFileSync('index.html', htmlContent);
-fs.writeFileSync('Index.html', htmlContent);
-console.log('index.html and Index.html generated! Size:', fs.statSync('index.html').size);
+// ---------- Tailwind 樣式：建置時產生，直接放進 index.html（2026-10-23，紅隊檢查 L-3）----------
+// 以前網頁載入 cdn.tailwindcss.com 的腳本，在手機上即時分析整個頁面再產生樣式；那個網站出問題或被入侵，我們的網頁就跟著壞或被控制。
+// 現在用固定版本（package.json／package-lock.json 鎖定 3.4.17）的 tailwindcss 在這裡掃描剛產生的網頁內容、產生需要的樣式，放在 </head> 之前
+// （不使用 --minify：它會把 rgb(253 186 116 / 0.8) 轉成 hsla(...)，顏色多出 1～2 的取整誤差；不壓縮只多約 20 KB，gzip 後約 13 KB）
+// （與原本 CDN 腳本把樣式附加在 <head> 最後面的位置相同，所以與頁面自己的 <style> 之間的優先順序不變）。
+// 注意：同一個元素上若有兩個「同一類、改同一個屬性」的類別（例如 rounded-xl 與 rounded-none），誰生效取決於樣式表裡的排列順序，
+// CDN 與建置版的排列順序不同；tests/tailwindbuild.test.js 會擋下這種寫法。
+const os = require('os');
+const path = require('path');
+const { execFileSync } = require('child_process');
+function buildTailwindCss(html) {
+  let cli;
+  try { cli = require.resolve('tailwindcss/lib/cli.js'); }
+  catch (e) { console.error('找不到 tailwindcss 套件：請先執行 npm ci（或 npm install）再建置。'); process.exit(1); }
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), '3of3-tw-'));
+  try {
+    const contentFile = path.join(dir, 'content.html'), inputFile = path.join(dir, 'input.css'), outFile = path.join(dir, 'out.css');
+    fs.writeFileSync(contentFile, html);
+    fs.writeFileSync(inputFile, '@tailwind base;\n@tailwind components;\n@tailwind utilities;\n');
+    execFileSync(process.execPath, [cli, '-c', path.resolve('tailwind.config.js'), '--content', contentFile, '-i', inputFile, '-o', outFile], { stdio: ['ignore', 'ignore', 'pipe'] });
+    return fs.readFileSync(outFile, 'utf8').trim();
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+}
+const twCss = buildTailwindCss(htmlContent);
+if (htmlContent.split('</head>').length !== 2) throw new Error('index.html 樣板裡應該剛好有一個 </head>');
+const finalHtml = htmlContent.replace('</head>', () => '<style id="tailwind-build">' + twCss + '</style>\n</head>');
+
+fs.writeFileSync('index.html', finalHtml);
+fs.writeFileSync('Index.html', finalHtml);
+console.log('index.html and Index.html generated! Size:', fs.statSync('index.html').size, '（含 Tailwind 樣式', Math.round(twCss.length / 1024) + ' KB）');

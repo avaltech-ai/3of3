@@ -7,6 +7,14 @@ cd "$(dirname "$0")/.."
 fail=0
 step() { printf '\n=== %s ===\n' "$1"; }
 
+step "0. 建置套件（tailwindcss 固定版本，只在建置時使用）"
+if [ -d node_modules/tailwindcss ]; then
+  echo "node_modules 已安裝"
+else
+  echo "FAIL: 找不到 node_modules——請先執行 npm ci"
+  exit 1
+fi
+
 step "1. Code.js 語法"
 node --check Code.js || fail=1
 
@@ -28,7 +36,7 @@ let n=0,bad=0;
 console.log('檢查 '+n+' 段內嵌 script，錯誤 '+bad);
 process.exit(bad||n===0?1:0)" || fail=1
 
-for t in auth idempotency covers namemap warmcache albumphotos albumcount themeoverview semestertasks transition mobilenav pwa ics textmap docfiles sitetitles security safeurl adminlogin mapadmin mapsimilar spothistory adminlist bareget songnodl spotlightorder festival thumbhints spotlightposter; do
+for t in auth idempotency covers namemap warmcache albumphotos albumcount themeoverview semestertasks transition mobilenav pwa ics textmap docfiles sitetitles security safeurl adminlogin mapadmin mapsimilar spothistory adminlist bareget songnodl spotlightorder festival thumbhints spotlightposter tailwindbuild; do
   step "Node 測試：$t"
   node "tests/$t.test.js" || fail=1
 done
