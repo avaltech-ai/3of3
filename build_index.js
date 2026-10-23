@@ -43,7 +43,29 @@ const STICKERS = {
   globe: '<circle cx="12" cy="12" r="8.6" fill="#BFDBFE"/><path d="M6.6 6.8c1.8-.3 3.4.6 3.2 2.2-.2 1.4-1.8 1.8-1.4 3.4.3 1.5-1.4 2.4-2.6 1.5A8.6 8.6 0 0 1 6.6 6.8Z" fill="#34D399"/><path d="M14.2 5.2c2 .3 4 1.7 4.8 3.6-1.5.4-2.7-.4-3.6.6-.8.9.2 2.6-1.3 3.1-1.1.4-1.7-1.4-1.3-2.8.4-1.3-.7-2.8 1.4-4.5Z" fill="#34D399"/><path class="d" d="M11 17.4c1-.8 2.4-.9 3.4-.1-.6 1.3-2.4 1.6-3.4.1Z" fill="#34D399"/>',
   bell: '<path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.6 2.1H4.4Z" fill="#FBBF24"/><path d="M10 20.5a2 2 0 0 0 4 0"/><circle class="d" cx="12" cy="4.3" r="1" fill="#FBBF24"/><path class="d" d="M8.8 10.4a3.4 3.4 0 0 1 1.6-2.3" stroke="#FFFFFF"/>',
   bulb: '<path d="M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.4 1.1 2.2h5c0-.8.4-1.6 1.1-2.2A6 6 0 0 0 12 3Z" fill="#FDE68A"/><rect x="9.5" y="16" width="5" height="3.4" rx="1" fill="#CBD5E1"/><path d="M10.6 21.2h2.8"/><path class="d" d="M10.3 9.4a2.2 2.2 0 0 1 1.6-1.8" stroke="#FFFFFF"/>',
-  pin: '<path d="M8.5 15.5L3.5 20.5"/><path d="M14 3.2l6.8 6.8-2.2 1-2.6 2.6.5 3.6-1.6 1.6-8.1-8.1L8.4 9.1l3.6.5 2.6-2.6Z" fill="#FF7A85"/><path class="d" d="M14.6 6.4l2.8 2.8" stroke="#FFFFFF"/>'
+  pin: '<path d="M8.5 15.5L3.5 20.5"/><path d="M14 3.2l6.8 6.8-2.2 1-2.6 2.6.5 3.6-1.6 1.6-8.1-8.1L8.4 9.1l3.6.5 2.6-2.6Z" fill="#FF7A85"/><path class="d" d="M14.6 6.4l2.8 2.8" stroke="#FFFFFF"/>',
+  add: '<circle cx="12" cy="12" r="8.6" fill="#FF7A85"/><path d="M12 7.8v8.4M7.8 12h8.4" stroke="#FFFFFF" stroke-width="2"/>',
+  minus: '<circle cx="12" cy="12" r="8.6" fill="#FBBF24"/><path d="M7.8 12h8.4" stroke="#FFFFFF" stroke-width="2"/>',
+  save: '<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h10.2L20 8.3v10.2a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5Z" fill="#A78BFA"/><rect x="7.5" y="4" width="7" height="4.6" rx=".8" fill="#FFFFFF"/><rect x="7" y="12.5" width="10" height="7.5" rx="1" fill="#FFFFFF"/><path class="d" d="M9.5 15.2h5M9.5 17.6h3"/>',
+  refresh: '<path d="M19.2 9.2A7.8 7.8 0 0 0 5.6 7.6"/><path d="M4.8 14.8a7.8 7.8 0 0 0 13.6 1.6"/><path d="M19.6 4.4v5h-5" fill="#FBBF24"/><path d="M4.4 19.6v-5h5" fill="#34D399"/>',
+  trash: '<path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12Z" fill="#E2E8F0"/><path class="d" d="M10 11v6M14 11v6"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><rect x="3.5" y="6" width="17" height="2.2" rx="1.1" fill="#94A3B8"/>',
+  pencil: '<g transform="rotate(-45 11.5 12)"><rect x="16" y="10" width="4" height="4" rx="1" fill="#FF7A85"/><rect x="7" y="10" width="9" height="4" fill="#FBBF24"/><path d="M7 10L3 12l4 2Z" fill="#FED7D7"/></g>',
+  folderOpen: '<path d="M3 8a2.5 2.5 0 0 1 2.5-2.5h3.8l2 2H18A2.5 2.5 0 0 1 20.5 10v1H3Z" fill="#F59E0B"/><path d="M2.4 12.2a1.6 1.6 0 0 1 1.6-1.2h16.4a1.6 1.6 0 0 1 1.5 2.1l-1.9 5.6a2 2 0 0 1-1.9 1.3H5.5A2.5 2.5 0 0 1 3 17.5Z" fill="#FBBF24"/>',
+  doc: '<path d="M6 3.5h8.5L19 8v11.5a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 19.5v-14A2 2 0 0 1 6 3.5Z" fill="#FFFFFF"/><path d="M14.5 3.5V8H19" fill="#FED7D7"/><path class="d" d="M8.5 12.5h7M8.5 15.5h7M8.5 18.5h4"/>',
+  print: '<rect x="7" y="3.5" width="10" height="5" rx="1" fill="#FFFFFF"/><rect x="3" y="8.5" width="18" height="8.5" rx="2.2" fill="#A78BFA"/><rect x="7" y="13.5" width="10" height="7" rx="1" fill="#FFFFFF"/><circle class="d" cx="17.8" cy="11.4" r=".9" fill="#FFFFFF" stroke="none"/>',
+  link: '<path d="M10.5 13.5a3.6 3.6 0 0 0 5.1 0l3-3a3.6 3.6 0 0 0-5.1-5.1l-1.2 1.2"/><path d="M13.5 10.5a3.6 3.6 0 0 0-5.1 0l-3 3a3.6 3.6 0 0 0 5.1 5.1l1.2-1.2"/>',
+  lock: '<path d="M8 11V8a4 4 0 0 1 8 0v3"/><rect x="5" y="11" width="14" height="9.5" rx="2.4" fill="#FBBF24"/><circle cx="12" cy="15.3" r="1.5" fill="#FFFFFF"/><path class="d" d="M12 16.5v1.6"/>',
+  unlock: '<path d="M8 11V8a4 4 0 0 1 7.6-1.8"/><rect x="5" y="11" width="14" height="9.5" rx="2.4" fill="#34D399"/><circle cx="12" cy="15.3" r="1.5" fill="#FFFFFF"/><path class="d" d="M12 16.5v1.6"/>',
+  image: '<rect x="3" y="4.5" width="18" height="15" rx="3" fill="#BFDBFE"/><circle cx="8.4" cy="9.4" r="1.9" fill="#FBBF24"/><path d="M3.4 17l5-4.6 3.6 3.2 3-2.6 5.6 4.8" fill="#34D399"/>',
+  play: '<rect x="3" y="5" width="18" height="14" rx="3.4" fill="#FF7A85"/><path d="M10 9.2v5.6l5-2.8Z" fill="#FFFFFF"/>',
+  shuffle: '<path d="M3.5 7.5h3c4 0 5 9 9 9h3.5M3.5 16.5h3c1.4 0 2.4-.9 3.2-2.2M13.4 9.7c.7-1.2 1.6-2.2 3.1-2.2h3"/><path d="M17.5 4.8l3 2.7-3 2.7M17.5 13.8l3 2.7-3 2.7" fill="#FBBF24"/>',
+  repeat: '<path d="M4 11V9.5A3 3 0 0 1 7 6.5h11"/><path d="M20 13v1.5a3 3 0 0 1-3 3H6"/><path d="M15.5 3.8l3 2.7-3 2.7" fill="#FBBF24"/><path d="M8.5 20.2l-3-2.7 3-2.7" fill="#34D399"/>',
+  tag: '<path d="M3.5 5.5a2 2 0 0 1 2-2h5.6l9.4 9.4a2 2 0 0 1 0 2.8l-5.3 5.3a2 2 0 0 1-2.8 0L3.5 11.1Z" fill="#FBBF24"/><circle cx="8" cy="8" r="1.6" fill="#FFFFFF"/>',
+  phone: '<rect x="6.5" y="2.8" width="11" height="18.4" rx="3" fill="#A78BFA"/><rect x="8.3" y="5.6" width="7.4" height="10.4" rx="1" fill="#FFFFFF"/><circle class="d" cx="12" cy="18.6" r=".9" fill="#FFFFFF" stroke="none"/>',
+  door: '<path d="M6 20.5V4.5a1.5 1.5 0 0 1 1.5-1.5h8A1.5 1.5 0 0 1 17 4.5v16Z" fill="#FED7D7"/><path d="M3.5 20.5h17"/><circle cx="14" cy="12.3" r="1" fill="#6B4A44" stroke="none"/>',
+  textSize: '<rect x="2.5" y="3.5" width="19" height="17" rx="3.4" fill="#FEF3C7"/><path d="M6 17l3.2-9 3.2 9M7.1 14h4.2"/><path d="M15 17l2-5.6 2 5.6M15.8 15.2h2.4" stroke-width="1.4"/>',
+  cookie: '<path d="M12 3.2a8.8 8.8 0 1 0 8.8 8.8 4.4 4.4 0 0 1-4.6-3.9A4.4 4.4 0 0 1 12 3.2Z" fill="#FDBA74"/><g fill="#6B4A44" stroke="none"><circle cx="8.6" cy="10" r="1"/><circle cx="12.6" cy="14.6" r="1"/><circle class="d" cx="8.4" cy="15.4" r=".9"/><circle class="d" cx="15.6" cy="12.6" r=".8"/></g>',
+  camera: '<path d="M4 8h3l1.6-2.4h6.8L17 8h3a1 1 0 0 1 1 1v9.5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z" fill="#A78BFA"/><circle cx="12" cy="13.5" r="3.8" fill="#FFFFFF"/><circle cx="12" cy="13.5" r="1.8" fill="#8B5CF6"/><path d="M12 2.8v3M9.6 4.2L12 2.8l2.4 1.4" stroke="#FF7A85"/>'
 };
 const stickerSvg = (name, cls) => STICKERS[name] ? '<svg class="sticker ' + cls + '" viewBox="0 0 24 24" fill="none" stroke="#6B4A44" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' + STICKERS[name] + '</svg>' : '';
 
@@ -184,6 +206,9 @@ const htmlContent = `<!DOCTYPE html>
     .sticker { display: inline-block; flex: none; vertical-align: middle; overflow: visible; }
     .sticker-sm { stroke-width: 1.9; }
     .sticker-sm .d { display: none; }
+    /* 文字裡的 Emoji 在執行時換成圖示（見 stickerizeNode）：大小隨文字，行內對齊 */
+    .sticker-emoji { display: inline-flex; align-items: center; vertical-align: middle; }
+    .sticker-inline { width: 1.15em; height: 1.15em; }
     html {
       font-size: 19px; /* Base font size increased from 16px for larger text globally */
     }
@@ -6688,6 +6713,62 @@ const htmlContent = `<!DOCTYPE html>
       if (svg) { s.className = 'inline-flex'; s.innerHTML = svg; } else { s.textContent = icon; }
       return s;
     }
+    // ---------- 文字裡的 Emoji → 貼紙圖示（執行時處理）----------
+    // 按鈕、表單標題、提示訊息等 150 多處動態文字都是「Emoji＋文字」，逐一改寫容易漏、也會讓之後新增的文字又冒出 Emoji。
+    // 所以頁面載入時掃過整個畫面，並用 MutationObserver 監看之後新增或改變的文字，把對照表裡的 Emoji 換成圖示（SVG）。
+    // 字串、字典、試算表資料都不變；不處理 select／option、textarea、input、script、style、title 裡的文字，也不處理標了 data-no-sticker 的區塊。
+    // 只換「文字節點」裡的 Emoji；用 createTextNode 放文字，所以文字裡的 < > 不會變成標籤。
+    const EMOJI_TEXT = { '➕': 'add', '➖': 'minus', '💾': 'save', '🔄': 'refresh', '🗑': 'trash', '✏': 'pencil', '📂': 'folderOpen', '📄': 'doc', '🖨': 'print', '🔗': 'link', '🔒': 'lock', '🔓': 'unlock', '🖼': 'image', '🎬': 'play', '🔀': 'shuffle', '🔁': 'repeat', '🏷': 'tag', '📱': 'phone', '🚪': 'door', '🔠': 'textSize', '🍪': 'cookie', '📸': 'camera', '🌐': 'globe', '🔍': 'magnifier' };
+    const EMOJI_TEXT_RE = new RegExp('(' + Object.keys(EMOJI_TEXT).join('|') + ')' + String.fromCharCode(0xFE0F) + '?', 'g');
+    const STICKER_SKIP = { 'SCRIPT': 1, 'STYLE': 1, 'TEXTAREA': 1, 'OPTION': 1, 'SELECT': 1, 'TITLE': 1, 'INPUT': 1, 'NOSCRIPT': 1 };
+    // 把一段文字切成 [{t: 文字}, {k: 圖示名稱}, ...]；沒有對照表裡的 Emoji 就回傳 null
+    function emojiSplit(text) {
+      if (typeof text !== 'string' || !text) return null;
+      const parts = []; let last = 0, m, hit = false;
+      EMOJI_TEXT_RE.lastIndex = 0;
+      while ((m = EMOJI_TEXT_RE.exec(text))) {
+        hit = true;
+        if (m.index > last) parts.push({ t: text.slice(last, m.index) });
+        parts.push({ k: EMOJI_TEXT[m[1]] });
+        last = m.index + m[0].length;
+      }
+      if (!hit) return null;
+      if (last < text.length) parts.push({ t: text.slice(last) });
+      return parts;
+    }
+    function stickerizeText(node) {
+      const par = node.parentNode;
+      if (!par || STICKER_SKIP[par.tagName]) return;
+      const parts = emojiSplit(node.nodeValue);
+      if (!parts) return;
+      parts.forEach(function(p) {
+        let n;
+        if (p.k) { n = document.createElement('span'); n.className = 'sticker-emoji'; n.setAttribute('aria-hidden', 'true'); n.innerHTML = stickerSvg(p.k, 'sticker-sm sticker-inline'); }
+        else n = document.createTextNode(p.t);
+        par.insertBefore(n, node);
+      });
+      par.removeChild(node);
+    }
+    function stickerizeNode(root) {
+      if (!root) return;
+      if (root.nodeType === 3) { stickerizeText(root); return; }
+      if (root.nodeType !== 1 || STICKER_SKIP[root.tagName]) return;
+      if (root.getAttribute && root.getAttribute('data-no-sticker') !== null) return;
+      Array.prototype.slice.call(root.childNodes).forEach(stickerizeNode);
+    }
+    function startStickerize() {
+      stickerizeNode(document.body);
+      if (typeof MutationObserver === 'undefined') return;
+      const obs = new MutationObserver(function(records) {
+        records.forEach(function(r) {
+          if (r.type === 'characterData') stickerizeNode(r.target);
+          else Array.prototype.forEach.call(r.addedNodes, stickerizeNode);
+        });
+        obs.takeRecords();   // 丟掉我們自己換圖示造成的變動，避免重複處理
+      });
+      obs.observe(document.body, { childList: true, subtree: true, characterData: true });
+    }
+
     // 圖示代號（Emoji 字元，例如日曆的 🍱／🥐／🎂、幼小銜接的 🏫／🏡／🤝）→ 貼紙圖示；不在對照表的（節慶等，之後的批次再換）照舊顯示文字（會跳脫）
     const EMOJI_STICKER = { '🍱': 'meal', '🥐': 'chef', '🎂': 'cake', '🏫': 'school', '🏡': 'home', '🤝': 'together', '🧹': 'broom', '⏰': 'clock', '💬': 'speech', '🤸': 'jump', '🧩': 'puzzle', '🔍': 'magnifier', '💞': 'hearts', '🌏': 'globe' };
     function emojiIconHtml(ic, cls) {
@@ -14872,6 +14953,7 @@ const htmlContent = `<!DOCTYPE html>
         else el.classList.add('hidden');
       }
     }
+    startStickerize();
   </script>
 </body>
 </html>

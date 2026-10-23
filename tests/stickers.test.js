@@ -69,7 +69,6 @@ ok(/icons\.push\('🍱'\)/.test(cd) && /icons\.push\('🥐'\)/.test(cd) && /icon
 
 console.log('E. 第 2 批：圖示庫（25 個新圖示）');
 ok(BATCH2.every(k => typeof LIB[k] === 'string' && LIB[k].length > 20), '第 2 批 25 個圖示都在庫裡');
-ok(Object.keys(LIB).length === BATCH1.length + BATCH2.length, '圖示庫總數 = 第 1 批 13 ＋ 第 2 批 25（' + Object.keys(LIB).length + '）');
 const MAPN = { '🍱': 'meal', '🥐': 'chef', '🎂': 'cake', '🏫': 'school', '🏡': 'home', '🤝': 'together', '🧹': 'broom', '⏰': 'clock', '💬': 'speech', '🤸': 'jump', '🧩': 'puzzle', '🔍': 'magnifier', '💞': 'hearts', '🌏': 'globe' };
 Object.keys(MAPN).forEach(e => ok(emojiIconHtml(e, 'w-4 h-4').indexOf(LIB[MAPN[e]]) > 0, 'emojiIconHtml：' + e + ' → ' + MAPN[e]));
 
@@ -113,6 +112,60 @@ ok(/\[\['all', 'transition\.filterAll', ''\], \['home', 'transition\.filterHome'
 ok(/filterHome: '在家陪伴'/.test(html) && /filterSchool: '在園練習'/.test(html) && /filterHome: 'At home'/.test(html) && /filterSchool: 'At school'/.test(html) && !/filterHome: '🏡|filterSchool: '🏫/.test(html), '篩選按鈕的中英文字典不再內含 Emoji');
 ok(/<h2>' \+ esc\(trCategoryStyle\(cat\)\.icon \+ ' ' \+ tx\(cat\)\)/.test(html), '列印用的銜接計畫（另一個視窗，沒有網站樣式）維持原本的文字 Emoji');
 ok(/icon: '🏫'/.test(html) && /icon: '🏡'/.test(html), 'Emoji 欄位（icon）保留給後台列表與列印使用');
+
+console.log('H. 第 3 批：執行時把文字裡的 Emoji 換成圖示（按鈕、表單標題、提示訊息等 150 多處動態文字）');
+const BATCH3 = ['add', 'minus', 'save', 'refresh', 'trash', 'pencil', 'folderOpen', 'doc', 'print', 'link', 'lock', 'unlock', 'image', 'play', 'shuffle', 'repeat', 'tag', 'phone', 'door', 'textSize', 'cookie', 'camera'];
+ok(BATCH3.every(k => typeof LIB[k] === 'string' && LIB[k].length > 20), '第 3 批 22 個新圖示都在庫裡');
+ok(Object.keys(LIB).length === BATCH1.length + BATCH2.length + BATCH3.length, '圖示庫總數 = 13 + 25 + 22 = ' + (BATCH1.length + BATCH2.length + BATCH3.length) + '（實際 ' + Object.keys(LIB).length + '）');
+const mt = /const EMOJI_TEXT = (\{[^\n]*\});/.exec(html);
+ok(!!mt, '有 EMOJI_TEXT 對照表（文字裡的 Emoji → 圖示名稱）');
+var EMOJI_TEXT = mt ? JSON.parse(mt[1].replace(/'/g, '"')) : {};
+const WANT = { '➕': 'add', '➖': 'minus', '💾': 'save', '🔄': 'refresh', '🗑': 'trash', '✏': 'pencil', '📂': 'folderOpen', '📄': 'doc', '🖨': 'print', '🔗': 'link', '🔒': 'lock', '🔓': 'unlock', '🖼': 'image', '🎬': 'play', '🔀': 'shuffle', '🔁': 'repeat', '🏷': 'tag', '📱': 'phone', '🚪': 'door', '🔠': 'textSize', '🍪': 'cookie', '📸': 'camera', '🌐': 'globe', '🔍': 'magnifier' };
+Object.keys(WANT).forEach(e => ok(EMOJI_TEXT[e] === WANT[e] && !!LIB[WANT[e]], 'EMOJI_TEXT：' + e + ' → ' + WANT[e]));
+ok(Object.keys(EMOJI_TEXT).every(e => !!LIB[EMOJI_TEXT[e]]), '對照表裡每個圖示名稱都真的存在');
+['✅', '❌', '⚠', '🎉', '💛', '❤', '⏳'].forEach(e => ok(!(e in EMOJI_TEXT), '提示訊息與資料用的 ' + e + ' 不在這一批（維持文字）'));
+var STICKER_SVG = LIB;
+var EMOJI_TEXT_RE = eval(/const EMOJI_TEXT_RE = (new RegExp\([^\n]*\));/.exec(html)[1]);   // 用頁面裡真正的那一行建立
+eval(grab('emojiSplit'));
+const sp = t => JSON.stringify(emojiSplit(t));
+ok(sp('💾 儲存變更（3）') === JSON.stringify([{ k: 'save' }, { t: ' 儲存變更（3）' }]), 'emojiSplit：開頭的 Emoji → 圖示＋文字');
+ok(sp('🗑️ 刪除選取') === JSON.stringify([{ k: 'trash' }, { t: ' 刪除選取' }]) && sp('✏️ 編輯') === JSON.stringify([{ k: 'pencil' }, { t: ' 編輯' }]), 'emojiSplit：帶 U+FE0F 變體選擇符的寫法也認得，且變體符不會殘留');
+ok(sp('➕ 新增 ➕') === JSON.stringify([{ k: 'add' }, { t: ' 新增 ' }, { k: 'add' }]), 'emojiSplit：一段文字裡有多個');
+ok(emojiSplit('沒有圖示的文字') === null && emojiSplit('✅ 已儲存') === null && emojiSplit('') === null && emojiSplit(null) === null, 'emojiSplit：沒有對應的 Emoji（包含 ✅）→ null，不改動');
+ok(sp('<b>🔒 不開放下載</b>') === JSON.stringify([{ t: '<b>' }, { k: 'lock' }, { t: ' 不開放下載</b>' }]), 'emojiSplit：HTML 符號原樣留在文字裡（之後用文字節點放，不會被當成標籤）');
+ok(sp('📸🌐') === JSON.stringify([{ k: 'camera' }, { k: 'globe' }]), 'emojiSplit：連續兩個');
+
+// 用最小的假 DOM 執行真的 stickerizeNode
+function FakeNode(type, tag, text) { this.nodeType = type; this.tagName = tag; this.nodeValue = text; this.childNodes = []; this.parentNode = null; this.attrs = {}; this.className = ''; this.innerHTML = ''; }
+FakeNode.prototype.getAttribute = function (k) { return k in this.attrs ? this.attrs[k] : null; };
+FakeNode.prototype.setAttribute = function (k, v) { this.attrs[k] = v; };
+FakeNode.prototype.appendChild = function (n) { n.parentNode = this; this.childNodes.push(n); return n; };
+FakeNode.prototype.insertBefore = function (n, ref) { n.parentNode = this; this.childNodes.splice(this.childNodes.indexOf(ref), 0, n); return n; };
+FakeNode.prototype.removeChild = function (n) { this.childNodes.splice(this.childNodes.indexOf(n), 1); n.parentNode = null; return n; };
+const document = { createElement: t => new FakeNode(1, t.toUpperCase()), createTextNode: t => new FakeNode(3, null, t) };
+const el = (tag, kids, attrs) => { const n = new FakeNode(1, tag.toUpperCase()); (kids || []).forEach(k => n.appendChild(typeof k === 'string' ? new FakeNode(3, null, k) : k)); Object.assign(n.attrs, attrs || {}); return n; };
+eval(grab('stickerizeText')); eval(grab('stickerizeNode'));
+var STICKER_SKIP = JSON.parse(/const STICKER_SKIP = (\{[^\n]*\});/.exec(html)[1].replace(/'/g, '"'));
+const dump = n => n.nodeType === 3 ? JSON.stringify(n.nodeValue) : '<' + n.tagName + (n.className ? '.' + n.className : '') + '>' + n.childNodes.map(dump).join('') + '</>';
+let root = el('div', [el('button', ['💾 儲存變更']), el('span', ['沒有圖示']), el('p', ['先 ', el('b', ['🔄 重新整理']), ' 後 ➕ 再來'])]);
+stickerizeNode(root);
+const svgCount = n => (n.className === 'sticker-emoji' ? 1 : 0) + n.childNodes.reduce((a, c) => a + (c.nodeType === 1 ? svgCount(c) : 0), 0);
+ok(svgCount(root) === 3, '假 DOM：button、b、p 裡共 3 個 Emoji → 3 個圖示（' + svgCount(root) + '）');
+ok(dump(root).indexOf('💾') < 0 && dump(root).indexOf('🔄') < 0 && dump(root).indexOf('➕') < 0 && dump(root).indexOf('"沒有圖示"') > 0 && dump(root).indexOf('" 儲存變更"') > 0 && dump(root).indexOf('" 後 "') > 0, '假 DOM：Emoji 文字消失，其餘文字原樣保留');
+const first = root.childNodes[0].childNodes[0];
+ok(first.className === 'sticker-emoji' && first.attrs['aria-hidden'] === 'true' && first.innerHTML.indexOf('class="sticker sticker-sm sticker-inline"') > 0 && first.innerHTML.indexOf(LIB.save) > 0, '圖示外面是 aria-hidden 的 span，SVG 用小尺寸（sticker-sm）加隨文字大小的 sticker-inline');
+root = el('div', [el('select', [el('option', ['➕ 新增']), el('option', ['🗑 刪除'])]), el('textarea', ['🔒 草稿']), el('script', ['var x="➕"']), el('style', ['a{content:"➕"}']), el('title', ['➕']), el('div', ['➕ 略過'], { 'data-no-sticker': '' }), el('input', [])]);
+const snap = dump(root); stickerizeNode(root);
+ok(dump(root) === snap, '不會動：select／option、textarea、script、style、title、input，以及標了 data-no-sticker 的區塊');
+const tn = new FakeNode(3, null, '🖨 列印'); const opt = el('option', []); opt.appendChild(tn); stickerizeNode(tn);
+ok(tn.parentNode === opt && opt.childNodes.length === 1, '單獨傳入文字節點（觀察器的 characterData）：父元素是 option 時不改');
+const lone = el('span', []); const tn2 = new FakeNode(3, null, '🖨 列印'); lone.appendChild(tn2); stickerizeNode(tn2);
+ok(svgCount(lone) === 1 && lone.childNodes.length === 2, '單獨傳入文字節點：換成圖示＋剩下的文字');
+const evil = el('span', ['🔗 <img src=x onerror=alert(1)>']); stickerizeNode(evil);
+ok(evil.childNodes.every(c => c.nodeType === 3 || c.className === 'sticker-emoji') && evil.childNodes.some(c => c.nodeType === 3 && c.nodeValue.indexOf('<img') >= 0), '文字裡的 HTML 符號用文字節點放，不會變成標籤（沒有 XSS）');
+ok(/\n    startStickerize\(\);\n  <\/script>\n<\/body>/.test(html), '主 script 最後有呼叫 startStickerize()');
+ok(/stickerizeNode\(document\.body\)/.test(html) && /new MutationObserver/.test(html) && /observe\(document\.body, \{ childList: true, subtree: true, characterData: true \}\)/.test(html) && /takeRecords\(\)/.test(html), '啟動：先處理整個頁面，再用 MutationObserver 監看新增與改變的文字；處理完用 takeRecords 丟掉自己造成的變動');
+ok(/\.sticker-emoji\s*\{[^}]*display:\s*inline-flex/.test(html) && /\.sticker-inline\s*\{[^}]*width:\s*1\.15em[^}]*height:\s*1\.15em/.test(html), 'CSS：sticker-inline 隨文字大小（1.15em）、sticker-emoji 行內對齊');
 
 console.log('\n結果：' + pass + ' 通過，' + fail + ' 失敗');
 process.exit(fail ? 1 : 0);
