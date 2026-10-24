@@ -14,7 +14,7 @@
   expandSidebar(); await wait(600);
   const hdrIcon = left(sb.querySelector('.border-b span.text-base'));
   const btns = [...sb.querySelectorAll('nav > button')].filter(b => b.offsetParent);
-  const icons = btns.map(b => left(b.querySelector('span.text-base')));
+  const icons = btns.map(b => left(b.querySelector('span')));
   const labels = btns.map(b => left(b.querySelector('.sidebar-text')));
   ok(btns.length >= 8, '可見的選單按鈕數量 ' + btns.length);
   ok(Math.max(...icons) - Math.min(...icons) < 0.6, '所有項目圖示左緣一致（' + [...new Set(icons)].join('／') + '）');
@@ -32,7 +32,7 @@
 
   // C. 展開／收合邏輯
   const tg = document.getElementById('sidebarTouchToggle'), icon = document.getElementById('sidebarTouchIcon');
-  const isExpanded = () => sb.classList.contains('md:w-[152px]') && !sb.classList.contains('md:w-12');
+  const isExpanded = () => sb.classList.contains('md:w-[8.5rem]') && !sb.classList.contains('md:w-12');
   ok(!isExpanded() && icon.textContent === '»' && tg.getAttribute('aria-expanded') === 'false', '初始：收合、顯示 »');
   toggleSidebarTouch(); await wait(100);
   ok(isExpanded() && icon.textContent === '«' && tg.getAttribute('aria-expanded') === 'true', '按展開鈕：展開、顯示 «、aria-expanded=true');

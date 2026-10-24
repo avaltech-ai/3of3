@@ -457,7 +457,7 @@ const htmlContent = `<!DOCTYPE html>
     <div id="mobileSidebarBackdrop" class="md:hidden fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-xs opacity-0 pointer-events-none transition-opacity duration-300" onclick="toggleMobileSidebar()"></div>
 
     <!-- The actual floating/sticky sidebar (Desktop + Mobile) -->
-    <aside id="desktopSidebar" class="flex flex-col bg-white border-r border-slate-200/80 shadow-sm fixed top-1.5 bottom-0 left-0 z-50 w-[152px] md:w-12 transition-all duration-300 overflow-hidden group -translate-x-full md:translate-x-0" onmouseenter="expandSidebar()" onmouseleave="collapseSidebar()">
+    <aside id="desktopSidebar" class="flex flex-col bg-white border-r border-slate-200/80 shadow-sm fixed top-1.5 bottom-0 left-0 z-50 w-[8.5rem] md:w-12 transition-all duration-300 overflow-hidden group -translate-x-full md:translate-x-0" onmouseenter="expandSidebar()" onmouseleave="collapseSidebar()">
       <div class="px-1.5 flex items-center border-b border-slate-100 relative min-h-[52px] whitespace-nowrap overflow-hidden">
         <div class="flex items-center pl-1.5 pr-0 py-1.5 w-full">
           <span class="text-base w-6 text-center shrink-0 select-none cursor-pointer transition-transform hover:scale-110" onclick="switchTab('home')">🍄</span>
@@ -5728,7 +5728,7 @@ const htmlContent = `<!DOCTYPE html>
       const texts = document.querySelectorAll('.sidebar-text');
       if (sb) {
         sb.classList.remove('md:w-12');
-        sb.classList.add('md:w-[152px]');
+        sb.classList.add('md:w-[8.5rem]');
       }
       texts.forEach(el => {
         el.classList.remove('opacity-0');
@@ -5742,7 +5742,7 @@ const htmlContent = `<!DOCTYPE html>
       const texts = document.querySelectorAll('.sidebar-text');
       if (sb) {
         sb.classList.add('md:w-12');
-        sb.classList.remove('md:w-[152px]');
+        sb.classList.remove('md:w-[8.5rem]');
       }
       texts.forEach(el => {
         el.classList.add('opacity-0');
@@ -5791,13 +5791,13 @@ const htmlContent = `<!DOCTYPE html>
       const pinBtn = document.getElementById('pinSidebarBtn');
       if (isSidebarPinned) {
         wrap.classList.remove('w-12');
-        wrap.classList.add('w-[152px]');
+        wrap.classList.add('w-[8.5rem]');
         pinBtn.classList.add('text-peach-500', 'bg-peach-100', 'opacity-100');
         pinBtn.classList.remove('text-slate-400', 'opacity-0');
         expandSidebar(); // Ensure it's expanded
       } else {
         wrap.classList.add('w-12');
-        wrap.classList.remove('w-[152px]');
+        wrap.classList.remove('w-[8.5rem]');
         pinBtn.classList.remove('text-peach-500', 'bg-peach-100', 'opacity-100');
         pinBtn.classList.add('text-slate-400');
         collapseSidebar();
@@ -5887,13 +5887,13 @@ const htmlContent = `<!DOCTYPE html>
         sidebar.classList.remove('-translate-x-full');
         backdrop.classList.remove('opacity-0', 'pointer-events-none');
         backdrop.classList.add('opacity-100', 'pointer-events-auto');
-        sidebar.classList.add('w-[152px]');
+        sidebar.classList.add('w-[8.5rem]');
         expandSidebar();
       } else {
         sidebar.classList.add('-translate-x-full');
         backdrop.classList.remove('opacity-100', 'pointer-events-auto');
         backdrop.classList.add('opacity-0', 'pointer-events-none');
-        sidebar.classList.remove('w-[152px]');
+        sidebar.classList.remove('w-[8.5rem]');
         if (!window.isSidebarPinned) {
           collapseSidebar();
         }
