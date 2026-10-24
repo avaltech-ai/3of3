@@ -863,7 +863,8 @@ git push origin main
 - **快取清單**（`CacheService` 腳本快取）：
   | 鍵 | 內容 | 存活 | 清除時機 |
   | :-- | :-- | :-- | :-- |
-  | `app_data_v4` | `getAppData` 整包（約 63KB，上限 100KB） | 10 分鐘（`APP_DATA_CACHE_TTL_SEC`） | 任何寫入、選單「清除快取」；`ensureAlbumSheetsExist` 只在真的有變更時才清 |
+  | `app_data_v4` | `getAppData` 整包（**2026-10-24 起以 gzip＋base64 壓縮存放，前綴 `gz1:`**；原始 81KB → 約 35KB，單筆上限 90KB 內可容納原始資料約 210KB；舊的純 JSON 仍可讀；壞掉或解不開視為沒有快取） | 10 分鐘（`APP_DATA_CACHE_TTL_SEC`） | 任何寫入、選單「清除快取」；`ensureAlbumSheetsExist` 只在真的有變更時才清 |
+  <!-- 2026-10-24：公開資料瘦身——主題的 name／concept／results（與 themeName／themeConcept／photos 相同）與活動的「行事曆提示」（與 calendarPrompt 相同）不再輸出，約少 4.8KB；前台本來就是新欄位優先、舊欄位備援。後台待辦提醒在公開資料達 150KB 時提醒（`APP_DATA_WARN_BYTES`）。測試：`tests/appdatacache.test.js`、`tests/datasizereminder.test.js`。 -->
   | `albph_<資料夾id>`＋索引 `albph_keys` | 單本相簿的照片清單（`{id,name,size}`） | 1 小時（索引 6 小時） | 隨 `clearAppDataCache()` 一併清除；超過 90000 字元不快取 |
   | `tok_*`、`login_fails`、`idem_*` | 登入 token、鎖定計數、冪等結果 | 見 5.6、5.8 | — |
 - **預熱觸發器**：`warmAppDataCache()` 由時間觸發器每 5 分鐘執行，略過現有快取重建 `getAppData`（旗標 `APP_DATA_FORCE_REFRESH_` 只在該次執行內有效，不影響網頁請求），並補建最多 2 本沒有快取的相簿清單。建立方式：試算表選單「⚡ 啟用網頁快取預熱」（`setupWarmCacheTrigger`，冪等）。預熱失敗不影響網站，下一位使用者照舊現場讀取。

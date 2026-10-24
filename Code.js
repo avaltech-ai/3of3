@@ -820,17 +820,86 @@ function clearAppDataCache_() {
  */
 let APP_DATA_FORCE_REFRESH_ = false; // 僅預熱觸發器在自己的執行內設為 true（每次執行各有獨立的全域變數，不影響網頁請求）
 const APP_DATA_CACHE_TTL_SEC = 600;     // 快取 10 分鐘；預熱觸發器每 5 分鐘重建一次，所以使用者幾乎都命中快取
+const APP_DATA_CACHE_KEY = 'app_data_v4';
+const APP_DATA_GZ_PREFIX = 'gz1:';      // 壓縮格式的前綴（gzip 後再 base64）；沒有這個前綴的是舊的純 JSON，仍可讀
+const APP_DATA_CACHE_MAX_BYTES = 90000; // CacheService 單筆上限 100KB（位元組），留 10% 餘裕；壓縮後仍超過就不快取（照常回傳，只是每次重建）
+
+function utf8Length_(s) {
+  let n = 0;
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charCodeAt(i);
+    if (c < 0x80) n += 1;
+    else if (c < 0x800) n += 2;
+    else if (c >= 0xD800 && c <= 0xDBFF) { n += 4; i++; }
+    else n += 3;
+  }
+  return n;
+}
+
+/**
+ * 把 getAppData 的結果存進快取：先 gzip＋base64（實測 85.7KB → 約 35KB，空間約 2.9 倍）。
+ * 沒有壓縮功能或壓縮失敗就存純 JSON；超過上限就不存（並清掉舊的）。快取只是加速，任何失敗都不能影響回應。回傳是否有存進去。
+ */
+function appDataCachePut_(result) {
+  try {
+    const cache = CacheService.getScriptCache();
+    const json = JSON.stringify(result);
+    let packed = json;
+    try {
+      if (typeof Utilities.gzip === 'function') {
+        const gz = Utilities.gzip(Utilities.newBlob(json, 'application/json', 'app_data.json'));
+        packed = APP_DATA_GZ_PREFIX + Utilities.base64Encode(gz.getBytes());
+      }
+    } catch (e) { packed = json; }
+    if (utf8Length_(packed) > APP_DATA_CACHE_MAX_BYTES) {
+      cache.remove(APP_DATA_CACHE_KEY);
+      console.warn('getAppData 快取：壓縮後仍超過 ' + APP_DATA_CACHE_MAX_BYTES + ' 位元組，不快取（目前 ' + utf8Length_(packed) + '）');
+      return false;
+    }
+    cache.put(APP_DATA_CACHE_KEY, packed, APP_DATA_CACHE_TTL_SEC);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+/** 讀出 getAppData 的快取（壓縮或舊的純 JSON 都認得）；沒有、壞掉、解不開一律回傳 null（呼叫端會重建）。 */
+function appDataCacheGet_() {
+  try {
+    const s = CacheService.getScriptCache().get(APP_DATA_CACHE_KEY);
+    if (!s) return null;
+    if (s.indexOf(APP_DATA_GZ_PREFIX) === 0) {
+      const bytes = Utilities.base64Decode(s.slice(APP_DATA_GZ_PREFIX.length));
+      const json = Utilities.ungzip(Utilities.newBlob(bytes, 'application/x-gzip', 'app_data.gz')).getDataAsString('UTF-8');
+      return JSON.parse(json);
+    }
+    return JSON.parse(s);
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * 公開資料的活動：Events 工作表同時有 calendarPrompt 與「行事曆提示」兩欄，內容相同，公開資料只留 calendarPrompt。
+ * calendarPrompt 空白時由舊欄位補上（只填舊欄位的活動不會遺失提示）。前台本來就是 calendarPrompt 優先、舊欄位備援。
+ */
+function eventsPublicView_(events) {
+  return (events || []).map(function(ev) {
+    if (!ev || !Object.prototype.hasOwnProperty.call(ev, '行事曆提示')) return ev;
+    const out = {};
+    Object.keys(ev).forEach(function(k) { if (k !== '行事曆提示') out[k] = ev[k]; });
+    if (!String(out.calendarPrompt || '').trim() && String(ev['行事曆提示'] || '').trim()) out.calendarPrompt = ev['行事曆提示'];
+    return out;
+  });
+}
 
 function getAppData() {
   try {
     // 1. 優先嘗試讀取快取（大幅降低延遲至 0.2s，避免前端久候）
     try {
       if (!APP_DATA_FORCE_REFRESH_) {
-        const cache = CacheService.getScriptCache();
-        const cached = cache.get('app_data_v4');
-        if (cached) {
-          return JSON.parse(cached);
-        }
+        const cached = appDataCacheGet_();
+        if (cached) return cached;
       }
     } catch (e) {}
 
@@ -916,7 +985,7 @@ function getAppData() {
       }
     }
 
-    const events = getSheetDataAsObjects_(ss.getSheetByName('Events'));
+    const events = eventsPublicView_(getSheetDataAsObjects_(ss.getSheetByName('Events')));
     const menus = getSheetDataAsObjects_(ss.getSheetByName('Menus'));
     const spotlights = getSheetDataAsObjects_(ss.getSheetByName('Spotlight'));
     const docs = getSheetDataAsObjects_(ss.getSheetByName('Docs'));
@@ -1192,10 +1261,7 @@ function getAppData() {
         }
       }
     };
-    try {
-      const cache = CacheService.getScriptCache();
-      cache.put('app_data_v4', JSON.stringify(result), APP_DATA_CACHE_TTL_SEC);
-    } catch (e) {}
+    appDataCachePut_(result);
     return result;
   } catch (err) {
     return {
@@ -2408,9 +2474,9 @@ const ALBUM_PHOTOS_CACHE_MAX = 90000;  // CacheService 單筆上限 100KB，超�
  */
 function isRegisteredAlbumId_(id) {
   try {
-    const cached = CacheService.getScriptCache().get('app_data_v4');
+    const cached = appDataCacheGet_();
     if (cached) {
-      const albums = (JSON.parse(cached).data || {}).albums || [];
+      const albums = (cached.data || {}).albums || [];
       if (albums.some(function(a) { return a && String(a.id).trim() === id; })) return true;
     }
   } catch (e) {}
@@ -2628,8 +2694,8 @@ function warmAlbumPhotos_(maxBuild) {
   const cache = CacheService.getScriptCache();
   let albums = [];
   try {
-    const cached = cache.get('app_data_v4');
-    if (cached) albums = (JSON.parse(cached).data || {}).albums || [];
+    const cached = appDataCacheGet_();
+    if (cached) albums = (cached.data || {}).albums || [];
   } catch (e) {}
   let built = 0;
   for (let i = 0; i < albums.length && built < maxBuild; i++) {
@@ -4796,29 +4862,33 @@ function parseThemeOverviews_(rows) {
 /**
  * 讀取每週主題與學期清單
  */
+/**
+ * 主題單列整理。公開資料不放重複欄位：name／concept／results 與 themeName／themeConcept／photos 內容相同，
+ * 前台本來就是「新欄位優先、舊欄位備援」（theme.themeName || theme.name），所以不再輸出舊欄位。
+ */
+function normalizeThemeRow_(t) {
+  t.id = String(t.id || '');
+  t.semester = String(t.semester || '').trim();
+  t.week = String(t.week || '').trim();
+  t.startDate = String(t.startDate || '').trim();
+  t.endDate = String(t.endDate || '').trim();
+  t.themeName = String(t.themeName || '').trim();
+  t.themeConcept = String(t.themeConcept || '').trim();
+  t.dateRange = (t.startDate ? (t.startDate + (t.endDate ? (' ~ ' + t.endDate) : '')) : '');
+  t.goals = parseThemeJsonArray_(t.goals).map(function(g) {
+    return { activity: String((g && g.activity) || ''), course: String((g && g.course) || '') };
+  });
+  t.photos = parseThemeJsonArray_(t.photos).map(function(p) { return String(p || '').trim(); }).filter(Boolean);
+  return t;
+}
+
 function getThemesData_() {
   const sheets = ensureThemeSheetsExist_();
   const semRows = getSheetDataAsObjects_(sheets.semSheet);
   const semesters = semRows.map(function(r) { return String(r.semesterName || '').trim(); }).filter(Boolean);
   const overviews = parseThemeOverviews_(semRows);
   const themes = getSheetDataAsObjects_(sheets.themeSheet).filter(function(t) { return t.id || t.themeName || t.week; });
-  themes.forEach(function(t) {
-    t.id = String(t.id || '');
-    t.semester = String(t.semester || '').trim();
-    t.week = String(t.week || '').trim();
-    t.startDate = String(t.startDate || '').trim();
-    t.endDate = String(t.endDate || '').trim();
-    t.themeName = String(t.themeName || '').trim();
-    t.themeConcept = String(t.themeConcept || '').trim();
-    t.name = t.themeName;
-    t.concept = t.themeConcept;
-    t.dateRange = (t.startDate ? (t.startDate + (t.endDate ? (' ~ ' + t.endDate) : '')) : '');
-    t.goals = parseThemeJsonArray_(t.goals).map(function(g) {
-      return { activity: String((g && g.activity) || ''), course: String((g && g.course) || '') };
-    });
-    t.photos = parseThemeJsonArray_(t.photos).map(function(p) { return String(p || '').trim(); }).filter(Boolean);
-    t.results = t.photos;
-  });
+  themes.forEach(normalizeThemeRow_);
   themes.sort(function(a, b) {
     if (b.startDate && a.startDate && b.startDate !== a.startDate) {
       return String(b.startDate).localeCompare(String(a.startDate));

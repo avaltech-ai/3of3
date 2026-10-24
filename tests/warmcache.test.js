@@ -46,6 +46,6 @@ e=env(); e.ctx.doGet({parameter:{action:'getAlbums'}});
 ok(e.ssCalls()>=1,'其他動作（getAlbums）仍會做工作表檢查');
 
 console.log('D. 快取時間');
-ok(/APP_DATA_CACHE_TTL_SEC\s*=\s*600/.test(src) && /put\('app_data_v4',\s*JSON\.stringify\(result\),\s*APP_DATA_CACHE_TTL_SEC\)/.test(src),'快取存活 10 分鐘（大於預熱間隔 5 分鐘）');
+ok(/APP_DATA_CACHE_TTL_SEC\s*=\s*600/.test(src) && /cache\.put\(APP_DATA_CACHE_KEY,\s*packed,\s*APP_DATA_CACHE_TTL_SEC\)/.test(src),'快取存活 10 分鐘（大於預熱間隔 5 分鐘）');
 
 console.log('\n結果：'+pass+' 通過，'+fail+' 失敗'); process.exit(fail?1:0);

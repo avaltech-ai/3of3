@@ -5542,6 +5542,7 @@ const htmlContent = `<!DOCTYPE html>
     // 處理遠端資料
     function handleDataLoaded(data) {
       setAppLoadState('ready');   // 先切換再畫：同一輪同步執行，畫面不會閃
+      state.appDataBytes = jsonUtf8Bytes(data);   // 後台待辦提醒用：公開資料太大時提醒
       state.events = data.events || [];
       state.menus = data.menus || [];
       state.spotlights = data.spotlights || [];
@@ -11599,6 +11600,27 @@ const htmlContent = `<!DOCTYPE html>
       return { today: today, next: next, nextIsTomorrow: next === ymdAdd(today, 1), nextFirst: now.getHours() >= 18 || isNonSchoolDay(today, events) };
     }
     // 後台待辦提醒。ctx = { today（YYYY-MM-DD）, events, menus, spotlights, pendingText／pendingName（英文對照「內容」「名稱」尚未加入的新文字數，未知為 null）}
+    // 公開資料（getAppData）的大小提醒：雲端快取壓縮後約可放 210 KB 的原始資料（實測壓縮率約 0.41，快取單筆上限 90 KB），
+    // 達 150 KB（約 70%）就提醒，不用等到變慢才發現。
+    const APP_DATA_WARN_BYTES = 150000;
+    function jsonUtf8Bytes(data) {
+      let s;
+      try { s = JSON.stringify(data); } catch (e) { return 0; }
+      if (typeof s !== 'string') return 0;
+      let n = 0;
+      for (let i = 0; i < s.length; i++) {
+        const c = s.charCodeAt(i);
+        if (c < 0x80) n += 1;
+        else if (c < 0x800) n += 2;
+        else if (c >= 0xD800 && c <= 0xDBFF) { n += 4; i++; }
+        else n += 3;
+      }
+      return n;
+    }
+    function appDataSizeReminder(bytes) {
+      if (!(bytes >= APP_DATA_WARN_BYTES)) return null;
+      return { kind: 'dataSize', icon: '⚠️', text: '公開資料已有 ' + Math.round(bytes / 1000) + ' KB（雲端快取估計約可容納 210 KB），超過後載入會明顯變慢。建議請工程人員協助整理舊資料或改成分批載入' };
+    }
     function adminReminderItems(ctx) {
       const out = [], today = ctx.today, events = ctx.events || [];
       const fmt = function(k) { return Number(k.slice(5, 7)) + '/' + Number(k.slice(8, 10)) + '（' + '日一二三四五六'.charAt(ymdWeekday(k)) + '）'; };
@@ -11622,6 +11644,8 @@ const htmlContent = `<!DOCTYPE html>
         const has = events.some(function(e) { const s = e && ymdKey(e.date); if (!s) return false; const en = ymdKey(e.endDate) || s; return s <= last && en >= first; });
         if (!has) out.push({ kind: 'nextMonth', icon: '📅', text: '下個月（' + nm + ' 月）的行事曆還沒有任何活動', action: 'events', actionLabel: '前往行事曆' });
       }
+      const sizeItem = appDataSizeReminder(ctx.dataBytes);
+      if (sizeItem) out.push(sizeItem);
       return out;
     }
     // 焦點活動的輪播狀態：off（停用）、scheduled（排程中：開始日還沒到）、ended（已下架：結束日已過）、playing（播映中）
@@ -14095,7 +14119,7 @@ const htmlContent = `<!DOCTYPE html>
       if (!box) return;
       const st = (typeof mapAdmin !== 'undefined' && mapAdmin.status) ? mapAdmin.status : null;
       const pendingText = st ? ((st.text && st.text.pendingNew) || 0) : null, pendingName = st ? ((st.name && st.name.pendingNew) || 0) : null;
-      const items = adminReminderItems({ today: getTodayDateStr(), events: state.events, menus: state.menus, spotlights: state.spotlights, pendingText: pendingText, pendingName: pendingName });
+      const items = adminReminderItems({ today: getTodayDateStr(), events: state.events, menus: state.menus, spotlights: state.spotlights, pendingText: pendingText, pendingName: pendingName, dataBytes: state.appDataBytes });
       box.innerHTML = '';
       const h = document.createElement('div'); h.className = 'flex items-center gap-2 text-sm font-black text-slate-800';
       h.textContent = items.length ? ('🔔 待辦提醒（' + items.length + '）') : '✅ 目前沒有待辦提醒';
@@ -14106,13 +14130,17 @@ const htmlContent = `<!DOCTYPE html>
         row.className = 'admin-reminder flex items-center justify-between gap-2 flex-wrap rounded-2xl bg-amber-50/70 border border-amber-100 px-3 py-2';
         row.setAttribute('data-kind', it.kind);
         const tx1 = document.createElement('span'); tx1.className = 'text-xs font-bold text-amber-900'; tx1.textContent = it.icon + ' ' + it.text;
-        const b = document.createElement('button'); b.type = 'button'; b.className = 'px-3 py-1 rounded-xl bg-white border border-amber-200 hover:bg-amber-100 text-xs font-bold text-amber-800 tap-bounce shrink-0';
-        b.textContent = it.actionLabel + ' ›';
-        b.onclick = function() {
-          if (it.mapKind) { try { mapAdminSetKind(it.mapKind); } catch (e) {} }   // 先切到對應的「內容」或「名稱」，再打開英文對照頁
-          switchAdminSubtab(it.action);
-        };
-        row.appendChild(tx1); row.appendChild(b); box.appendChild(row);
+        row.appendChild(tx1);
+        if (it.action) {   // 有些提醒（例如資料量）只是告知，沒有可前往的頁籤
+          const b = document.createElement('button'); b.type = 'button'; b.className = 'px-3 py-1 rounded-xl bg-white border border-amber-200 hover:bg-amber-100 text-xs font-bold text-amber-800 tap-bounce shrink-0';
+          b.textContent = it.actionLabel + ' ›';
+          b.onclick = function() {
+            if (it.mapKind) { try { mapAdminSetKind(it.mapKind); } catch (e) {} }   // 先切到對應的「內容」或「名稱」，再打開英文對照頁
+            switchAdminSubtab(it.action);
+          };
+          row.appendChild(b);
+        }
+        box.appendChild(row);
       });
     }
 
