@@ -168,7 +168,7 @@ ok(/\.sticker-emoji\s*\{[^}]*display:\s*inline-flex/.test(html) && /\.sticker-in
 console.log('I. 第 4 批：提示訊息、人物、節慶、季節、餐點與其他（含沿用前三批的圖示）');
 const NEW4 = ['check', 'cross', 'warn', 'hourglass', 'party', 'gift', 'dotGreen', 'dotRed', 'dotYellow', 'dotWhite', 'heartYellow', 'girl', 'boy', 'woman', 'man', 'envelope', 'lantern', 'pinwheel', 'bouquet', 'zongzi', 'tie', 'moon', 'pumpkin', 'tree', 'blossom', 'watermelon', 'maple', 'snowman', 'stew', 'bowl', 'milk', 'curry', 'cakeSlice', 'tooth', 'stethoscope', 'peach', 'mushroom', 'antenna', 'headphones', 'flag', 'robot', 'sad', 'wave', 'key', 'sponge', 'abc', 'traffic', 'dice', 'ruler', 'scale', 'shirt', 'pants', 'teddy', 'loveFace', 'palette', 'runner', 'soap'];
 ok(NEW4.every(k => typeof LIB[k] === 'string' && LIB[k].length > 20), '第 4 批 ' + NEW4.length + ' 個新圖示都在庫裡');
-ok(Object.keys(LIB).length === BATCH1.length + BATCH2.length + BATCH3.length + NEW4.length + 9 + 7, '圖示庫總數 = 13 + 25 + 22 + ' + NEW4.length + ' + 9（補強）+ 7（第 5 批）= ' + (BATCH1.length + BATCH2.length + BATCH3.length + NEW4.length + 9 + 7) + '（實際 ' + Object.keys(LIB).length + '）');
+ok(Object.keys(LIB).length === BATCH1.length + BATCH2.length + BATCH3.length + NEW4.length + 9 + 7 + 1, '圖示庫總數 = 13 + 25 + 22 + ' + NEW4.length + ' + 9（補強）+ 7（第 5 批）+ 1（桃子臉）= ' + (BATCH1.length + BATCH2.length + BATCH3.length + NEW4.length + 9 + 7 + 1) + '（實際 ' + Object.keys(LIB).length + '）');
 const WANT4 = { '✅': 'check', '❌': 'cross', '⚠': 'warn', '⏳': 'hourglass', '🎉': 'party', '🎁': 'gift', '🟢': 'dotGreen', '🔴': 'dotRed', '🟡': 'dotYellow', '⚪': 'dotWhite', '💛': 'heartYellow', '👧': 'girl', '👦': 'boy', '👩': 'woman', '👨': 'man', '👨‍👩‍👧': 'together', '❤': 'heart',
   '🧧': 'envelope', '🏮': 'lantern', '🎈': 'pinwheel', '💐': 'bouquet', '🐲': 'zongzi', '👔': 'tie', '🥮': 'moon', '🎃': 'pumpkin', '🎄': 'tree', '🌸': 'blossom', '🍉': 'watermelon', '🍁': 'maple', '⛄': 'snowman',
   '🍲': 'stew', '🥣': 'bowl', '🥛': 'milk', '🍛': 'curry', '🍰': 'cakeSlice', '🦷': 'tooth', '🩺': 'stethoscope', '🍑': 'peach', '🍄': 'mushroom', '📡': 'antenna', '🎧': 'headphones', '🏁': 'flag', '🤖': 'robot', '😢': 'sad', '👋': 'wave', '🔑': 'key', '🧽': 'sponge',
@@ -267,6 +267,21 @@ ok(sp('\u{1F4DD} 第一次面對要打分數的正式評量 \u{1F64B} 第一次�
 ok(sp('｜☎️ 02-2668-8249｜\u{1F4E0} 02-2668-8245') === JSON.stringify([{ t: '｜' }, { k: 'phoneDesk' }, { t: ' 02-2668-8249｜' }, { k: 'fax' }, { t: ' 02-2668-8245' }]), '頁尾聯絡資訊：☎️（帶變體符）與 📠 換成圖示，電話號碼不變');
 ok(/\.sticker-emoji\s*\{/.test(html) && /MutationObserver/.test(html), '轉換機制（stickerizeNode＋MutationObserver）仍在，試算表資料晚到也會被轉換');
 ok(LIB.fullMoon.indexOf('<g fill="#FCD34D"') > 0 && LIB.fullMoon.indexOf('class="d"') > 0, '滿月：兩個大坑洞不是細節線條（縮小時仍看得出是月亮，不會變成單純黃點）');
+
+console.log('O. 選單導覽的標題圖示：蘑菇換成「可愛臉桃子」（使用者選款式 B）');
+const pf = LIB.peachFace || '';
+ok(typeof LIB.peachFace === 'string' && pf.length > 100, '圖示庫有 peachFace（桃子臉）');
+ok(pf.indexOf('fill="#FDA4AF"') > 0 && (pf.match(/fill="#34D399"/g) || []).length === 2, '桃子臉：粉紅色身體、兩片綠葉');
+ok((pf.match(/class="d"/g) || []).length >= 3 && /<g class="d" fill="#6B4A44" stroke="none"><circle cx="9" cy="14\.2" r="\.9"\/><circle cx="15" cy="14\.2" r="\.9"\/><\/g>/.test(pf), '桃子臉：兩顆眼睛、嘴巴、腮紅都是細節線（class="d"，縮到 sticker-sm 會隱藏）');
+ok(!/^<path class="d"/.test(pf) && /^<path d="M12 7\.4C8 4\.6/.test(pf), '桃子臉：身體輪廓不是細節線（縮小後仍是桃子，不會只剩臉）');
+const hdrStart = html.indexOf('id="desktopSidebar"'), hdrEnd = html.indexOf('id="pinSidebarBtn"');
+const hdr = html.slice(hdrStart, hdrEnd);
+ok(hdrStart > 0 && hdrEnd > hdrStart, '找得到側邊欄標題區（「選單導覽」那一列）');
+ok(hdr.indexOf('🍄') < 0, '標題區沒有 🍄');
+ok(/<span class="[^"]*cursor-pointer[^"]*"[^>]*onclick="switchTab\('home'\)"[^>]*aria-hidden="true">\s*<svg class="sticker w-6 h-6"/.test(hdr) && hdr.indexOf(pf) > 0, '標題區：點圖示仍回「班級日常」，內容是桃子臉 SVG（用 sticker 而非 sticker-sm，臉會顯示）');
+ok(html.split('🍄').length - 1 === 1, '整頁只剩 EMOJI_TEXT 對照表裡有 🍄（不再有任何位置直接寫蘑菇）');
+ok(EMOJI_TEXT['🍄'] === 'mushroom' && typeof LIB.mushroom === 'string', '老師若在試算表打 🍄，仍會轉成蘑菇圖示（對照表與圖示都保留）');
+ok(EMOJI_TEXT['🍑'] === 'peach' && LIB.peach.indexOf('M12 6.6C7 3.4') > 0, '🍑 仍轉成原本的桃子（網站其他地方不變）');
 
 console.log('\n結果：' + pass + ' 通過，' + fail + ' 失敗');
 process.exit(fail ? 1 : 0);
