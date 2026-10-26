@@ -508,11 +508,11 @@ const htmlContent = `<!DOCTYPE html>
           <span class="font-bold text-xs whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1" data-i18n="nav.admin">管理後台</span>
         </button>
         <button type="button" onclick="toggleBigText()" id="bigTextToggleBtn" aria-pressed="false" class="flex items-center px-1.5 py-1.5 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800 tap-bounce" title="放大文字" data-i18n-title="nav.bigTextTitle">
-          <span class="text-base w-6 text-center shrink-0">🔠</span>
+          <span class="w-6 shrink-0 flex justify-center" aria-hidden="true">${stickerSvg('textSize', 'sticker-sm w-5 h-5')}</span>
           <span id="bigTextToggleText" class="font-bold text-xs whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1" data-i18n="nav.bigText">大字</span>
         </button>
-        <button type="button" onclick="toggleLanguage()" id="langToggleBtn" class="flex items-center px-1.5 py-1.5 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800 border-t border-slate-100 mt-1 pt-1.5 tap-bounce" title="切換語言 / Switch Language" data-i18n-title="nav.langTitle">
-          <span class="text-base w-6 text-center shrink-0">🌐</span>
+        <button type="button" onclick="toggleLanguage()" id="langToggleBtn" class="flex items-center px-1.5 py-1.5 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800 border-t border-slate-100 mt-1 pt-[calc(0.375rem_-_1px)] tap-bounce" title="切換語言 / Switch Language" data-i18n-title="nav.langTitle">
+          <span class="w-6 shrink-0 flex justify-center" aria-hidden="true">${stickerSvg('globe', 'sticker-sm w-5 h-5')}</span>
           <span id="langToggleText" class="font-bold text-xs whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1" data-i18n="nav.langToggle">English</span>
         </button>
       </nav>

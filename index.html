@@ -3357,6 +3357,10 @@ video {
   padding-top: 2rem;
 }
 
+.pt-\[calc\(0\.375rem_-_1px\)\] {
+  padding-top: calc(0.375rem - 1px);
+}
+
 .text-left {
   text-align: left;
 }
@@ -5112,11 +5116,11 @@ video {
           <span class="font-bold text-xs whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1" data-i18n="nav.admin">管理後台</span>
         </button>
         <button type="button" onclick="toggleBigText()" id="bigTextToggleBtn" aria-pressed="false" class="flex items-center px-1.5 py-1.5 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800 tap-bounce" title="放大文字" data-i18n-title="nav.bigTextTitle">
-          <span class="text-base w-6 text-center shrink-0">🔠</span>
+          <span class="w-6 shrink-0 flex justify-center" aria-hidden="true"><svg class="sticker sticker-sm w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="#6B4A44" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="2.5" y="3.5" width="19" height="17" rx="3.4" fill="#FEF3C7"/><path d="M6 17l3.2-9 3.2 9M7.1 14h4.2"/><path d="M15 17l2-5.6 2 5.6M15.8 15.2h2.4" stroke-width="1.4"/></svg></span>
           <span id="bigTextToggleText" class="font-bold text-xs whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1" data-i18n="nav.bigText">大字</span>
         </button>
-        <button type="button" onclick="toggleLanguage()" id="langToggleBtn" class="flex items-center px-1.5 py-1.5 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800 border-t border-slate-100 mt-1 pt-1.5 tap-bounce" title="切換語言 / Switch Language" data-i18n-title="nav.langTitle">
-          <span class="text-base w-6 text-center shrink-0">🌐</span>
+        <button type="button" onclick="toggleLanguage()" id="langToggleBtn" class="flex items-center px-1.5 py-1.5 rounded-xl transition-all group/btn text-slate-500 hover:bg-slate-100 hover:text-slate-800 border-t border-slate-100 mt-1 pt-[calc(0.375rem_-_1px)] tap-bounce" title="切換語言 / Switch Language" data-i18n-title="nav.langTitle">
+          <span class="w-6 shrink-0 flex justify-center" aria-hidden="true"><svg class="sticker sticker-sm w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="#6B4A44" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.6" fill="#BFDBFE"/><path d="M6.6 6.8c1.8-.3 3.4.6 3.2 2.2-.2 1.4-1.8 1.8-1.4 3.4.3 1.5-1.4 2.4-2.6 1.5A8.6 8.6 0 0 1 6.6 6.8Z" fill="#34D399"/><path d="M14.2 5.2c2 .3 4 1.7 4.8 3.6-1.5.4-2.7-.4-3.6.6-.8.9.2 2.6-1.3 3.1-1.1.4-1.7-1.4-1.3-2.8.4-1.3-.7-2.8 1.4-4.5Z" fill="#34D399"/><path class="d" d="M11 17.4c1-.8 2.4-.9 3.4-.1-.6 1.3-2.4 1.6-3.4.1Z" fill="#34D399"/></svg></span>
           <span id="langToggleText" class="font-bold text-xs whitespace-nowrap opacity-0 transition-opacity duration-300 sidebar-text ml-1" data-i18n="nav.langToggle">English</span>
         </button>
       </nav>

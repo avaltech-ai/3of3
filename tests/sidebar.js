@@ -12,7 +12,7 @@
   // A. 對齊：切換過頁籤之後（switchTab 會改寫按鈕 class），所有項目的圖示與文字左緣必須一致
   switchTab('albums'); await wait(300); switchTab('home'); await wait(300);
   expandSidebar(); await wait(600);
-  const hdrIcon = left(sb.querySelector('.border-b span.text-base'));
+  const hdrIcon = left(sb.querySelector('.border-b span.cursor-pointer'));
   const btns = [...sb.querySelectorAll('nav > button')].filter(b => b.offsetParent);
   const icons = btns.map(b => left(b.querySelector('span')));
   const labels = btns.map(b => left(b.querySelector('.sidebar-text')));

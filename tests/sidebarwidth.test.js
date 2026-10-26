@@ -30,5 +30,23 @@ ok(/\.w-\\\[8\\\.5rem\\\]\s*\{\s*width:\s*8\.5rem;?\s*\}/.test(css), '.w-[8.5rem
 ok(/\.md\\:w-\\\[8\\\.5rem\\\]\s*\{\s*width:\s*8\.5rem;?\s*\}/.test(css), '.md:w-[8.5rem] → width: 8.5rem（在 md 斷點內）');
 ok(/html\.big-text|data-big-text|font-size:\s*22px/.test(html), '大字模式會把根字級放大（rem 寬度才會跟著變）');
 
+console.log('D. 底部「大字」「English」兩顆按鈕與其他項目等高（2026-10-26）');
+// 原因：這兩顆的圖示原本是文字 Emoji（text-base 的行高比 20px 圖示高），按鈕比其他項目高 5～6px（量測：38／43.1／44.1px）；
+// English 還多一條 1px 的分隔線。改成與其他頁籤相同的圖示欄（w-6 flex 置中＋sticker-sm w-5 h-5），分隔線的 1px 從上方內距扣掉。
+const stripTags = (h) => h.replace(/\s+/g, ' ');
+const btnHtml = (id) => { const a = html.indexOf('id="' + id + '"'); const i = html.lastIndexOf('<button', a); return stripTags(html.slice(i, html.indexOf('</button>', a))); };
+const bigBtn = btnHtml('bigTextToggleBtn'), langBtn = btnHtml('langToggleBtn'), adminBtn = btnHtml('tabBtn-admin');
+const iconSpan = (b) => /<span class="([^"]*)"[^>]*>\s*<svg class="sticker sticker-sm w-5 h-5"/.exec(b);
+ok(!!iconSpan(adminBtn) && iconSpan(adminBtn)[1] === 'w-6 shrink-0 flex justify-center', '對照：其他頁籤的圖示欄是 w-6 shrink-0 flex justify-center');
+ok(!!iconSpan(bigBtn) && iconSpan(bigBtn)[1] === iconSpan(adminBtn)[1], '「大字」：圖示欄與其他頁籤相同（不再是 text-base 文字）');
+ok(!!iconSpan(langBtn) && iconSpan(langBtn)[1] === iconSpan(adminBtn)[1], '「English」：圖示欄與其他頁籤相同');
+ok(!/text-base/.test(bigBtn) && !/text-base/.test(langBtn), '兩顆按鈕裡都沒有 text-base（行高會把按鈕撐高）');
+ok(!/🔠/.test(bigBtn) && !/🌐/.test(langBtn), '兩顆按鈕裡不再直接寫 Emoji（改成貼紙圖示）');
+const LIB5 = JSON.parse(/const STICKER_SVG = (\{[^\n]*\});/.exec(html)[1]);
+ok(bigBtn.indexOf(LIB5.textSize) > 0 && langBtn.indexOf(LIB5.globe) > 0, '「大字」用 textSize 圖示、「English」用 globe 圖示（與原本 🔠／🌐 的對照一致）');
+ok(/border-t border-slate-100 mt-1 pt-\[calc\(0\.375rem_-_1px\)\]/.test(langBtn) && !/\bpt-1\.5\b/.test(langBtn), '「English」：保留上方分隔線，上內距扣掉 1px 邊線（總高與其他項目相同）');
+ok(!/border-t/.test(bigBtn), '「大字」沒有分隔線');
+ok(/\.pt-\\\[calc\\\(0\\\.375rem_-_1px\\\)\\\]\s*\{\s*padding-top:\s*calc\(0\.375rem - 1px\);?\s*\}/.test(css), '建置出的樣式有這個上內距（calc(0.375rem - 1px)）');
+
 console.log('\n結果：' + pass + ' 通過，' + fail + ' 失敗');
 process.exit(fail ? 1 : 0);
