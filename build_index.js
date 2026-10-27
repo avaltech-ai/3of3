@@ -749,13 +749,13 @@ const htmlContent = `<!DOCTYPE html>
             <div id="spotlightPoints" class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
               <div class="bg-white/80 p-2.5 rounded-xl border border-rose-100 shadow-2xs">
                 <div class="font-bold text-rose-600 flex items-center gap-1 mb-0.5">
-                  <span>🦷</span> 【衛教宣導】
+                  【衛教宣導】
                 </div>
                 <div class="text-slate-600">正確刷牙示範，引導幼兒養成每日潔牙好習慣。</div>
               </div>
               <div class="bg-white/80 p-2.5 rounded-xl border border-rose-100 shadow-2xs">
                 <div class="font-bold text-teal-600 flex items-center gap-1 mb-0.5">
-                  <span>🩺</span> 【塗氟檢查】
+                  【塗氟檢查】
                 </div>
                 <div class="text-slate-600">每六個月定期專業口腔保健，細心守護孩子健康小乳牙。</div>
               </div>
@@ -6272,11 +6272,12 @@ const htmlContent = `<!DOCTYPE html>
           
           const borderClass = isWarning ? 'border-amber-200 bg-amber-50/80 col-span-1 sm:col-span-2' : isTeal ? 'border-teal-100 bg-teal-50/50' : isEnd ? 'border-indigo-100 bg-indigo-50/50' : 'border-rose-100 bg-white/80';
           const textClass = isWarning ? 'text-amber-700 font-bold' : isTeal ? 'text-teal-700 font-bold' : isEnd ? 'text-indigo-700 font-bold' : 'text-rose-600 font-bold';
-          const icon = isWarning ? '⚠️' : isTeal ? '🩺' : isEnd ? '🎁' : '🦷';
+          // 圖示只留給「重要／注意」類警示；其他標題不放圖示（原本固定放 🦷／🩺／🎁，與活動內容常常不符，2026-10-27 使用者要求拿掉）
+          const icon = isWarning ? '<span>⚠️</span> ' : '';
 
           item.className = 'p-2.5 rounded-xl border ' + borderClass + ' shadow-2xs';
           item.innerHTML = '<div class="' + textClass + ' flex items-center gap-1 mb-0.5 text-xs">' +
-            '<span>' + icon + '</span> 【' + esc(tag) + '】' +
+            icon + '【' + esc(tag) + '】' +
             '</div>' +
             '<div class="text-slate-700 text-xs leading-relaxed font-medium">' + esc(content) + '</div>';
         } else {
