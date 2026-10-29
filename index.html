@@ -3782,6 +3782,10 @@ video {
   -moz-osx-font-smoothing: grayscale;
 }
 
+.accent-amber-500 {
+  accent-color: #f59e0b;
+}
+
 .accent-emerald-500 {
   accent-color: #10b981;
 }
@@ -6537,6 +6541,14 @@ video {
                   <label class="block text-xs font-bold text-slate-700 mb-1">說明描述</label>
                   <textarea id="docModal-description" rows="2" placeholder="說明幼兒使用情況或列印注意事項..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:border-indigo-500 focus:outline-none"></textarea>
                 </div>
+
+                <label class="flex items-start gap-2.5 p-3 rounded-xl border border-amber-200 bg-amber-50/60 cursor-pointer">
+                  <input type="checkbox" id="docModal-pinned" class="mt-0.5 w-4 h-4 shrink-0 accent-amber-500">
+                  <span class="text-xs">
+                    <span class="font-bold text-amber-800">📌 釘選置頂</span>
+                    <span class="block text-slate-600 mt-0.5">勾選後，這份文件固定排在列表最上方，不受更新時間影響（多份釘選時，依更新日期新到舊排列）。</span>
+                  </span>
+                </label>
 
                 <div id="docModal-filesBox">
                   <div class="flex items-center justify-between mb-1">
@@ -12998,6 +13010,12 @@ video {
         '</svg></div>';
     }
 
+    // 釘選置頂的標示（前台、後台列表共用）
+    function pinBadgeHtml(doc) {
+      if (!isDocPinned(doc)) return '';
+      return '<span class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-amber-100 text-amber-800 whitespace-nowrap" data-doc-pinned="1">📌 ' + (state.lang === 'en' ? 'Pinned' : '置頂') + '</span>';
+    }
+
     function renderDocsList(filterCat = '全部') {
       const container = document.getElementById('docsListContainer');
       if (!container) return;
@@ -13021,9 +13039,9 @@ video {
         else { browseAlbumsBtn.classList.add('hidden'); browseAlbumsBtn.setAttribute('hidden', ''); }
       }
 
-      const filtered = (filterCat === '全部') 
+      const filtered = sortDocsForDisplay((filterCat === '全部') 
         ? state.docs 
-        : state.docs.filter(d => (d.category || '') === filterCat);
+        : state.docs.filter(d => (d.category || '') === filterCat));
 
       if (filtered.length === 0) {
         container.innerHTML = '<div class="py-12 text-center text-xs text-slate-400">' + (state.lang === 'en' ? 'No documents found in this category.' : '目前無符合分類之文件。') + '</div>';
@@ -13045,6 +13063,7 @@ video {
             '<h4 class="font-black text-slate-800 text-sm sm:text-base">' + (esc(tx(doc.fileName)) || (en ? 'Untitled Document' : '未命名文件')) + '</h4>' +
             '<span class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-indigo-100 text-indigo-800">' + (esc(tn(doc.category)) || (en ? 'General' : '一般')) + '</span>' +
             '<span class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-slate-100 text-slate-600">' + (en ? docFiles.length + ' files' : docFiles.length + ' 個檔案') + '</span>' +
+            pinBadgeHtml(doc) +
             newBadgeHtml(doc.updatedAt) +
             '</div>' +
             '<p class="text-xs text-slate-500 mt-1 leading-relaxed">' + (esc(tx(doc.description)) || (en ? 'Choose a file to download' : '請選擇要下載的檔案')) + '</p>' +
@@ -13074,6 +13093,7 @@ video {
           '<div class="flex items-center gap-2 flex-wrap">' +
           '<h4 class="font-black text-slate-800 text-sm sm:text-base">' + (esc(tx(doc.fileName)) || (state.lang === 'en' ? 'Untitled Document' : '未命名文件')) + '</h4>' +
           '<span class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-indigo-100 text-indigo-800">' + (esc(tn(doc.category)) || (state.lang === 'en' ? 'General' : '一般')) + '</span>' +
+          pinBadgeHtml(doc) +
           newBadgeHtml(doc.updatedAt) +
           '</div>' +
           '<p class="text-xs text-slate-500 mt-1 leading-relaxed">' + (esc(tx(doc.description)) || (state.lang === 'en' ? 'Click to preview or download document' : '點擊即可線上下載或預覽文件')) + '</p>' +
@@ -13733,6 +13753,7 @@ video {
           '<div class="flex items-center gap-2 flex-wrap">' +
           (url ? '<a href="' + (escUrl(url) || '#') + '" target="_blank" rel="noopener noreferrer" class="font-black text-slate-800 text-sm hover:underline">' + title + '</a>' : '<span class="font-black text-slate-800 text-sm">' + title + '</span>') +
           '<span class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-indigo-100 text-indigo-800">' + (esc(doc.category) || '一般') + '</span>' +
+          pinBadgeHtml(doc) +
           newBadgeHtml(doc.updatedAt) +
           '</div>' +
           (doc.description ? '<p class="text-xs text-slate-500 mt-1 line-clamp-2">' + esc(doc.description) + '</p>' : '') +
@@ -13750,7 +13771,7 @@ video {
 
     // ---------- 文件表單的模式（新增／編輯既有／以舊文件為範本新增）----------
     const docFormState = { mode: 'new', baseId: '', baseTitle: '', baseline: null };
-    const DOC_FORM_FIELDS = [['fileName', '文件名稱'], ['category', '文件分類'], ['description', '說明描述', true], ['files', '檔案']];
+    const DOC_FORM_FIELDS = [['fileName', '文件名稱'], ['category', '文件分類'], ['description', '說明描述', true], ['pinned', '釘選置頂'], ['files', '檔案']];
     const DOC_FORM_CFG = {
       card: 'docModalBox', banner: 'docFormModeBanner', text: 'docFormModeText', save: 'docModalSaveBtn', saveLabel: 'docModalSaveLabel', asNew: 'docModalSaveAsNewBtn',
       texts: {
@@ -13767,7 +13788,7 @@ video {
 
     function docFormSnapshot() {
       const v = function(id) { return (document.getElementById(id) || {}).value || ''; };
-      return { fileName: v('docModal-fileName').trim(), category: v('docModal-category'), description: v('docModal-description').trim(), files: docModalFiles.map(function(en) { return en.name + (en.file ? '（待上傳）' : ''); }).join('、') };
+      return { fileName: v('docModal-fileName').trim(), category: v('docModal-category'), description: v('docModal-description').trim(), pinned: (document.getElementById('docModal-pinned') || {}).checked ? '是' : '否', files: docModalFiles.map(function(en) { return en.name + (en.file ? '（待上傳）' : ''); }).join('、') };
     }
 
     function docModalOpen() { const m = document.getElementById('docEditModal'); return !!m && !m.classList.contains('hidden'); }
@@ -13798,6 +13819,7 @@ video {
       if (docModalOpen() && !confirmDiscardDoc()) return;
       openDocEditModal(id, true);
       document.getElementById('docModal-id').value = '';
+      document.getElementById('docModal-pinned').checked = false;   // 複製出來的新文件預設不釘選
       document.getElementById('docModalTitle').innerHTML = '<span>📄</span> 複製文件';
       setDocFormMode('copy', doc);
     }
@@ -13819,6 +13841,7 @@ video {
           document.getElementById('docModal-fileName').value = doc.fileName || '';
           document.getElementById('docModal-category').value = doc.category || '一般文件';
           document.getElementById('docModal-description').value = doc.description || '';
+          document.getElementById('docModal-pinned').checked = isDocPinned(doc);
         }
       } else {
         document.getElementById('docModalTitle').innerHTML = '<span>➕</span> 新增常用文件';
@@ -13826,6 +13849,7 @@ video {
         document.getElementById('docModal-fileName').value = '';
         document.getElementById('docModal-category').value = '保健用藥';
         document.getElementById('docModal-description').value = '';
+        document.getElementById('docModal-pinned').checked = false;
       }
       docModalLoadFrom(loadDoc);
 
@@ -14054,6 +14078,7 @@ video {
           fileExtension: first ? first.ext : 'pdf',   // 舊欄位同步成第一個檔案（後端也會同步）
           category: category,
           description: description,
+          pinned: !!(document.getElementById('docModal-pinned') || {}).checked,
           driveFileId: first ? first.driveFileId : '',
           downloadUrl: first ? first.downloadUrl : '',
           files: files,
@@ -14089,8 +14114,9 @@ video {
       if (idx > -1) {
         state.docs[idx] = Object.assign({}, state.docs[idx], docData);
       } else {
-        state.docs.push(docData);
+        state.docs.unshift(docData);   // 最新的在最前面（顯示時還會再依釘選與更新日期排序）
       }
+      state.docs = docsSortStable(state.docs);
       try {
         localStorage.setItem('nobel_a_docs_custom', JSON.stringify(state.docs));
       } catch (e) {}
@@ -16126,6 +16152,23 @@ video {
       return list.map(function(x) { return x.s; });
     }
     // 常用文件：st = { query, cat }；搜尋名稱、分類、說明；排序＝試算表列順序倒過來（最新建立在最上面）
+    // 常用文件的顯示順序（前台、後台共用）：釘選置頂的在前 → 各自依更新日期新到舊 → 同一天則試算表較下面（較晚加入）的在前。
+    // 傳入的是試算表原本的列順序；回傳新陣列、不改動原陣列。
+    function isDocPinned(d) {
+      if (!d) return false;
+      const v = d.pinned;
+      if (v === true || v === 1) return true;
+      const t = String(v === undefined || v === null ? '' : v).trim().toLowerCase();
+      return t === 'y' || t === 'true' || t === '是' || t === '1' || t === '✓';
+    }
+    function docsOrderCompare(a, b) {
+      const pa = isDocPinned(a) ? 1 : 0, pb = isDocPinned(b) ? 1 : 0;
+      if (pa !== pb) return pb - pa;
+      const ua = String((a && a.updatedAt) || ''), ub = String((b && b.updatedAt) || '');
+      return ua < ub ? 1 : ua > ub ? -1 : 0;
+    }
+    function docsSortStable(list) { return (list || []).slice().sort(docsOrderCompare); }
+    function sortDocsForDisplay(list) { return docsSortStable((list || []).slice().reverse()); }
     function adminDocsView(docs, st) {
       const terms = adminListTerms(st.query);
       const catKey = adminListKey(st.cat);
@@ -16136,8 +16179,7 @@ video {
         if (terms.length && !adminListMatches([d.fileName, d.category, d.description].join(' '), terms)) return;
         list.push({ d: d, i: i });
       });
-      list.sort(function(a, b) { return b.i - a.i; });
-      return list.map(function(x) { return x.d; });
+      return sortDocsForDisplay(list.map(function(x) { return x.d; }));
     }
     // 學期新舊的比較值：名稱裡第一組數字（學年）× 10 ＋ 上學期 1／下學期 2；看不出來的當 0（排最舊）
     function semesterSortKey(name) {

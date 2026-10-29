@@ -36,7 +36,7 @@ let n=0,bad=0;
 console.log('檢查 '+n+' 段內嵌 script，錯誤 '+bad);
 process.exit(bad||n===0?1:0)" || fail=1
 
-for t in auth idempotency covers namemap warmcache albumphotos albumcount themeoverview semestertasks transition mobilenav pwa ics textmap docfiles sitetitles security safeurl adminlogin mapadmin mapsimilar spothistory adminlist bareget songnodl spotlightorder festival thumbhints spotlightposter tailwindbuild stickers textmap_fallback songreaderror sidebarwidth appdatacache datasizereminder spotlighticons; do
+for t in auth idempotency covers namemap warmcache albumphotos albumcount themeoverview semestertasks transition mobilenav pwa ics textmap docfiles sitetitles security safeurl adminlogin mapadmin mapsimilar spothistory adminlist bareget songnodl spotlightorder festival thumbhints spotlightposter tailwindbuild stickers textmap_fallback songreaderror sidebarwidth appdatacache datasizereminder spotlighticons docpin; do
   step "Node 測試：$t"
   node "tests/$t.test.js" || fail=1
 done

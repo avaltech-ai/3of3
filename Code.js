@@ -1016,6 +1016,7 @@ function getAppData() {
     });
     // 一份文件多個檔案：files 欄（JSON）解析成陣列；沒有就是空陣列（舊式單檔文件）
     docs.forEach(function(d) { d.files = parseDocFiles_(d.files); });
+    docs.forEach(function(d) { d.pinned = docPinned_(d.pinned); });
     const settings = getSettingsObject_(ss.getSheetByName('Settings'));
 
     // 確保 DocCategories 工作表存在
@@ -4056,6 +4057,15 @@ function updateSpotlightsOrder(orderList, password) {
 }
 
 /**
+ * 文件是否「釘選置頂」：Docs 工作表的 pinned 欄。Y／TRUE／是／1／✓ 都算（老師在試算表手填也可以），其他一律不算。
+ */
+function docPinned_(v) {
+  if (v === true || v === 1) return true;
+  const t = String(v === undefined || v === null ? '' : v).trim().toLowerCase();
+  return t === 'y' || t === 'true' || t === '是' || t === '1' || t === '✓';
+}
+
+/**
  * 儲存/更新常用文件紀錄 (支援前台即時編輯與雲端同步)
  */
 function saveDoc(docData, password) {
@@ -4098,6 +4108,14 @@ function saveDoc(docData, password) {
       headers.push('files');
     }
 
+    // 釘選置頂：pinned 欄（Y＝釘選）。只有前端有送 pinned 時才新增欄位、才改；舊版前端沒帶就維持原樣
+    const pinSent = docData.pinned !== undefined;
+    if (pinSent && headers.indexOf('pinned') === -1) {
+      sheet.insertColumnAfter(headers.length);
+      sheet.getRange(1, headers.length + 1).setValue('pinned').setFontWeight('bold');
+      headers.push('pinned');
+    }
+
     let ext = docData.fileExtension || '';
     if (!ext && docData.fileName) {
       const m = String(docData.fileName).match(/\.([a-zA-Z0-9]+)$/);
@@ -4116,6 +4134,7 @@ function saveDoc(docData, password) {
       updatedAt: docData.updatedAt || todayStr,
       files: filesJson
     };
+    if (pinSent) fieldMap.pinned = docPinned_(docData.pinned) ? 'Y' : '';
     // 有檔案清單：舊的單檔欄位同步成第一個檔案
     if (filesNorm && filesNorm.length) {
       fieldMap.fileExtension = filesNorm[0].ext;
