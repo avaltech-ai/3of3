@@ -60,7 +60,7 @@ console.log('D. 行事曆圖例、日曆格子、今日卡片');
 const lg = html.slice(html.indexOf('<!-- 圖例說明 -->'), html.indexOf('<!-- 3. 【連動區段】'));
 ok(['heart', 'meal', 'chef', 'cake'].every(k => lg.indexOf(LIB[k]) > 0) && !/❤️|🍱|🥐|🎂/.test(lg), '圖例：諾貝爾 A 班、餐點、幸福廚房、慶生改用圖示');
 ok(/calIcons\.map\(ic => emojiIconHtml\(ic, 'w-4 h-4'\)\)/.test(html), '日曆格子：圖示經 emojiIconHtml 顯示');
-ok(/badgesHtml \+= '<span class="inline-flex leading-none select-none" title="' \+ esc\(t\('ui\.calDotNobel'\)\) \+ '">' \+ stickerSvg\('heart', 'sticker-sm w-3 h-3'\) \+ '<\/span>'/.test(html), '日曆格子：諾貝爾 A 班的愛心改用圖示（保留滑過說明）');
+ok(/badgesHtml \+= '<span class="inline-flex leading-none select-none" aria-hidden="true" title="' \+ esc\(t\('ui\.calDotNobel'\)\) \+ '">' \+ stickerSvg\('heart', 'sticker-sm w-3 h-3'\) \+ '<\/span>'/.test(html), '日曆格子：諾貝爾 A 班的愛心改用圖示（保留滑過說明）');
 ok(emojiIconHtml('🍱', 'w-4 h-4').indexOf(LIB.meal) > 0 && emojiIconHtml('🥐', 'w-4 h-4').indexOf(LIB.chef) > 0 && emojiIconHtml('🎂', 'w-4 h-4').indexOf(LIB.cake) > 0, 'emojiIconHtml：🍱→餐點、🥐→廚師帽、🎂→蛋糕');
 ok(emojiIconHtml('🥮', 'w-4 h-4') === '<span>🥮</span>' && emojiIconHtml('<img src=x onerror=alert(1)>', 'w-4 h-4').indexOf('<img') < 0, 'emojiIconHtml：其他圖示（節慶，第 4 批再換）照舊顯示文字，而且會跳脫');
 ok(/calendarDayIcons\(dayEvents, dayMenu, offDay\)\.filter\(function\(ic\) \{ return ic !== '🍱'; \}\)/.test(html) && /b\.innerHTML = emojiIconHtml\(ic, 'w-4 h-4'\) \+ ' ' \+ esc\(t\(ic === '🥐'/.test(html), '今日卡片的「幸福廚房／慶生」小標籤也用圖示');

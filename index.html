@@ -99,6 +99,10 @@
   <style>
     
     /* 自己畫的貼紙圖示：小尺寸（sticker-sm）外框加粗、隱藏細節線條（class="d"） */
+    /* 「跳到主要內容」：平常藏在畫面外，鍵盤聚焦時才出現（無障礙 2.4.1） */
+    .skip-link { position: absolute; left: 0.5rem; top: -4rem; z-index: 100; background: #FFFFFF; color: #B03040; font-weight: 800; font-size: 0.875rem; padding: 0.5rem 1rem; border-radius: 0.75rem; border: 2px solid #B03040; text-decoration: none; }
+    .skip-link:focus { top: 0.5rem; }
+    #mainContent:focus { outline: none; }
     .sticker { display: inline-block; flex: none; vertical-align: middle; overflow: visible; }
     .sticker-sm { stroke-width: 1.9; }
     .sticker-sm .d { display: none; }
@@ -1658,6 +1662,11 @@ video {
   transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
 }
 
+.rotate-45 {
+  --tw-rotate: 45deg;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+}
+
 .transform {
   transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
 }
@@ -2019,6 +2028,10 @@ video {
 
 .rounded-none {
   border-radius: 0px;
+}
+
+.rounded-sm {
+  border-radius: 0.125rem;
 }
 
 .rounded-xl {
@@ -3914,6 +3927,10 @@ video {
   outline-offset: 2px;
 }
 
+.outline {
+  outline-style: solid;
+}
+
 .ring-1 {
   --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
   --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color);
@@ -5060,6 +5077,7 @@ video {
 }</style>
 </head>
 <body class="text-slate-700 min-h-screen flex flex-col antialiased selection:bg-peach-200">
+<a href="#mainContent" class="skip-link" data-i18n="ui.skipToMain">跳到主要內容</a>
 
   <!-- ==================== 頂部全彩色帶 (取代原本的走馬燈) ==================== -->
   <div id="seasonBar" class="season-bar h-1.5 w-full sticky top-0 z-50"></div>
@@ -5184,7 +5202,7 @@ video {
 
 
   <!-- ==================== 主要內容區塊 CONTAINER ==================== -->
-  <main class="max-w-5xl mx-auto px-4 py-5 flex-1 w-full mb-6">
+  <main id="mainContent" tabindex="-1" class="max-w-5xl mx-auto px-4 py-5 flex-1 w-full mb-6">
 
     <!-- 雲端靜默同步提示 Badge (非阻塞式，保證隨時可順暢操作) -->
     <div id="bgSyncBadge" class="fixed top-16 right-4 bg-white/95 backdrop-blur border border-peach-200 text-peach-600 text-[0.6875rem] font-bold px-2.5 py-1 rounded-full shadow-sm flex items-center gap-1.5 hidden z-50 transition-all pointer-events-none">
@@ -5194,7 +5212,7 @@ video {
 
   
   <!-- ==================== THEME MODAL (主題活動編輯) ==================== -->
-  <div id="themeModal" class="fixed inset-0 z-50 hidden items-center justify-center">
+  <div id="themeModal" role="dialog" aria-modal="true" aria-labelledby="modalThemeTitle" class="fixed inset-0 z-50 hidden items-center justify-center">
     <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeThemeModal()"></div>
     <div id="themeModalBox" class="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl relative z-10 flex flex-col m-4 border-2 border-emerald-200">
       
@@ -5459,10 +5477,10 @@ video {
             <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> <span data-i18n="cal.legendAllSchool">全園活動</span>
           </span>
           <span class="flex items-center gap-1">
-            <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span> <span data-i18n="cal.legendTheme">班級主題</span>
+            <span class="w-2.5 h-2.5 rounded-sm bg-amber-400"></span> <span data-i18n="cal.legendTheme">班級主題</span>
           </span>
           <span class="flex items-center gap-1">
-            <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> <span data-i18n="cal.legendImportant">重要活動</span>
+            <span class="w-2 h-2 rotate-45 bg-rose-500"></span> <span data-i18n="cal.legendImportant">重要活動</span>
           </span>
           <span class="flex items-center gap-1 text-slate-600">
             <svg class="sticker sticker-sm w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="#6B4A44" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path class="d" d="M14 2.8l-3.2 7.4M18.2 3.8l-4.6 6.4" stroke="#F59E0B" stroke-width="1.8"/><path d="M5.2 11a6.8 4.6 0 0 1 13.6 0Z" fill="#FFFFFF"/><path d="M3 11h18a9 7.5 0 0 1-18 0Z" fill="#FF7A85"/><path class="d" d="M6 14.4h12" stroke="#FFFFFF" stroke-opacity=".7"/><path d="M9.5 20.5h5"/></svg> <span data-i18n="cal.legendSnack">每日點心／餐點</span>
@@ -7225,7 +7243,7 @@ video {
 
   
   <!-- ==================== ACTICITY 資料夾現有檔案選取彈窗 (MODAL) ==================== -->
-  <div id="activityPickerModal" class="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-3 sm:p-5 hidden">
+  <div id="activityPickerModal" role="dialog" aria-modal="true" aria-label="從活動資料夾選取圖片" class="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-3 sm:p-5 hidden">
     <div class="bg-white rounded-3xl max-w-2xl w-full max-h-[85vh] flex flex-col p-5 shadow-2xl relative">
       <div class="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
         <div class="flex items-center gap-2">
@@ -7252,7 +7270,7 @@ video {
   </div>
 
   <!-- ==================== SPOTLIGHT 攻略大圖彈窗 (MODAL) ==================== -->
-  <div id="spotlightModal" class="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-3 sm:p-5 hidden">
+  <div id="spotlightModal" role="dialog" aria-modal="true" aria-labelledby="modalSpotlightTitle" class="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-3 sm:p-5 hidden">
     <div class="bg-white rounded-3xl max-w-2xl md:max-w-4xl lg:max-w-5xl w-full max-h-[92vh] overflow-y-auto p-4 sm:p-6 shadow-2xl space-y-4 relative">
       <button onclick="closeSpotlightModal()" class="absolute top-4 right-4 w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-base tap-bounce z-30" title="關閉" data-i18n-title="ui.close">
         ✕
@@ -7281,7 +7299,7 @@ video {
   </div>
 
   <!-- ==================== 歷史焦點彈窗（只列最近一季內已結束的焦點活動）==================== -->
-  <div id="spotlightHistoryModal" class="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-3 sm:p-5 hidden" onclick="if (event.target === this) closeSpotlightHistory()">
+  <div id="spotlightHistoryModal" role="dialog" aria-modal="true" aria-label="歷史焦點" class="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-3 sm:p-5 hidden" onclick="if (event.target === this) closeSpotlightHistory()">
     <div class="bg-white rounded-3xl max-w-5xl w-full h-[90vh] flex flex-col p-4 sm:p-6 shadow-2xl relative">
       <div class="flex items-center justify-between gap-2 pb-3 border-b border-slate-100 shrink-0">
         <div class="flex items-center gap-2 min-w-0">
@@ -7323,7 +7341,7 @@ video {
   </div>
 
   <!-- ==================== 相簿照片瀏覽彈窗 (ALBUM LIGHTBOX MODAL) ==================== -->
-  <div id="albumPhotosModal" class="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-3 sm:p-5 hidden">
+  <div id="albumPhotosModal" role="dialog" aria-modal="true" aria-labelledby="modalAlbumTitle" class="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-3 sm:p-5 hidden">
     <div class="bg-white rounded-3xl max-w-4xl w-full h-[90vh] flex flex-col p-4 sm:p-6 shadow-2xl relative">
       <div class="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
         <div class="flex items-center gap-2 min-w-0">
@@ -7352,7 +7370,7 @@ video {
   <!-- ==================== 桃子腳幼兒園 完整 Google Drive 照片連結彈窗 ==================== -->
   <!-- ==================== 訂閱行事曆說明視窗 ==================== -->
   <!-- 幼小銜接「列印」面板：四種列印集中在這裡（直式：計畫清單；橫式：好習慣打卡表） -->
-  <div id="trPrintModal" class="fixed inset-0 z-60 modal-backdrop flex items-center justify-center p-3 sm:p-5 hidden select-none" onclick="if(event.target===this)closeTrPrintPanel()">
+  <div id="trPrintModal" role="dialog" aria-modal="true" aria-labelledby="trPrintTitle" class="fixed inset-0 z-60 modal-backdrop flex items-center justify-center p-3 sm:p-5 hidden select-none" onclick="if(event.target===this)closeTrPrintPanel()">
     <div class="bg-white rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl relative border border-slate-100 flex flex-col gap-3 max-h-[88vh] overflow-y-auto" onclick="event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="trPrintTitle">
       <div class="flex items-center justify-between pb-2 border-b border-slate-100">
         <h3 id="trPrintTitle" class="text-base sm:text-lg font-black text-slate-800 flex items-center gap-2"><span aria-hidden="true">🖨️</span> <span data-i18n="transition.printPanelTitle">列印</span></h3>
@@ -7384,7 +7402,7 @@ video {
     </div>
   </div>
 
-  <div id="calendarSubscribeModal" class="fixed inset-0 z-60 modal-backdrop flex items-center justify-center p-3 sm:p-5 hidden select-none" onclick="if(event.target===this)closeCalendarSubscribe()">
+  <div id="calendarSubscribeModal" role="dialog" aria-modal="true" aria-labelledby="calSubTitle" class="fixed inset-0 z-60 modal-backdrop flex items-center justify-center p-3 sm:p-5 hidden select-none" onclick="if(event.target===this)closeCalendarSubscribe()">
     <div class="bg-white rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl relative border border-slate-100 flex flex-col gap-3 max-h-[88vh] overflow-y-auto" onclick="event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="calSubTitle">
       <div class="flex items-center justify-between pb-2 border-b border-slate-100">
         <h3 id="calSubTitle" class="text-base sm:text-lg font-black text-slate-800 flex items-center gap-2"><span>📆</span> <span data-i18n="cal.subscribeTitle">訂閱諾貝爾 A 班行事曆</span></h3>
@@ -7408,7 +7426,7 @@ video {
     </div>
   </div>
 
-  <div id="fullDriveLinksModal" class="fixed inset-0 z-60 modal-backdrop flex items-center justify-center p-3 sm:p-5 hidden select-none" onclick="handleFullDriveModalBackdrop(event)">
+  <div id="fullDriveLinksModal" role="dialog" aria-modal="true" aria-label="完整 Google Drive 照片連結" class="fixed inset-0 z-60 modal-backdrop flex items-center justify-center p-3 sm:p-5 hidden select-none" onclick="handleFullDriveModalBackdrop(event)">
     <div class="bg-white rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl relative border border-slate-100 flex flex-col gap-4 max-h-[85vh] overflow-y-auto" onclick="event.stopPropagation()">
       <!-- 標題與關閉按鈕 -->
       <div class="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
@@ -7443,7 +7461,7 @@ video {
   </div>
 
   <!-- ==================== 唱跳音符 玻璃播放視窗 ==================== -->
-  <div id="songPlayerModal" class="fixed inset-0 z-60 flex items-center justify-center p-3 sm:p-6 select-none hidden" style="background: rgba(15,23,42,0.55); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);" onclick="handleSongPlayerBackdrop(event)">
+  <div id="songPlayerModal" role="dialog" aria-modal="true" aria-labelledby="songPlayerTitle" class="fixed inset-0 z-60 flex items-center justify-center p-3 sm:p-6 select-none hidden" style="background: rgba(15,23,42,0.55); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);" onclick="handleSongPlayerBackdrop(event)">
     <div class="w-full max-w-3xl rounded-3xl border border-white/30 shadow-2xl p-3 sm:p-5 text-white flex flex-col gap-3" style="background: linear-gradient(135deg, rgba(255,255,255,0.24), rgba(255,255,255,0.08)); backdrop-filter: blur(24px) saturate(160%); -webkit-backdrop-filter: blur(24px) saturate(160%);" onclick="event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="songPlayerTitle">
       <div class="flex items-center justify-between gap-3">
         <div class="flex items-center gap-2 min-w-0 flex-wrap">
@@ -7495,7 +7513,7 @@ video {
   </div>
 
   <!-- ==================== 單張照片大圖檢視 (PHOTO VIEWER) ==================== -->
-  <div id="photoViewerModal" class="fixed inset-0 z-70 bg-black/95 flex flex-col items-center justify-between p-3 sm:p-5 select-none hidden" onclick="handlePhotoViewerBackdropClick(event)">
+  <div id="photoViewerModal" role="dialog" aria-modal="true" aria-label="照片檢視" class="fixed inset-0 z-70 bg-black/95 flex flex-col items-center justify-between p-3 sm:p-5 select-none hidden" onclick="handlePhotoViewerBackdropClick(event)">
     <!-- 頂部工具列 -->
     <div class="w-full max-w-5xl flex items-center justify-between z-20 text-white shrink-0">
       <div class="flex items-center gap-2 sm:gap-3">
@@ -7542,7 +7560,7 @@ video {
   </div>
 
   <!-- ==================== 編輯相簿 Modal (ALBUM MODAL) ==================== -->
-  <div id="editAlbumModal" class="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-3 sm:p-5 hidden">
+  <div id="editAlbumModal" role="dialog" aria-modal="true" aria-label="編輯活動相簿資訊" class="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-3 sm:p-5 hidden">
     <div class="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-4 relative border border-slate-200">
       <button onclick="closeEditAlbumModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-base tap-bounce">
         ✕
@@ -7912,6 +7930,7 @@ video {
           loading: "正在連線至雲端讀取最新資料庫，請稍候...",
           logoAlt: "三之三生命教育基金會",
           linkedSubtitle: "生活動態與餐點資訊",
+          skipToMain: '跳到主要內容',
           calDotNobel: "諾貝爾 A 班活動",
           calDotSchool: "全園活動",
           calDotClass: "班級主題",
@@ -8269,6 +8288,7 @@ video {
           loading: "Connecting to the cloud to load the latest data...",
           logoAlt: "3&3 Life Education Foundation",
           linkedSubtitle: "Daily activities & meal information",
+          skipToMain: 'Skip to main content',
           calDotNobel: "Nobel A class event",
           calDotSchool: "School-wide event",
           calDotClass: "Class theme",
@@ -11550,24 +11570,27 @@ video {
     }
 
     // 日期格給輔助科技唸的名稱，例如「11 月 16 日（一），今天，已選取，2 項活動，有菜單」
-    function calendarDayLabel(dayStr, eventCount, hasMenu, isToday, isSelected) {
+    function calendarDayLabel(dayStr, eventCount, hasMenu, isToday, isSelected, kinds) {
       const p = String(dayStr).split('-').map(Number);
       const dow = new Date(p[0], p[1] - 1, p[2]).getDay();
       const en = state.lang === 'en';
       const parts = [];
+      const kindText = (kinds && kinds.length) ? kinds.join(en ? ', ' : '、') : '';
       if (en) {
         const mNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
         parts.push(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][dow] + ', ' + mNames[p[1] - 1] + ' ' + p[2]);
         if (isToday) parts.push('today');
         if (isSelected) parts.push('selected');
-        if (eventCount > 0) parts.push(eventCount + (eventCount === 1 ? ' event' : ' events'));
+        if (eventCount > 0) parts.push(eventCount + (eventCount === 1 ? ' event' : ' events') + (kindText ? ' (' + kindText + ')' : ''));
+        else if (kindText) parts.push(kindText);
         if (hasMenu) parts.push('menu');
         return parts.join(', ');
       }
       parts.push(p[1] + ' 月 ' + p[2] + ' 日（' + '日一二三四五六'.charAt(dow) + '）');
       if (isToday) parts.push('今天');
       if (isSelected) parts.push('已選取');
-      if (eventCount > 0) parts.push(eventCount + ' 項活動');
+      if (eventCount > 0) parts.push(eventCount + ' 項活動' + (kindText ? '（' + kindText + '）' : ''));
+      else if (kindText) parts.push(kindText);
       if (hasMenu) parts.push('有菜單');
       return parts.join('，');
     }
@@ -11627,7 +11650,6 @@ video {
         cell.setAttribute('role', 'button');
         cell.setAttribute('data-date', dayStr);
         cell.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
-        cell.setAttribute('aria-label', calendarDayLabel(dayStr, dayEvents.length, !!dayMenu && !isWeekend, dayStr === getTodayDateStr(), isSelected));
 
         // 基本外觀 class
         let cellClasses = 'min-h-[58px] sm:min-h-[68px] p-1 sm:p-1.5 rounded-2xl font-bold text-xs flex flex-col justify-between transition-all cursor-pointer tap-bounce border ';
@@ -11669,22 +11691,29 @@ video {
 
         // 1. 諾貝爾 A 班愛心標示
         if (hasNobelA) {
-          badgesHtml += '<span class="inline-flex leading-none select-none" title="' + esc(t('ui.calDotNobel')) + '">' + stickerSvg('heart', 'sticker-sm w-3 h-3') + '</span>';
+          badgesHtml += '<span class="inline-flex leading-none select-none" aria-hidden="true" title="' + esc(t('ui.calDotNobel')) + '">' + stickerSvg('heart', 'sticker-sm w-3 h-3') + '</span>';
         }
 
         // 2. 三大活動類別專屬圓點
         // 全園活動：🟢 活力青綠 (bg-emerald-500)
         if (isWholeSchool) {
-          badgesHtml += '<span class="w-2 h-2 rounded-full bg-emerald-500 ring-1 ring-white" title="' + esc(t('ui.calDotSchool')) + '"></span>';
+          badgesHtml += '<span class="w-2 h-2 rounded-full bg-emerald-500 ring-1 ring-white" aria-hidden="true" title="' + esc(t('ui.calDotSchool')) + '"></span>';
         }
         // 班級主題：💛 金黃暖陽
         if (isClassTheme) {
-          badgesHtml += '<span class="w-2 h-2 rounded-full bg-amber-400 ring-1 ring-white" title="' + esc(t('ui.calDotClass')) + '"></span>';
+          badgesHtml += '<span class="w-2 h-2 rounded-sm bg-amber-400 ring-1 ring-white" aria-hidden="true" title="' + esc(t('ui.calDotClass')) + '"></span>';
         }
         // 重要活動：🔥 珊瑚櫻紅
         if (isImportant) {
-          badgesHtml += '<span class="w-2 h-2 rounded-full bg-rose-500 ring-1 ring-white" title="' + esc(t('ui.calDotImportant')) + '"></span>';
+          badgesHtml += '<span class="w-2 h-2 rotate-45 bg-rose-500 ring-1 ring-white" aria-hidden="true" title="' + esc(t('ui.calDotImportant')) + '"></span>';
         }
+
+        const kinds = [];
+        if (hasNobelA) kinds.push(t('ui.calDotNobel'));
+        if (isWholeSchool) kinds.push(t('ui.calDotSchool'));
+        if (isClassTheme) kinds.push(t('ui.calDotClass'));
+        if (isImportant) kinds.push(t('ui.calDotImportant'));
+        cell.setAttribute('aria-label', calendarDayLabel(dayStr, dayEvents.length, !!dayMenu && !isWeekend, dayStr === getTodayDateStr(), isSelected, kinds));
 
         badgesHtml += '</div>';
 
@@ -12430,7 +12459,7 @@ video {
 
             <div class="pt-2.5 pb-0.5 px-1">
               <div class="flex items-center gap-1.5 min-w-0">
-                <h4 class="font-black text-slate-800 text-sm line-clamp-2 break-words" title="${esc(tx(alb.title))}">${esc(tx(alb.title))}</h4>
+                <h3 class="font-black text-slate-800 text-sm line-clamp-2 break-words" title="${esc(tx(alb.title))}">${esc(tx(alb.title))}</h3>
                 ${newBadgeHtml(alb.updatedAt)}
               </div>
             </div>
@@ -13148,7 +13177,7 @@ video {
             getDocMultiIconHtml(docFiles.length) +
             '<div class="min-w-0">' +
             '<div class="flex items-center gap-2 flex-wrap">' +
-            '<h4 class="font-black text-slate-800 text-sm sm:text-base">' + (esc(tx(doc.fileName)) || (en ? 'Untitled Document' : '未命名文件')) + '</h4>' +
+            '<h3 class="font-black text-slate-800 text-sm sm:text-base">' + (esc(tx(doc.fileName)) || (en ? 'Untitled Document' : '未命名文件')) + '</h3>' +
             '<span class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-indigo-100 text-indigo-800">' + (esc(tn(doc.category)) || (en ? 'General' : '一般')) + '</span>' +
             '<span class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-slate-100 text-slate-600">' + (en ? docFiles.length + ' files' : docFiles.length + ' 個檔案') + '</span>' +
             pinBadgeHtml(doc) +
@@ -13179,7 +13208,7 @@ video {
           getDocFileIconHtml(doc) +
           '<div>' +
           '<div class="flex items-center gap-2 flex-wrap">' +
-          '<h4 class="font-black text-slate-800 text-sm sm:text-base">' + (esc(tx(doc.fileName)) || (state.lang === 'en' ? 'Untitled Document' : '未命名文件')) + '</h4>' +
+          '<h3 class="font-black text-slate-800 text-sm sm:text-base">' + (esc(tx(doc.fileName)) || (state.lang === 'en' ? 'Untitled Document' : '未命名文件')) + '</h3>' +
           '<span class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-indigo-100 text-indigo-800">' + (esc(tn(doc.category)) || (state.lang === 'en' ? 'General' : '一般')) + '</span>' +
           pinBadgeHtml(doc) +
           newBadgeHtml(doc.updatedAt) +
@@ -19839,6 +19868,37 @@ video {
 
 
     // 全域 Toast 通知
+    // 彈出視窗（role="dialog"）：開啟時記下是誰開的、焦點移進視窗；關閉時焦點還給原本的按鈕（無障礙 2.4.3）
+    function dialogIsOpen(el) {
+      return !!el && !(el.classList && el.classList.contains('hidden'));
+    }
+    function dialogToggled(el, isOpen, doc, st) {
+      if (isOpen) {
+        if (st.has(el)) return;
+        const prev = doc.activeElement;
+        st.set(el, (prev && prev !== doc.body) ? prev : null);
+        const items = Array.prototype.filter.call(el.querySelectorAll('button, [href], input:not([type=hidden]), select, textarea, [tabindex]:not([tabindex="-1"])'), function(x) { return x.offsetParent !== null; });
+        if (items.length) items[0].focus();
+        else { el.setAttribute('tabindex', '-1'); el.focus(); }
+      } else {
+        if (!st.has(el)) return;
+        const op = st.get(el);
+        st.delete(el);
+        if (op && doc.contains(op) && op.focus) op.focus();
+      }
+    }
+    function initDialogFocus() {
+      if (typeof MutationObserver === 'undefined') return;
+      const st = new Map();
+      Array.prototype.forEach.call(document.querySelectorAll('[role="dialog"]'), function(el) {
+        new MutationObserver(function() {
+          const open = dialogIsOpen(el);
+          if (open === st.has(el)) return;
+          dialogToggled(el, open, document, st);
+        }).observe(el, { attributes: true, attributeFilter: ['class'] });
+      });
+    }
+
     // 錯誤／警告類提示：報讀軟體立刻唸（role=alert），顯示時間也較長
     function isErrorToastIcon(icon) {
       return icon === '❌' || icon === '⚠️' || icon === '⚠' || icon === '🔒';
@@ -19917,6 +19977,7 @@ video {
         else el.classList.add('hidden');
       }
     }
+    initDialogFocus();
     startControlNames();
     startStickerize();
   </script>
