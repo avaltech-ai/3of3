@@ -420,6 +420,18 @@ const htmlContent = `<!DOCTYPE html>
     .animate-pulse-subtle {
       animation: pulse-subtle 2.5s infinite;
     }
+    /* 鍵盤焦點框：欄位原本用 focus:outline-none 只換邊框色，不夠明顯（2.4.7）；只在鍵盤操作時畫外框 */
+    input:focus-visible, select:focus-visible, textarea:focus-visible {
+      outline: 2px solid #4338CA !important;
+      outline-offset: 1px;
+    }
+    /* 使用者設定「減少動態效果」：停掉閃爍、跳動與平滑捲動（2.3.3） */
+    @media (prefers-reduced-motion: reduce) {
+      .animate-ping, .animate-pulse, .animate-bounce, .animate-pulse-subtle { animation: none !important; }
+      html { scroll-behavior: auto !important; }
+    }
+    /* 小按鈕的點擊範圍至少 24×24px（2.5.8） */
+    .tap-min { min-height: 24px; min-width: 24px; }
     .aspect-square {
       aspect-ratio: 1 / 1 !important;
     }
@@ -970,7 +982,7 @@ const htmlContent = `<!DOCTYPE html>
             <button type="button" onclick="printWeekMenu()" id="btnPrintWeekMenu" class="text-xs text-slate-600 font-bold px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-200 tap-bounce flex items-center gap-1 cursor-pointer">
               <span>🖨️</span> <span data-i18n="cal.printWeekMenu">列印本週菜單</span>
             </button>
-            <button onclick="setCalViewMode('day')" data-i18n="cal.backToDayView" class="text-xs text-peach-600 font-bold hover:underline">
+            <button onclick="setCalViewMode('day')" data-i18n="cal.backToDayView" class="text-xs text-peach-600 font-bold hover:underline tap-min">
               返回單日點選
             </button>
           </div>
@@ -986,7 +998,7 @@ const htmlContent = `<!DOCTYPE html>
           <h4 class="text-base font-black text-slate-800 flex items-center gap-2">
             ${stickerSvg('calMonth', 'sticker-sm w-5 h-5')} <span id="monthViewTitle">2026年10月份 全月重點活動列表</span>
           </h4>
-          <button onclick="setCalViewMode('day')" data-i18n="cal.backToDayView" class="text-xs text-peach-600 font-bold hover:underline">
+          <button onclick="setCalViewMode('day')" data-i18n="cal.backToDayView" class="text-xs text-peach-600 font-bold hover:underline tap-min">
             返回單日點選
           </button>
         </div>
@@ -1042,7 +1054,7 @@ const htmlContent = `<!DOCTYPE html>
           <div class="flex items-center gap-2">
             <span id="albumFilterCountText" class="font-bold text-slate-700">共 0 本相簿</span>
           </div>
-          <button id="btnResetAlbumFilters" onclick="resetAlbumFilters()" class="text-teal-600 hover:text-teal-800 font-bold hover:underline flex items-center gap-1 tap-bounce">
+          <button id="btnResetAlbumFilters" onclick="resetAlbumFilters()" class="text-teal-600 hover:text-teal-800 font-bold hover:underline flex items-center gap-1 tap-bounce tap-min">
             <span>🔄</span> <span data-i18n="albums.resetBtn">重設</span>
           </button>
         </div>
@@ -1110,11 +1122,11 @@ const htmlContent = `<!DOCTYPE html>
         <div class="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-500">
           <div class="flex items-center gap-2">
             <span id="songFilterCountText" class="font-bold text-slate-700">共 0 首歌曲</span>
-            <button type="button" id="btnToggleSelectAllFiltered" onclick="toggleSelectAllFilteredSongs()" class="text-xs font-bold text-fuchsia-600 hover:text-fuchsia-800 bg-fuchsia-50 hover:bg-fuchsia-100 px-2.5 py-0.5 rounded-full transition-colors cursor-pointer tap-bounce">
+            <button type="button" id="btnToggleSelectAllFiltered" onclick="toggleSelectAllFilteredSongs()" class="text-xs font-bold text-fuchsia-600 hover:text-fuchsia-800 bg-fuchsia-50 hover:bg-fuchsia-100 px-2.5 py-0.5 rounded-full transition-colors cursor-pointer tap-bounce tap-min">
               <span data-i18n="songs.selectAll">全選目前歌曲</span>
             </button>
           </div>
-          <button onclick="resetSongFilters()" class="text-fuchsia-600 hover:text-fuchsia-800 font-bold hover:underline flex items-center gap-1 tap-bounce">
+          <button onclick="resetSongFilters()" class="text-fuchsia-600 hover:text-fuchsia-800 font-bold hover:underline flex items-center gap-1 tap-bounce tap-min">
             <span>🔄</span> <span data-i18n="songs.resetBtn">重設</span>
           </button>
         </div>
@@ -1129,7 +1141,7 @@ const htmlContent = `<!DOCTYPE html>
       <div id="songsBottomPlayBar" class="skel-data fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] md:bottom-6 left-1/2 -translate-x-1/2 z-40 transition-all duration-300">
         <div class="bg-white/95 backdrop-blur-md border border-fuchsia-200/90 shadow-xl rounded-full px-3.5 py-1.5 sm:px-4 sm:py-2 flex items-center gap-3 sm:gap-3.5">
           <!-- 左側：勾選統計與核取方塊 -->
-          <label for="bottomBarSelectAllCheckbox" class="flex items-center gap-2 cursor-pointer select-none">
+          <label for="bottomBarSelectAllCheckbox" class="flex items-center gap-2 cursor-pointer select-none tap-min">
             <input type="checkbox" id="bottomBarSelectAllCheckbox" onchange="handleBottomBarSelectAllChange(event)" class="w-4 h-4 rounded text-fuchsia-600 accent-fuchsia-500 cursor-pointer" title="全選/取消全選" data-i18n-title="songs.selectAllTitle">
             <span id="bottomBarSelectedCount" class="text-xs sm:text-sm font-bold text-slate-700 whitespace-nowrap">已選取 0 首</span>
           </label>
@@ -6012,7 +6024,7 @@ const htmlContent = `<!DOCTYPE html>
       renderMobileBottomNav();
       // 進入後台頁籤：依目前的子面板重畫列表（避免顯示先前用空資料畫的舊清單）
       if (tabName === 'admin' && state.adminPassword) { try { switchAdminSubtab(state.currentAdminSubtab || 'events'); } catch (e) {} }
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: smoothBehavior() });
     }
 
     // ==================== 焦點活動媒體與輪播輔助函式 ====================
@@ -6422,6 +6434,9 @@ const htmlContent = `<!DOCTYPE html>
     function prefersReducedMotion() {
       try { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (e) { return false; }
     }
+
+    // 捲動方式：使用者設定「減少動態效果」就不要平滑捲動
+    function smoothBehavior() { return prefersReducedMotion() ? 'auto' : 'smooth'; }
 
     function spotlightShouldWait() {
       return isSpotlightHovered || spotlightFocusInside || spotlightUserPaused;
@@ -7164,7 +7179,7 @@ const htmlContent = `<!DOCTYPE html>
       // 平滑滑動至連動區段
       const el = document.getElementById('linkedContentSection');
       if (el && window.innerWidth < 768) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        el.scrollIntoView({ behavior: smoothBehavior(), block: 'start' });
       }
       if (hadFocus) {
         const cell = document.querySelector('#calendarGrid [data-date="' + dateStr + '"]');
@@ -8639,7 +8654,7 @@ const htmlContent = `<!DOCTYPE html>
     }
     function trShowForm(wrapId) {
       const w = document.getElementById(wrapId);
-      if (w) { w.classList.remove('hidden'); if (typeof w.scrollIntoView === 'function') { try { w.scrollIntoView({ behavior: 'smooth' }); } catch (e) {} } }
+      if (w) { w.classList.remove('hidden'); if (typeof w.scrollIntoView === 'function') { try { w.scrollIntoView({ behavior: smoothBehavior() }); } catch (e) {} } }
     }
     function trSetMode(cfg, st, mode, base, titleField, snap) {
       st.mode = mode;
@@ -8981,7 +8996,7 @@ const htmlContent = `<!DOCTYPE html>
 
     function showTaskForm() {
       const w = document.getElementById('taskFormWrap');
-      if (w) { w.classList.remove('hidden'); if (typeof w.scrollIntoView === 'function') { try { w.scrollIntoView({ behavior: 'smooth' }); } catch (e) {} } }
+      if (w) { w.classList.remove('hidden'); if (typeof w.scrollIntoView === 'function') { try { w.scrollIntoView({ behavior: smoothBehavior() }); } catch (e) {} } }
     }
 
     function openTaskForm(id, forCopy) {
@@ -9346,7 +9361,7 @@ const htmlContent = `<!DOCTYPE html>
         const cur = id ? state.docs.find(d => String(d.id) === String(id)) : null;
         setDocFormMode(cur ? 'edit' : 'new', cur);
       }
-      if (modal && typeof modal.scrollIntoView === 'function') { try { modal.scrollIntoView({ behavior: 'smooth' }); } catch (e) {} }
+      if (modal && typeof modal.scrollIntoView === 'function') { try { modal.scrollIntoView({ behavior: smoothBehavior() }); } catch (e) {} }
     }
 
     // 使用者按 ✕／取消：有未儲存的內容先確認；程式內部（儲存完成後關閉）改呼叫 closeDocEditModalNow()
@@ -10848,7 +10863,7 @@ const htmlContent = `<!DOCTYPE html>
       resetSongProgress();
       setSongFormMode('edit', song);
       const card = document.getElementById('songFormCard');
-      if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (card) card.scrollIntoView({ behavior: smoothBehavior(), block: 'start' });
     }
 
     function resetSongProgress() {
@@ -11493,7 +11508,7 @@ const htmlContent = `<!DOCTYPE html>
       document.getElementById('eventForm-date').value = '';
       document.getElementById('eventForm-endDate').value = '';
       setEventFormMode('copy', ev);
-      window.scrollTo({ top: 100, behavior: 'smooth' });
+      window.scrollTo({ top: 100, behavior: smoothBehavior() });
       try { document.getElementById('eventForm-date').focus(); } catch (e) {}
     }
 
@@ -11504,7 +11519,7 @@ const htmlContent = `<!DOCTYPE html>
       fillEventForm(ev);
       document.getElementById('eventForm-id').value = ev.id;
       setEventFormMode('edit', ev);
-      window.scrollTo({ top: 100, behavior: 'smooth' });
+      window.scrollTo({ top: 100, behavior: smoothBehavior() });
     }
 
     function fillEventForm(ev) {
@@ -13079,7 +13094,7 @@ const htmlContent = `<!DOCTYPE html>
       const formBox = document.getElementById('spAdminFormContainer');
       formBox.classList.remove('hidden');
       setSpotlightFormMode('new');
-      formBox.scrollIntoView({ behavior: 'smooth' });
+      formBox.scrollIntoView({ behavior: smoothBehavior() });
     }
 
     function openSpotlightEditForm(id) {
@@ -13115,7 +13130,7 @@ const htmlContent = `<!DOCTYPE html>
       const formBox = document.getElementById('spAdminFormContainer');
       formBox.classList.remove('hidden');
       setSpotlightFormMode('edit', sp);
-      formBox.scrollIntoView({ behavior: 'smooth' });
+      formBox.scrollIntoView({ behavior: smoothBehavior() });
     }
 
     // 再次上架的預設值：內容、圖片、停留秒數沿用；開始日＝今天、結束日留空（由老師填）、狀態啟用、排在最後
@@ -14204,7 +14219,7 @@ const htmlContent = `<!DOCTYPE html>
         const open = !!todayExpanded[key];
         details.classList.toggle('hidden', !open);
         const tg = document.createElement('button'); tg.type = 'button';
-        tg.className = 'today-toggle text-xs font-bold text-peach-600 hover:underline tap-bounce';
+        tg.className = 'today-toggle text-xs font-bold text-peach-600 hover:underline tap-bounce tap-min';
         tg.setAttribute('aria-controls', details.id);
         const summaryMenu = panel.querySelector('.today-menu');
         const sync = function() { const o = !!todayExpanded[key]; tg.textContent = o ? t('today.collapse') + ' ▴' : t('today.expand') + ' ▾'; tg.setAttribute('aria-expanded', o ? 'true' : 'false'); details.classList.toggle('hidden', !o); if (summaryMenu && details.querySelector('.today-detail-menu')) summaryMenu.classList.toggle('hidden', o); };   // 展開時隱藏摘要菜單，避免同樣的菜重複出現
@@ -15257,8 +15272,41 @@ const htmlContent = `<!DOCTYPE html>
         if (op && doc.contains(op) && op.focus) op.focus();
       }
     }
+    // 視窗開著時：Tab 只在視窗內循環（不跑到背後的頁面）；Esc 關閉最上層視窗（2.1.2／2.4.3）
+    const DIALOG_FOCUSABLE = 'button, [href], input:not([type=hidden]), select, textarea, [tabindex]:not([tabindex="-1"])';
+    const DIALOG_OWN_ESC = ['photoViewerModal', 'fullDriveLinksModal', 'albumPhotosModal', 'spotlightHistoryModal'];   // 這幾個另有自己的 Esc 處理
+    function dialogFocusables(dlg) {
+      return Array.prototype.filter.call(dlg.querySelectorAll(DIALOG_FOCUSABLE), function(x) { return x.offsetParent !== null && !x.disabled; });
+    }
+    function dialogTrapTab(e, dlg, doc) {
+      if (e.key !== 'Tab' || e.altKey || e.ctrlKey || e.metaKey) return false;
+      const items = dialogFocusables(dlg);
+      if (!items.length) { e.preventDefault(); return true; }
+      const first = items[0], last = items[items.length - 1], cur = doc.activeElement;
+      const inside = !!cur && dlg.contains(cur) && cur !== dlg;
+      if (e.shiftKey) {
+        if (!inside || cur === first) { e.preventDefault(); last.focus(); return true; }
+      } else if (!inside || cur === last) { e.preventDefault(); first.focus(); return true; }
+      return false;
+    }
+    function dialogCloseButton(dlg) {
+      const list = dlg.querySelectorAll('[onclick*="close"], [data-close]');
+      return list.length ? list[0] : null;
+    }
+    function dialogKeydown(e, doc) {
+      const open = Array.prototype.filter.call(doc.querySelectorAll('[role="dialog"]'), function(d) { return dialogIsOpen(d) && !(d.parentElement && d.parentElement.closest('[role="dialog"]')); });   // 巢狀的內層 dialog 不單獨算
+      if (!open.length) return false;
+      const top = open[open.length - 1];
+      if (e.key === 'Tab') return dialogTrapTab(e, top, doc);
+      if (e.key === 'Escape' && DIALOG_OWN_ESC.indexOf(top.id) < 0) {
+        const b = dialogCloseButton(top);
+        if (b) { e.preventDefault(); b.click(); return true; }
+      }
+      return false;
+    }
     function initDialogFocus() {
       if (typeof MutationObserver === 'undefined') return;
+      document.addEventListener('keydown', function(e) { dialogKeydown(e, document); });
       const st = new Map();
       Array.prototype.forEach.call(document.querySelectorAll('[role="dialog"]'), function(el) {
         new MutationObserver(function() {
